@@ -1004,6 +1004,23 @@ function TrendAgeModal() {
     const [infoData, setInfoData]           = useState({});   // cached info per symbol
     const [infoLoading, setInfoLoading]     = useState({});   // loading state per symbol
     const [filterMcap, setFilterMcap]       = useState("All"); // market cap filter
+
+    // ── Velocity tab state ──────────────────────────────────────────────────
+    const VV_CACHE_KEY = "ideas_hub_velocity_bulk_v1";
+    const [vvSymbol,      setVvSymbol]      = useState("");
+    const [vvCustom,      setVvCustom]      = useState("");
+    const [vvResult,      setVvResult]      = useState(null);
+    const [vvLoading,     setVvLoading]     = useState(false);
+    const [vvError,       setVvError]       = useState(null);
+    const [vvBulk,        setVvBulk]        = useState(null);   // bulk velocity results
+    const [vvBulkDate,    setVvBulkDate]    = useState("");
+    const [vvScanning,    setVvScanning]    = useState(false);
+    const [vvProgress,    setVvProgress]    = useState({ done: 0, total: 0 });
+    const [vvCacheLoading,setVvCacheLoading]= useState(false);
+    const [vvBulkError,   setVvBulkError]  = useState(null);
+    const [vvSortBy,      setVvSortBy]      = useState("opp_score");  // opp_score | rvol | velocity_score
+    const [vvFilterSig,   setVvFilterSig]   = useState("All");
+    const [vvSearch,      setVvSearch]      = useState("");
     const [allChartsMode, setAllChartsMode] = useState(false); // global all-charts view
     const [globalChartType,     setGlobalChartType]     = useState("candle");
     const [globalChartTheme,    setGlobalChartTheme]    = useState("light");
@@ -1095,6 +1112,100 @@ function TrendAgeModal() {
         try { await window.storage.set(TA_BULK_CACHE_KEY, JSON.stringify(payload)); } catch (_) {}
         setBulkStocks(results); setBulkDate(payload.date); setScanning(false);
     };
+
+    // ── Velocity functions ───────────────────────────────────────────────────
+    const analyzeSingleVelocity = async () => {
+        const ticker = (vvCustom.trim() || vvSymbol).toUpperCase();
+        if (!ticker) { setVvError("Please select or enter a symbol."); return; }
+        setVvLoading(true); setVvResult(null); setVvError(null);
+        try {
+            // Pass r2_avg from bulk cache if available
+            const cached = bulkStocks ? bulkStocks.find(s => s.symbol === ticker) : null;
+            const r2_avg = cached ? (cached.avg_r2 / 100) : 0;
+            const res = await fetch(`${baseUrl}/ideas_hub_volume_velocity_v1`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: ticker, r2_avg }),
+            });
+            if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed"); }
+            setVvResult(await res.json());
+        } catch(e) { setVvError(e.message); }
+        finally { setVvLoading(false); }
+    };
+
+    // Load cached velocity bulk results on mount
+    React.useEffect(() => {
+        if (tab !== "velocity" || vvBulk || vvScanning) return;
+        (async () => {
+            setVvCacheLoading(true);
+            try {
+                const cached = await window.storage.get(VV_CACHE_KEY);
+                if (cached) {
+                    const p = JSON.parse(cached.value);
+                    setVvBulk(p.stocks); setVvBulkDate(p.date);
+                }
+            } catch(_) {}
+            finally { setVvCacheLoading(false); }
+        })();
+    }, [tab]);
+
+    const runVelocityBulkScan = async () => {
+        setVvScanning(true); setVvBulkError(null);
+        setVvProgress({ done: 0, total: STOCK_LIST.length });
+        const results = [];
+        const BATCH = 5;
+        for (let i = 0; i < STOCK_LIST.length; i += BATCH) {
+            const batch = STOCK_LIST.slice(i, i + BATCH);
+            await Promise.all(batch.map(async (sym) => {
+                try {
+                    const cached = bulkStocks ? bulkStocks.find(s => s.symbol === sym) : null;
+                    const r2_avg = cached ? (cached.avg_r2 / 100) : 0;
+                    const res = await fetch(`${baseUrl}/ideas_hub_volume_velocity_v1`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ symbol: sym, r2_avg }),
+                    });
+                    if (res.ok) {
+                        const d = await res.json();
+                        // Merge in trend age data from bulk cache
+                        const ta = bulkStocks ? bulkStocks.find(s => s.symbol === sym) : null;
+                        results.push({
+                            symbol:         sym,
+                            name:           ta?.name || sym,
+                            // velocity data
+                            rvol:           d.rvol,
+                            rvol_fmt:       d.rvol_fmt,
+                            velocity_score: d.velocity_score,
+                            opp_score:      d.opp_score,
+                            ad_score:       d.ad_score,
+                            vol_slope_pct:  d.vol_slope_pct,
+                            price_velocity: d.price_velocity,
+                            dollar_liq_fmt: d.dollar_liq_fmt,
+                            signal:         d.signal,
+                            vol_bars:       d.vol_bars,
+                            // trend age from cache
+                            direction:      ta?.direction || "—",
+                            age:            ta?.age || "—",
+                            age_emoji:      ta?.emoji || "—",
+                            age_color:      ta?.color || "#94A3B8",
+                            avg_r2:         ta?.avg_r2 || 0,
+                        });
+                    }
+                } catch(_) {}
+                setVvProgress(p => ({ ...p, done: p.done + 1 }));
+            }));
+        }
+        results.sort((a, b) => b.opp_score - a.opp_score);
+        const payload = { stocks: results, date: new Date().toLocaleString() };
+        try { await window.storage.set(VV_CACHE_KEY, JSON.stringify(payload)); } catch(_) {}
+        setVvBulk(results); setVvBulkDate(payload.date); setVvScanning(false);
+    };
+
+    const vvFiltered = (vvBulk || [])
+        .filter(s => {
+            const mSig    = vvFilterSig === "All" || s.signal?.label === vvFilterSig;
+            const mSearch = !vvSearch || s.symbol.includes(vvSearch.toUpperCase()) || (s.name||"").toLowerCase().includes(vvSearch.toLowerCase());
+            return mSig && mSearch;
+        })
+        .sort((a, b) => b[vvSortBy] - a[vvSortBy]);
 
     // ── Derived ───────────────────────────────────────────────────────────────
     const cl     = result ? classifyTrendAge(result.r2_by_timeframe.map(t => t.r2)) : null;
@@ -1210,7 +1321,7 @@ function TrendAgeModal() {
 
             {open && (
                 <div style={taStyles.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
-                    <div style={{ ...taStyles.modal, maxWidth: tab === "bulk" ? "860px" : "580px" }}>
+                    <div style={{ ...taStyles.modal, maxWidth: tab === "bulk" ? "860px" : tab === "velocity" ? "900px" : "580px" }}>
 
                         {/* ── Header ── */}
                         <div style={taStyles.header}>
@@ -1228,7 +1339,7 @@ function TrendAgeModal() {
 
                         {/* ── Tabs ── */}
                         <div style={taStyles.tabRow}>
-                            {[["single","🔍 Single Stock"],["bulk","📊 Bulk Scan"]].map(([t, label]) => (
+                            {[["single","🔍 Single Stock"],["bulk","📊 Bulk Scan"],["velocity","⚡ Velocity"]].map(([t, label]) => (
                                 <button key={t} className="ta-tab" onClick={() => setTab(t)}
                                     style={{ ...taStyles.tab, ...(tab === t ? taStyles.tabActive : {}) }}>
                                     {label}
@@ -1717,6 +1828,296 @@ function TrendAgeModal() {
                                     {bulkError && <div style={{ ...taStyles.errorBox, marginTop: "12px" }}>{bulkError}</div>}
                                 </>
                             )}
+
+                            {/* ════════════════ VELOCITY TAB ════════════════ */}
+                            {tab === "velocity" && (
+                                <div style={{ animation: "ta-fadeUp 0.2s ease" }}>
+
+                                    {/* ── Header explanation ── */}
+                                    <div style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)", borderRadius: "12px", padding: "16px 18px", marginBottom: "18px" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                                            <span style={{ fontSize: "22px" }}>⚡</span>
+                                            <span style={{ fontSize: "15px", fontWeight: "800", color: "#fff" }}>Volume & Velocity Analyser</span>
+                                        </div>
+                                        <p style={{ fontSize: "12px", color: "#94A3B8", margin: 0, lineHeight: 1.7 }}>
+                                            R² tells you <em style={{ color: "#C4B5FD" }}>direction quality</em>. Volume tells you <em style={{ color: "#67E8F9" }}>conviction behind the move</em>.<br/>
+                                            <strong style={{ color: "#fff" }}>High R² + High RVOL + Accumulation = institutional money confirming the trend.</strong> That's where you want to be.
+                                        </p>
+                                        <div style={{ display: "flex", gap: "16px", marginTop: "12px", flexWrap: "wrap" }}>
+                                            {[
+                                                ["RVOL", "Today's vol ÷ 20-day avg. >1.5x = elevated"],
+                                                ["Velocity", "Normalised daily price movement %"],
+                                                ["A/D Score", "% of high-vol days that closed up vs down"],
+                                                ["Opp Score", "R² × 40% + Velocity × 35% + A/D × 25%"],
+                                            ].map(([k, v]) => (
+                                                <div key={k} style={{ flex: "1 1 160px" }}>
+                                                    <div style={{ fontSize: "10px", fontWeight: "700", color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.5px" }}>{k}</div>
+                                                    <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>{v}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* ── Single stock section ── */}
+                                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "14px 16px", marginBottom: "18px" }}>
+                                        <p style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A", margin: "0 0 10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                            🔍 <span>Single Stock Analysis</span>
+                                        </p>
+                                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                                            <select value={vvSymbol} onChange={e => { setVvSymbol(e.target.value); setVvCustom(""); }}
+                                                style={{ ...taStyles.select, flex: "1 1 140px" }}>
+                                                <option value="">-- Choose stock --</option>
+                                                {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                            <input placeholder="Or type symbol..." value={vvCustom}
+                                                onChange={e => { setVvCustom(e.target.value.toUpperCase()); setVvSymbol(""); }}
+                                                style={{ ...taStyles.input, flex: "1 1 120px" }} />
+                                            <button onClick={analyzeSingleVelocity} disabled={vvLoading}
+                                                style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "13px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", opacity: vvLoading ? 0.6 : 1 }}>
+                                                {vvLoading ? "Analyzing..." : "⚡ Analyze →"}
+                                            </button>
+                                        </div>
+                                        {vvError && <div style={{ ...taStyles.errorBox, marginTop: "10px" }}>{vvError}</div>}
+
+                                        {/* Single result card */}
+                                        {vvResult && (() => {
+                                            const d = vvResult;
+                                            const sig = d.signal;
+                                            const maxVol = Math.max(...d.vol_bars.map(b => b.vol), 1);
+                                            return (
+                                                <div style={{ marginTop: "14px", animation: "ta-fadeUp 0.2s ease" }}>
+                                                    {/* Signal hero */}
+                                                    <div style={{ background: sig.bg, border: `1px solid ${sig.border}`, borderRadius: "10px", padding: "14px 16px", marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+                                                        <div>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                                                <span style={{ fontSize: "20px" }}>{sig.emoji}</span>
+                                                                <span style={{ fontSize: "16px", fontWeight: "800", color: sig.color }}>{sig.label}</span>
+                                                                <span style={{ fontSize: "11px", background: "#0F172A", color: "#fff", borderRadius: "20px", padding: "2px 8px", fontWeight: "700" }}>{d.symbol}</span>
+                                                            </div>
+                                                            <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.6, maxWidth: "480px" }}>{sig.detail}</p>
+                                                        </div>
+                                                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                                            <div style={{ fontSize: "28px", fontWeight: "900", color: sig.color, lineHeight: 1 }}>{Math.round(d.opp_score)}</div>
+                                                            <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", textTransform: "uppercase" }}>Opp Score /100</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Metric grid */}
+                                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "8px", marginBottom: "12px" }}>
+                                                        {[
+                                                            ["⚡ RVOL",         d.rvol_fmt,                    d.rvol >= 2 ? "#15803D" : d.rvol >= 1.4 ? "#2563EB" : d.rvol < 0.7 ? "#DC2626" : "#475569"],
+                                                            ["📊 Vol Score",    `${Math.round(d.velocity_score)}/100`,  d.velocity_score >= 65 ? "#15803D" : d.velocity_score >= 40 ? "#2563EB" : "#DC2626"],
+                                                            ["🎯 A/D Score",    `${Math.round(d.ad_score)}%`,   d.ad_score >= 60 ? "#15803D" : d.ad_score <= 40 ? "#DC2626" : "#475569"],
+                                                            ["📈 Price Vel.",   `${d.price_velocity.toFixed(2)}%/day`, d.price_velocity >= 1.5 ? "#7C3AED" : "#475569"],
+                                                            ["📉 Vol Trend",    d.vol_slope_pct >= 0.5 ? "Rising ▲" : d.vol_slope_pct <= -0.5 ? "Falling ▼" : "Flat →", d.vol_slope_pct >= 0.5 ? "#15803D" : d.vol_slope_pct <= -0.5 ? "#DC2626" : "#94A3B8"],
+                                                            ["💧 Liquidity",    d.dollar_liq_fmt,              "#2563EB"],
+                                                        ].map(([label, val, color]) => (
+                                                            <div key={label} style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "8px 10px" }}>
+                                                                <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", marginBottom: "3px" }}>{label}</div>
+                                                                <div style={{ fontSize: "14px", fontWeight: "800", color }}>{val}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Volume sparkline — 20 bars */}
+                                                    <div style={{ background: "#0F172A", borderRadius: "10px", padding: "12px 14px" }}>
+                                                        <div style={{ fontSize: "10px", color: "#475569", fontWeight: "700", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>20-Day Volume Profile</div>
+                                                        <div style={{ display: "flex", alignItems: "flex-end", gap: "3px", height: "48px" }}>
+                                                            {d.vol_bars.map((b, i) => {
+                                                                const h = Math.max(4, Math.round((b.vol / maxVol) * 48));
+                                                                const col = b.vs_avg >= 1.5 ? (b.is_up ? "#00E5FF" : "#FF4C6A") : b.is_up ? "#22C55E" : "#EF4444";
+                                                                return (
+                                                                    <div key={i} title={`${b.vs_avg.toFixed(1)}x avg`}
+                                                                        style={{ flex: 1, height: `${h}px`, background: col, borderRadius: "2px 2px 0 0", opacity: b.vs_avg >= 1.0 ? 1 : 0.5 }} />
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <div style={{ display: "flex", gap: "12px", marginTop: "8px", flexWrap: "wrap" }}>
+                                                            {[["🟢 Up + high vol = Accumulation","#22C55E"],["🔴 Down + high vol = Distribution","#EF4444"],["🔵 Spike (1.5x+)","#00E5FF"]].map(([label,c]) => (
+                                                                <span key={label} style={{ fontSize: "10px", color: "#475569" }}>{label}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* ── Bulk scan section ── */}
+                                    <div style={{ border: "1px solid #E2E8F0", borderRadius: "12px", overflow: "hidden" }}>
+                                        {/* Bulk header */}
+                                        <div style={{ background: "#F8FAFC", padding: "12px 16px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                                            <div>
+                                                <span style={{ fontSize: "13px", fontWeight: "700", color: "#0F172A" }}>📊 Bulk Velocity Scan</span>
+                                                {vvBulkDate && <span style={{ fontSize: "11px", color: "#94A3B8", marginLeft: "8px" }}>Last: {vvBulkDate}</span>}
+                                                {!bulkStocks && <span style={{ fontSize: "11px", color: "#F59E0B", marginLeft: "8px" }}>⚠ Run the Bulk Scan (R² tab) first for best Opp Scores</span>}
+                                            </div>
+                                            <button onClick={runVelocityBulkScan} disabled={vvScanning}
+                                                style={{ background: vvScanning ? "#E2E8F0" : "#0F172A", color: vvScanning ? "#94A3B8" : "#fff", border: "none", borderRadius: "8px", padding: "7px 14px", fontSize: "12px", fontWeight: "700", cursor: vvScanning ? "not-allowed" : "pointer" }}>
+                                                {vvScanning ? `Scanning ${vvProgress.done}/${vvProgress.total}...` : (vvBulk ? "↻ Refresh" : `⚡ Run Velocity Scan (${STOCK_LIST.length} stocks)`)}
+                                            </button>
+                                        </div>
+
+                                        {/* Progress bar */}
+                                        {vvScanning && (
+                                            <div style={{ padding: "10px 16px", background: "#fff", borderBottom: "1px solid #E2E8F0" }}>
+                                                <div style={{ height: "6px", background: "#E2E8F0", borderRadius: "3px", overflow: "hidden" }}>
+                                                    <div style={{ height: "100%", width: `${Math.round(vvProgress.done / Math.max(vvProgress.total,1) * 100)}%`, background: "linear-gradient(90deg, #7C3AED, #0EA5E9)", borderRadius: "3px", transition: "width 0.3s" }} />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Cache loading */}
+                                        {vvCacheLoading && (
+                                            <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px", color: "#64748B", fontSize: "13px" }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                                    <circle cx="12" cy="12" r="10" stroke="#7C3AED" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                                </svg>
+                                                Loading saved results...
+                                            </div>
+                                        )}
+
+                                        {/* Empty state */}
+                                        {!vvCacheLoading && !vvBulk && !vvScanning && (
+                                            <div style={{ padding: "32px", textAlign: "center" }}>
+                                                <div style={{ fontSize: "36px", marginBottom: "10px" }}>⚡</div>
+                                                <p style={{ fontSize: "13px", color: "#64748B", margin: "0 0 14px", lineHeight: 1.6 }}>
+                                                    Scan all {STOCK_LIST.length} stocks for RVOL, velocity and opportunity scores.<br/>
+                                                    Results are cached — opens instantly next time.
+                                                </p>
+                                                <button onClick={runVelocityBulkScan}
+                                                    style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 22px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                                                    ⚡ Run Velocity Scan ({STOCK_LIST.length} stocks)
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {/* Results */}
+                                        {vvBulk && !vvScanning && (
+                                            <div>
+                                                {/* Signal filter chips */}
+                                                <div style={{ padding: "10px 14px 0", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                                    {["All","High Conviction","Breakout Watch","Building Momentum","Divergence ⚠","Distribution","Low Activity"].map(sig => {
+                                                        const count = sig === "All" ? vvBulk.length : vvBulk.filter(s => s.signal?.label === sig).length;
+                                                        if (sig !== "All" && count === 0) return null;
+                                                        const sigData = vvBulk.find(s => s.signal?.label === sig)?.signal;
+                                                        const isActive = vvFilterSig === sig;
+                                                        return (
+                                                            <button key={sig} onClick={() => setVvFilterSig(isActive ? "All" : sig)}
+                                                                style={{ background: isActive ? (sigData?.bg || "#0F172A") : "#F8FAFC", color: isActive ? (sigData?.color || "#fff") : "#475569", border: `1px solid ${isActive ? (sigData?.border || "#0F172A") : "#E2E8F0"}`, borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s" }}>
+                                                                {sig === "All" ? "All" : (vvBulk.find(s=>s.signal?.label===sig)?.signal?.emoji||"")} {sig} · {count}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Search + sort */}
+                                                <div style={{ padding: "10px 14px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                                                    <input placeholder="Search symbol..." value={vvSearch} onChange={e => setVvSearch(e.target.value)}
+                                                        style={{ ...taStyles.input, flex: "1 1 140px" }} />
+                                                    <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
+                                                        <span style={{ fontSize: "11px", color: "#94A3B8", alignSelf: "center", whiteSpace: "nowrap" }}>Sort by:</span>
+                                                        {[["opp_score","🎯 Opp"],["rvol","⚡ RVOL"],["velocity_score","📊 Vel"],["ad_score","📥 A/D"]].map(([key,label]) => (
+                                                            <button key={key} onClick={() => setVvSortBy(key)}
+                                                                style={{ background: vvSortBy === key ? "#0F172A" : "#F8FAFC", color: vvSortBy === key ? "#fff" : "#475569", border: "1px solid #E2E8F0", borderRadius: "6px", padding: "4px 9px", fontSize: "11px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap" }}>
+                                                                {label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Table */}
+                                                <div style={{ maxHeight: "420px", overflowY: "auto" }}>
+                                                    {/* Column headers */}
+                                                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "6px 14px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", borderBottom: "1px solid #F1F5F9", position: "sticky", top: 0 }}>
+                                                        {["Symbol","Signal","RVOL","Vel","A/D","R²","Opp","20D Vol"].map(h => (
+                                                            <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
+                                                        ))}
+                                                    </div>
+
+                                                    {vvFiltered.length === 0 && (
+                                                        <p style={{ padding: "20px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>No stocks match your filters.</p>
+                                                    )}
+
+                                                    {vvFiltered.map(stock => {
+                                                        const sig = stock.signal || {};
+                                                        const maxBarVol = Math.max(...(stock.vol_bars||[]).map(b => b.vol), 1);
+                                                        return (
+                                                            <div key={stock.symbol} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                                                                <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "9px 14px", alignItems: "center", transition: "background 0.1s" }}
+                                                                    className="ta-bulk-row">
+
+                                                                    {/* Symbol */}
+                                                                    <div>
+                                                                        <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</div>
+                                                                        <div style={{ fontSize: "9px", color: stock.age_color, fontWeight: "600" }}>{stock.age_emoji} {(stock.age||"").split("/")[0].trim()}</div>
+                                                                    </div>
+
+                                                                    {/* Signal */}
+                                                                    <div style={{ display: "flex", alignItems: "center", gap: "5px", minWidth: 0 }}>
+                                                                        <span style={{ fontSize: "13px", flexShrink: 0 }}>{sig.emoji}</span>
+                                                                        <span style={{ fontSize: "10px", fontWeight: "600", color: sig.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sig.label}</span>
+                                                                    </div>
+
+                                                                    {/* RVOL */}
+                                                                    <span style={{ fontSize: "11px", fontWeight: "700", color: stock.rvol >= 2 ? "#15803D" : stock.rvol >= 1.4 ? "#2563EB" : stock.rvol < 0.7 ? "#DC2626" : "#64748B" }}>
+                                                                        {stock.rvol_fmt}
+                                                                    </span>
+
+                                                                    {/* Velocity score */}
+                                                                    <span style={{ fontSize: "11px", fontWeight: "700", color: stock.velocity_score >= 65 ? "#15803D" : stock.velocity_score >= 40 ? "#2563EB" : "#DC2626" }}>
+                                                                        {Math.round(stock.velocity_score)}
+                                                                    </span>
+
+                                                                    {/* A/D score */}
+                                                                    <span style={{ fontSize: "11px", fontWeight: "700", color: stock.ad_score >= 60 ? "#15803D" : stock.ad_score <= 40 ? "#DC2626" : "#64748B" }}>
+                                                                        {Math.round(stock.ad_score)}%
+                                                                    </span>
+
+                                                                    {/* R² avg */}
+                                                                    <span style={{ fontSize: "11px", fontWeight: "700", color: stock.avg_r2 >= 60 ? "#15803D" : stock.avg_r2 >= 40 ? "#2563EB" : "#DC2626" }}>
+                                                                        {stock.avg_r2}%
+                                                                    </span>
+
+                                                                    {/* Opp score — big pill */}
+                                                                    <div style={{ background: sig.bg || "#F1F5F9", border: `1px solid ${sig.border || "#E2E8F0"}`, borderRadius: "20px", padding: "3px 8px", textAlign: "center" }}>
+                                                                        <span style={{ fontSize: "13px", fontWeight: "900", color: sig.color || "#475569" }}>{Math.round(stock.opp_score)}</span>
+                                                                    </div>
+
+                                                                    {/* Mini volume sparkline */}
+                                                                    <div style={{ display: "flex", alignItems: "flex-end", gap: "1px", height: "20px" }}>
+                                                                        {(stock.vol_bars || []).slice(-10).map((b, i) => {
+                                                                            const h = Math.max(2, Math.round((b.vol / maxBarVol) * 20));
+                                                                            const col = b.vs_avg >= 1.5 ? (b.is_up ? "#7C3AED" : "#EF4444") : b.is_up ? "#22C55E" : "#EF4444";
+                                                                            return <div key={i} style={{ flex: 1, height: `${h}px`, background: col, borderRadius: "1px", opacity: 0.85 }} />;
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Footer summary */}
+                                                <div style={{ padding: "8px 14px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                                                    {["High Conviction","Breakout Watch","Building Momentum","Distribution"].map(sig => {
+                                                        const count = vvBulk.filter(s => s.signal?.label === sig).length;
+                                                        const sigData = vvBulk.find(s => s.signal?.label === sig)?.signal;
+                                                        return count > 0 ? (
+                                                            <span key={sig} style={{ fontSize: "11px", color: sigData?.color || "#475569", fontWeight: "600" }}>
+                                                                {sigData?.emoji} {sig}: <strong>{count}</strong>
+                                                            </span>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {vvBulkError && <div style={{ ...taStyles.errorBox, margin: "12px" }}>{vvBulkError}</div>}
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>
