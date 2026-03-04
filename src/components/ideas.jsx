@@ -1021,6 +1021,8 @@ function TrendAgeModal() {
     const [vvSortBy,      setVvSortBy]      = useState("opp_score");  // opp_score | rvol | velocity_score
     const [vvFilterSig,   setVvFilterSig]   = useState("All");
     const [vvSearch,      setVvSearch]      = useState("");
+    const [vvChartOpen,   setVvChartOpen]   = useState({});   // per-row chart toggle in velocity bulk
+    const [vvLegendOpen,  setVvLegendOpen]  = useState(false); // signal legend panel
     const [allChartsMode, setAllChartsMode] = useState(false); // global all-charts view
     const [globalChartType,     setGlobalChartType]     = useState("candle");
     const [globalChartTheme,    setGlobalChartTheme]    = useState("light");
@@ -1858,9 +1860,73 @@ function TrendAgeModal() {
                                         </div>
                                     </div>
 
+                                    {/* ── Signal legend ── */}
+                                    <div style={{ marginBottom: "14px" }}>
+                                        <button onClick={() => setVvLegendOpen(o => !o)}
+                                            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", padding: "0", marginBottom: vvLegendOpen ? "10px" : "0" }}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ transition: "transform 0.2s", transform: vvLegendOpen ? "rotate(180deg)" : "rotate(0)" }}>
+                                                <polyline points="6 9 12 15 18 9" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                            <span style={{ fontSize: "11px", fontWeight: "700", color: "#60A5FA" }}>
+                                                {vvLegendOpen ? "Hide" : "Show"} signal guide — what do these classifications mean?
+                                            </span>
+                                        </button>
+
+                                        {vvLegendOpen && (
+                                            <div style={{ background: "#F8FAFF", border: "1px solid #BFDBFE", borderRadius: "12px", padding: "14px 16px", animation: "ta-fadeUp 0.15s ease" }}>
+                                                <p style={{ fontSize: "11px", color: "#60A5FA", fontWeight: "700", margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Signal Classifications — Quick Reference</p>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                    {[
+                                                        { emoji:"🔥", label:"High Conviction",   color:"#15803D", bg:"#DCFCE7", border:"#86EFAC",
+                                                          when:"R² high + RVOL ≥1.4x + A/D ≥55%",
+                                                          meaning:"Institutions confirming the trend. Strong clarity + elevated volume + accumulation dominant.",
+                                                          action:"Best setup. Look for entries on pullbacks. Size up." },
+                                                        { emoji:"🚀", label:"Breakout Watch",     color:"#7C3AED", bg:"#EDE9FE", border:"#C4B5FD",
+                                                          when:"RVOL ≥2.0x + R² still low/early",
+                                                          meaning:"Volume spiking before trend forms. Classic early breakout pattern — institutions accumulating before the move is obvious.",
+                                                          action:"Don't chase. Wait for R² to rise over next few sessions then confirm entry." },
+                                                        { emoji:"📈", label:"Building Momentum",  color:"#2563EB", bg:"#DBEAFE", border:"#93C5FD",
+                                                          when:"Opp score ≥55 + RVOL ≥1.1x",
+                                                          meaning:"Moderate trend + above-average volume. Pieces assembling but not at full conviction yet.",
+                                                          action:"Add to watchlist. If RVOL and R² both rise next scan, consider entry." },
+                                                        { emoji:"⚠️", label:"Divergence",          color:"#D97706", bg:"#FEF9C3", border:"#FDE047",
+                                                          when:"R² ≥0.55 + RVOL <0.8x",
+                                                          meaning:"Clean price trend but volume drying up. Trend running out of fuel — price moves but fewer participants behind it.",
+                                                          action:"Tighten stops. Don't add. Watch for volume to return or price to break structure." },
+                                                        { emoji:"🌊", label:"Distribution",        color:"#DC2626", bg:"#FEE2E2", border:"#FCA5A5",
+                                                          when:"RVOL ≥1.3x + A/D <35%",
+                                                          meaning:"High volume but concentrated on down days. Smart money selling into strength (distributing to retail). Classic topping pattern.",
+                                                          action:"Avoid longs. Reduce existing positions. High reversal risk." },
+                                                        { emoji:"😴", label:"Low Activity",        color:"#64748B", bg:"#F1F5F9", border:"#CBD5E1",
+                                                          when:"RVOL <0.7x + Velocity <35",
+                                                          meaning:"Below-average volume, low price movement. No institutional interest visible. Market asleep.",
+                                                          action:"Skip. Deploy capital elsewhere. Revisit when volume picks up." },
+                                                        { emoji:"🔍", label:"Mixed / Noise",       color:"#64748B", bg:"#F8FAFC", border:"#E2E8F0",
+                                                          when:"No dominant pattern",
+                                                          meaning:"Metrics don't tell a coherent story. Could be transitioning between phases or reacting to a one-off event.",
+                                                          action:"No edge. Wait for a cleaner signal." },
+                                                    ].map(s => (
+                                                        <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: "10px", padding: "10px 12px" }}>
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "7px", flexWrap: "wrap", marginBottom: "4px" }}>
+                                                                <span style={{ fontSize: "16px" }}>{s.emoji}</span>
+                                                                <span style={{ fontSize: "12px", fontWeight: "800", color: s.color }}>{s.label}</span>
+                                                                <span style={{ fontSize: "10px", background: "rgba(0,0,0,0.06)", color: s.color, borderRadius: "4px", padding: "1px 7px", fontWeight: "600", fontFamily: "monospace" }}>{s.when}</span>
+                                                            </div>
+                                                            <p style={{ fontSize: "11px", color: "#475569", margin: "0 0 3px", lineHeight: 1.55 }}>{s.meaning}</p>
+                                                            <p style={{ fontSize: "11px", color: s.color, fontWeight: "700", margin: 0 }}>→ {s.action}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p style={{ fontSize: "10px", color: "#93C5FD", margin: "10px 0 0", lineHeight: 1.6 }}>
+                                                    <strong>Opp Score formula:</strong> R²avg × 40% + Velocity Score × 35% + A/D Score × 25% — all normalised 0–100. Run R² Bulk Scan first for best accuracy.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* ── Single stock section ── */}
-                                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "14px 16px", marginBottom: "18px" }}>
-                                        <p style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A", margin: "0 0 10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "12px", padding: "14px 16px", marginBottom: "18px" }}>
+                                        <p style={{ fontSize: "12px", fontWeight: "700", color: "#1D4ED8", margin: "0 0 10px", display: "flex", alignItems: "center", gap: "6px" }}>
                                             🔍 <span>Single Stock Analysis</span>
                                         </p>
                                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -2029,8 +2095,8 @@ function TrendAgeModal() {
                                                 {/* Table */}
                                                 <div style={{ maxHeight: "420px", overflowY: "auto" }}>
                                                     {/* Column headers */}
-                                                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "6px 14px", background: "#EFF6FF", borderTop: "1px solid #BFDBFE", borderBottom: "1px solid #BFDBFE", position: "sticky", top: 0 }}>
-                                                        {["Symbol","Signal","RVOL","Vel","A/D","R²","Opp","20D Vol"].map(h => (
+                                                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 56px 60px 28px", gap: "4px", padding: "6px 14px", background: "#EFF6FF", borderTop: "1px solid #BFDBFE", borderBottom: "1px solid #BFDBFE", position: "sticky", top: 0 }}>
+                                                        {["Symbol","Signal","RVOL","Vel","A/D","R²","Opp","20D Vol",""].map(h => (
                                                             <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#60A5FA", textTransform: "uppercase" }}>{h}</span>
                                                         ))}
                                                     </div>
@@ -2042,9 +2108,11 @@ function TrendAgeModal() {
                                                     {vvFiltered.map(stock => {
                                                         const sig = stock.signal || {};
                                                         const maxBarVol = Math.max(...(stock.vol_bars||[]).map(b => b.vol), 1);
+                                                        const chartIsOpen = vvChartOpen[stock.symbol];
                                                         return (
                                                             <div key={stock.symbol} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                                                                <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "9px 14px", alignItems: "center", transition: "background 0.1s" }}
+                                                                {/* ── Row ── */}
+                                                                <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 56px 60px 28px", gap: "4px", padding: "9px 14px", alignItems: "center", transition: "background 0.1s" }}
                                                                     className="ta-bulk-row">
 
                                                                     {/* Symbol */}
@@ -2079,12 +2147,12 @@ function TrendAgeModal() {
                                                                         {stock.avg_r2}%
                                                                     </span>
 
-                                                                    {/* Opp score — big pill */}
-                                                                    <div style={{ background: sig.bg || "#F1F5F9", border: `1px solid ${sig.border || "#E2E8F0"}`, borderRadius: "20px", padding: "3px 8px", textAlign: "center" }}>
-                                                                        <span style={{ fontSize: "13px", fontWeight: "900", color: sig.color || "#475569" }}>{Math.round(stock.opp_score)}</span>
+                                                                    {/* Opp score pill */}
+                                                                    <div style={{ background: sig.bg || "#F1F5F9", border: `1px solid ${sig.border || "#E2E8F0"}`, borderRadius: "20px", padding: "3px 6px", textAlign: "center" }}>
+                                                                        <span style={{ fontSize: "12px", fontWeight: "900", color: sig.color || "#475569" }}>{Math.round(stock.opp_score)}</span>
                                                                     </div>
 
-                                                                    {/* Mini volume sparkline */}
+                                                                    {/* Mini vol sparkline */}
                                                                     <div style={{ display: "flex", alignItems: "flex-end", gap: "1px", height: "20px" }}>
                                                                         {(stock.vol_bars || []).slice(-10).map((b, i) => {
                                                                             const h = Math.max(2, Math.round((b.vol / maxBarVol) * 20));
@@ -2092,7 +2160,41 @@ function TrendAgeModal() {
                                                                             return <div key={i} style={{ flex: 1, height: `${h}px`, background: col, borderRadius: "1px", opacity: 0.85 }} />;
                                                                         })}
                                                                     </div>
+
+                                                                    {/* 📈 chart toggle */}
+                                                                    <button
+                                                                        onClick={e => { e.stopPropagation(); setVvChartOpen(p => ({ ...p, [stock.symbol]: !p[stock.symbol] })); }}
+                                                                        title="Toggle chart"
+                                                                        style={{ background: chartIsOpen ? "#1D4ED8" : "transparent", border: "1px solid", borderColor: chartIsOpen ? "#1D4ED8" : "#BFDBFE", borderRadius: "5px", padding: "3px 5px", cursor: "pointer", fontSize: "12px", color: chartIsOpen ? "#fff" : "#60A5FA", justifySelf: "center", transition: "all 0.15s", lineHeight: 1 }}>
+                                                                        📈
+                                                                    </button>
                                                                 </div>
+
+                                                                {/* ── Chart panel ── */}
+                                                                {chartIsOpen && (
+                                                                    <div style={{ borderTop: "1px solid #BFDBFE", background: "#EFF6FF", padding: "10px 14px", animation: "ta-fadeUp 0.15s ease" }}>
+                                                                        {/* Signal context strip above chart */}
+                                                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px", flexWrap: "wrap" }}>
+                                                                            <div style={{ background: sig.bg, border: `1px solid ${sig.border}`, borderRadius: "20px", padding: "3px 10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                                <span style={{ fontSize: "12px" }}>{sig.emoji}</span>
+                                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: sig.color }}>{sig.label}</span>
+                                                                            </div>
+                                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>RVOL <strong style={{ color: stock.rvol >= 1.4 ? "#15803D" : "#DC2626" }}>{stock.rvol_fmt}</strong></span>
+                                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>A/D <strong style={{ color: stock.ad_score >= 60 ? "#15803D" : stock.ad_score <= 40 ? "#DC2626" : "#64748B" }}>{Math.round(stock.ad_score)}%</strong></span>
+                                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>Opp <strong style={{ color: sig.color }}>{Math.round(stock.opp_score)}/100</strong></span>
+                                                                        </div>
+                                                                        <TradingViewChart
+                                                                            key={`vv-${stock.symbol}`}
+                                                                            symbol={stock.symbol}
+                                                                            theme="light"
+                                                                            chartType="candle"
+                                                                            interval="1d"
+                                                                            height={280}
+                                                                            fullscreenable={true}
+                                                                            onClose={() => setVvChartOpen(p => ({ ...p, [stock.symbol]: false }))}
+                                                                        />
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
