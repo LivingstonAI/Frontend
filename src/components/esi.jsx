@@ -262,7 +262,7 @@ function ChartPanel({ ticker, label, side, theme, timeframe, isFullscreen, onFul
 
     // Try backend first
     try {
-      const res = await fetch(`${baseUrl}/api/esi_ohlcv_feed_v1/`, {
+      const res = await fetch(`${baseUrl}/api/chart-data/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticker: sym, interval, range }),
@@ -442,9 +442,14 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
   const [fullscreen, setFullscreen]     = useState(null); // null | 'a' | 'b'
   const [layout, setLayout]             = useState('row');
   const [isMobile, setIsMobile]         = useState(false);
+  const userToggledLayout               = useRef(false);
 
   useEffect(() => {
-    const check = () => { const m = window.innerWidth < 700; setIsMobile(m); if (m) setLayout('col'); };
+    const check = () => {
+      const m = window.innerWidth < 700;
+      setIsMobile(m);
+      if (!userToggledLayout.current) setLayout(m ? 'col' : 'row');
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
@@ -523,7 +528,7 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
 
           {/* Layout toggle (desktop) */}
           {!isMobile && (
-            <button onClick={() => setLayout(l => l==='row'?'col':'row')} title="Toggle layout" style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:13 }}>
+            <button onClick={() => { userToggledLayout.current = true; setLayout(l => l==='row'?'col':'row'); }} title="Toggle layout" style={{ padding:'5px 10px', borderRadius:7, border:`1px solid ${t.border}`, background:t.panelBg, color:t.sub, cursor:'pointer', fontSize:13 }}>
               {layout==='row' ? '⬒' : '⬓'}
             </button>
           )}
@@ -547,7 +552,7 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
         {/* ── CHARTS ── */}
         <div style={{
           flex:1, minHeight:0, display:'flex',
-          flexDirection: fullscreen ? 'column' : (layout==='col' || isMobile) ? 'column' : 'row',
+          flexDirection: fullscreen ? 'column' : layout === 'col' ? 'column' : 'row',
           gap:8, padding:10, background:t.bg,
         }}>
           {(!fullscreen || fullscreen==='a') && (
