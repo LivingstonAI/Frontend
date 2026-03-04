@@ -1944,7 +1944,7 @@ function TrendAgeModal() {
                                     </div>
 
                                     {/* ── Bulk scan section ── */}
-                                    <div style={{ border: "1px solid #E2E8F0", borderRadius: "12px", overflow: "hidden" }}>
+                                    <div style={{ border: "1px solid #BFDBFE", borderRadius: "12px", overflow: "hidden" }}>
                                         {/* Bulk header */}
                                         <div style={{ background: "#F8FAFC", padding: "12px 16px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                                             <div>
@@ -1969,9 +1969,9 @@ function TrendAgeModal() {
 
                                         {/* Cache loading */}
                                         {vvCacheLoading && (
-                                            <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px", color: "#64748B", fontSize: "13px" }}>
+                                            <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px", color: "#1D4ED8", fontSize: "13px" }}>
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
-                                                    <circle cx="12" cy="12" r="10" stroke="#7C3AED" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                                    <circle cx="12" cy="12" r="10" stroke="#1D4ED8" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
                                                 </svg>
                                                 Loading saved results...
                                             </div>
@@ -1986,7 +1986,7 @@ function TrendAgeModal() {
                                                     Results are cached — opens instantly next time.
                                                 </p>
                                                 <button onClick={runVelocityBulkScan}
-                                                    style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 22px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                                                    style={{ background: "#1D4ED8", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 22px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
                                                     ⚡ Run Velocity Scan ({STOCK_LIST.length} stocks)
                                                 </button>
                                             </div>
@@ -2012,14 +2012,14 @@ function TrendAgeModal() {
                                                 </div>
 
                                                 {/* Search + sort */}
-                                                <div style={{ padding: "10px 14px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                                                <div style={{ padding: "10px 14px", display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", borderBottom: "1px solid #EFF6FF" }}>
                                                     <input placeholder="Search symbol..." value={vvSearch} onChange={e => setVvSearch(e.target.value)}
                                                         style={{ ...taStyles.input, flex: "1 1 140px" }} />
                                                     <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
                                                         <span style={{ fontSize: "11px", color: "#94A3B8", alignSelf: "center", whiteSpace: "nowrap" }}>Sort by:</span>
                                                         {[["opp_score","🎯 Opp"],["rvol","⚡ RVOL"],["velocity_score","📊 Vel"],["ad_score","📥 A/D"]].map(([key,label]) => (
                                                             <button key={key} onClick={() => setVvSortBy(key)}
-                                                                style={{ background: vvSortBy === key ? "#0F172A" : "#F8FAFC", color: vvSortBy === key ? "#fff" : "#475569", border: "1px solid #E2E8F0", borderRadius: "6px", padding: "4px 9px", fontSize: "11px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap" }}>
+                                                                style={{ background: vvSortBy === key ? "#1D4ED8" : "#fff", color: vvSortBy === key ? "#fff" : "#1D4ED8", border: `1px solid ${vvSortBy === key ? "#1D4ED8" : "#BFDBFE"}`, borderRadius: "6px", padding: "4px 9px", fontSize: "11px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                                                                 {label}
                                                             </button>
                                                         ))}
@@ -2029,9 +2029,9 @@ function TrendAgeModal() {
                                                 {/* Table */}
                                                 <div style={{ maxHeight: "420px", overflowY: "auto" }}>
                                                     {/* Column headers */}
-                                                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "6px 14px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", borderBottom: "1px solid #F1F5F9", position: "sticky", top: 0 }}>
+                                                    <div style={{ display: "grid", gridTemplateColumns: "52px 1fr 52px 52px 52px 52px 64px 80px", gap: "4px", padding: "6px 14px", background: "#EFF6FF", borderTop: "1px solid #BFDBFE", borderBottom: "1px solid #BFDBFE", position: "sticky", top: 0 }}>
                                                         {["Symbol","Signal","RVOL","Vel","A/D","R²","Opp","20D Vol"].map(h => (
-                                                            <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase" }}>{h}</span>
+                                                            <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#60A5FA", textTransform: "uppercase" }}>{h}</span>
                                                         ))}
                                                     </div>
 
@@ -2088,7 +2088,7 @@ function TrendAgeModal() {
                                                                     <div style={{ display: "flex", alignItems: "flex-end", gap: "1px", height: "20px" }}>
                                                                         {(stock.vol_bars || []).slice(-10).map((b, i) => {
                                                                             const h = Math.max(2, Math.round((b.vol / maxBarVol) * 20));
-                                                                            const col = b.vs_avg >= 1.5 ? (b.is_up ? "#7C3AED" : "#EF4444") : b.is_up ? "#22C55E" : "#EF4444";
+                                                                            const col = b.vs_avg >= 1.5 ? (b.is_up ? "#1D4ED8" : "#EF4444") : b.is_up ? "#22C55E" : "#EF4444";
                                                                             return <div key={i} style={{ flex: 1, height: `${h}px`, background: col, borderRadius: "1px", opacity: 0.85 }} />;
                                                                         })}
                                                                     </div>
@@ -2099,7 +2099,7 @@ function TrendAgeModal() {
                                                 </div>
 
                                                 {/* Footer summary */}
-                                                <div style={{ padding: "8px 14px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                                                <div style={{ padding: "8px 14px", background: "#EFF6FF", borderTop: "1px solid #BFDBFE", display: "flex", gap: "16px", flexWrap: "wrap" }}>
                                                     {["High Conviction","Breakout Watch","Building Momentum","Distribution"].map(sig => {
                                                         const count = vvBulk.filter(s => s.signal?.label === sig).length;
                                                         const sigData = vvBulk.find(s => s.signal?.label === sig)?.signal;
