@@ -2,48 +2,289 @@ import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Bookmark, ChevronLeft, Edit2, Trash2, Volume2, VolumeX, PlusCircle, Folder, Image, MessageSquare, Save, X, List, Grid, RefreshCw } from "react-feather";
+import { BookOpen, Bookmark, ChevronLeft, Edit2, Trash2, Volume2, VolumeX, PlusCircle, Folder, MessageSquare, Save, X, List, Grid, RefreshCw } from "react-feather";
 
-// Custom Brain Icon Component
-const BrainIcon = ({ size = 30, color = "currentColor", className = "", ...props }) => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`feather feather-brain ${className}`}
-      {...props}
-    >
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 0 19.5v-15A2.5 2.5 0 0 1 2.5 2h7z"></path>
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5h7A2.5 2.5 0 0 0 24 19.5v-15A2.5 2.5 0 0 0 21.5 2h-7z"></path>
-      <path d="M12 2v20"></path>
-      <path d="M7 7h.01"></path>
-      <path d="M17 7h.01"></path>
-      <path d="M7 12h.01"></path>
-      <path d="M17 12h.01"></path>
-      <path d="M7 17h.01"></path>
-      <path d="M17 17h.01"></path>
+const BrainIcon = ({ size = 30, color = "currentColor", className = "", ...props }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+        fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        className={`feather feather-brain ${className}`} {...props}>
+        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 0 19.5v-15A2.5 2.5 0 0 1 2.5 2h7z"/>
+        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5h7A2.5 2.5 0 0 0 24 19.5v-15A2.5 2.5 0 0 0 21.5 2h-7z"/>
+        <path d="M12 2v20"/><path d="M7 7h.01"/><path d="M17 7h.01"/>
+        <path d="M7 12h.01"/><path d="M17 12h.01"/>
+        <path d="M7 17h.01"/><path d="M17 17h.01"/>
     </svg>
-  );
-};
+);
 
-// Voice selector icon
 const MicIcon = ({ size = 24 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-    <line x1="12" y1="19" x2="12" y2="23"></line>
-    <line x1="8" y1="23" x2="16" y2="23"></line>
-  </svg>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
 );
 
 const VOICE_STORAGE_KEY = 'chill_selected_voice_name';
+
+// All critical styles as JS objects — zero CSS classname conflicts possible
+const S = {
+    // Big action buttons
+    actionBtn: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '6px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+        color: 'inherit',
+        lineHeight: 1,
+    },
+    actionBtnRed: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '6px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+        color: '#e53e3e',
+        lineHeight: 1,
+    },
+    actionBtnGreen: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '6px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+        color: '#22c55e',
+        lineHeight: 1,
+    },
+    actionBtnBlue: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '6px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: '8px',
+        color: '#1d6fd8',
+        lineHeight: 1,
+    },
+    actionRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+    },
+
+    // ── Chat window ──
+    livingstonOverlay: {
+        position: 'fixed',
+        right: '28px',
+        bottom: '28px',
+        width: '400px',
+        maxHeight: '72vh',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#ffffff',
+        border: '2px solid #1d6fd8',
+        borderRadius: '18px',
+        boxShadow: '0 12px 48px rgba(29, 111, 216, 0.22)',
+        zIndex: 9999,
+        overflow: 'hidden',
+        fontFamily: 'inherit',
+    },
+    livingstonHeader: {
+        background: 'linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%)',
+        color: '#ffffff',
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+    },
+    livingstonHeaderTitle: {
+        margin: 0,
+        fontSize: '15px',
+        fontWeight: 600,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        color: '#fff',
+    },
+    livingstonCloseBtn: {
+        background: 'rgba(255,255,255,0.18)',
+        border: 'none',
+        borderRadius: '8px',
+        color: '#fff',
+        cursor: 'pointer',
+        padding: '5px 7px',
+        display: 'inline-flex',
+        alignItems: 'center',
+    },
+    livingstonMsgsArea: {
+        flex: 1,
+        overflowY: 'auto',
+        padding: '12px 14px',
+        background: '#f7f9ff',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+    },
+    livingstonEmptyState: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '32px 16px',
+        color: '#1d6fd8',
+        textAlign: 'center',
+        gap: '12px',
+        fontSize: '14px',
+        lineHeight: '1.5',
+    },
+    livingstonMsgAI: {
+        alignSelf: 'flex-start',
+        background: 'linear-gradient(135deg, #e8f0fe 0%, #dbeafe 100%)',
+        color: '#1251a3',
+        borderLeft: '3px solid #1d6fd8',
+        borderRadius: '2px 12px 12px 2px',
+        padding: '10px 14px',
+        fontSize: '13.5px',
+        lineHeight: '1.55',
+        maxWidth: '88%',
+        wordBreak: 'break-word',
+        margin: 0,
+    },
+    livingstonMsgUser: {
+        alignSelf: 'flex-end',
+        background: '#1d6fd8',
+        color: '#ffffff',
+        borderRight: '3px solid #1251a3',
+        borderRadius: '12px 2px 2px 12px',
+        padding: '10px 14px',
+        fontSize: '13.5px',
+        lineHeight: '1.55',
+        maxWidth: '88%',
+        wordBreak: 'break-word',
+        margin: 0,
+    },
+    livingstonInputRow: {
+        display: 'flex',
+        gap: '8px',
+        padding: '12px',
+        background: '#eef3ff',
+        borderTop: '1.5px solid #bfdbfe',
+        flexShrink: 0,
+    },
+    livingstonInput: {
+        flex: 1,
+        border: '1.5px solid #93c5fd',
+        borderRadius: '8px',
+        padding: '9px 12px',
+        fontSize: '13px',
+        outline: 'none',
+        background: '#fff',
+        color: '#1a1a2e',
+        fontFamily: 'inherit',
+    },
+    livingstonSendBtn: (disabled) => ({
+        background: 'linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        padding: '9px 18px',
+        fontWeight: 700,
+        fontSize: '13px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        flexShrink: 0,
+        fontFamily: 'inherit',
+    }),
+
+    // ── Voice picker dropdown ──
+    voicePickerWrap: {
+        position: 'relative',
+        display: 'inline-flex',
+    },
+    voiceDropdown: {
+        position: 'absolute',
+        top: 'calc(100% + 10px)',
+        right: 0,
+        background: '#fff',
+        border: '2px solid #1d6fd8',
+        borderRadius: '14px',
+        boxShadow: '0 8px 36px rgba(29,111,216,0.18)',
+        zIndex: 9998,
+        minWidth: '290px',
+        maxHeight: '360px',
+        overflowY: 'auto',
+        padding: '6px 0',
+    },
+    voiceDropdownHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 14px 6px',
+        fontWeight: 700,
+        fontSize: '13px',
+        color: '#1251a3',
+        borderBottom: '1.5px solid #dbeafe',
+        marginBottom: '4px',
+    },
+    voiceCloseBtn: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: '#888',
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '2px',
+    },
+    voiceGroupLabel: {
+        padding: '4px 14px 2px',
+        fontSize: '11px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: '#6b90c9',
+    },
+    voiceOptionBtn: (isActive) => ({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        background: isActive ? '#dbeafe' : 'transparent',
+        border: 'none',
+        padding: '8px 14px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        gap: '8px',
+        fontFamily: 'inherit',
+    }),
+    voiceOptionName: (isActive) => ({
+        fontSize: '13px',
+        color: isActive ? '#1251a3' : '#333',
+        fontWeight: isActive ? 700 : 400,
+        flex: 1,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        margin: 0,
+    }),
+    voiceOptionLang: {
+        fontSize: '11px',
+        color: '#94a3b8',
+        flexShrink: 0,
+    },
+};
 
 export default function Chill() {
     const [sections, setSections] = useState([]);
@@ -68,29 +309,31 @@ export default function Chill() {
     const [imageProcess, setImageProcess] = useState('View Trading Images');
     const [viewMode, setViewMode] = useState('grid');
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Voice selection state
     const [availableVoices, setAvailableVoices] = useState([]);
     const [selectedVoiceName, setSelectedVoiceName] = useState(() => {
         try { return localStorage.getItem(VOICE_STORAGE_KEY) || ''; } catch { return ''; }
     });
     const [showVoiceSelector, setShowVoiceSelector] = useState(false);
-
+    const messagesEndRef = useRef(null);
     const navigate = useNavigate();
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
-    // Load voices and persist selection
+    // Auto-scroll chat
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    // Load browser voices
     useEffect(() => {
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
             if (voices.length > 0) {
                 setAvailableVoices(voices);
-                // If no saved voice, default to first English voice
                 if (!selectedVoiceName) {
-                    const defaultVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-                    if (defaultVoice) {
-                        setSelectedVoiceName(defaultVoice.name);
-                        try { localStorage.setItem(VOICE_STORAGE_KEY, defaultVoice.name); } catch {}
+                    const def = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                    if (def) {
+                        setSelectedVoiceName(def.name);
+                        try { localStorage.setItem(VOICE_STORAGE_KEY, def.name); } catch {}
                     }
                 }
             }
@@ -107,150 +350,99 @@ export default function Chill() {
     };
 
     useEffect(() => {
-        const fetchSections = async () => {
+        (async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${baseUrl}/fetch-chill-sections`);
-                const data = await response.json();
-                if (response.ok) {
-                    setSections(data.sections);
-                    setShowAddEntryButton(true);
-                } else {
-                    console.error(data.message);
-                }
-            } catch (error) {
-                console.error('Error fetching sections:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchSections();
+                const r = await fetch(`${baseUrl}/fetch-chill-sections`);
+                const data = await r.json();
+                if (r.ok) { setSections(data.sections); setShowAddEntryButton(true); }
+                else console.error(data.message);
+            } catch (e) { console.error('Error fetching sections:', e); }
+            finally { setLoading(false); }
+        })();
     }, []);
 
-    const fetchDataFromAPI = async () => {
-        try {
-            const response = await fetch(`${baseUrl}/get_openai_key`);
-            if (!response.ok) throw new Error("Network response was not ok");
-            const { OPENAI_API_KEY } = await response.json();
-            setOPENAI_API_KEY(OPENAI_API_KEY);
-        } catch (error) {
-            console.error("Error fetching API key:", error);
-        }
-    };
-
-    useEffect(() => { fetchDataFromAPI(); }, []);
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await fetch(`${baseUrl}/get_openai_key`);
+                if (!r.ok) throw new Error("bad response");
+                const { OPENAI_API_KEY } = await r.json();
+                setOPENAI_API_KEY(OPENAI_API_KEY);
+            } catch (e) { console.error("Error fetching API key:", e); }
+        })();
+    }, []);
 
     const fetchSectionData = async (section) => {
         try {
-            setImageViewState(false);
-            setLoading(true);
-            setShowNewEntryForm(false);
-            const response = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
-            const data = await response.json();
-            if (response.ok) {
-                setSelectedSection(data);
-                setEditedText(data.text);
-                setIsSpeaking(false);
-            } else {
-                console.error(data.message);
-            }
-        } catch (error) {
-            console.error('Error fetching section data:', error);
-        } finally {
-            setLoading(false);
-        }
+            setImageViewState(false); setLoading(true); setShowNewEntryForm(false);
+            const r = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
+            const data = await r.json();
+            if (r.ok) { setSelectedSection(data); setEditedText(data.text); setIsSpeaking(false); }
+            else console.error(data.message);
+        } catch (e) { console.error('Error fetching section data:', e); }
+        finally { setLoading(false); }
     };
 
     const handleBack = () => {
-        setChatOpen(false);
-        setSelectedSection(null);
-        setMessages([]);
-        setEditing(false);
-        setImageViewState(true);
+        setChatOpen(false); setSelectedSection(null); setMessages([]);
+        setEditing(false); setImageViewState(true);
     };
 
     const handleSave = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${baseUrl}/edit-chill-data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const r = await fetch(`${baseUrl}/edit-chill-data`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section: selectedSection.section, text: editedText }),
             });
-            const data = await response.json();
-            if (response.ok) {
-                setSelectedSection({ ...selectedSection, text: editedText });
-                setEditing(false);
-            } else {
-                console.error(data.message);
-            }
-        } catch (error) {
-            console.error('Error saving edited data:', error);
-        } finally {
-            setLoading(false);
-        }
+            const data = await r.json();
+            if (r.ok) { setSelectedSection({ ...selectedSection, text: editedText }); setEditing(false); }
+            else console.error(data.message);
+        } catch (e) { console.error('Error saving:', e); }
+        finally { setLoading(false); }
     };
 
     const handleDelete = async (section) => {
         if (!window.confirm("Are you sure you want to delete this entry?")) return;
         try {
             setLoading(true);
-            const response = await fetch(`${baseUrl}/delete-chill-entry`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const r = await fetch(`${baseUrl}/delete-chill-entry`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section }),
             });
-            const data = await response.json();
-            if (response.ok) {
-                setSections(sections.filter((s) => s.section !== section));
-                setSelectedSection(null);
-                setEditing(false);
-            } else {
-                console.error(data.message);
-            }
-        } catch (error) {
-            console.error('Error deleting entry:', error);
-        } finally {
-            setLoading(false);
-        }
+            const data = await r.json();
+            if (r.ok) { setSections(sections.filter(s => s.section !== section)); setSelectedSection(null); setEditing(false); }
+            else console.error(data.message);
+        } catch (e) { console.error('Error deleting:', e); }
+        finally { setLoading(false); }
     };
 
     const handleCreateNewEntry = async () => {
         if (!newSection.trim()) { alert("Please enter a section name"); return; }
         try {
             setLoading(true);
-            const response = await fetch(`${baseUrl}/create-chill-data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const r = await fetch(`${baseUrl}/create-chill-data`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section: newSection, text: newText }),
             });
-            const data = await response.json();
-            if (response.ok) {
+            const data = await r.json();
+            if (r.ok) {
                 setSections([...sections, { section: newSection }]);
-                setNewSection("");
-                setNewText("");
-                setShowNewEntryForm(false);
-            } else {
-                console.error(data.message);
-            }
-        } catch (error) {
-            console.error('Error creating new entry:', error);
-        } finally {
-            setLoading(false);
-        }
+                setNewSection(""); setNewText(""); setShowNewEntryForm(false);
+            } else console.error(data.message);
+        } catch (e) { console.error('Error creating:', e); }
+        finally { setLoading(false); }
     };
 
-    const renderFormattedText = (text) => {
-        const lines = text.split('\n');
-        return lines.map((line, index) => {
-            line = line.trim();
-            if (!line) return null;
-            if (line.startsWith('## ')) return <h5 key={index} className="subheading">{line.replace('##', '').trim()}</h5>;
-            else if (line.startsWith('### ')) return <p key={index} className="subpoint">{line.replace('###', '').trim()}</p>;
-            else if (line.startsWith('-> ')) return <p key={index} className="note">{line.replace('->', '').trim()}</p>;
-            else return <p key={index} className="content-text">{line}</p>;
-        });
-    };
+    const renderFormattedText = (text) => text.split('\n').map((line, i) => {
+        line = line.trim();
+        if (!line) return null;
+        if (line.startsWith('## ')) return <h5 key={i} className="subheading">{line.replace('##', '').trim()}</h5>;
+        if (line.startsWith('### ')) return <p key={i} className="subpoint">{line.replace('###', '').trim()}</p>;
+        if (line.startsWith('-> ')) return <p key={i} className="note">{line.replace('->', '').trim()}</p>;
+        return <p key={i} className="content-text">{line}</p>;
+    });
 
     const getSelectedVoice = () => {
         const voices = window.speechSynthesis.getVoices();
@@ -258,107 +450,67 @@ export default function Chill() {
     };
 
     const readTextAloud = (text) => {
-        if (!('speechSynthesis' in window)) { console.error("TTS not supported"); return; }
+        if (!('speechSynthesis' in window)) return;
         window.speechSynthesis.cancel();
-        const cleanText = text.replace(/#{1,3}/g, '');
-        const utterance = new SpeechSynthesisUtterance(cleanText);
+        const utt = new SpeechSynthesisUtterance(text.replace(/#{1,3}/g, ''));
         const voice = getSelectedVoice();
-        if (voice) utterance.voice = voice;
-        utterance.volume = 1;
-        utterance.pitch = 1;
-        utterance.rate = 1;
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        if (voice) utt.voice = voice;
+        utt.volume = 1; utt.pitch = 1; utt.rate = 1;
+        utt.onend = () => setIsSpeaking(false);
+        utt.onerror = () => setIsSpeaking(false);
         setIsSpeaking(true);
-        window.speechSynthesis.speak(utterance);
+        window.speechSynthesis.speak(utt);
     };
 
-    const stopSpeech = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-            setIsSpeaking(false);
-        }
-    };
+    const stopSpeech = () => { window.speechSynthesis.cancel(); setIsSpeaking(false); };
 
     const fetchImages = async () => {
         setImageProcess('Fetching Images...');
         try {
-            const response = await fetch(`${baseUrl}/fetch-trading-images`);
-            const data = await response.json();
-            if (response.ok) {
-                setImageFolders(prev => JSON.stringify(prev) !== JSON.stringify(data.folders) ? data.folders : prev);
+            const r = await fetch(`${baseUrl}/fetch-trading-images`);
+            const data = await r.json();
+            if (r.ok) {
+                setImageFolders(p => JSON.stringify(p) !== JSON.stringify(data.folders) ? data.folders : p);
                 setImageProcess('View Trading Images');
-            } else {
-                console.error(data.error);
-                alert('Error fetching images.');
-                setImageProcess('View Trading Images');
-            }
-        } catch (error) {
-            console.error("Error fetching images:", error);
-            alert('Error fetching images.');
-            setImageProcess('View Trading Images');
-        }
+            } else { alert('Error fetching images.'); setImageProcess('View Trading Images'); }
+        } catch { alert('Error fetching images.'); setImageProcess('View Trading Images'); }
     };
-
-    const handleFolderClick = (folder) => { setSelectedFolder(folder); setFolderState(true); };
-    const closeFolder = () => setFolderState(false);
-    const handleImageClick = (imageData) => setExpandedImage(imageData);
-    const handleCloseExpandedImage = () => setExpandedImage(null);
-    const cleanText = (text) => text.replace(/#{1,3}/g, '');
-
-    const quizMe = async () => {
-        try {
-            await navigator.clipboard.writeText(cleanText(editedText));
-            navigate('/quizifier');
-        } catch (error) {
-            console.error("Failed to copy text or open the link:", error);
-        }
-    };
-
-    const handleHelperClick = () => setChatOpen(true);
 
     const handleSendMessage = async (input) => {
         if (!input.trim()) return;
         setUserInput('');
         setMessages(prev => [...prev, { role: "user", content: input }]);
         try {
-            const response = await askAIHelper(selectedSection, input);
-            setMessages(prev => [...prev, { role: "assistant", content: response }]);
-        } catch (error) {
-            console.error("Error getting AI response:", error);
+            const r = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: "Bearer " + OPENAI_API_KEY },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: `You are an AI expert called Livingston. Answer questions for the following section: ${editedText}. This is a trading platform.` },
+                        { role: "user", content: input },
+                    ],
+                }),
+            });
+            const data = await r.json();
+            setMessages(prev => [...prev, { role: "assistant", content: data.choices[0].message.content }]);
+        } catch {
             setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I encountered an error. Please try again." }]);
         }
     };
 
-    const askAIHelper = async (sectionData, input) => {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: "Bearer " + OPENAI_API_KEY },
-            body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: `Hello! My name is Tlotlo Motingwe and I am 21 years old. I am the creator of this snowAI system, a private trading system to make my trading efficient. I am learning Korean and Chinese. I practice Shotokan and Taekwondo. I am a guitar player. I also am a kpop dancer. The system is very complex, but your job here is to answer my questions based on the data I provide you. I also aim to manage a hedge fund in the future :). Let's make magic together! You are an AI expert called Livingston and answer questions for the following section: ${editedText}. This is a trading platform.` },
-                    { role: "user", content: input },
-                ],
-            }),
-        });
-        const data = await response.json();
-        return data.choices[0].message.content;
+    const quizMe = async () => {
+        try { await navigator.clipboard.writeText(editedText.replace(/#{1,3}/g, '')); navigate('/quizifier'); }
+        catch (e) { console.error(e); }
     };
 
-    const filteredSections = sections.filter(section =>
-        section.section.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // English-only voices grouped by language for the selector
+    const filteredSections = sections.filter(s => s.section.toLowerCase().includes(searchQuery.toLowerCase()));
     const englishVoices = availableVoices.filter(v => v.lang.startsWith('en'));
     const otherVoices = availableVoices.filter(v => !v.lang.startsWith('en'));
 
     return (
         <div className="chill-container">
-            <div className="header">
-                <Header />
-            </div>
+            <div className="header"><Header /></div>
             <div className="main-page-body">
                 <SideNavs />
                 <div className="main-body-info">
@@ -372,43 +524,53 @@ export default function Chill() {
                             <div className="chill-subtitle">Comprehensive Hybrid Interface for Learning & Logging</div>
                         </div>
 
-                        {/* ── CHAT WINDOW ── right-aligned, blue/white */}
+                        {/* ═══════════════════════════════════════════
+                            LIVINGSTON CHAT — fixed bottom-right
+                            All styles are inline JS objects.
+                            Zero CSS class conflicts possible.
+                        ═══════════════════════════════════════════ */}
                         {chatOpen && (
-                            <div className="chat-window chat-window--blue">
-                                <div className="chat-header chat-header--blue">
-                                    <h4><MessageSquare size={22} /> Livingston AI Assistant</h4>
-                                    <button onClick={() => setChatOpen(false)} className="close-btn close-btn--blue">
-                                        <X size={22} />
+                            <div style={S.livingstonOverlay}>
+                                <div style={S.livingstonHeader}>
+                                    <h4 style={S.livingstonHeaderTitle}>
+                                        <MessageSquare size={20} /> Livingston AI Assistant
+                                    </h4>
+                                    <button style={S.livingstonCloseBtn} onClick={() => setChatOpen(false)}>
+                                        <X size={20} />
                                     </button>
                                 </div>
-                                <div className="messages-container">
+
+                                <div style={S.livingstonMsgsArea}>
                                     {messages.length === 0 ? (
-                                        <div className="empty-chat empty-chat--blue">
+                                        <div style={S.livingstonEmptyState}>
                                             <BrainIcon size={44} color="#1d6fd8" />
-                                            <p>Ask Livingston about this section. The AI will analyze the content and provide insights.</p>
+                                            <p style={{ margin: 0 }}>
+                                                Ask Livingston about this section.<br />
+                                                The AI will analyze the content and provide insights.
+                                            </p>
                                         </div>
                                     ) : (
-                                        <div className="messages">
-                                            {messages.map((msg, idx) => (
-                                                <div key={idx} className={`message message--${msg.role === 'assistant' ? 'blue' : 'user'} ${msg.role}`}>
-                                                    <div className="message-content">{msg.content}</div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        messages.map((msg, idx) => (
+                                            <div key={idx} style={msg.role === 'assistant' ? S.livingstonMsgAI : S.livingstonMsgUser}>
+                                                {msg.content}
+                                            </div>
+                                        ))
                                     )}
+                                    <div ref={messagesEndRef} />
                                 </div>
-                                <div className="chat-input-container chat-input-container--blue">
+
+                                <div style={S.livingstonInputRow}>
                                     <input
+                                        style={S.livingstonInput}
                                         type="text"
                                         placeholder="Ask me something..."
-                                        className="chat-input chat-input--blue"
                                         value={userInput}
                                         onChange={(e) => setUserInput(e.target.value)}
                                         onKeyDown={(e) => { if (e.key === "Enter") handleSendMessage(userInput); }}
                                     />
                                     <button
+                                        style={S.livingstonSendBtn(!userInput.trim())}
                                         onClick={() => handleSendMessage(userInput)}
-                                        className="send-btn send-btn--blue"
                                         disabled={!userInput.trim()}
                                     >
                                         Send
@@ -425,35 +587,23 @@ export default function Chill() {
                                         {imageProcess}
                                     </button>
                                     <div className="view-controls">
-                                        <button className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
-                                            <Grid size={30} />
-                                        </button>
-                                        <button className={`view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
-                                            <List size={30} />
-                                        </button>
+                                        <button className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><Grid size={30} /></button>
+                                        <button className={`view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><List size={30} /></button>
                                     </div>
                                 </div>
-
                                 {!selectedSection && (
                                     <div className="search-container">
-                                        <input
-                                            type="text"
-                                            placeholder="Search sections..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="search-input"
-                                        />
+                                        <input type="text" placeholder="Search sections..." value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)} className="search-input" />
                                     </div>
                                 )}
-
                                 {imageFolders && (
                                     <div className="image-folders">
                                         <h6 className="section-subheading"><Folder size={30} /> Image Folders</h6>
                                         <div className="folder-grid">
-                                            {Object.keys(imageFolders).map((folder, index) => (
-                                                <button key={index} onClick={() => handleFolderClick(folder)} className="folder-btn">
-                                                    <Folder size={30} />
-                                                    <span>{folder}</span>
+                                            {Object.keys(imageFolders).map((folder, i) => (
+                                                <button key={i} onClick={() => { setSelectedFolder(folder); setFolderState(true); }} className="folder-btn">
+                                                    <Folder size={30} /><span>{folder}</span>
                                                     <span className="file-count">{imageFolders[folder].length}</span>
                                                 </button>
                                             ))}
@@ -467,13 +617,13 @@ export default function Chill() {
                             <div className="folder-view">
                                 <div className="folder-header">
                                     <h6><Folder size={30} /> {selectedFolder}</h6>
-                                    <button onClick={closeFolder} className="close-folder-btn"><X size={30} /></button>
+                                    <button onClick={() => setFolderState(false)} className="close-folder-btn"><X size={30} /></button>
                                 </div>
                                 <div className="images-grid">
-                                    {imageFolders[selectedFolder].map((imageData, index) => (
-                                        <div key={index} className="image-card" onClick={() => handleImageClick(imageData)}>
+                                    {imageFolders[selectedFolder].map((imageData, i) => (
+                                        <div key={i} className="image-card" onClick={() => setExpandedImage(imageData)}>
                                             <img src={imageData.data} alt={imageData.filename || "Trading Image"} className="image-thumbnail" />
-                                            <div className="image-name">{imageData.filename || `Image ${index + 1}`}</div>
+                                            <div className="image-name">{imageData.filename || `Image ${i + 1}`}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -481,9 +631,9 @@ export default function Chill() {
                         )}
 
                         {expandedImage && (
-                            <div className="expanded-image-overlay" onClick={handleCloseExpandedImage}>
+                            <div className="expanded-image-overlay" onClick={() => setExpandedImage(null)}>
                                 <div className="expanded-image-container" onClick={e => e.stopPropagation()}>
-                                    <button className="close-expanded-btn" onClick={handleCloseExpandedImage}><X size={30} /></button>
+                                    <button className="close-expanded-btn" onClick={() => setExpandedImage(null)}><X size={30} /></button>
                                     <img src={expandedImage.data} alt="Expanded Trading Image" className="expanded-image" />
                                     <div className="image-filename">{expandedImage.filename || "Trading Image"}</div>
                                 </div>
@@ -503,51 +653,48 @@ export default function Chill() {
                                         {selectedSection.section}
                                     </h4>
 
-                                    {/* ── ACTION BUTTONS — bigger icons ── */}
-                                    <div className="section-actions">
-                                        {/* Voice selector */}
-                                        <div className="voice-selector-wrapper" style={{ position: 'relative' }}>
+                                    {/* ═══════════════════════════════════════════
+                                        ACTION BUTTONS — all inline styled
+                                        Icons are size=42, no CSS overrides possible
+                                    ═══════════════════════════════════════════ */}
+                                    <div style={S.actionRow}>
+
+                                        {/* Voice picker */}
+                                        <div style={S.voicePickerWrap}>
                                             <button
+                                                style={showVoiceSelector ? S.actionBtnBlue : S.actionBtn}
                                                 onClick={() => setShowVoiceSelector(v => !v)}
-                                                className="action-btn voice-picker-btn"
                                                 title={`Voice: ${selectedVoiceName || 'Default'}`}
                                             >
-                                                <MicIcon size={38} />
+                                                <MicIcon size={42} />
                                             </button>
+
                                             {showVoiceSelector && (
-                                                <div className="voice-dropdown">
-                                                    <div className="voice-dropdown-header">
+                                                <div style={S.voiceDropdown}>
+                                                    <div style={S.voiceDropdownHeader}>
                                                         <span>Choose Voice</span>
-                                                        <button onClick={() => setShowVoiceSelector(false)} className="voice-close-btn">
+                                                        <button style={S.voiceCloseBtn} onClick={() => setShowVoiceSelector(false)}>
                                                             <X size={16} />
                                                         </button>
                                                     </div>
                                                     {englishVoices.length > 0 && (
                                                         <>
-                                                            <div className="voice-group-label">English</div>
-                                                            {englishVoices.map(voice => (
-                                                                <button
-                                                                    key={voice.name}
-                                                                    className={`voice-option ${voice.name === selectedVoiceName ? 'voice-option--active' : ''}`}
-                                                                    onClick={() => handleVoiceChange(voice.name)}
-                                                                >
-                                                                    <span className="voice-name">{voice.name}</span>
-                                                                    <span className="voice-lang">{voice.lang}</span>
+                                                            <div style={S.voiceGroupLabel}>English</div>
+                                                            {englishVoices.map(v => (
+                                                                <button key={v.name} style={S.voiceOptionBtn(v.name === selectedVoiceName)} onClick={() => handleVoiceChange(v.name)}>
+                                                                    <span style={S.voiceOptionName(v.name === selectedVoiceName)}>{v.name}</span>
+                                                                    <span style={S.voiceOptionLang}>{v.lang}</span>
                                                                 </button>
                                                             ))}
                                                         </>
                                                     )}
                                                     {otherVoices.length > 0 && (
                                                         <>
-                                                            <div className="voice-group-label">Other Languages</div>
-                                                            {otherVoices.map(voice => (
-                                                                <button
-                                                                    key={voice.name}
-                                                                    className={`voice-option ${voice.name === selectedVoiceName ? 'voice-option--active' : ''}`}
-                                                                    onClick={() => handleVoiceChange(voice.name)}
-                                                                >
-                                                                    <span className="voice-name">{voice.name}</span>
-                                                                    <span className="voice-lang">{voice.lang}</span>
+                                                            <div style={S.voiceGroupLabel}>Other Languages</div>
+                                                            {otherVoices.map(v => (
+                                                                <button key={v.name} style={S.voiceOptionBtn(v.name === selectedVoiceName)} onClick={() => handleVoiceChange(v.name)}>
+                                                                    <span style={S.voiceOptionName(v.name === selectedVoiceName)}>{v.name}</span>
+                                                                    <span style={S.voiceOptionLang}>{v.lang}</span>
                                                                 </button>
                                                             ))}
                                                         </>
@@ -556,31 +703,33 @@ export default function Chill() {
                                             )}
                                         </div>
 
+                                        {/* AI Assistant */}
                                         {!editing && (
-                                            <button onClick={handleHelperClick} className="action-btn assistant-btn" title="AI Assistant">
-                                                {/* BIGGER icon: 42px */}
+                                            <button style={S.actionBtn} onClick={() => setChatOpen(true)} title="AI Assistant">
                                                 <MessageSquare size={42} />
                                             </button>
                                         )}
+
+                                        {/* Read aloud */}
                                         {!editing && !isSpeaking && (
-                                            <button onClick={() => readTextAloud(selectedSection.text)} className="action-btn" title="Read Aloud">
-                                                {/* BIGGER icon: 42px */}
+                                            <button style={S.actionBtn} onClick={() => readTextAloud(selectedSection.text)} title="Read Aloud">
                                                 <Volume2 size={42} />
                                             </button>
                                         )}
                                         {isSpeaking && (
-                                            <button onClick={stopSpeech} className="action-btn stop-btn" title="Stop Reading">
+                                            <button style={S.actionBtnRed} onClick={stopSpeech} title="Stop Reading">
                                                 <VolumeX size={42} />
                                             </button>
                                         )}
+
+                                        {/* Edit / Save */}
                                         {!editing && (
-                                            <button onClick={() => setEditing(true)} className="action-btn" title="Edit">
-                                                {/* BIGGER icon: 42px */}
+                                            <button style={S.actionBtn} onClick={() => setEditing(true)} title="Edit">
                                                 <Edit2 size={42} />
                                             </button>
                                         )}
                                         {editing && (
-                                            <button onClick={handleSave} className="action-btn save-btn" title="Save">
+                                            <button style={S.actionBtnGreen} onClick={handleSave} title="Save">
                                                 <Save size={42} />
                                             </button>
                                         )}
@@ -589,12 +738,8 @@ export default function Chill() {
 
                                 <div className="section-content">
                                     {editing ? (
-                                        <textarea
-                                            value={editedText}
-                                            onChange={(e) => setEditedText(e.target.value)}
-                                            className="content-editor"
-                                            placeholder="Enter section content..."
-                                        />
+                                        <textarea value={editedText} onChange={(e) => setEditedText(e.target.value)}
+                                            className="content-editor" placeholder="Enter section content..." />
                                     ) : (
                                         <div className="formatted-content">{renderFormattedText(selectedSection.text)}</div>
                                     )}
@@ -602,17 +747,14 @@ export default function Chill() {
 
                                 <div className="section-footer">
                                     <button onClick={handleBack} className="footer-btn back-btn">
-                                        <ChevronLeft size={30} />
-                                        Back to Sections
+                                        <ChevronLeft size={30} /> Back to Sections
                                     </button>
                                     <div className="footer-actions">
                                         <button onClick={quizMe} className="footer-btn quiz-btn">
-                                            <BrainIcon size={30} />
-                                            Quiz Me
+                                            <BrainIcon size={30} /> Quiz Me
                                         </button>
                                         <button onClick={() => handleDelete(selectedSection.section)} className="footer-btn delete-btn">
-                                            <Trash2 size={30} />
-                                            Delete
+                                            <Trash2 size={30} /> Delete
                                         </button>
                                     </div>
                                 </div>
@@ -621,8 +763,8 @@ export default function Chill() {
                             <div className="sections-view">
                                 <div className={`sections-container ${viewMode}`}>
                                     {filteredSections.length > 0 ? (
-                                        filteredSections.map((section, index) => (
-                                            <div key={index} className="section-item" onClick={() => fetchSectionData(section)}>
+                                        filteredSections.map((section, i) => (
+                                            <div key={i} className="section-item" onClick={() => fetchSectionData(section)}>
                                                 <Bookmark size={30} className="section-icon" />
                                                 <span className="section-name">{section.section}</span>
                                             </div>
@@ -646,22 +788,12 @@ export default function Chill() {
                             {showNewEntryForm && (
                                 <div className="new-section-form">
                                     <h5 className="form-title"><PlusCircle size={30} /> Create New Section</h5>
-                                    <input
-                                        type="text"
-                                        className="section-name-input"
-                                        placeholder="Section Name"
-                                        value={newSection}
-                                        onChange={(e) => setNewSection(e.target.value)}
-                                    />
-                                    <textarea
-                                        placeholder="Section Content"
-                                        className="section-content-input"
-                                        value={newText}
-                                        onChange={(e) => setNewText(e.target.value)}
-                                    />
+                                    <input type="text" className="section-name-input" placeholder="Section Name"
+                                        value={newSection} onChange={(e) => setNewSection(e.target.value)} />
+                                    <textarea placeholder="Section Content" className="section-content-input"
+                                        value={newText} onChange={(e) => setNewText(e.target.value)} />
                                     <button onClick={handleCreateNewEntry} className="save-new-section-btn">
-                                        <Save size={30} />
-                                        Save New Section
+                                        <Save size={30} /> Save New Section
                                     </button>
                                 </div>
                             )}
@@ -669,196 +801,6 @@ export default function Chill() {
                     </div>
                 </div>
             </div>
-
-            {/* ── VOICE DROPDOWN & CHAT STYLES injected inline ── */}
-            <style>{`
-                /* ── Chat window: right-aligned, blue/white ── */
-                .chat-window--blue {
-                    position: fixed;
-                    right: 24px;
-                    top: 80px;
-                    width: 380px;
-                    max-height: 70vh;
-                    display: flex;
-                    flex-direction: column;
-                    background: #ffffff;
-                    border: 1.5px solid #1d6fd8;
-                    border-radius: 16px;
-                    box-shadow: 0 8px 40px rgba(29, 111, 216, 0.18);
-                    z-index: 1000;
-                    overflow: hidden;
-                }
-                .chat-header--blue {
-                    background: linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%);
-                    color: #ffffff;
-                    padding: 14px 18px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    flex-shrink: 0;
-                }
-                .chat-header--blue h4 {
-                    margin: 0;
-                    font-size: 15px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    color: #fff;
-                }
-                .close-btn--blue {
-                    background: rgba(255,255,255,0.15);
-                    border: none;
-                    border-radius: 8px;
-                    color: #fff;
-                    cursor: pointer;
-                    padding: 4px 6px;
-                    display: flex;
-                    align-items: center;
-                    transition: background 0.2s;
-                }
-                .close-btn--blue:hover { background: rgba(255,255,255,0.3); }
-                .empty-chat--blue {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 32px 20px;
-                    color: #1d6fd8;
-                    text-align: center;
-                    gap: 12px;
-                    font-size: 14px;
-                }
-                .message--blue {
-                    background: linear-gradient(135deg, #e8f0fe 0%, #dbeafe 100%);
-                    color: #1251a3;
-                    border-left: 3px solid #1d6fd8;
-                    border-radius: 0 10px 10px 0;
-                    padding: 10px 14px;
-                    margin: 4px 0;
-                    font-size: 13.5px;
-                    line-height: 1.5;
-                }
-                .message--user {
-                    background: #f0f4ff;
-                    color: #333;
-                    border-left: 3px solid #94b8f5;
-                    border-radius: 0 10px 10px 0;
-                    padding: 10px 14px;
-                    margin: 4px 0;
-                    font-size: 13.5px;
-                    line-height: 1.5;
-                }
-                .chat-input-container--blue {
-                    display: flex;
-                    gap: 8px;
-                    padding: 12px;
-                    background: #f7f9ff;
-                    border-top: 1px solid #dbeafe;
-                    flex-shrink: 0;
-                }
-                .chat-input--blue {
-                    flex: 1;
-                    border: 1.5px solid #93c5fd;
-                    border-radius: 8px;
-                    padding: 8px 12px;
-                    font-size: 13px;
-                    outline: none;
-                    background: #fff;
-                    color: #1a1a2e;
-                    transition: border-color 0.2s;
-                }
-                .chat-input--blue:focus { border-color: #1d6fd8; }
-                .send-btn--blue {
-                    background: linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%);
-                    color: #fff;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 8px 16px;
-                    font-weight: 600;
-                    font-size: 13px;
-                    cursor: pointer;
-                    transition: opacity 0.2s;
-                }
-                .send-btn--blue:hover { opacity: 0.88; }
-                .send-btn--blue:disabled { opacity: 0.4; cursor: not-allowed; }
-
-                /* ── Voice dropdown ── */
-                .voice-selector-wrapper { display: inline-block; }
-                .voice-picker-btn { position: relative; }
-                .voice-dropdown {
-                    position: absolute;
-                    top: calc(100% + 8px);
-                    right: 0;
-                    background: #fff;
-                    border: 1.5px solid #1d6fd8;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 32px rgba(29, 111, 216, 0.16);
-                    z-index: 999;
-                    min-width: 280px;
-                    max-height: 340px;
-                    overflow-y: auto;
-                    padding: 8px 0;
-                }
-                .voice-dropdown-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 8px 14px 6px;
-                    font-weight: 700;
-                    font-size: 13px;
-                    color: #1251a3;
-                    border-bottom: 1px solid #dbeafe;
-                    margin-bottom: 4px;
-                }
-                .voice-close-btn {
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    color: #888;
-                    display: flex;
-                    align-items: center;
-                    padding: 2px;
-                }
-                .voice-close-btn:hover { color: #1d6fd8; }
-                .voice-group-label {
-                    padding: 4px 14px 2px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.08em;
-                    color: #6b90c9;
-                }
-                .voice-option {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    width: 100%;
-                    background: none;
-                    border: none;
-                    padding: 8px 14px;
-                    cursor: pointer;
-                    text-align: left;
-                    transition: background 0.15s;
-                    gap: 8px;
-                }
-                .voice-option:hover { background: #eff6ff; }
-                .voice-option--active { background: #dbeafe !important; }
-                .voice-option--active .voice-name { color: #1251a3; font-weight: 600; }
-                .voice-name {
-                    font-size: 13px;
-                    color: #333;
-                    flex: 1;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                }
-                .voice-lang {
-                    font-size: 11px;
-                    color: #94a3b8;
-                    flex-shrink: 0;
-                }
-            `}</style>
         </div>
     );
 }
