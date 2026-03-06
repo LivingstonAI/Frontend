@@ -1301,6 +1301,7 @@ Return this exact JSON structure:
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes sessionPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.3); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0.08); } }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
                 @keyframes articleModalPop {
                     from { opacity: 0; transform: scale(0.93) translateY(10px); }
                     to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -1477,16 +1478,30 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [analystLoading,     setAnalystLoading]     = useState(false);
     const [analystError,       setAnalystError]       = useState(null);
     const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
-    // ── Watchlist ──
-    const [watchlist,          setWatchlist]          = useState([]);
-    const [showWatchlist,      setShowWatchlist]      = useState(false);
-    const [watchlistPrices,    setWatchlistPrices]    = useState({});
-    const watchlistTimerRef    = useRef(null);
     // ── Drawing tools ──
-    const drawingModeRef       = useRef(false);        // ref mirror — safe inside closures
+    const LINE_COLORS = [
+        { id:'amber',  hex:'#f59e0b', label:'Amber'  },
+        { id:'red',    hex:'#ef4444', label:'Red'    },
+        { id:'green',  hex:'#10b981', label:'Green'  },
+        { id:'blue',   hex:'#3b82f6', label:'Blue'   },
+        { id:'purple', hex:'#8b5cf6', label:'Purple' },
+        { id:'white',  hex:'#e5e7eb', label:'White'  },
+    ];
+    const drawingModeRef       = useRef(false);
     const [drawingMode,        setDrawingMode]        = useState(false);
+    const [selectedLineColor,  setSelectedLineColor]  = useState('#f59e0b');
+    const selectedLineColorRef = useRef('#f59e0b');
     const drawnLinesRef        = useRef([]);
     const [drawnLines,         setDrawnLines]         = useState([]);
+    const [manualPrice,        setManualPrice]        = useState('');
+    const [manualLabel,        setManualLabel]        = useState('');
+    // ── Video recording ──
+    const [isRecording,        setIsRecording]        = useState(false);
+    const [videoBlob,          setVideoBlob]          = useState(null);
+    const [videoUrl,           setVideoUrl]           = useState(null);
+    const [recordingProgress,  setRecordingProgress]  = useState(0); // 0-100
+    const mediaRecorderRef     = useRef(null);
+    const videoChunksRef       = useRef([]);
     // ── Price alerts ──
     const [alerts,             setAlerts]             = useState([]);
     const [showAlertForm,      setShowAlertForm]      = useState(false);
@@ -1502,8 +1517,8 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [showOptionsPanel,   setShowOptionsPanel]   = useState(false);
     const [optionsExpiry,      setOptionsExpiry]      = useState(null);
 
-    // Keep drawingModeRef in sync with state so chart click closure always sees latest value
     useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
+    useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
 
     // Lower → Higher timeframes with smart default lookbacks
     const intervalConfig = {
@@ -1583,60 +1598,20 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         return () => clearInterval(id);
     }, []);
 
-    // ── Watchlist persistence ────────────────────────────────────────────────────
+    // ── Alerts persistence ───────────────────────────────────────────────────────
     useEffect(() => {
         (async () => {
             try {
-                const r = await window.storage.get('snowai-watchlist');
-                if (r?.value) setWatchlist(JSON.parse(r.value));
                 const ra = await window.storage.get('snowai-alerts');
                 if (ra?.value) setAlerts(JSON.parse(ra.value));
             } catch {}
         })();
     }, []);
 
-    const saveWatchlist = async (list) => {
-        setWatchlist(list);
-        try { await window.storage.set('snowai-watchlist', JSON.stringify(list)); } catch {}
-    };
-    const addToWatchlist = async (sym) => {
-        if (!sym || watchlist.find(w => w.symbol === sym)) return;
-        await saveWatchlist([...watchlist, { symbol: sym, addedAt: Date.now() }]);
-    };
-    const removeFromWatchlist = async (sym) => {
-        await saveWatchlist(watchlist.filter(w => w.symbol !== sym));
-    };
-
     const saveAlerts = async (al) => {
         setAlerts(al);
         try { await window.storage.set('snowai-alerts', JSON.stringify(al)); } catch {}
     };
-
-    // Poll watchlist prices when panel is open
-    useEffect(() => {
-        if (watchlistTimerRef.current) clearInterval(watchlistTimerRef.current);
-        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
-        const pollPrices = async () => {
-            const updated = {};
-            await Promise.all(watchlist.map(async (w) => {
-                try {
-                    const res = await fetch(`${BACKEND}/api/snowai_stock_screener_fetch_data/?ticker=${w.symbol}`);
-                    const d   = await res.json();
-                    if (d.stock_data) updated[w.symbol] = {
-                        price:  d.stock_data.currentPrice,
-                        change: d.stock_data.regularMarketChangePercent,
-                        name:   d.stock_data.shortName || w.symbol,
-                    };
-                } catch {}
-            }));
-            setWatchlistPrices(updated);
-        };
-        if (showWatchlist && watchlist.length) {
-            pollPrices();
-            watchlistTimerRef.current = setInterval(pollPrices, 30000);
-        }
-        return () => { if (watchlistTimerRef.current) clearInterval(watchlistTimerRef.current); };
-    }, [showWatchlist, watchlist]);
 
     // Check price alerts on each refresh
     const checkAlerts = (candles) => {
@@ -1656,17 +1631,129 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         if (fired.length) {
             setFiredAlerts(prev => [...prev, ...fired]);
             saveAlerts(remaining);
-            // Try browser notification as bonus — silently skip if blocked
+            // Browser notification — works if user previously granted permission.
+            // We don't ask for permission here; the toast is the primary alert.
             fired.forEach(al => {
                 try {
-                    if (Notification && Notification.permission === 'granted') {
-                        new Notification(`🔔 ${al.ticker} Alert`, {
-                            body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price}`,
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        new Notification(`🔔 ${al.ticker} price alert`, {
+                            body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price.toFixed(2)}`,
+                            tag:  `snowai-alert-${al.id}`,
                         });
                     }
                 } catch {}
             });
         }
+    };
+
+    // ── Add a line at an exact price input ──────────────────────────────────────
+    const addManualLine = (priceStr, label, color) => {
+        const price = parseFloat(priceStr);
+        if (!price || isNaN(price) || !seriesRef.current) return;
+        const id = Date.now();
+        try {
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color: color || selectedLineColor,
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: label ? `${label} $${price.toFixed(2)}` : `$${price.toFixed(2)}`,
+            });
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color: color || selectedLineColor, label });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color: color || selectedLineColor, label }]);
+        } catch(e) { console.error('[Draw] addManualLine failed', e); }
+    };
+
+    // ── Chart Video Recording ────────────────────────────────────────────────────
+    // Strategy: grab the chart container's canvas element, attach MediaRecorder to
+    // its captureStream(), then animate the chart by scrolling through logical range.
+    // Each "frame" is the live canvas — all styling/theme/indicators preserved.
+    const recordChartVideo = async () => {
+        if (!chartRef.current || !seriesRef.current) return;
+        setIsRecording(true);
+        setVideoBlob(null);
+        setVideoUrl(null);
+        setRecordingProgress(0);
+        videoChunksRef.current = [];
+
+        try {
+            // Get the canvas element inside the chart container
+            const canvas = chartContainerRef.current?.querySelector('canvas');
+            if (!canvas) throw new Error('Chart canvas not found');
+
+            // Capture at 30fps
+            const stream = canvas.captureStream(30);
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                ? 'video/webm;codecs=vp9'
+                : MediaRecorder.isTypeSupported('video/webm')
+                ? 'video/webm' : 'video/mp4';
+
+            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+            mediaRecorderRef.current = recorder;
+
+            recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data); };
+            recorder.onstop = () => {
+                const blob = new Blob(videoChunksRef.current, { type: mimeType });
+                const url  = URL.createObjectURL(blob);
+                setVideoBlob(blob);
+                setVideoUrl(url);
+                setIsRecording(false);
+                setRecordingProgress(100);
+            };
+
+            recorder.start(100); // collect chunks every 100ms
+
+            // Get full data range and animate through it
+            const allData   = seriesRef.current.data?.() ?? [];
+            const totalBars = allData.length;
+            if (totalBars === 0) { recorder.stop(); return; }
+
+            // Visible window size (bars on screen at once)
+            const currentRange = chartRef.current.timeScale().getVisibleLogicalRange();
+            const windowSize   = currentRange ? Math.round(currentRange.to - currentRange.from) : 60;
+            const fps          = 24;  // visual frames per second of playback
+            const barsPerFrame = Math.max(1, Math.floor(totalBars / (fps * 8))); // ~8 second video
+            const frameDelay   = Math.round(1000 / fps);
+
+            let bar = 0;
+            const animate = () => {
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+                if (bar >= totalBars) {
+                    // Hold last frame briefly, then stop
+                    setTimeout(() => { try { recorder.stop(); } catch {} }, 600);
+                    return;
+                }
+                chartRef.current.timeScale().setVisibleLogicalRange({
+                    from: Math.max(0, bar - windowSize * 0.85),
+                    to:   Math.min(totalBars - 1, bar + windowSize * 0.15),
+                });
+                setRecordingProgress(Math.round((bar / totalBars) * 95));
+                bar += barsPerFrame;
+                setTimeout(animate, frameDelay);
+            };
+
+            // Start from the beginning
+            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize });
+            setTimeout(animate, 200);
+
+        } catch(e) {
+            console.error('[Video] Recording failed:', e);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = () => {
+        try { mediaRecorderRef.current?.stop(); } catch {}
+        setIsRecording(false);
+    };
+
+    const downloadVideo = () => {
+        if (!videoBlob) return;
+        const a = document.createElement('a');
+        a.href = videoUrl;
+        a.download = `${ticker}_${chartInterval}_${new Date().toISOString().slice(0,10)}.webm`;
+        a.click();
     };
 
     // Options fetch
@@ -1882,16 +1969,17 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const price = seriesRef.current.coordinateToPrice(param.point.y);
             if (price === null || price === undefined || isNaN(price)) return;
             const id = Date.now();
+            const color = selectedLineColorRef.current;
             const pl = seriesRef.current.createPriceLine({
                 price,
-                color: '#f59e0b',
+                color,
                 lineWidth: 1,
                 lineStyle: 2,
                 axisLabelVisible: true,
-                title: `📌 $${price.toFixed(2)}`,
+                title: `$${price.toFixed(2)}`,
             });
-            drawnLinesRef.current.push({ id, price, priceLine: pl });
-            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2) }]);
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color }]);
         };
         chart.subscribeClick(handleChartClick);
 
@@ -2397,14 +2485,19 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
                         ✏️ {drawingMode ? 'Drawing' : 'Draw'}
                     </button>
-                    {/* Add to watchlist */}
-                    <button onClick={() => { addToWatchlist(ticker); setShowWatchlist(true); }} title="Add to watchlist / open watchlist"
+
+                    {/* Video record */}
+                    <button
+                        onClick={() => isRecording ? stopRecording() : recordChartVideo()}
+                        title={isRecording ? 'Stop recording' : 'Record chart playback video'}
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
-                            border:`1px solid ${watchlist.find(w=>w.symbol===ticker)?'#10b981':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
-                            backgroundColor: watchlist.find(w=>w.symbol===ticker)?'rgba(16,185,129,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
-                            color: watchlist.find(w=>w.symbol===ticker)?'#10b981':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            border:`1px solid ${isRecording?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: isRecording?'rgba(239,68,68,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: isRecording?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
                             cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
-                        {watchlist.find(w=>w.symbol===ticker) ? '★' : '☆'} Watch {watchlist.length > 0 ? `(${watchlist.length})` : ''}
+                        {isRecording
+                            ? <><span style={{ width:'8px', height:'8px', borderRadius:'2px', backgroundColor:'#ef4444', display:'inline-block', animation:'pulse 1s ease-in-out infinite' }} /> Stop ({recordingProgress}%)</>
+                            : <>🎬 Record</>}
                     </button>
                     {/* Price alert */}
                     <button onClick={() => { console.log('[Alert] opening modal for', ticker); setShowAlertForm(true); }} title="Set price alert"
@@ -2547,90 +2640,79 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ══ DRAWN LINES LIST ══════════════════════════════════════════════ */}
-            {drawnLines.length > 0 && (
-                <div style={{ backgroundColor:'#fffbeb', borderRadius:'12px', border:'1px solid #fde68a', padding:'12px 16px', marginBottom:'16px' }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
-                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>📌 Drawn Levels — click × to remove from chart</span>
-                        <button onClick={() => {
-                            drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch(e) { console.warn('[Draw] remove failed', e); } });
-                            drawnLinesRef.current = [];
-                            setDrawnLines([]);
-                        }} style={{ fontSize:'11px', color:'#b45309', background:'none', border:'1px solid #fcd34d', borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>Clear all</button>
+            {/* ══ DRAWING TOOLKIT ════════════════════════════════════════════ */}
+            {(drawingMode || drawnLines.length > 0) && (
+                <div style={{ backgroundColor:'#fffbeb', borderRadius:'12px', border:'1px solid #fde68a', padding:'14px 16px', marginBottom:'16px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
+                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>✏️ Level Lines</span>
+                        {drawnLines.length > 0 && (
+                            <button onClick={() => {
+                                drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch(e) { console.warn('[Draw]', e); } });
+                                drawnLinesRef.current = []; setDrawnLines([]);
+                            }} style={{ fontSize:'11px', color:'#b45309', background:'none', border:'1px solid #fcd34d', borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>Clear all</button>
+                        )}
                     </div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
-                        {drawnLines.map(l => (
-                            <span key={l.id} style={{ padding:'4px 12px', borderRadius:'20px', backgroundColor:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.4)', fontSize:'12px', color:'#92400e', fontWeight:'700', display:'flex', alignItems:'center', gap:'6px' }}>
-                                📌 ${l.price}
-                                {l.label && <span style={{ fontSize:'11px', color:'#b45309' }}>· {l.label}</span>}
-                                <button onClick={() => {
-                                    const found = drawnLinesRef.current.find(x => x.id === l.id);
-                                    if (found) {
-                                        try { seriesRef.current?.removePriceLine(found.priceLine); }
-                                        catch(e) { console.warn('[Draw] remove failed', e); }
-                                    }
-                                    drawnLinesRef.current = drawnLinesRef.current.filter(x => x.id !== l.id);
-                                    setDrawnLines(prev => prev.filter(x => x.id !== l.id));
-                                }} style={{ background:'none', border:'none', cursor:'pointer', color:'#b45309', fontWeight:'900', fontSize:'14px', padding:0, lineHeight:1 }}>×</button>
-                            </span>
-                        ))}
-                    </div>
+
+                    {/* Colour picker + manual input */}
                     {drawingMode && (
-                        <div style={{ marginTop:'8px', fontSize:'11px', color:'#b45309' }}>
-                            ✏️ Drawing mode active — click anywhere on the chart to drop a level line
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'10px', marginBottom:'12px', alignItems:'flex-end' }}>
+                            {/* Colour swatches */}
+                            <div>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>COLOUR</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    {LINE_COLORS.map(c => (
+                                        <button key={c.id} onClick={() => setSelectedLineColor(c.hex)} title={c.label}
+                                            style={{ width:'20px', height:'20px', borderRadius:'50%', backgroundColor:c.hex, border: selectedLineColor===c.hex ? '3px solid #1a1a1a' : '2px solid transparent', cursor:'pointer', flexShrink:0, transition:'border 0.1s' }} />
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Manual price input */}
+                            <div style={{ flex:1, minWidth:'160px' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>EXACT PRICE</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    <input type="number" step="0.01" placeholder="e.g. 195.50"
+                                        value={manualPrice} onChange={e => setManualPrice(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'80px' }} />
+                                    <input type="text" placeholder="Label (optional)"
+                                        value={manualLabel} onChange={e => setManualLabel(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'90px' }} />
+                                    <button onClick={() => { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); }}
+                                        style={{ padding:'5px 10px', borderRadius:'6px', backgroundColor:'#f59e0b', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {drawingMode && (
+                        <div style={{ fontSize:'11px', color:'#b45309', marginBottom: drawnLines.length > 0 ? '10px' : '0' }}>
+                            Click anywhere on the chart to drop a line · or type an exact price above
+                        </div>
+                    )}
+
+                    {/* Lines list */}
+                    {drawnLines.length > 0 && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                            {drawnLines.map(l => (
+                                <span key={l.id} style={{ padding:'4px 10px', borderRadius:'20px', backgroundColor: l.color + '18', border:`1px solid ${l.color}60`, fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'5px', color: l.color === '#e5e7eb' ? '#555' : l.color }}>
+                                    <span style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:l.color, flexShrink:0 }} />
+                                    {l.label ? `${l.label} ` : ''}${l.price}
+                                    <button onClick={() => {
+                                        const found = drawnLinesRef.current.find(x => x.id === l.id);
+                                        if (found) { try { seriesRef.current?.removePriceLine(found.priceLine); } catch(e) { console.warn('[Draw]', e); } }
+                                        drawnLinesRef.current = drawnLinesRef.current.filter(x => x.id !== l.id);
+                                        setDrawnLines(prev => prev.filter(x => x.id !== l.id));
+                                    }} style={{ background:'none', border:'none', cursor:'pointer', fontWeight:'900', fontSize:'13px', padding:0, lineHeight:1, color:'inherit', opacity:0.7 }}>×</button>
+                                </span>
+                            ))}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* ══ WATCHLIST MODAL ═══════════════════════════════════════════════ */}
-            {showWatchlist && (
-                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
-                    onClick={e => { if (e.target === e.currentTarget) setShowWatchlist(false); }}>
-                    <div style={{ backgroundColor:'#fff', borderRadius:'16px', width:'400px', maxHeight:'80vh', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.2)', display:'flex', flexDirection:'column' }}>
-                        <div style={{ padding:'20px 24px', borderBottom:'1px solid #f0f0f0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                            <div>
-                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>★ Watchlist</div>
-                                <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Prices refresh every 30s</div>
-                            </div>
-                            <button onClick={() => setShowWatchlist(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>×</button>
-                        </div>
-                        <div style={{ overflowY:'auto', flex:1, padding:'10px 12px' }}>
-                            {watchlist.length === 0 ? (
-                                <div style={{ padding:'32px', textAlign:'center', color:'#aaa', fontSize:'13px' }}>
-                                    No tickers yet.<br/>Hit ☆ Watch while viewing any stock.
-                                </div>
-                            ) : (
-                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
-                                    {watchlist.map(w => {
-                                        const p = watchlistPrices[w.symbol];
-                                        const chg = p?.change;
-                                        const isUp = chg > 0;
-                                        return (
-                                            <div key={w.symbol} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'10px', backgroundColor:'#f8f9fa', border:'1px solid #f0f0f0' }}>
-                                                <span style={{ fontWeight:'800', fontSize:'14px', color:'#1a1a1a', minWidth:'55px' }}>{w.symbol}</span>
-                                                <span style={{ fontSize:'12px', color:'#888', flex:1, overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis' }}>{p?.name || '—'}</span>
-                                                {p ? (
-                                                    <>
-                                                        <span style={{ fontSize:'14px', fontWeight:'700', color:'#1a1a1a' }}>${p.price?.toFixed(2)}</span>
-                                                        <span style={{ fontSize:'12px', fontWeight:'700', color: isUp?'#10b981':'#ef4444', minWidth:'50px', textAlign:'right' }}>
-                                                            {isUp?'+':''}{chg?.toFixed(2)}%
-                                                        </span>
-                                                    </>
-                                                ) : (
-                                                    <span style={{ fontSize:'12px', color:'#ddd' }}>loading…</span>
-                                                )}
-                                                <button onClick={() => removeFromWatchlist(w.symbol)}
-                                                    style={{ background:'none', border:'none', color:'#ddd', cursor:'pointer', fontSize:'16px', fontWeight:'700', padding:'0 2px', flexShrink:0 }}>×</button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ══ OPTIONS FLOW PANEL ════════════════════════════════════════════ */}
             {showOptionsPanel && (
@@ -2741,6 +2823,53 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             </>
                         );
                     })()}
+                </div>
+            )}
+
+            {/* ══ VIDEO PLAYER ═══════════════════════════════════════════════ */}
+            {(isRecording || videoUrl) && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#0f0f14', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay — {ticker} · {chartInterval}</div>
+                            <div style={{ fontSize:'12px', color:'#666', marginTop:'2px' }}>
+                                {isRecording ? `Recording… ${recordingProgress}%` : 'Playback ready'}
+                            </div>
+                        </div>
+                        <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                            {videoUrl && !isRecording && (
+                                <button onClick={downloadVideo}
+                                    style={{ padding:'7px 14px', borderRadius:'8px', backgroundColor:'#2563eb', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' }}>
+                                    ⬇ Download .webm
+                                </button>
+                            )}
+                            {videoUrl && (
+                                <button onClick={() => { URL.revokeObjectURL(videoUrl); setVideoUrl(null); setVideoBlob(null); setRecordingProgress(0); }}
+                                    style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#666' }}>×</button>
+                            )}
+                        </div>
+                    </div>
+                    {isRecording && (
+                        <div style={{ padding:'20px', backgroundColor:'#0f0f14' }}>
+                            <div style={{ height:'6px', backgroundColor:'#1e1e2e', borderRadius:'3px', overflow:'hidden', marginBottom:'10px' }}>
+                                <div style={{ height:'100%', width:`${recordingProgress}%`, backgroundColor:'#ef4444', borderRadius:'3px', transition:'width 0.3s ease' }} />
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#ef4444', fontWeight:'700', textAlign:'center' }}>
+                                🔴 Recording chart replay… {recordingProgress}% — chart is animating through {chartInterval} data
+                            </div>
+                        </div>
+                    )}
+                    {videoUrl && !isRecording && (
+                        <div style={{ backgroundColor:'#0f0f14', padding:'0' }}>
+                            <video
+                                src={videoUrl}
+                                controls
+                                autoPlay
+                                loop
+                                style={{ width:'100%', display:'block', maxHeight:'480px', backgroundColor:'#000' }}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 
