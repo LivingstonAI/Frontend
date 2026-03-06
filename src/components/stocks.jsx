@@ -1669,7 +1669,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // Strategy: grab the chart container's canvas element, attach MediaRecorder to
     // its captureStream(), then animate the chart by scrolling through logical range.
     // Each "frame" is the live canvas — all styling/theme/indicators preserved.
-    const recordChartVideo = async () => {
+    const recordChartVideo = async (targetDurationSec = 30) => {
         if (!chartRef.current || !seriesRef.current) return;
         setIsRecording(true);
         setVideoBlob(null);
@@ -1678,12 +1678,16 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         videoChunksRef.current = [];
 
         try {
-            // Get the canvas element inside the chart container
             const canvas = chartContainerRef.current?.querySelector('canvas');
             if (!canvas) throw new Error('Chart canvas not found');
 
-            // Capture at 30fps
-            const stream = canvas.captureStream(30);
+            // ── Key insight: record at 24fps, control how long we WAIT per frame ──
+            // frameDelay = targetDuration / totalBars  (ms per candle step)
+            // This makes the recording take targetDuration seconds in real time.
+            // Since we capture the canvas stream at 24fps, the resulting video
+            // naturally plays back at ~24fps and lasts ~targetDuration seconds.
+            const PLAYBACK_FPS    = 24;
+            const stream = canvas.captureStream(PLAYBACK_FPS);
             const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
                 ? 'video/webm;codecs=vp9'
                 : MediaRecorder.isTypeSupported('video/webm')
@@ -1702,40 +1706,44 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 setRecordingProgress(100);
             };
 
-            recorder.start(100); // collect chunks every 100ms
+            recorder.start(200);
 
-            // Get full data range and animate through it
-            const allData   = seriesRef.current.data?.() ?? [];
-            const totalBars = allData.length;
+            const allData    = seriesRef.current.data?.() ?? [];
+            const totalBars  = allData.length;
             if (totalBars === 0) { recorder.stop(); return; }
 
-            // Visible window size (bars on screen at once)
             const currentRange = chartRef.current.timeScale().getVisibleLogicalRange();
             const windowSize   = currentRange ? Math.round(currentRange.to - currentRange.from) : 60;
-            const fps          = 24;  // visual frames per second of playback
-            const barsPerFrame = Math.max(1, Math.floor(totalBars / (fps * 8))); // ~8 second video
-            const frameDelay   = Math.round(1000 / fps);
+
+            // frameDelay controls real-world pace — each bar gets this many ms on screen
+            // For 30s video with 180 bars: 30000/180 = ~166ms per bar
+            // For 30s video with 500 bars: 30000/500 = 60ms per bar (still comfortable)
+            // Floor at 40ms (no faster than ~25 bars/sec) so canvas stream isn't starved
+            const frameDelay   = Math.max(40, Math.round((targetDurationSec * 1000) / totalBars));
+            // With many bars we batch 2-3 per step but keep delay generous
+            const barsPerStep  = frameDelay < 50 ? 2 : 1;
+            const effectiveDelay = frameDelay * barsPerStep;
+
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} frameDelay=${frameDelay}ms barsPerStep=${barsPerStep} → est. duration=${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
 
             let bar = 0;
             const animate = () => {
                 if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
                 if (bar >= totalBars) {
-                    // Hold last frame briefly, then stop
-                    setTimeout(() => { try { recorder.stop(); } catch {} }, 600);
+                    setTimeout(() => { try { recorder.stop(); } catch {} }, 800);
                     return;
                 }
                 chartRef.current.timeScale().setVisibleLogicalRange({
-                    from: Math.max(0, bar - windowSize * 0.85),
-                    to:   Math.min(totalBars - 1, bar + windowSize * 0.15),
+                    from: Math.max(0, bar - Math.round(windowSize * 0.85)),
+                    to:   Math.min(totalBars - 1, bar + Math.round(windowSize * 0.15)),
                 });
                 setRecordingProgress(Math.round((bar / totalBars) * 95));
-                bar += barsPerFrame;
-                setTimeout(animate, frameDelay);
+                bar += barsPerStep;
+                setTimeout(animate, effectiveDelay);
             };
 
-            // Start from the beginning
             chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize });
-            setTimeout(animate, 200);
+            setTimeout(animate, 300);
 
         } catch(e) {
             console.error('[Video] Recording failed:', e);
@@ -2488,7 +2496,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                     {/* Video record */}
                     <button
-                        onClick={() => isRecording ? stopRecording() : recordChartVideo()}
+                        onClick={() => isRecording ? stopRecording() : recordChartVideo(30)}
                         title={isRecording ? 'Stop recording' : 'Record chart playback video'}
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${isRecording?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
@@ -2832,8 +2840,8 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#0f0f14', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <div>
                             <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay — {ticker} · {chartInterval}</div>
-                            <div style={{ fontSize:'12px', color:'#666', marginTop:'2px' }}>
-                                {isRecording ? `Recording… ${recordingProgress}%` : 'Playback ready'}
+                            <div style={{ fontSize:'12px', color:'#aaa', marginTop:'2px' }}>
+                                {isRecording ? `Recording… ${recordingProgress}% — animating through data` : '▶ Playback ready · loops · download to keep'}
                             </div>
                         </div>
                         <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
