@@ -1933,23 +1933,47 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                     new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} — now $${latest.toFixed(2)}` });
             } else { remaining.push(al); }
         });
-        if (fired.length) { setFiredAlerts(prev => [...prev, ...fired]); saveAlerts(remaining); }
+        if (fired.length) {
+            setFiredAlerts(prev => [...prev, ...fired]);
+            saveAlerts(remaining);
+            // Try browser notification as bonus — silently skip if blocked
+            fired.forEach(al => {
+                try {
+                    if (Notification && Notification.permission === 'granted') {
+                        new Notification(`🔔 ${al.ticker} Alert`, {
+                            body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price}`,
+                        });
+                    }
+                } catch {}
+            });
+        }
     };
 
     // Correlation fetch
     const fetchCorrelation = async () => {
-        if (watchlist.length < 1) return;
         const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        // Need at least current ticker + 1 watchlist ticker
+        const tickers = [ticker, ...watchlist.map(w => w.symbol)]
+            .filter((v, i, a) => v && a.indexOf(v) === i)
+            .slice(0, 8);
+        if (tickers.length < 2) {
+            setCorrData({ error: 'Add at least one ticker to your watchlist first — correlation needs 2+ tickers to compare.' });
+            setShowCorrelation(true);
+            return;
+        }
         setCorrLoading(true);
         try {
-            const tickers = [ticker, ...watchlist.map(w => w.symbol)].filter((v,i,a) => a.indexOf(v)===i).slice(0,8);
             const res  = await fetch(`${BACKEND}/api/snowai_correlation_matrix_vault/`, {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ tickers }),
             });
             const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server error ${res.status}`);
             setCorrData(json); setShowCorrelation(true);
-        } catch (e) { setCorrData({ error: e.message }); }
+        } catch (e) {
+            setCorrData({ error: e.message });
+            setShowCorrelation(true);
+        }
         finally { setCorrLoading(false); }
     };
 
@@ -2153,8 +2177,9 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         // ── Drawing mode click handler ────────────────────────────────────────
         const handleChartClick = (param) => {
             if (!drawingModeRef.current || !param.point || !seriesRef.current) return;
-            const price = chart.priceScale('right').coordinateToPrice(param.point.y);
-            if (!price) return;
+            // coordinateToPrice lives on the series in LWC v4, not on priceScale
+            const price = seriesRef.current.coordinateToPrice(param.point.y);
+            if (price === null || price === undefined || isNaN(price)) return;
             const id = Date.now();
             const pl = seriesRef.current.createPriceLine({
                 price,
@@ -2164,8 +2189,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 axisLabelVisible: true,
                 title: `📌 $${price.toFixed(2)}`,
             });
-            const newLine = { id, price, priceLine: pl };
-            drawnLinesRef.current.push(newLine);
+            drawnLinesRef.current.push({ id, price, priceLine: pl });
             setDrawnLines(prev => [...prev, { id, price: price.toFixed(2) }]);
         };
         chart.subscribeClick(handleChartClick);
@@ -2677,7 +2701,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         {watchlist.find(w=>w.symbol===ticker) ? '★' : '☆'} Watch {watchlist.length > 0 ? `(${watchlist.length})` : ''}
                     </button>
                     {/* Price alert */}
-                    <button onClick={() => { Notification.requestPermission(); setShowAlertForm(a=>!a); }} title="Set price alert"
+                    <button onClick={() => setShowAlertForm(a=>!a)} title="Set price alert"
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
                             backgroundColor: alerts.filter(a=>a.ticker===ticker).length?'rgba(239,68,68,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
@@ -2686,12 +2710,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         🔔 {alerts.filter(a=>a.ticker===ticker).length > 0 ? `Alert (${alerts.filter(a=>a.ticker===ticker).length})` : 'Alert'}
                     </button>
                     {/* Correlation */}
-                    <button onClick={fetchCorrelation} disabled={corrLoading || watchlist.length < 1} title="Correlation heatmap vs watchlist"
+                    <button onClick={fetchCorrelation} disabled={corrLoading} title="Correlation heatmap vs watchlist (add tickers to watchlist first)"
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
                             backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
                             color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
-                            cursor: corrLoading||watchlist.length<1?'not-allowed':'pointer', opacity: watchlist.length<1?0.45:1,
+                            cursor: corrLoading?'not-allowed':'pointer',
                             display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
                         {corrLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🔀'} Correlation
                     </button>
