@@ -1296,6 +1296,284 @@ Return this exact JSON structure:
                 </div>
             )}
 
+
+            {/* ══════════════════════════════════════════════════════════════
+                ALERT FORM
+            ══════════════════════════════════════════════════════════════ */}
+            {showAlertForm && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'12px', border:'1px solid #e8e8e8', padding:'16px 20px', marginBottom:'16px', display:'flex', flexWrap:'wrap', gap:'10px', alignItems:'center' }}>
+                    <span style={{ fontSize:'13px', fontWeight:'700', color:'#333' }}>🔔 Set Price Alert for {ticker}</span>
+                    <select value={alertDir} onChange={e=>setAlertDir(e.target.value)}
+                        style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', backgroundColor:'#f9f9f9' }}>
+                        <option value="above">Price goes above</option>
+                        <option value="below">Price drops below</option>
+                    </select>
+                    <input type="number" placeholder="Price e.g. 195.00" value={alertPrice}
+                        onChange={e=>setAlertPrice(e.target.value)}
+                        style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', width:'140px' }} />
+                    <button onClick={async () => {
+                        if (!alertPrice) return;
+                        const newAlert = { id: Date.now(), ticker, price: parseFloat(alertPrice), dir: alertDir };
+                        await saveAlerts([...alerts, newAlert]);
+                        setAlertPrice(''); setShowAlertForm(false);
+                    }} style={{ padding:'6px 14px', borderRadius:'8px', backgroundColor:'#ef4444', color:'#fff', border:'none', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>
+                        Set Alert
+                    </button>
+                    <button onClick={()=>setShowAlertForm(false)} style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'#f0f0f0', color:'#666', border:'none', fontSize:'13px', cursor:'pointer' }}>Cancel</button>
+                    {alerts.filter(a=>a.ticker===ticker).map(a => (
+                        <div key={a.id} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', backgroundColor:'#fef2f2', borderRadius:'20px', border:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c' }}>
+                            {a.dir === 'above' ? '↑' : '↓'} ${a.price}
+                            <button onClick={async ()=>await saveAlerts(alerts.filter(x=>x.id!==a.id))}
+                                style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'700', fontSize:'13px', lineHeight:1, padding:0 }}>×</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Fired alert toasts */}
+            {firedAlerts.length > 0 && (
+                <div style={{ position:'fixed', bottom:'80px', right:'20px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
+                    {firedAlerts.slice(-3).map((a, i) => (
+                        <div key={a.id} style={{ padding:'12px 16px', backgroundColor:'#ef4444', color:'#fff', borderRadius:'12px', boxShadow:'0 4px 16px rgba(239,68,68,0.4)', fontSize:'13px', fontWeight:'700', display:'flex', gap:'10px', alignItems:'center' }}>
+                            🔔 {a.ticker} {a.dir==='above'?'↑':'↓'} ${a.price} triggered!
+                            <button onClick={()=>setFiredAlerts(prev=>prev.filter((_,j)=>j!==i))} style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:'16px' }}>×</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                DRAWN LINES LIST
+            ══════════════════════════════════════════════════════════════ */}
+            {drawnLines.length > 0 && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'12px', border:'1px solid #fde68a', padding:'12px 16px', marginBottom:'16px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
+                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>📌 Drawn Levels</span>
+                        <button onClick={() => {
+                            drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch {} });
+                            drawnLinesRef.current = []; setDrawnLines([]);
+                        }} style={{ fontSize:'11px', color:'#aaa', background:'none', border:'none', cursor:'pointer' }}>Clear all</button>
+                    </div>
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                        {drawnLines.map(l => (
+                            <span key={l.id} style={{ padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', fontSize:'12px', color:'#92400e', fontWeight:'700', display:'flex', alignItems:'center', gap:'5px' }}>
+                                ${l.price}
+                                <button onClick={() => {
+                                    const found = drawnLinesRef.current.find(x=>x.id===l.id);
+                                    if (found) { try { seriesRef.current?.removePriceLine(found.priceLine); } catch {} }
+                                    drawnLinesRef.current = drawnLinesRef.current.filter(x=>x.id!==l.id);
+                                    setDrawnLines(prev => prev.filter(x=>x.id!==l.id));
+                                }} style={{ background:'none', border:'none', cursor:'pointer', color:'#b45309', fontWeight:'700', fontSize:'13px', padding:0, lineHeight:1 }}>×</button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                WATCHLIST PANEL
+            ══════════════════════════════════════════════════════════════ */}
+            {showWatchlist && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#fafafa', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <span style={{ fontWeight:'800', fontSize:'15px', color:'#1a1a1a' }}>★ Watchlist</span>
+                        <button onClick={()=>setShowWatchlist(false)} style={{ background:'none', border:'none', fontSize:'18px', cursor:'pointer', color:'#aaa' }}>×</button>
+                    </div>
+                    {watchlist.length === 0 ? (
+                        <div style={{ padding:'24px', textAlign:'center', color:'#aaa', fontSize:'13px' }}>No tickers yet — click ☆ Watch while viewing a stock</div>
+                    ) : (
+                        <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                            {watchlist.map(w => {
+                                const p = watchlistPrices[w.symbol];
+                                const chg = p?.change;
+                                const chgColor = chg > 0 ? '#10b981' : chg < 0 ? '#ef4444' : '#aaa';
+                                return (
+                                    <div key={w.symbol} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', borderRadius:'8px', backgroundColor:'#f8f9fa', cursor:'pointer' }}
+                                        onClick={() => { /* onTickerSelect passed via prop */ }}>
+                                        <span style={{ fontWeight:'800', fontSize:'13px', color:'#1a1a1a', minWidth:'50px' }}>{w.symbol}</span>
+                                        {p ? <>
+                                            <span style={{ fontSize:'13px', color:'#333', flex:1 }}>{p.name}</span>
+                                            <span style={{ fontSize:'13px', fontWeight:'700', color:'#333' }}>${p.price?.toFixed(2)}</span>
+                                            <span style={{ fontSize:'12px', fontWeight:'700', color:chgColor }}>
+                                                {chg > 0 ? '+' : ''}{chg?.toFixed(2)}%
+                                            </span>
+                                        </> : <span style={{ fontSize:'12px', color:'#ccc', flex:1 }}>Loading…</span>}
+                                        <button onClick={e=>{e.stopPropagation(); removeFromWatchlist(w.symbol);}}
+                                            style={{ background:'none', border:'none', color:'#ddd', cursor:'pointer', fontSize:'16px', fontWeight:'700', padding:'0 4px' }}>×</button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                CORRELATION HEATMAP
+            ══════════════════════════════════════════════════════════════ */}
+            {showCorrelation && corrData && !corrData.error && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#fafafa', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                        <div>
+                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#1a1a1a' }}>🔀 Correlation Matrix (90-day)</div>
+                            <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>How closely your positions move together. 1.0 = identical, 0 = unrelated, -1 = opposite</div>
+                        </div>
+                        <button onClick={()=>setShowCorrelation(false)} style={{ background:'none', border:'none', fontSize:'18px', cursor:'pointer', color:'#aaa' }}>×</button>
+                    </div>
+                    <div style={{ padding:'16px 20px', overflowX:'auto' }}>
+                        {(() => {
+                            const tickers = corrData.tickers || [];
+                            const matrix  = corrData.matrix || [];
+                            const getColor = (v) => {
+                                if (v === null) return '#f0f0f0';
+                                const abs = Math.abs(v);
+                                if (v >= 0.8)  return `rgba(239,68,68,${0.15 + abs*0.5})`;
+                                if (v >= 0.5)  return `rgba(245,158,11,${0.15 + abs*0.4})`;
+                                if (v >= 0.2)  return `rgba(16,185,129,${0.1 + abs*0.3})`;
+                                if (v >= -0.2) return `rgba(96,165,250,${0.1 + abs*0.3})`;
+                                return `rgba(139,92,246,${0.1 + abs*0.4})`;
+                            };
+                            return (
+                                <table style={{ borderCollapse:'collapse', fontSize:'12px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ padding:'6px 10px', color:'#999' }}></th>
+                                            {tickers.map(t => <th key={t} style={{ padding:'6px 10px', fontWeight:'700', color:'#333', textAlign:'center' }}>{t}</th>)}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {tickers.map((rowT, ri) => (
+                                            <tr key={rowT}>
+                                                <td style={{ padding:'6px 10px', fontWeight:'700', color:'#333', whiteSpace:'nowrap' }}>{rowT}</td>
+                                                {tickers.map((colT, ci) => {
+                                                    const val = matrix[ri]?.[ci];
+                                                    return (
+                                                        <td key={colT} style={{ padding:'8px 12px', textAlign:'center', borderRadius:'6px', backgroundColor:getColor(val), fontWeight: ri===ci?'800':'600', color: ri===ci?'#1a1a1a':'#333', minWidth:'52px' }}>
+                                                            {val !== null && val !== undefined ? val.toFixed(2) : '–'}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            );
+                        })()}
+                        <div style={{ marginTop:'12px', display:'flex', gap:'12px', flexWrap:'wrap', fontSize:'11px', color:'#999' }}>
+                            <span>🔴 High correlation (&gt;0.8) — same trade risk</span>
+                            <span>🟡 Moderate (0.5–0.8)</span>
+                            <span>🟢 Low (0.2–0.5) — decent diversification</span>
+                            <span>🔵 Near-zero — unrelated</span>
+                            <span>🟣 Negative — natural hedge</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                OPTIONS FLOW PANEL
+            ══════════════════════════════════════════════════════════════ */}
+            {showOptionsPanel && optionsData && (() => {
+                const o = optionsData;
+                const pcr = o.putCallRatio;
+                const pcrColor = pcr > 1.2 ? '#ef4444' : pcr < 0.7 ? '#10b981' : '#f59e0b';
+                const pcrLabel = pcr > 1.2 ? 'Bearish — more puts than calls' : pcr < 0.7 ? 'Bullish — more calls than puts' : 'Neutral';
+                return (
+                    <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                        <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#f5f3ff', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                            <div>
+                                <div style={{ fontWeight:'800', fontSize:'15px', color:'#4c1d95' }}>🎯 Options Flow — {o.ticker} · {o.expiry}</div>
+                                <div style={{ fontSize:'12px', color:'#7c3aed', marginTop:'2px' }}>Showing what big money is betting on</div>
+                            </div>
+                            <div style={{ display:'flex', gap:'10px', alignItems:'center' }}>
+                                {o.expiryDates?.length > 1 && (
+                                    <select value={optionsExpiry || ''} onChange={e=>{setOptionsExpiry(e.target.value); fetchOptions(ticker);}}
+                                        style={{ padding:'5px 9px', borderRadius:'8px', border:'1px solid #ddd6fe', fontSize:'12px', color:'#4c1d95' }}>
+                                        {o.expiryDates.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                )}
+                                <button onClick={()=>setShowOptionsPanel(false)} style={{ background:'none', border:'none', fontSize:'18px', cursor:'pointer', color:'#aaa' }}>×</button>
+                            </div>
+                        </div>
+
+                        {/* Layman explainer */}
+                        <div style={{ padding:'12px 20px', backgroundColor:'#faf5ff', borderBottom:'1px solid #ede9fe', display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                            <span style={{ fontSize:'18px', flexShrink:0 }}>💡</span>
+                            <div style={{ fontSize:'12px', color:'#6b21a8', lineHeight:'1.6' }}>
+                                <strong>What is this?</strong> Options are contracts that give the right to buy (call) or sell (put) a stock at a set price before a deadline.
+                                When more people buy <strong>calls</strong>, they expect the price to go up. More <strong>puts</strong> = expecting a drop.
+                                The <strong>put/call ratio</strong> below 0.7 is typically bullish, above 1.2 is bearish.
+                                <strong>Open interest</strong> shows how many contracts are active — high OI at a price means that level matters to the market.
+                                <strong>IV (implied volatility)</strong> tells you how much the market expects the stock to swing — high IV = big move expected.
+                            </div>
+                        </div>
+
+                        <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'16px' }}>
+                            {/* Put/Call ratio */}
+                            <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:`4px solid ${pcrColor}` }}>
+                                <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'8px' }}>PUT/CALL RATIO</div>
+                                <div style={{ fontSize:'28px', fontWeight:'800', color:pcrColor }}>{pcr?.toFixed(2) || 'N/A'}</div>
+                                <div style={{ fontSize:'12px', color:pcrColor, fontWeight:'600', marginTop:'4px' }}>{pcrLabel}</div>
+                            </div>
+                            {/* Total volume */}
+                            <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #3b82f6' }}>
+                                <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'8px' }}>TOTAL OPTIONS VOLUME</div>
+                                <div style={{ fontSize:'22px', fontWeight:'800', color:'#1e40af' }}>{o.totalVolume?.toLocaleString() || 'N/A'}</div>
+                                <div style={{ display:'flex', gap:'10px', marginTop:'6px', fontSize:'12px' }}>
+                                    <span style={{ color:'#10b981' }}>📈 Calls: {o.callVolume?.toLocaleString()}</span>
+                                    <span style={{ color:'#ef4444' }}>📉 Puts: {o.putVolume?.toLocaleString()}</span>
+                                </div>
+                            </div>
+                            {/* Current price */}
+                            <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #6b7280' }}>
+                                <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'8px' }}>CURRENT PRICE</div>
+                                <div style={{ fontSize:'22px', fontWeight:'800', color:'#1a1a1a' }}>${o.currentPrice?.toFixed(2) || 'N/A'}</div>
+                                <div style={{ fontSize:'12px', color:'#999', marginTop:'4px' }}>Reference for strike comparison</div>
+                            </div>
+                        </div>
+
+                        {/* Notable strikes table */}
+                        {o.notableStrikes?.length > 0 && (
+                            <div style={{ padding:'0 20px 20px' }}>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>NOTABLE STRIKES — highest open interest near current price</div>
+                                <div style={{ overflowX:'auto' }}>
+                                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor:'#f8f9fa' }}>
+                                                {['Type','Strike','OI','Volume','IV %','Δ from Price'].map(h => (
+                                                    <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#555', borderBottom:'1px solid #f0f0f0' }}>{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {o.notableStrikes.map((s, i) => {
+                                                const delta = o.currentPrice ? ((s.strike - o.currentPrice) / o.currentPrice * 100).toFixed(1) : null;
+                                                const isCall = s.type === 'call';
+                                                return (
+                                                    <tr key={i} style={{ borderBottom:'1px solid #f8f8f8' }}>
+                                                        <td style={{ padding:'8px 10px' }}>
+                                                            <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor: isCall?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)', color:isCall?'#10b981':'#ef4444' }}>
+                                                                {isCall ? '📈 CALL' : '📉 PUT'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ padding:'8px 10px', fontWeight:'700', color:'#1a1a1a' }}>${s.strike}</td>
+                                                        <td style={{ padding:'8px 10px', color:'#333' }}>{s.openInterest?.toLocaleString()}</td>
+                                                        <td style={{ padding:'8px 10px', color:'#333' }}>{s.volume?.toLocaleString()}</td>
+                                                        <td style={{ padding:'8px 10px', color: s.impliedVolatility > 0.6 ? '#ef4444' : '#333' }}>{s.impliedVolatility ? (s.impliedVolatility*100).toFixed(1) : '–'}</td>
+                                                        <td style={{ padding:'8px 10px', fontWeight:'700', color: parseFloat(delta)>0?'#10b981':'#ef4444' }}>{delta !== null ? `${parseFloat(delta)>0?'+':''}${delta}%` : '–'}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        {optionsError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>⚠️ {optionsError}</div>}
+                    </div>
+                );
+            })()}
+
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes sessionPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.3); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0.08); } }
@@ -1735,8 +2013,28 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 setLoadingChart(false);
             }
         };
+        // ── Drawing mode click handler ────────────────────────────────────────
+        const handleChartClick = (param) => {
+            if (!drawingMode || !param.point || !seriesRef.current) return;
+            const price = chart.priceScale('right').coordinateToPrice(param.point.y);
+            if (!price) return;
+            const id = Date.now();
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color: '#f59e0b',
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: `📌 $${price.toFixed(2)}`,
+            });
+            const newLine = { id, price, priceLine: pl };
+            drawnLinesRef.current.push(newLine);
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2) }]);
+        };
+        chart.subscribeClick(handleChartClick);
+
         initialLoad();
-        return () => { ro.disconnect(); };
+        return () => { ro.disconnect(); chart.unsubscribeClick(handleChartClick); };
     }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // ← NO chartInterval here
 
     // ── Effect B: Refresh data only (interval change · manual refresh · auto-refresh) ──
@@ -1752,22 +2050,29 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 const json = await fetchChartData(ticker, chartInterval, activeInd, prePost);
                 if (!seriesRef.current || !chartRef.current) return;
 
-                // Save current visible range so we can restore it after update
-                const visibleRange = chartRef.current.timeScale().getVisibleRange();
+                // ── Viewport preservation ────────────────────────────────────
+                // We use getVisibleLogicalRange() (bar-index based) NOT
+                // getVisibleRange() (time based). Reason: setData() triggers an
+                // internal fitContent() inside LightweightCharts which resets the
+                // time-based range before we can restore it. Logical range survives
+                // this because it's index-relative and is re-applied AFTER the
+                // internal fit completes.
+                const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
 
-                // Update price series in-place
+                // Update price series in-place — triggers LWC internal fitContent
                 const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
                 seriesRef.current.setData(json.candles.map(mapData));
 
                 // Update all indicator overlays in-place
                 applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
+                checkAlerts(json.candles);
 
-                // Restore position OR fitContent if this is the very first data for this interval
-                if (visibleRange && visibleRange.from && visibleRange.to) {
-                    chartRef.current.timeScale().setVisibleRange(visibleRange);
-                } else {
-                    chartRef.current.timeScale().fitContent();
+                // Restore logical position — this runs AFTER the internal fit
+                // so it wins. Only skip if we have no prior range (first load).
+                if (logicalRange && logicalRange.from != null && logicalRange.to != null) {
+                    chartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
                 }
+                // If no prior range, leave whatever LWC fitted — it's correct for first load
                 setLastRefreshed(new Date());
             } catch (e) {
                 setChartError('Refresh failed. Check connection.');
@@ -1777,7 +2082,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
 
         refreshData();
-    }, [chartInterval, refreshTick]); // ← interval changes + manual refresh trigger
+    }, [chartInterval, refreshTick, prePost]); // ← interval · manual refresh · prePost toggle
 
     // ── Auto-refresh interval (30s) ──
     useEffect(() => {
@@ -2215,6 +2520,54 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v2H5v14h14v-5h2v7H3V3zm11 0h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3z"/></svg>
                         TradingView
                     </a>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Drawing tools toggle */}
+                    <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON — click chart to drop a line' : 'Enable drawing mode'}
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${drawingMode?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: drawingMode?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: drawingMode?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        ✏️ {drawingMode ? 'Drawing' : 'Draw'}
+                    </button>
+                    {/* Add to watchlist */}
+                    <button onClick={() => { addToWatchlist(ticker); setShowWatchlist(true); }} title="Add to watchlist / open watchlist"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${watchlist.find(w=>w.symbol===ticker)?'#10b981':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: watchlist.find(w=>w.symbol===ticker)?'rgba(16,185,129,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: watchlist.find(w=>w.symbol===ticker)?'#10b981':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {watchlist.find(w=>w.symbol===ticker) ? '★' : '☆'} Watch {watchlist.length > 0 ? `(${watchlist.length})` : ''}
+                    </button>
+                    {/* Price alert */}
+                    <button onClick={() => { Notification.requestPermission(); setShowAlertForm(a=>!a); }} title="Set price alert"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: alerts.filter(a=>a.ticker===ticker).length?'rgba(239,68,68,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        🔔 {alerts.filter(a=>a.ticker===ticker).length > 0 ? `Alert (${alerts.filter(a=>a.ticker===ticker).length})` : 'Alert'}
+                    </button>
+                    {/* Correlation */}
+                    <button onClick={fetchCorrelation} disabled={corrLoading || watchlist.length < 1} title="Correlation heatmap vs watchlist"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: corrLoading||watchlist.length<1?'not-allowed':'pointer', opacity: watchlist.length<1?0.45:1,
+                            display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {corrLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🔀'} Correlation
+                    </button>
+                    {/* Options flow */}
+                    <button onClick={() => optionsData ? setShowOptionsPanel(p=>!p) : fetchOptions(ticker)} disabled={optionsLoading}
+                        title="Options flow — put/call ratio, key strikes"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showOptionsPanel&&optionsData?'rgba(139,92,246,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: optionsLoading?'wait':'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {optionsLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🎯'} Options
+                    </button>
                     <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
                     <button
                         onClick={captureAndAnalyse}
