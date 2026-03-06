@@ -3,6 +3,110 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import Header from "./header";
 import SideNavs from "./side_navs";
 
+
+// ─── Hardcoded asset universe for comparison picker ───────────────────────────
+const COMPARE_ASSETS = {
+    forex: [
+        'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X',
+        'NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
+    ].map(s => ({ s, n: s.replace('=X','').replace('USD','USD ').trim() })),
+
+    stocks: [
+        // Tech Giants & Semiconductors
+        'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC','ORCL','CSCO',
+        'ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC','SNPS','CDNS','MRVL','NXPI',
+        'MU','ADI','MPWR','SWKS','QRVO','ON','IBM','AAOI','ACLS','ACN','ADSK','AKAM',
+        'ANSS','APH','ANET','ASML','AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX',
+        'PAYC','PTC','ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','ZBRA',
+        // Software & Cloud
+        'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR','TEAM','FTNT','OKTA','S','CYBR',
+        // Fintech & Payments
+        'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER','LYFT',
+        'DASH','PINS','SNAP','SPOT','ROKU','AFRM','COIN','HOOD','SOFI','RBLX','ASTS',
+        // Financial Services & Banks
+        'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME','ICE','MCO',
+        'BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG','AMP','BEN','CBOE','CINF',
+        'DFS','ERIE','FITB','GL','HBAN','HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS',
+        'NDAQ','PFG','RF','RJF','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN','EWBC',
+        'WAL','WBS','ALLY',
+        // Insurance
+        'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
+        // Healthcare & Pharma
+        'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN','GILD','CVS',
+        'CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA','BNTX','ALNY','BGNE',
+        'MCK','CAH','COR','IDXX','A','WAT','ALGN','BAX','BDX','BIO','BSX','DXCM','EW',
+        'HOLX','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PODD','RMD','STE','SYK',
+        'TFX','UHS','WST','ZBH','ZTS','TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
+        // Consumer Discretionary & Retail
+        'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM','ABNB',
+        'SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR','AAL','DAL','UAL',
+        'LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID','AZO','BBY','BURL','CPRT',
+        'DHI','DRI','EXPE','GPC','GRMN','HAS','HLT','KMX','LEN','LVS','MGM','NVR',
+        'ORLY','PHM','POOL','RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA',
+        'DG','DLTR','DDS','FIVE','FL','GPS','GT','HBI','LAD','LKQ','M','NCLH','NWL','PVH',
+        // Consumer Staples
+        'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS','KHC','STZ',
+        'ADM','CAG','CHD','CLX','CPB','EL','HSY','K','KDP','KR','KVUE','MKC','MNST',
+        'SJM','SYY','TAP','TSN','WBA','BG','HRL','POST',
+        // Energy
+        'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN','HES','BKR',
+        'APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE','TRGP','WMB','EQT','AR',
+        'CQP','FTI','MTDR','OVV','PBF','RIG','SM',
+        // Industrials
+        'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC','FDX','CSX',
+        'HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI','DOV','EMR','ETN',
+        'EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW','JBHT','JCI','LDOS','MAS',
+        'NSC','ODFL','OTIS','PCAR','PH','PWR','ROK','ROL','RSG','SNA','SWK','TT',
+        'URI','VRSK','WAB','WM','XYL','ALK','JBLU',
+        // Communication Services & Media
+        'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA','OMC','PARA','WBD','IPG',
+        // Real Estate & REITs
+        'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE','DLR','EQR',
+        'ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC','UDR','VTR','WELL','WY','INVH',
+        // Materials & Chemicals
+        'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB','EMN','SQM',
+        'AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS','NUE','PKG','PPG',
+        'SEE','STLD','VMC','AVY','AA','MP','RS',
+        // Utilities
+        'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS','CNP','DTE',
+        'ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG','PCG','PEG','PNW','PPL',
+        'VST','WEC','XEL','CEG',
+        // Chinese ADRs
+        'BABA','JD','PDD','BIDU','NIO','XPEV','LI',
+    ].map(s => ({ s, n: s })),
+
+    indices: [
+        { s:'^GSPC', n:'S&P 500' },     { s:'^DJI',  n:'Dow Jones' },    { s:'^IXIC', n:'NASDAQ' },
+        { s:'^RUT',  n:'Russell 2000' }, { s:'^VIX',  n:'VIX' },
+        { s:'^FTSE', n:'FTSE 100' },     { s:'^GDAXI',n:'DAX' },          { s:'^FCHI', n:'CAC 40' },
+        { s:'^IBEX', n:'IBEX 35' },      { s:'^AEX',  n:'AEX' },          { s:'^SSMI', n:'SMI' },
+        { s:'^OMXS30',n:'OMX Stockholm'},{ s:'^BFX',  n:'BEL 20' },
+        { s:'^N225', n:'Nikkei 225' },   { s:'^HSI',  n:'Hang Seng' },    { s:'000001.SS',n:'SSE Composite' },
+        { s:'^STI',  n:'STI Singapore' },{ s:'^BSESN',n:'BSE Sensex' },   { s:'^NSEI', n:'NIFTY 50' },
+        { s:'^KS11', n:'KOSPI' },        { s:'^TWII', n:'TAIEX' },        { s:'^JKSE', n:'IDX Composite' },
+        { s:'^AXJO', n:'ASX 200' },      { s:'^GSPTSE',n:'TSX' },         { s:'^MXX',  n:'IPC Mexico' },
+        { s:'^BVSP', n:'Bovespa' },      { s:'^MERV', n:'MERVAL' },
+    ],
+
+    commodities: [
+        { s:'GC=F',  n:'Gold' },          { s:'SI=F',  n:'Silver' },        { s:'PL=F',  n:'Platinum' },
+        { s:'PA=F',  n:'Palladium' },
+        { s:'CL=F',  n:'Crude Oil WTI' }, { s:'BZ=F',  n:'Brent Crude' },   { s:'NG=F',  n:'Natural Gas' },
+        { s:'RB=F',  n:'RBOB Gasoline' }, { s:'HO=F',  n:'Heating Oil' },
+        { s:'HG=F',  n:'Copper' },        { s:'ALI=F', n:'Aluminium' },
+        { s:'ZC=F',  n:'Corn' },          { s:'ZW=F',  n:'Wheat' },         { s:'ZS=F',  n:'Soybeans' },
+        { s:'KC=F',  n:'Coffee' },        { s:'SB=F',  n:'Sugar' },         { s:'CT=F',  n:'Cotton' },
+        { s:'CC=F',  n:'Cocoa' },         { s:'LBS=F', n:'Lumber' },
+    ],
+
+    bonds: [
+        { s:'^TNX',  n:'10Y Treasury Yield' }, { s:'^TYX', n:'30Y Treasury Yield' },
+        { s:'^FVX',  n:'5Y Treasury Yield' },  { s:'^IRX', n:'13W T-Bill' },
+        { s:'ZN=F',  n:'10Y T-Note Futures' }, { s:'ZB=F', n:'T-Bond Futures' },
+        { s:'ZT=F',  n:'2Y T-Note Futures' },  { s:'ZF=F', n:'5Y T-Note Futures' },
+    ],
+};
+
 // ─── Sabrina AI Chatbot Component ────────────────────────────────────────────
 function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -1295,6 +1399,7 @@ Return this exact JSON structure:
                     )}
                 </div>
             )}
+            }
 
 
 
@@ -1433,7 +1538,7 @@ function EmptyNewsState({ message }) {
 }
 
 // ─── Chart & Insights Tab ─────────────────────────────────────────────────────
-function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis }) {
+function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis, compactMode = false }) {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
@@ -1510,6 +1615,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [firedAlerts,        setFiredAlerts]        = useState([]);
     // ── Annotations ──
     const [annotations,        setAnnotations]        = useState({});
+    // ── Compare mode ──
+    const [compareTicker,      setCompareTicker]      = useState(null);   // active compare ticker
+    const [showComparePicker,  setShowComparePicker]  = useState(false);  // modal open
+    const [compareSearch,      setCompareSearch]      = useState('');     // search input
+    const [compareCategory,    setCompareCategory]    = useState('stocks');
+    const [compareMode,        setCompareMode]        = useState('side'); // 'side' | 'stack'
     // ── Options flow ──
     const [optionsData,        setOptionsData]        = useState(null);
     const [optionsLoading,     setOptionsLoading]     = useState(false);
@@ -2500,6 +2611,16 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         ✏️ {drawingMode ? 'Drawing' : 'Draw'}
                     </button>
 
+                    {/* Compare */}
+                    <button onClick={() => setShowComparePicker(true)}
+                        title="Compare with another asset"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${compareTicker?'#3b82f6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: compareTicker?'rgba(59,130,246,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: compareTicker?'#3b82f6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        ⊕ {compareTicker ? `vs ${compareTicker}` : 'Compare'}
+                    </button>
                     {/* Video record */}
                     <button
                         onClick={() => isRecording ? stopRecording() : recordChartVideo(45)}
@@ -2639,7 +2760,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
             {/* ══ FIRED ALERT TOASTS ════════════════════════════════════════════ */}
             {firedAlerts.length > 0 && (
-                <div style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
+                <div style={{ position:'fixed', bottom:'90px', right:'24px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
                     {firedAlerts.slice(-4).map((a, i) => (
                         <div key={a.id || i} style={{ padding:'14px 18px', backgroundColor:'#ef4444', color:'#fff', borderRadius:'12px', boxShadow:'0 4px 20px rgba(239,68,68,0.5)', fontSize:'13px', fontWeight:'700', display:'flex', gap:'12px', alignItems:'center', minWidth:'260px' }}>
                             <span style={{ fontSize:'20px' }}>🔔</span>
@@ -2887,6 +3008,125 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
+            {/* ══ COMPARE PICKER MODAL ════════════════════════════════════════ */}
+            {showComparePicker && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9500, display:'flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => { if (e.target===e.currentTarget) setShowComparePicker(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'18px', width:'560px', maxWidth:'95vw', maxHeight:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.25)' }}>
+                        <div style={{ padding:'20px 24px 0', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                                <div>
+                                    <div style={{ fontSize:'17px', fontWeight:'800', color:'#1a1a1a' }}>⊕ Compare with {ticker}</div>
+                                    <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Pick any asset — a full chart opens side by side</div>
+                                </div>
+                                <button onClick={()=>setShowComparePicker(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>×</button>
+                            </div>
+                            <input autoFocus type="text" placeholder="Search ticker or name… e.g. NVDA, Gold, EUR/USD"
+                                value={compareSearch} onChange={e => setCompareSearch(e.target.value.toUpperCase())}
+                                style={{ width:'100%', padding:'10px 14px', borderRadius:'10px', border:'2px solid #e0e0e0', fontSize:'14px', boxSizing:'border-box', outline:'none', marginBottom:'12px' }} />
+                            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'12px' }}>
+                                {Object.keys(COMPARE_ASSETS).map(cat => (
+                                    <button key={cat} onClick={() => setCompareCategory(cat)}
+                                        style={{ padding:'5px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'none',
+                                            backgroundColor: compareCategory===cat ? '#3b82f6' : '#f0f0f0',
+                                            color: compareCategory===cat ? '#fff' : '#555', textTransform:'capitalize' }}>
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ overflowY:'auto', flex:1, padding:'0 24px 12px' }}>
+                            {compareTicker && (
+                                <div style={{ marginBottom:'10px', display:'flex', alignItems:'center', gap:'8px', padding:'8px 12px', backgroundColor:'#eff6ff', borderRadius:'8px', border:'1px solid #bfdbfe' }}>
+                                    <span style={{ fontSize:'12px', color:'#3b82f6', fontWeight:'700' }}>Comparing: {compareTicker}</span>
+                                    <button onClick={() => { setCompareTicker(null); setShowComparePicker(false); }}
+                                        style={{ marginLeft:'auto', fontSize:'11px', color:'#ef4444', background:'none', border:'1px solid #fecaca', borderRadius:'6px', padding:'2px 8px', cursor:'pointer' }}>Remove</button>
+                                </div>
+                            )}
+                            {(() => {
+                                const allInCat = COMPARE_ASSETS[compareCategory] || [];
+                                const filtered = compareSearch.length > 0
+                                    ? Object.values(COMPARE_ASSETS).flat().filter(a => a.s.includes(compareSearch) || a.n.toUpperCase().includes(compareSearch))
+                                    : allInCat;
+                                if (filtered.length === 0) return <div style={{ padding:'24px', textAlign:'center', color:'#aaa', fontSize:'13px' }}>No results for "{compareSearch}"</div>;
+                                return (
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:'6px' }}>
+                                        {filtered.map(a => (
+                                            <button key={a.s} onClick={() => { setCompareTicker(a.s); setShowComparePicker(false); setCompareSearch(''); }}
+                                                style={{ padding:'8px 10px', borderRadius:'8px', border:`1px solid ${compareTicker===a.s?'#3b82f6':'#e8e8e8'}`,
+                                                    backgroundColor: compareTicker===a.s?'#eff6ff':'#fafafa',
+                                                    cursor:'pointer', textAlign:'left', transition:'all 0.1s' }}>
+                                                <div style={{ fontSize:'12px', fontWeight:'800', color:compareTicker===a.s?'#3b82f6':'#1a1a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.s}</div>
+                                                {a.n !== a.s && <div style={{ fontSize:'10px', color:'#999', marginTop:'1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.n}</div>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div style={{ padding:'12px 24px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+                            <span style={{ fontSize:'12px', color:'#999', fontWeight:'600' }}>Layout:</span>
+                            {[['side','⬛⬛ Side by side'],['stack','⬛↕ Stacked']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'5px 12px', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══ COMPARE DUAL CHART ══════════════════════════════════════════════ */}
+            {compareTicker && (
+                <div style={{ marginBottom:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                        <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>
+                            📊 {ticker} <span style={{ color:'#aaa', fontWeight:'400', margin:'0 4px' }}>vs</span> {compareTicker}
+                        </div>
+                        <div style={{ display:'flex', gap:'6px', marginLeft:'auto' }}>
+                            {[['side','⬛⬛ Side'],['stack','⬛↕ Stack']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                            <button onClick={() => setShowComparePicker(true)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', backgroundColor:'#fff', color:'#555' }}>
+                                ⊕ Swap
+                            </button>
+                            <button onClick={() => setCompareTicker(null)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444' }}>
+                                ✕ Close
+                            </button>
+                        </div>
+                    </div>
+                    <div style={{
+                        display: compareMode==='side' ? 'grid' : 'flex',
+                        gridTemplateColumns: compareMode==='side' ? '1fr 1fr' : undefined,
+                        flexDirection: compareMode==='stack' ? 'column' : undefined,
+                        gap: '14px', alignItems: 'start',
+                    }}>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#888', marginBottom:'5px', paddingLeft:'2px' }}>📈 {ticker} — primary</div>
+                            <ChartInsightsTab ticker={ticker} stockData={stockData} earnings={earnings} news={news}
+                                marketauxNews={marketauxNews} openaiKey={openaiKey} cachedNewsAnalysis={cachedNewsAnalysis} compactMode={true} />
+                        </div>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#3b82f6', marginBottom:'5px', paddingLeft:'2px' }}>📈 {compareTicker} — compare</div>
+                            <ChartInsightsTab ticker={compareTicker} stockData={null} earnings={[]} news={[]}
+                                marketauxNews={[]} openaiKey={openaiKey} cachedNewsAnalysis={null} compactMode={true} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Analyst Ratings Panel ── */}
             {showAnalystPanel && analystData && (() => {
                 const s = analystData.summary;
@@ -3006,7 +3246,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
             )}
 
             {/* ── Sabrina's Recommendation Card ── */}
-            {sabrinaRec && (
+            {!compactMode && sabrinaRec && (
                 <div style={{ backgroundColor: vc.bg, border: `2px solid ${vc.border}`, borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
                     {/* Verdict header */}
                     <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${vc.border}` }}>
@@ -3091,7 +3331,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
             )}
 
             {/* ── Bottom context panels ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {!compactMode && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
 
                 {/* News Insights */}
                 {(news?.filter(n => n?.title).length > 0 || cachedNewsAnalysis) && (
