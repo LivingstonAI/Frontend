@@ -1399,7 +1399,6 @@ Return this exact JSON structure:
                     )}
                 </div>
             )}
-            }
 
 
 
@@ -3422,6 +3421,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     </div>
                 )}
             </div>
+            }
 
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
