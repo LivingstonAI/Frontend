@@ -1753,6 +1753,37 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [analystLoading,     setAnalystLoading]     = useState(false);
     const [analystError,       setAnalystError]       = useState(null);
     const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
+    // ── Watchlist ──
+    const [watchlist,          setWatchlist]          = useState([]);
+    const [showWatchlist,      setShowWatchlist]      = useState(false);
+    const [watchlistPrices,    setWatchlistPrices]    = useState({});
+    const watchlistTimerRef    = useRef(null);
+    // ── Drawing tools ──
+    const drawingModeRef       = useRef(false);        // ref mirror — safe inside closures
+    const [drawingMode,        setDrawingMode]        = useState(false);
+    const drawnLinesRef        = useRef([]);
+    const [drawnLines,         setDrawnLines]         = useState([]);
+    // ── Price alerts ──
+    const [alerts,             setAlerts]             = useState([]);
+    const [showAlertForm,      setShowAlertForm]      = useState(false);
+    const [alertPrice,         setAlertPrice]         = useState('');
+    const [alertDir,           setAlertDir]           = useState('above');
+    const [firedAlerts,        setFiredAlerts]        = useState([]);
+    // ── Annotations ──
+    const [annotations,        setAnnotations]        = useState({});
+    // ── Correlation ──
+    const [showCorrelation,    setShowCorrelation]    = useState(false);
+    const [corrData,           setCorrData]           = useState(null);
+    const [corrLoading,        setCorrLoading]        = useState(false);
+    // ── Options flow ──
+    const [optionsData,        setOptionsData]        = useState(null);
+    const [optionsLoading,     setOptionsLoading]     = useState(false);
+    const [optionsError,       setOptionsError]       = useState(null);
+    const [showOptionsPanel,   setShowOptionsPanel]   = useState(false);
+    const [optionsExpiry,      setOptionsExpiry]      = useState(null);
+
+    // Keep drawingModeRef in sync with state so chart click closure always sees latest value
+    useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
 
     // Lower → Higher timeframes with smart default lookbacks
     const intervalConfig = {
@@ -1831,6 +1862,112 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         const id = setInterval(tick, 30000);
         return () => clearInterval(id);
     }, []);
+
+    // ── Watchlist persistence ────────────────────────────────────────────────────
+    useEffect(() => {
+        (async () => {
+            try {
+                const r = await window.storage.get('snowai-watchlist');
+                if (r?.value) setWatchlist(JSON.parse(r.value));
+                const ra = await window.storage.get('snowai-alerts');
+                if (ra?.value) setAlerts(JSON.parse(ra.value));
+            } catch {}
+        })();
+    }, []);
+
+    const saveWatchlist = async (list) => {
+        setWatchlist(list);
+        try { await window.storage.set('snowai-watchlist', JSON.stringify(list)); } catch {}
+    };
+    const addToWatchlist = async (sym) => {
+        if (!sym || watchlist.find(w => w.symbol === sym)) return;
+        await saveWatchlist([...watchlist, { symbol: sym, addedAt: Date.now() }]);
+    };
+    const removeFromWatchlist = async (sym) => {
+        await saveWatchlist(watchlist.filter(w => w.symbol !== sym));
+    };
+
+    const saveAlerts = async (al) => {
+        setAlerts(al);
+        try { await window.storage.set('snowai-alerts', JSON.stringify(al)); } catch {}
+    };
+
+    // Poll watchlist prices when panel is open
+    useEffect(() => {
+        if (watchlistTimerRef.current) clearInterval(watchlistTimerRef.current);
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        const pollPrices = async () => {
+            const updated = {};
+            await Promise.all(watchlist.map(async (w) => {
+                try {
+                    const res = await fetch(`${BACKEND}/api/snowai_stock_screener_fetch_data/?ticker=${w.symbol}`);
+                    const d   = await res.json();
+                    if (d.stock_data) updated[w.symbol] = {
+                        price:  d.stock_data.currentPrice,
+                        change: d.stock_data.regularMarketChangePercent,
+                        name:   d.stock_data.shortName || w.symbol,
+                    };
+                } catch {}
+            }));
+            setWatchlistPrices(updated);
+        };
+        if (showWatchlist && watchlist.length) {
+            pollPrices();
+            watchlistTimerRef.current = setInterval(pollPrices, 30000);
+        }
+        return () => { if (watchlistTimerRef.current) clearInterval(watchlistTimerRef.current); };
+    }, [showWatchlist, watchlist]);
+
+    // Check price alerts on each refresh
+    const checkAlerts = (candles) => {
+        if (!alerts.length || !candles?.length) return;
+        const latest = candles[candles.length - 1]?.close;
+        if (!latest) return;
+        const fired = []; const remaining = [];
+        alerts.forEach(al => {
+            if (al.ticker !== ticker) { remaining.push(al); return; }
+            const hit = al.dir === 'above' ? latest >= al.price : latest <= al.price;
+            if (hit) {
+                fired.push(al);
+                if (Notification.permission === 'granted')
+                    new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} — now $${latest.toFixed(2)}` });
+            } else { remaining.push(al); }
+        });
+        if (fired.length) { setFiredAlerts(prev => [...prev, ...fired]); saveAlerts(remaining); }
+    };
+
+    // Correlation fetch
+    const fetchCorrelation = async () => {
+        if (watchlist.length < 1) return;
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        setCorrLoading(true);
+        try {
+            const tickers = [ticker, ...watchlist.map(w => w.symbol)].filter((v,i,a) => a.indexOf(v)===i).slice(0,8);
+            const res  = await fetch(`${BACKEND}/api/snowai_correlation_matrix_vault/`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ tickers }),
+            });
+            const json = await res.json();
+            setCorrData(json); setShowCorrelation(true);
+        } catch (e) { setCorrData({ error: e.message }); }
+        finally { setCorrLoading(false); }
+    };
+
+    // Options fetch
+    const fetchOptions = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        setOptionsLoading(true); setOptionsError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_options_flow_vault/`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ ticker: sym, expiry: optionsExpiry }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed');
+            setOptionsData(json); setShowOptionsPanel(true);
+        } catch (e) { setOptionsError(e.message); }
+        finally { setOptionsLoading(false); }
+    };
 
     // ── Fetch OHLCV + backend-computed indicators in one call ──────────────────
     const fetchChartData = async (sym, interval, activeIndicators, includePrePost = false) => {
@@ -2015,7 +2152,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
         // ── Drawing mode click handler ────────────────────────────────────────
         const handleChartClick = (param) => {
-            if (!drawingMode || !param.point || !seriesRef.current) return;
+            if (!drawingModeRef.current || !param.point || !seriesRef.current) return;
             const price = chart.priceScale('right').coordinateToPrice(param.point.y);
             if (!price) return;
             const id = Date.now();
