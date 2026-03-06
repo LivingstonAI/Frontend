@@ -895,66 +895,92 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
         display: "flex", alignItems: "center", fontSize: "14px", transition: "all 0.15s",
     };
 
+    // Detect mobile for fullscreen toolbar layout
+    const isMobileFS = isFullscreen && typeof window !== "undefined" && window.innerWidth < 600;
+
     return (
         <div style={wrapStyle}>
-            {/* ── Toolbar — single scrollable line in fullscreen to avoid pushing chart down ── */}
-            <div style={{ background: toolbarBg, borderBottom: `1px solid ${toolbarBorder}`, padding: "6px 10px", display: "flex", alignItems: "center", gap: "4px", flexWrap: isFullscreen ? "nowrap" : "wrap", overflowX: isFullscreen ? "auto" : "visible", flexShrink: 0 }}>
-                {/* Symbol label */}
-                <span style={{ fontSize: "12px", fontWeight: "700", color: activeText, marginRight: "6px", fontFamily: "monospace" }}>{symbol}</span>
+            {/* ══════════════════════════════════════════════════════════
+                TOOLBAR — two-row on mobile fullscreen, single row otherwise
+            ══════════════════════════════════════════════════════════ */}
+            <div style={{ background: toolbarBg, borderBottom: `1px solid ${toolbarBorder}`, flexShrink: 0 }}>
 
-                {/* Divider */}
-                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
+                {/* ── Row 1: symbol + type + theme + actions ── */}
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", padding: isMobileFS ? "8px 12px 4px" : "6px 10px", flexWrap: "nowrap", overflowX: "auto" }}>
 
-                {/* Chart type */}
-                {[["candle","🕯️"],["area","〰"],["line","📈"]].map(([t, icon]) => (
-                    <button key={t} style={btnStyle(localType === t)} onClick={() => setLocalType(t)} title={t}>{icon}</button>
-                ))}
+                    {/* Symbol */}
+                    <span style={{ fontSize: isMobileFS ? "14px" : "12px", fontWeight: "800", color: activeText, marginRight: "4px", fontFamily: "monospace", flexShrink: 0 }}>{symbol}</span>
 
-                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
+                    <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 2px", flexShrink: 0 }} />
 
-                {/* Interval pills — scrollable row */}
-                <div style={{ display: "flex", gap: "2px", flexWrap: "wrap" }}>
-                    {CHART_INTERVALS.map(iv => (
-                        <button key={iv.value} style={btnStyle(localInterval === iv.value)} onClick={() => setLocalInterval(iv.value)}>{iv.label}</button>
+                    {/* Chart type */}
+                    {[["candle","🕯️"],["area","〰"],["line","📈"]].map(([t, icon]) => (
+                        <button key={t}
+                            style={{ ...btnStyle(localType === t), padding: isMobileFS ? "6px 10px" : "3px 8px", fontSize: isMobileFS ? "16px" : "11px", flexShrink: 0 }}
+                            onClick={() => setLocalType(t)} title={t}>{icon}
+                        </button>
                     ))}
+
+                    <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 2px", flexShrink: 0 }} />
+
+                    {/* Theme — icon only on mobile to save space */}
+                    {Object.entries(CHART_THEMES).map(([k, v]) => (
+                        <button key={k}
+                            style={{ ...btnStyle(localTheme === k), padding: isMobileFS ? "6px 10px" : "3px 8px", fontSize: isMobileFS ? "15px" : "11px", flexShrink: 0 }}
+                            onClick={() => setLocalTheme(k)} title={k}>
+                            {isMobileFS ? v.label.split(" ")[0] : v.label}
+                        </button>
+                    ))}
+
+                    {/* Spacer */}
+                    <div style={{ flex: 1 }} />
+
+                    {/* Refresh */}
+                    <button style={{ ...iconBtnStyle, padding: isMobileFS ? "7px 10px" : "3px 6px", fontSize: isMobileFS ? "18px" : "14px", flexShrink: 0 }}
+                        onClick={() => fetchAndRender(symbol, localInterval, localType, localTheme)} title="Refresh">↻</button>
+
+                    {/* Fullscreen toggle */}
+                    {fullscreenable && (
+                        <button style={{ ...iconBtnStyle, padding: isMobileFS ? "7px 10px" : "3px 6px", fontSize: isMobileFS ? "18px" : "14px", flexShrink: 0 }}
+                            onClick={() => setIsFullscreen(f => !f)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+                            {isFullscreen ? "✕" : "⛶"}
+                        </button>
+                    )}
+
+                    {/* Close */}
+                    {onClose && !isFullscreen && (
+                        <button style={{ ...iconBtnStyle, color: "#EF4444", flexShrink: 0 }} onClick={onClose} title="Close chart">✕</button>
+                    )}
                 </div>
 
-                <div style={{ width: "1px", height: "16px", background: toolbarBorder, margin: "0 4px" }} />
-
-                {/* Theme */}
-                {Object.entries(CHART_THEMES).map(([k, v]) => (
-                    <button key={k} style={btnStyle(localTheme === k)} onClick={() => setLocalTheme(k)}>{v.label}</button>
-                ))}
-
-                {/* Spacer */}
-                <div style={{ flex: 1 }} />
-
-                {/* Refresh */}
-                <button style={iconBtnStyle} onClick={() => fetchAndRender(symbol, localInterval, localType, localTheme)} title="Refresh">
-                    ↻
-                </button>
-
-                {/* Fullscreen toggle */}
-                {fullscreenable && (
-                    <button style={iconBtnStyle} onClick={() => setIsFullscreen(f => !f)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-                        {isFullscreen ? "⊠" : "⛶"}
-                    </button>
-                )}
-
-                {/* Close (when used inline in expanded rows) */}
-                {onClose && (
-                    <button style={{ ...iconBtnStyle, color: "#EF4444" }} onClick={onClose} title="Close chart">✕</button>
-                )}
+                {/* ── Row 2: interval strip — always its own horizontally-scrollable row ── */}
+                <div style={{ display: "flex", gap: "2px", padding: isMobileFS ? "4px 12px 8px" : "0 10px 6px", overflowX: "auto", flexWrap: "nowrap",
+                    /* hide scrollbar visually */ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                    {CHART_INTERVALS.map(iv => (
+                        <button key={iv.value}
+                            style={{ ...btnStyle(localInterval === iv.value),
+                                padding: isMobileFS ? "7px 12px" : "3px 8px",
+                                fontSize: isMobileFS ? "13px" : "11px",
+                                flexShrink: 0,
+                                borderRadius: isMobileFS ? "8px" : "5px",
+                                border: localInterval === iv.value
+                                    ? `1px solid ${activeText}`
+                                    : "1px solid transparent",
+                            }}
+                            onClick={() => setLocalInterval(iv.value)}>{iv.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* ── Chart container — flex:1 in fullscreen fills all remaining space, explicit px otherwise ── */}
-            <div style={{ position: "relative", width: "100%", ...(isFullscreen ? { flex: 1, minHeight: 0 } : { height: `${height}px` }) }}>
+            {/* ── Chart canvas ── */}
+            <div ref={containerRef} style={{ position: "relative", width: "100%", ...(isFullscreen ? { flex: 1, minHeight: 0 } : { height: `${height}px` }) }}>
                 {loading && (
                     <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: th.layout.background.color, zIndex: 5, gap: "10px" }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
                             <circle cx="12" cy="12" r="10" stroke={th.lineColor || "#2563EB"} strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
                         </svg>
-                        <span style={{ fontSize: "12px", color: th.layout.textColor }}>Loading chart data...</span>
+                        <span style={{ fontSize: "12px", color: th.layout.textColor }}>Loading...</span>
                     </div>
                 )}
                 {error && (
@@ -965,9 +991,9 @@ function TradingViewChart({ symbol, theme = "light", chartType = "candle", inter
                 <div ref={canvasRef} style={{ position: "absolute", inset: 0 }} />
             </div>
 
-            {/* ── Status bar ── */}
+            {/* ── Status bar — non-fullscreen only ── */}
             {lastRefresh && !isFullscreen && (
-                <div style={{ background: toolbarBg, borderTop: `1px solid ${toolbarBorder}`, padding: "3px 10px" }}>
+                <div style={{ background: toolbarBg, borderTop: `1px solid ${toolbarBorder}`, padding: "3px 10px", flexShrink: 0 }}>
                     <span style={{ fontSize: "10px", color: toolbarText }}>Last updated: {lastRefresh}</span>
                 </div>
             )}
@@ -1310,6 +1336,17 @@ function TrendAgeModal() {
                     .ta-row-spark { display: none; }
                     .ta-row-age-text { max-width: 50px; }
                     .ta-info-grid { grid-template-columns: 1fr 1fr !important; }
+                }
+
+                /* ── Chart toolbar interval strip — hide scrollbar ── */
+                .tv-interval-strip::-webkit-scrollbar { display: none; }
+
+                /* ── Fullscreen chart on mobile — safe area padding ── */
+                @media (max-width: 600px) {
+                    .tv-fullscreen-wrap {
+                        padding-top: env(safe-area-inset-top);
+                        padding-bottom: env(safe-area-inset-bottom);
+                    }
                 }
             `}</style>
 
