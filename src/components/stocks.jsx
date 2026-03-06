@@ -1298,6 +1298,7 @@ Return this exact JSON structure:
 
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes sessionPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.3); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0.08); } }
                 @keyframes articleModalPop {
                     from { opacity: 0; transform: scale(0.93) translateY(10px); }
                     to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -1466,7 +1467,9 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [showBB,    setShowBB]    = useState(false);
     const [showRSI,   setShowRSI]   = useState(false);
     const [showEMA,   setShowEMA]   = useState(false);
-    const [rsiVal,    setRsiVal]    = useState(null);  // latest RSI value for badge
+    const [rsiVal,    setRsiVal]    = useState(null);
+    const [prePost,   setPrePost]   = useState(false);  // pre/post market toggle
+    const [sessionNow, setSessionNow] = useState(null); // live session state
     // ── Analyst ratings ──
     const [analystData,        setAnalystData]        = useState(null);
     const [analystLoading,     setAnalystLoading]     = useState(false);
@@ -1505,13 +1508,59 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // Uses trapezoidal integration of close price over time (unix seconds)
     // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
     // Band = TWAP ± 1 stddev of (price - TWAP) over the whole dataset
+    // ── Live session tracker ─────────────────────────────────────────────────────
+    // All times in US/Eastern. NYSE hours: Pre 4:00-9:30, Regular 9:30-16:00, Post 16:00-20:00
+    const getSessionState = () => {
+        const now = new Date();
+        // Convert to ET (UTC-5 standard, UTC-4 daylight)
+        const etOffset  = (() => {
+            // DST: second Sunday March → first Sunday November
+            const jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
+            const jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
+            const stdOff = Math.max(jan, jul); // e.g. 300 = UTC-5
+            const isDST  = now.getTimezoneOffset() < stdOff;
+            return isDST ? -4 : -5;
+        })();
+        const utc  = now.getTime() + now.getTimezoneOffset() * 60000;
+        const et   = new Date(utc + etOffset * 3600000);
+        const day  = et.getDay(); // 0=Sun, 6=Sat
+        const h    = et.getHours();
+        const m    = et.getMinutes();
+        const mins = h * 60 + m;
+
+        const isWeekend = day === 0 || day === 6;
+        if (isWeekend) return { session: 'closed', label: 'Market Closed', sub: 'Weekend', color: '#6b7280', dot: '#6b7280', et };
+
+        // NYSE session windows (minutes from midnight ET)
+        const PRE_OPEN   = 4  * 60;       // 04:00
+        const MKT_OPEN   = 9  * 60 + 30;  // 09:30
+        const MKT_CLOSE  = 16 * 60;       // 16:00
+        const POST_CLOSE = 20 * 60;       // 20:00
+
+        const minsUntil = (target) => target - mins;
+        const fmt = (m) => `${Math.floor(Math.abs(m)/60).toString().padStart(2,'0')}:${(Math.abs(m)%60).toString().padStart(2,'0')}`;
+
+        if (mins < PRE_OPEN)   return { session: 'closed',   label: 'Market Closed',    sub: `Pre-market opens in ${fmt(minsUntil(PRE_OPEN))}`,   color: '#6b7280', dot: '#6b7280', et };
+        if (mins < MKT_OPEN)   return { session: 'pre',      label: 'Pre-Market',       sub: `Regular opens in ${fmt(minsUntil(MKT_OPEN))}`,       color: '#f59e0b', dot: '#f59e0b', et };
+        if (mins < MKT_CLOSE)  return { session: 'regular',  label: 'Market Open',      sub: `Closes in ${fmt(minsUntil(MKT_CLOSE))}`,             color: '#10b981', dot: '#10b981', et };
+        if (mins < POST_CLOSE) return { session: 'post',     label: 'After Hours',      sub: `Post-market closes in ${fmt(minsUntil(POST_CLOSE))}`, color: '#60a5fa', dot: '#60a5fa', et };
+        return                         { session: 'closed',   label: 'Market Closed',    sub: 'After-hours ended',                                   color: '#6b7280', dot: '#6b7280', et };
+    };
+
+    useEffect(() => {
+        const tick = () => setSessionNow(getSessionState());
+        tick();
+        const id = setInterval(tick, 30000);
+        return () => clearInterval(id);
+    }, []);
+
     // ── Fetch OHLCV + backend-computed indicators in one call ──────────────────
-    const fetchChartData = async (sym, interval, activeIndicators) => {
+    const fetchChartData = async (sym, interval, activeIndicators, includePrePost = false) => {
         const BACKEND = 'https://backend-production-c0ab.up.railway.app';
         const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ticker: sym, interval, indicators: activeIndicators }),
+            body: JSON.stringify({ ticker: sym, interval, indicators: activeIndicators, prePost: includePrePost }),
         });
         if (!res.ok) throw new Error(`Server error ${res.status}`);
         const json = await res.json();
@@ -1662,7 +1711,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             setLoadingChart(true);
             setChartError(null);
             try {
-                const json = await fetchChartData(ticker, chartInterval, activeIndicators);
+                const json = await fetchChartData(ticker, chartInterval, activeIndicators, prePost);
                 if (!chartRef.current) return;
                 const th2 = getThemeConfig(chartTheme);
                 let series;
@@ -1688,7 +1737,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
         initialLoad();
         return () => { ro.disconnect(); };
-    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA]); // ← NO chartInterval here
+    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // ← NO chartInterval here
 
     // ── Effect B: Refresh data only (interval change · manual refresh · auto-refresh) ──
     // Preserves scroll/zoom position — does NOT recreate the chart instance
@@ -1700,7 +1749,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             setChartError(null);
             try {
                 const activeInd = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
-                const json = await fetchChartData(ticker, chartInterval, activeInd);
+                const json = await fetchChartData(ticker, chartInterval, activeInd, prePost);
                 if (!seriesRef.current || !chartRef.current) return;
 
                 // Save current visible range so we can restore it after update
@@ -1919,8 +1968,24 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                     }}>{label}</button>
                                 ))}
 
-                                {/* Theme switcher — pushed to the right */}
-                                <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
+                                {/* Session tracker widget */}
+                                {sessionNow && (() => {
+                                    const s = sessionNow;
+                                    const etStr = s.et.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZone:'America/New_York', hour12:false });
+                                    return (
+                                        <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'8px', backgroundColor: s.color+'14', border:`1px solid ${s.color}30`, marginLeft:'auto' }}>
+                                            <span style={{ width:'7px', height:'7px', borderRadius:'50%', backgroundColor:s.dot, flexShrink:0,
+                                                boxShadow: s.session === 'regular' ? `0 0 0 2px ${s.dot}30` : 'none',
+                                                animation: s.session === 'regular' ? 'sessionPulse 2s ease-in-out infinite' : 'none',
+                                            }} />
+                                            <span style={{ fontSize:'11px', fontWeight:'700', color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>
+                                            <span style={{ fontSize:'10px', color:s.color, opacity:0.7, whiteSpace:'nowrap' }}>{etStr} ET</span>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Theme switcher */}
+                                <div style={{ display: 'flex', gap: '4px' }}>
                                     {[['light','☀️'],['dark','🌙'],['hud','⬡ HUD']].map(([t, lbl]) => {
                                         const active = chartTheme === t;
                                         return <button key={t} onClick={() => setChartTheme(t)} style={{
@@ -1958,6 +2023,26 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         cursor: 'pointer', transition: 'all 0.15s',
                                     }}>{intervalConfig[iv].label}</button>;
                                 })}
+                                <div style={{ width:'1px', height:'16px', backgroundColor:toolbarBorder, flexShrink:0, alignSelf:'center' }} />
+                                {/* Pre/Post market toggle — intraday only */}
+                                {(() => {
+                                    const isIntraday = intervalConfig[chartInterval]?.group === 'Intraday';
+                                    const active = prePost && isIntraday;
+                                    return (
+                                        <button
+                                            onClick={() => isIntraday && setPrePost(p => !p)}
+                                            title={isIntraday ? 'Toggle pre/post market data' : 'Pre/post only available on intraday timeframes'}
+                                            style={{
+                                                padding:'4px 10px', fontSize:'11px', fontWeight:'700', borderRadius:'6px',
+                                                border:`1px solid ${active ? '#f59e0b' : btnBase.border}`,
+                                                backgroundColor: active ? 'rgba(245,158,11,0.14)' : btnBase.bg,
+                                                color: active ? '#f59e0b' : isIntraday ? btnBase.text : (btnBase.text + '50'),
+                                                cursor: isIntraday ? 'pointer' : 'not-allowed',
+                                                transition:'all 0.15s', whiteSpace:'nowrap', opacity: isIntraday ? 1 : 0.45,
+                                            }}
+                                        >🌅 Pre/Post</button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     );
