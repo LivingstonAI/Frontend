@@ -1716,33 +1716,39 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const windowSize   = currentRange ? Math.round(currentRange.to - currentRange.from) : 60;
 
             // frameDelay controls real-world pace — each bar gets this many ms on screen
-            // For 30s video with 180 bars: 30000/180 = ~166ms per bar
-            // For 30s video with 500 bars: 30000/500 = 60ms per bar (still comfortable)
+            // For 45s video with 180 bars: 45000/180 = 250ms per bar
+            // For 45s video with 500 bars: 45000/500 = 90ms per bar
             // Floor at 40ms (no faster than ~25 bars/sec) so canvas stream isn't starved
-            const frameDelay   = Math.max(40, Math.round((targetDurationSec * 1000) / totalBars));
-            // With many bars we batch 2-3 per step but keep delay generous
-            const barsPerStep  = frameDelay < 50 ? 2 : 1;
+            const frameDelay   = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
+            const barsPerStep  = frameDelay < 60 ? 2 : 1;
             const effectiveDelay = frameDelay * barsPerStep;
 
-            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} frameDelay=${frameDelay}ms barsPerStep=${barsPerStep} → est. duration=${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
+            // Right-side padding: keep ~30% of the window as empty space to the right
+            // of the last candle. LWC accepts logical indices beyond data length fine.
+            const rightPad = Math.round(windowSize * 0.3);
+
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms → est. duration=${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
 
             let bar = 0;
             const animate = () => {
                 if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
                 if (bar >= totalBars) {
-                    setTimeout(() => { try { recorder.stop(); } catch {} }, 800);
+                    // Hold last frame (last candle nicely padded) for 1.5s before stopping
+                    setTimeout(() => { try { recorder.stop(); } catch {} }, 1500);
                     return;
                 }
                 chartRef.current.timeScale().setVisibleLogicalRange({
-                    from: Math.max(0, bar - Math.round(windowSize * 0.85)),
-                    to:   Math.min(totalBars - 1, bar + Math.round(windowSize * 0.15)),
+                    from: Math.max(0, bar - Math.round(windowSize * 0.70)),
+                    // Always leave rightPad bars of breathing room past the current bar
+                    to:   bar + rightPad,
                 });
                 setRecordingProgress(Math.round((bar / totalBars) * 95));
                 bar += barsPerStep;
                 setTimeout(animate, effectiveDelay);
             };
 
-            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize });
+            // Kick off from bar 0 with the same right padding so opening frame looks good
+            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
             setTimeout(animate, 300);
 
         } catch(e) {
@@ -2496,7 +2502,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                     {/* Video record */}
                     <button
-                        onClick={() => isRecording ? stopRecording() : recordChartVideo(30)}
+                        onClick={() => isRecording ? stopRecording() : recordChartVideo(45)}
                         title={isRecording ? 'Stop recording' : 'Record chart playback video'}
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${isRecording?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
