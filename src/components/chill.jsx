@@ -156,9 +156,11 @@ export default function Chill() {
     // readState: 'idle' | 'playing' | 'paused'
     const [readState, setReadState] = useState('idle');
     const [highlightWordIndex, setHighlightWordIndex] = useState(-1);
-    // resumeCharOffset: the charIndex we were at when paused
-    const resumeCharOffsetRef = useRef(0);
-    const lastBoundaryCharRef = useRef(0); // tracks latest charIndex from onboundary
+    // currentWordAbsCharRef: absolute char offset into fullCleanTextRef where the
+    // CURRENT word boundary started. On Pause we cancel() and resume from exactly here.
+    const currentWordAbsCharRef = useRef(0);
+    // fullCleanTextRef: the cleaned text string being spoken (so resume always uses same string)
+    const fullCleanTextRef = useRef('');
 
     // ── Download state ────────────────────────────────────────────────────────
     const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -285,7 +287,7 @@ export default function Chill() {
     };
 
     // ─── Speech engine ────────────────────────────────────────────────────────
-    // cleanText: strips markdown, used for both TTS and word counting
+    // Strip markdown for clean TTS text
     const cleanForSpeech = (raw) => raw.replace(/#{1,3}/g, '').replace(/->/g, '');
 
     const getVoice = () => {
@@ -294,16 +296,31 @@ export default function Chill() {
     };
 
     /**
-     * Speak `text` starting from character offset `fromChar`.
-     * This is the core function — pause/resume both use it by slicing the string.
+     * Core speak function. Speaks fullCleanTextRef.current starting from absCharOffset.
+     *
+     * How resume works precisely:
+     *   - onboundary fires at the START of each word with e.charIndex = offset into
+     *     the current utterance slice.
+     *   - We convert that to an absolute offset: absCharOffset + e.charIndex.
+     *   - We store that in currentWordAbsCharRef on EVERY word boundary.
+     *   - pauseReading() calls cancel() (Chrome-safe) and saves currentWordAbsCharRef.
+     *   - resumeReading() calls speakFrom(currentWordAbsCharRef.current) — so we
+     *     restart from the exact char where the last word began.
      */
-    const speakFrom = (text, fromChar = 0) => {
+    const speakFrom = (absCharOffset) => {
+        const fullText = fullCleanTextRef.current;
         window.speechSynthesis.cancel();
-        const slice = text.slice(fromChar);
-        if (!slice.trim()) { setReadState('idle'); setHighlightWordIndex(-1); return; }
 
-        // Count words before fromChar so highlight index stays globally correct
-        const wordsBefore = text.slice(0, fromChar).trim().split(/\s+/).filter(Boolean).length;
+        const slice = fullText.slice(absCharOffset);
+        if (!slice.trim()) {
+            setReadState('idle');
+            setHighlightWordIndex(-1);
+            return;
+        }
+
+        // Pre-count how many words came before this slice (for global highlight index)
+        const wordsBefore = fullText.slice(0, absCharOffset)
+            .trim().split(/\s+/).filter(Boolean).length;
 
         const utt = new SpeechSynthesisUtterance(slice);
         const voice = getVoice();
@@ -312,18 +329,24 @@ export default function Chill() {
 
         utt.onboundary = (e) => {
             if (e.name !== 'word') return;
-            // Track absolute char position for pause/resume
-            lastBoundaryCharRef.current = fromChar + e.charIndex;
-            // Global word index = words before this slice + words into this slice
-            const localWordsBefore = slice.slice(0, e.charIndex).trim().split(/\s+/).filter(Boolean).length;
-            setHighlightWordIndex(wordsBefore + localWordsBefore);
+
+            // Absolute char position of this word in the full text
+            const absWordStart = absCharOffset + e.charIndex;
+            // Save it — this is where we'll resume if user pauses right now
+            currentWordAbsCharRef.current = absWordStart;
+
+            // Compute global word index for highlighting
+            const wordsIntoSlice = slice.slice(0, e.charIndex)
+                .trim().split(/\s+/).filter(Boolean).length;
+            setHighlightWordIndex(wordsBefore + wordsIntoSlice);
         };
+
         utt.onend = () => {
             setReadState('idle');
             setHighlightWordIndex(-1);
-            resumeCharOffsetRef.current = 0;
-            lastBoundaryCharRef.current = 0;
+            currentWordAbsCharRef.current = 0;
         };
+
         utt.onerror = (e) => {
             if (e.error !== 'interrupted') console.error('Speech error:', e.error);
             setReadState('idle');
@@ -336,44 +359,47 @@ export default function Chill() {
 
     const startReading = () => {
         if (!selectedSection) return;
-        resumeCharOffsetRef.current = 0;
-        lastBoundaryCharRef.current = 0;
+        const clean = cleanForSpeech(selectedSection.text);
+        fullCleanTextRef.current = clean;
+        currentWordAbsCharRef.current = 0;
         setHighlightWordIndex(0);
-        speakFrom(cleanForSpeech(selectedSection.text), 0);
+        speakFrom(0);
     };
 
     /**
-     * Pause — Chrome's speechSynthesis.pause() is broken (it never fires resume correctly).
-     * Fix: we cancel instead, but save the last known char offset so we can restart from there.
+     * Pause: cancel() instead of pause() (Chrome's pause() is broken).
+     * currentWordAbsCharRef already holds the start of the last spoken word,
+     * so resumeReading() will pick up from exactly that word.
      */
     const pauseReading = () => {
-        // Save where we are (last word boundary char)
-        resumeCharOffsetRef.current = lastBoundaryCharRef.current;
-        window.speechSynthesis.cancel(); // cancel instead of pause — Chrome-safe
+        window.speechSynthesis.cancel();
         setReadState('paused');
+        // currentWordAbsCharRef.current is already correct — set by last onboundary
     };
 
     /**
-     * Resume — restart speech from the saved char offset.
+     * Resume: restart from the exact char offset saved at the last word boundary.
      */
     const resumeReading = () => {
         if (!selectedSection) return;
-        speakFrom(cleanForSpeech(selectedSection.text), resumeCharOffsetRef.current);
+        // fullCleanTextRef is still set from startReading — no need to recompute
+        speakFrom(currentWordAbsCharRef.current);
     };
 
     const restartReading = () => {
-        resumeCharOffsetRef.current = 0;
-        lastBoundaryCharRef.current = 0;
         if (!selectedSection) return;
-        speakFrom(cleanForSpeech(selectedSection.text), 0);
+        const clean = cleanForSpeech(selectedSection.text);
+        fullCleanTextRef.current = clean;
+        currentWordAbsCharRef.current = 0;
+        speakFrom(0);
     };
 
     const hardStop = () => {
         window.speechSynthesis.cancel();
         setReadState('idle');
         setHighlightWordIndex(-1);
-        resumeCharOffsetRef.current = 0;
-        lastBoundaryCharRef.current = 0;
+        currentWordAbsCharRef.current = 0;
+        fullCleanTextRef.current = '';
     };
 
     // ─── PDF Export via backend ───────────────────────────────────────────────
