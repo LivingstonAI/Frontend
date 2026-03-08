@@ -49,7 +49,8 @@ const S = {
     pillPurple: { ...pillBase, background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: '#fff', boxShadow: '0 2px 12px rgba(139,92,246,0.28)' },
     pillOrange: { ...pillBase, background: 'linear-gradient(135deg,#f97316,#c2410c)', color: '#fff', boxShadow: '0 2px 12px rgba(249,115,22,0.28)' },
     pillSlate: { ...pillBase, background: 'linear-gradient(135deg,#475569,#1e293b)', color: '#fff', boxShadow: '0 2px 12px rgba(71,85,105,0.28)' },
-    pillDisabled: { ...pillBase, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)', border: '1.5px solid rgba(255,255,255,0.1)', cursor: 'not-allowed' },
+    pillLoading: { ...pillBase, background: 'linear-gradient(135deg,#6366f1,#4338ca)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.28)', opacity: 0.85, cursor: 'wait' },
+    pillDisabled: { ...pillBase, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)', border: '1.5px solid rgba(255,255,255,0.18)', cursor: 'not-allowed', opacity: 1 },
     toggleGroup: { display: 'inline-flex', borderRadius: '50px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.18)', gap: 0 },
     toggleBtnBase: { display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 20px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, lineHeight: 1, transition: 'all 0.18s ease', whiteSpace: 'nowrap' },
     toggleBtnActive: { background: 'linear-gradient(135deg,#1d6fd8,#1251a3)', color: '#fff' },
@@ -74,8 +75,17 @@ const S = {
     livingstonInputRow: { display: 'flex', gap: '8px', padding: '12px', background: '#eef3ff', borderTop: '1.5px solid #bfdbfe', flexShrink: 0 },
     livingstonInput: { flex: 1, border: '1.5px solid #93c5fd', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', background: '#fff', color: '#1a1a2e', fontFamily: 'inherit' },
     livingstonSendBtn: (d) => ({ background: 'linear-gradient(135deg,#1d6fd8,#1251a3)', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, fontSize: '13px', cursor: d ? 'not-allowed' : 'pointer', opacity: d ? 0.4 : 1, flexShrink: 0, fontFamily: 'inherit' }),
+    // Top nav row (back button above section)
+    topNavRow: {
+        display: 'flex',
+        alignItems: 'center',
+        marginBottom: '10px',
+        paddingBottom: '10px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+    },
+
     // Reader panel
-    readerPanel: { background: 'rgba(0,0,0,0.06)', borderRadius: '12px', padding: '14px 18px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.1)' },
+    readerPanel: { background: 'rgba(0,0,0,0.06)', borderRadius: '12px', padding: '12px 14px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.1)', width: '100%', boxSizing: 'border-box' },
     readerLabel: { fontSize: '13px', fontWeight: 600, opacity: 0.6, display: 'flex', alignItems: 'center', gap: '5px', marginRight: '4px' },
     readerDivider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)', margin: '0 4px' },
     wordHighlight: { background: '#fde047', color: '#1a1a2e', borderRadius: '3px', padding: '0 2px' },
@@ -287,29 +297,38 @@ export default function Chill() {
     };
 
     // ─── Speech engine ────────────────────────────────────────────────────────
-    // Strip markdown for clean TTS text
     const cleanForSpeech = (raw) => raw.replace(/#{1,3}/g, '').replace(/->/g, '');
 
     const getVoice = () => {
         const v = window.speechSynthesis.getVoices();
-        return v.find(x => x.name === selectedVoiceName) || v.find(x => x.lang.startsWith('en')) || v[0];
+        return v.find(x => x.name === selectedVoiceName) || v.find(x => v.lang && x.lang.startsWith('en')) || v[0];
     };
 
     /**
-     * Core speak function. Speaks fullCleanTextRef.current starting from absCharOffset.
+     * Speak fullCleanTextRef.current from absCharOffset.
      *
-     * How resume works precisely:
-     *   - onboundary fires at the START of each word with e.charIndex = offset into
-     *     the current utterance slice.
-     *   - We convert that to an absolute offset: absCharOffset + e.charIndex.
-     *   - We store that in currentWordAbsCharRef on EVERY word boundary.
-     *   - pauseReading() calls cancel() (Chrome-safe) and saves currentWordAbsCharRef.
-     *   - resumeReading() calls speakFrom(currentWordAbsCharRef.current) — so we
-     *     restart from the exact char where the last word began.
+     * iOS/mobile notes:
+     *   - speechSynthesis.speak() MUST be called synchronously within a user
+     *     gesture handler (click). We achieve this by calling speakFrom() directly
+     *     in onClick — no await, no setTimeout before the speak() call.
+     *   - We set readState BEFORE speak() so React doesn't have a chance to
+     *     re-render and unmount the utterance.
+     *
+     * Resume fix:
+     *   - Chrome's onerror fires 'interrupted' when we cancel() for pause.
+     *     We guard with isIntentionalCancelRef so we don't reset state to 'idle'
+     *     on an intentional cancel (pause).
      */
+    const isIntentionalCancelRef = useRef(false);
+
     const speakFrom = (absCharOffset) => {
         const fullText = fullCleanTextRef.current;
+        if (!fullText) return;
+
+        // Mark this cancel as intentional so onerror doesn't reset to 'idle'
+        isIntentionalCancelRef.current = true;
         window.speechSynthesis.cancel();
+        isIntentionalCancelRef.current = false;
 
         const slice = fullText.slice(absCharOffset);
         if (!slice.trim()) {
@@ -318,26 +337,26 @@ export default function Chill() {
             return;
         }
 
-        // Pre-count how many words came before this slice (for global highlight index)
         const wordsBefore = fullText.slice(0, absCharOffset)
-            .trim().split(/\s+/).filter(Boolean).length;
+            .trim().split(/\s+/).filter(w => w.length > 0).length;
 
         const utt = new SpeechSynthesisUtterance(slice);
+
+        // Assign voice — on iOS getVoices() may be empty on first call,
+        // so we also hook onvoiceschanged as a fallback
         const voice = getVoice();
         if (voice) utt.voice = voice;
-        utt.volume = 1; utt.pitch = 1; utt.rate = 0.95;
+        utt.volume = 1;
+        utt.pitch = 1;
+        utt.rate = 0.95;
+        utt.lang = 'en-US'; // explicit lang helps iOS
 
         utt.onboundary = (e) => {
             if (e.name !== 'word') return;
-
-            // Absolute char position of this word in the full text
             const absWordStart = absCharOffset + e.charIndex;
-            // Save it — this is where we'll resume if user pauses right now
             currentWordAbsCharRef.current = absWordStart;
-
-            // Compute global word index for highlighting
             const wordsIntoSlice = slice.slice(0, e.charIndex)
-                .trim().split(/\s+/).filter(Boolean).length;
+                .trim().split(/\s+/).filter(w => w.length > 0).length;
             setHighlightWordIndex(wordsBefore + wordsIntoSlice);
         };
 
@@ -348,15 +367,27 @@ export default function Chill() {
         };
 
         utt.onerror = (e) => {
-            if (e.error !== 'interrupted') console.error('Speech error:', e.error);
+            // 'interrupted' fires when we cancel() — only reset state if it
+            // was NOT an intentional cancel (i.e. not from pauseReading)
+            if (e.error === 'interrupted') {
+                if (!isIntentionalCancelRef.current) {
+                    // unexpected interruption — reset
+                    setReadState('idle');
+                    setHighlightWordIndex(-1);
+                }
+                return;
+            }
+            console.error('Speech error:', e.error);
             setReadState('idle');
             setHighlightWordIndex(-1);
         };
 
-        window.speechSynthesis.speak(utt);
+        // Set state BEFORE speak() — critical for iOS
         setReadState('playing');
+        window.speechSynthesis.speak(utt);
     };
 
+    // Called directly from onClick — must stay synchronous for iOS
     const startReading = () => {
         if (!selectedSection) return;
         const clean = cleanForSpeech(selectedSection.text);
@@ -366,23 +397,18 @@ export default function Chill() {
         speakFrom(0);
     };
 
-    /**
-     * Pause: cancel() instead of pause() (Chrome's pause() is broken).
-     * currentWordAbsCharRef already holds the start of the last spoken word,
-     * so resumeReading() will pick up from exactly that word.
-     */
     const pauseReading = () => {
+        // Flag the upcoming cancel() as intentional so onerror won't reset state
+        isIntentionalCancelRef.current = true;
         window.speechSynthesis.cancel();
+        isIntentionalCancelRef.current = false;
         setReadState('paused');
-        // currentWordAbsCharRef.current is already correct — set by last onboundary
+        // currentWordAbsCharRef already holds start of last spoken word ✓
     };
 
-    /**
-     * Resume: restart from the exact char offset saved at the last word boundary.
-     */
+    // Resume — called directly from onClick, synchronous for iOS
     const resumeReading = () => {
-        if (!selectedSection) return;
-        // fullCleanTextRef is still set from startReading — no need to recompute
+        if (!selectedSection || !fullCleanTextRef.current) return;
         speakFrom(currentWordAbsCharRef.current);
     };
 
@@ -395,7 +421,9 @@ export default function Chill() {
     };
 
     const hardStop = () => {
+        isIntentionalCancelRef.current = true;
         window.speechSynthesis.cancel();
+        isIntentionalCancelRef.current = false;
         setReadState('idle');
         setHighlightWordIndex(-1);
         currentWordAbsCharRef.current = 0;
@@ -614,6 +642,14 @@ export default function Chill() {
                             </div>
                         ) : selectedSection ? (
                             <div className="section-view" ref={sectionTopRef}>
+
+                                {/* ── TOP back button ── */}
+                                <div style={S.topNavRow}>
+                                    <button style={S.pillGhost} onClick={handleBack}>
+                                        <ChevronLeft size={15} /> Back to Sections
+                                    </button>
+                                </div>
+
                                 {/* ── Header row ── */}
                                 <div className="section-header">
                                     <h4 className="section-title">
@@ -690,24 +726,24 @@ export default function Chill() {
 
                                         {/* PDF export */}
                                         <button
-                                            style={isExportingPdf ? S.pillDisabled : S.pillPurple}
+                                            style={isExportingPdf ? S.pillLoading : S.pillPurple}
                                             onClick={exportPdf}
                                             disabled={isExportingPdf}
                                             title="Export as styled PDF"
                                         >
                                             <FileText size={14} />
-                                            {isExportingPdf ? 'Exporting…' : 'Export PDF'}
+                                            {isExportingPdf ? '⏳ Exporting…' : 'Export PDF'}
                                         </button>
 
                                         {/* Audio download via gTTS backend */}
                                         <button
-                                            style={isDownloadingAudio ? S.pillDisabled : S.pillSlate}
+                                            style={isDownloadingAudio ? S.pillLoading : S.pillSlate}
                                             onClick={downloadAudio}
                                             disabled={isDownloadingAudio}
                                             title="Download MP3 via Google TTS"
                                         >
                                             <Download size={14} />
-                                            {isDownloadingAudio ? 'Generating…' : 'Download MP3'}
+                                            {isDownloadingAudio ? '⏳ Generating…' : 'Download MP3'}
                                         </button>
                                     </div>
                                 )}
@@ -779,6 +815,30 @@ export default function Chill() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Mobile responsive + general layout polish ── */}
+            <style>{`
+                .chill-section-view-wrap * { box-sizing: border-box; }
+                @media (max-width: 768px) {
+                    .section-header {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 10px !important;
+                    }
+                    .section-footer {
+                        flex-direction: column !important;
+                        gap: 8px !important;
+                        align-items: flex-start !important;
+                    }
+                    .footer-actions { flex-wrap: wrap !important; gap: 6px !important; }
+                    .section-title { font-size: 15px !important; word-break: break-word; }
+                    .chill-interface { padding: 8px !important; }
+                }
+                @media (max-width: 480px) {
+                    .section-title { font-size: 13px !important; }
+                    .chill-title { font-size: 14px !important; }
+                }
+            `}</style>
         </div>
     );
 }
