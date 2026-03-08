@@ -313,8 +313,8 @@ export default function GoogleCalendar() {
 
     const getMonthName = (date) => date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     const getProfitLossColor = (outcome, amount) => amount < 0 ? 'loss' : amount > 0 ? 'profit' : 'neutral';
-    const formatAmount = (amount) => { const abs = Math.abs(amount); return abs >= 1000 ? (abs / 1000).toFixed(1) + 'k' : abs.toString(); };
-    const formatCurrency = (amount) => amount < 0 ? `-$${Math.abs(amount)}` : `$${amount}`;
+    const formatAmount = (amount) => Math.abs(amount).toFixed(2);
+    const formatCurrency = (amount) => amount < 0 ? `-$${Math.abs(amount).toFixed(2)}` : `$${parseFloat(amount).toFixed(2)}`;
     const getDayTotal = (dayTrades) => dayTrades.reduce((total, t) => total + t.amount, 0);
 
     const days = getDaysInMonth(currentDate);
@@ -488,7 +488,7 @@ export default function GoogleCalendar() {
                                                     <div>Trades: {metrics.trades}</div>
                                                     <div>Wins: {metrics.wins} | Losses: {metrics.losses}</div>
                                                     <div>Win Rate: {metrics.winRate}%</div>
-                                                    <div>Avg Trade: ${metrics.avgTrade}</div>
+                                                    <div>Avg Trade: ${parseFloat(metrics.avgTrade).toFixed(2)}</div>
                                                 </div>
                                             </div>
                                         ))}
