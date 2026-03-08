@@ -16,7 +16,7 @@ const BrainIcon = ({ size = 30, color = "currentColor", className = "", ...props
     </svg>
 );
 
-const MicIcon = ({ size = 24 }) => (
+const MicIcon = ({ size = 20 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -27,64 +27,194 @@ const MicIcon = ({ size = 24 }) => (
 
 const VOICE_STORAGE_KEY = 'chill_selected_voice_name';
 
-// All critical styles as JS objects — zero CSS classname conflicts possible
+// ─── Base pill button — all variants extend this ───────────────────────────
+const pillBase = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 18px',
+    borderRadius: '50px',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    fontWeight: 600,
+    letterSpacing: '0.02em',
+    lineHeight: 1,
+    transition: 'all 0.18s ease',
+    whiteSpace: 'nowrap',
+    userSelect: 'none',
+};
+
+// ─── All styles as JS objects — zero CSS classname conflicts ───────────────
 const S = {
-    // Big action buttons
-    actionBtn: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '8px',
-        color: 'inherit',
-        lineHeight: 1,
-    },
-    actionBtnRed: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '8px',
-        color: '#e53e3e',
-        lineHeight: 1,
-    },
-    actionBtnGreen: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '8px',
-        color: '#22c55e',
-        lineHeight: 1,
-    },
-    actionBtnBlue: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '6px',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: '8px',
-        color: '#1d6fd8',
-        lineHeight: 1,
-    },
     actionRow: {
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
+        gap: '8px',
+        flexWrap: 'wrap',
     },
 
-    // ── Chat window ──
+    // ── Pill button variants ──
+    // Default: subtle ghost
+    pillGhost: {
+        ...pillBase,
+        background: 'rgba(255,255,255,0.06)',
+        color: 'inherit',
+        border: '1.5px solid rgba(255,255,255,0.15)',
+    },
+    // AI assistant: blue
+    pillBlue: {
+        ...pillBase,
+        background: 'linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%)',
+        color: '#ffffff',
+        boxShadow: '0 2px 12px rgba(29,111,216,0.28)',
+    },
+    // Active mic: blue outline
+    pillBlueOutline: {
+        ...pillBase,
+        background: 'transparent',
+        color: '#1d6fd8',
+        border: '1.5px solid #1d6fd8',
+    },
+    // Read aloud: teal/cyan
+    pillTeal: {
+        ...pillBase,
+        background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+        color: '#ffffff',
+        boxShadow: '0 2px 12px rgba(8,145,178,0.28)',
+    },
+    // Stop: red
+    pillRed: {
+        ...pillBase,
+        background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+        color: '#ffffff',
+        boxShadow: '0 2px 12px rgba(239,68,68,0.28)',
+    },
+    // Edit: amber
+    pillAmber: {
+        ...pillBase,
+        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        color: '#ffffff',
+        boxShadow: '0 2px 12px rgba(245,158,11,0.28)',
+    },
+    // Save: green
+    pillGreen: {
+        ...pillBase,
+        background: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
+        color: '#ffffff',
+        boxShadow: '0 2px 12px rgba(34,197,94,0.28)',
+    },
+
+    // ── Layout toggle group ──
+    toggleGroup: {
+        display: 'inline-flex',
+        borderRadius: '50px',
+        overflow: 'hidden',
+        border: '2px solid rgba(255,255,255,0.18)',
+        gap: 0,
+    },
+    toggleBtnBase: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '7px',
+        padding: '10px 20px',
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: '14px',
+        fontWeight: 600,
+        lineHeight: 1,
+        transition: 'all 0.18s ease',
+        whiteSpace: 'nowrap',
+    },
+    toggleBtnActive: {
+        background: 'linear-gradient(135deg, #1d6fd8 0%, #1251a3 100%)',
+        color: '#ffffff',
+    },
+    toggleBtnInactive: {
+        background: 'rgba(255,255,255,0.06)',
+        color: 'inherit',
+        opacity: 0.7,
+    },
+
+    // ── Voice picker ──
+    voicePickerWrap: {
+        position: 'relative',
+        display: 'inline-flex',
+    },
+    voiceDropdown: {
+        position: 'absolute',
+        top: 'calc(100% + 10px)',
+        right: 0,
+        background: '#fff',
+        border: '2px solid #1d6fd8',
+        borderRadius: '14px',
+        boxShadow: '0 8px 36px rgba(29,111,216,0.18)',
+        zIndex: 9998,
+        minWidth: '290px',
+        maxHeight: '360px',
+        overflowY: 'auto',
+        padding: '6px 0',
+    },
+    voiceDropdownHeader: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 14px 6px',
+        fontWeight: 700,
+        fontSize: '13px',
+        color: '#1251a3',
+        borderBottom: '1.5px solid #dbeafe',
+        marginBottom: '4px',
+    },
+    voiceCloseBtn: {
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: '#888',
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '2px',
+    },
+    voiceGroupLabel: {
+        padding: '4px 14px 2px',
+        fontSize: '11px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: '#6b90c9',
+    },
+    voiceOptionBtn: (isActive) => ({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        background: isActive ? '#dbeafe' : 'transparent',
+        border: 'none',
+        padding: '8px 14px',
+        cursor: 'pointer',
+        textAlign: 'left',
+        gap: '8px',
+        fontFamily: 'inherit',
+    }),
+    voiceOptionName: (isActive) => ({
+        fontSize: '13px',
+        color: isActive ? '#1251a3' : '#333',
+        fontWeight: isActive ? 700 : 400,
+        flex: 1,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        margin: 0,
+    }),
+    voiceOptionLang: {
+        fontSize: '11px',
+        color: '#94a3b8',
+        flexShrink: 0,
+    },
+
+    // ── Livingston chat window ──
     livingstonOverlay: {
         position: 'fixed',
         right: '28px',
@@ -208,82 +338,6 @@ const S = {
         flexShrink: 0,
         fontFamily: 'inherit',
     }),
-
-    // ── Voice picker dropdown ──
-    voicePickerWrap: {
-        position: 'relative',
-        display: 'inline-flex',
-    },
-    voiceDropdown: {
-        position: 'absolute',
-        top: 'calc(100% + 10px)',
-        right: 0,
-        background: '#fff',
-        border: '2px solid #1d6fd8',
-        borderRadius: '14px',
-        boxShadow: '0 8px 36px rgba(29,111,216,0.18)',
-        zIndex: 9998,
-        minWidth: '290px',
-        maxHeight: '360px',
-        overflowY: 'auto',
-        padding: '6px 0',
-    },
-    voiceDropdownHeader: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '8px 14px 6px',
-        fontWeight: 700,
-        fontSize: '13px',
-        color: '#1251a3',
-        borderBottom: '1.5px solid #dbeafe',
-        marginBottom: '4px',
-    },
-    voiceCloseBtn: {
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        color: '#888',
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '2px',
-    },
-    voiceGroupLabel: {
-        padding: '4px 14px 2px',
-        fontSize: '11px',
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: '#6b90c9',
-    },
-    voiceOptionBtn: (isActive) => ({
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        background: isActive ? '#dbeafe' : 'transparent',
-        border: 'none',
-        padding: '8px 14px',
-        cursor: 'pointer',
-        textAlign: 'left',
-        gap: '8px',
-        fontFamily: 'inherit',
-    }),
-    voiceOptionName: (isActive) => ({
-        fontSize: '13px',
-        color: isActive ? '#1251a3' : '#333',
-        fontWeight: isActive ? 700 : 400,
-        flex: 1,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        margin: 0,
-    }),
-    voiceOptionLang: {
-        fontSize: '11px',
-        color: '#94a3b8',
-        flexShrink: 0,
-    },
 };
 
 export default function Chill() {
@@ -318,12 +372,10 @@ export default function Chill() {
     const navigate = useNavigate();
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
-    // Auto-scroll chat
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Load browser voices
     useEffect(() => {
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
@@ -508,6 +560,11 @@ export default function Chill() {
     const englishVoices = availableVoices.filter(v => v.lang.startsWith('en'));
     const otherVoices = availableVoices.filter(v => !v.lang.startsWith('en'));
 
+    // Shorten voice name for button label
+    const shortVoiceName = selectedVoiceName
+        ? selectedVoiceName.split(' ').slice(0, 2).join(' ')
+        : 'Voice';
+
     return (
         <div className="chill-container">
             <div className="header"><Header /></div>
@@ -524,11 +581,7 @@ export default function Chill() {
                             <div className="chill-subtitle">Comprehensive Hybrid Interface for Learning & Logging</div>
                         </div>
 
-                        {/* ═══════════════════════════════════════════
-                            LIVINGSTON CHAT — fixed bottom-right
-                            All styles are inline JS objects.
-                            Zero CSS class conflicts possible.
-                        ═══════════════════════════════════════════ */}
+                        {/* ═══ LIVINGSTON CHAT — fixed bottom-right, fully inline styled ═══ */}
                         {chatOpen && (
                             <div style={S.livingstonOverlay}>
                                 <div style={S.livingstonHeader}>
@@ -539,7 +592,6 @@ export default function Chill() {
                                         <X size={20} />
                                     </button>
                                 </div>
-
                                 <div style={S.livingstonMsgsArea}>
                                     {messages.length === 0 ? (
                                         <div style={S.livingstonEmptyState}>
@@ -558,7 +610,6 @@ export default function Chill() {
                                     )}
                                     <div ref={messagesEndRef} />
                                 </div>
-
                                 <div style={S.livingstonInputRow}>
                                     <input
                                         style={S.livingstonInput}
@@ -583,27 +634,49 @@ export default function Chill() {
                             <div className="dashboard-section">
                                 <div className="section-controls">
                                     <button onClick={fetchImages} className="control-btn image-btn">
-                                        <RefreshCw size={30} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} />
+                                        <RefreshCw size={20} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} />
                                         {imageProcess}
                                     </button>
-                                    <div className="view-controls">
-                                        <button className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}><Grid size={30} /></button>
-                                        <button className={`view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}><List size={30} /></button>
+
+                                    {/* ═══ LAYOUT TOGGLE — pill group, fully inline styled ═══ */}
+                                    <div style={S.toggleGroup}>
+                                        <button
+                                            style={{
+                                                ...S.toggleBtnBase,
+                                                ...(viewMode === 'grid' ? S.toggleBtnActive : S.toggleBtnInactive),
+                                            }}
+                                            onClick={() => setViewMode('grid')}
+                                        >
+                                            <Grid size={18} />
+                                            Grid
+                                        </button>
+                                        <button
+                                            style={{
+                                                ...S.toggleBtnBase,
+                                                ...(viewMode === 'list' ? S.toggleBtnActive : S.toggleBtnInactive),
+                                            }}
+                                            onClick={() => setViewMode('list')}
+                                        >
+                                            <List size={18} />
+                                            List
+                                        </button>
                                     </div>
                                 </div>
+
                                 {!selectedSection && (
                                     <div className="search-container">
                                         <input type="text" placeholder="Search sections..." value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)} className="search-input" />
                                     </div>
                                 )}
+
                                 {imageFolders && (
                                     <div className="image-folders">
-                                        <h6 className="section-subheading"><Folder size={30} /> Image Folders</h6>
+                                        <h6 className="section-subheading"><Folder size={20} /> Image Folders</h6>
                                         <div className="folder-grid">
                                             {Object.keys(imageFolders).map((folder, i) => (
                                                 <button key={i} onClick={() => { setSelectedFolder(folder); setFolderState(true); }} className="folder-btn">
-                                                    <Folder size={30} /><span>{folder}</span>
+                                                    <Folder size={20} /><span>{folder}</span>
                                                     <span className="file-count">{imageFolders[folder].length}</span>
                                                 </button>
                                             ))}
@@ -616,8 +689,8 @@ export default function Chill() {
                         {selectedFolder && folderState && (
                             <div className="folder-view">
                                 <div className="folder-header">
-                                    <h6><Folder size={30} /> {selectedFolder}</h6>
-                                    <button onClick={() => setFolderState(false)} className="close-folder-btn"><X size={30} /></button>
+                                    <h6><Folder size={20} /> {selectedFolder}</h6>
+                                    <button onClick={() => setFolderState(false)} className="close-folder-btn"><X size={20} /></button>
                                 </div>
                                 <div className="images-grid">
                                     {imageFolders[selectedFolder].map((imageData, i) => (
@@ -633,7 +706,7 @@ export default function Chill() {
                         {expandedImage && (
                             <div className="expanded-image-overlay" onClick={() => setExpandedImage(null)}>
                                 <div className="expanded-image-container" onClick={e => e.stopPropagation()}>
-                                    <button className="close-expanded-btn" onClick={() => setExpandedImage(null)}><X size={30} /></button>
+                                    <button className="close-expanded-btn" onClick={() => setExpandedImage(null)}><X size={20} /></button>
                                     <img src={expandedImage.data} alt="Expanded Trading Image" className="expanded-image" />
                                     <div className="image-filename">{expandedImage.filename || "Trading Image"}</div>
                                 </div>
@@ -649,24 +722,22 @@ export default function Chill() {
                             <div className="section-view">
                                 <div className="section-header">
                                     <h4 className="section-title">
-                                        <Bookmark size={30} className="icon" />
+                                        <Bookmark size={20} className="icon" />
                                         {selectedSection.section}
                                     </h4>
 
-                                    {/* ═══════════════════════════════════════════
-                                        ACTION BUTTONS — all inline styled
-                                        Icons are size=42, no CSS overrides possible
-                                    ═══════════════════════════════════════════ */}
+                                    {/* ═══ ACTION BUTTONS — pill style, fully inline styled ═══ */}
                                     <div style={S.actionRow}>
 
-                                        {/* Voice picker */}
+                                        {/* Voice picker pill */}
                                         <div style={S.voicePickerWrap}>
                                             <button
-                                                style={showVoiceSelector ? S.actionBtnBlue : S.actionBtn}
+                                                style={showVoiceSelector ? S.pillBlueOutline : S.pillGhost}
                                                 onClick={() => setShowVoiceSelector(v => !v)}
                                                 title={`Voice: ${selectedVoiceName || 'Default'}`}
                                             >
-                                                <MicIcon size={42} />
+                                                <MicIcon size={18} />
+                                                {shortVoiceName}
                                             </button>
 
                                             {showVoiceSelector && (
@@ -703,34 +774,40 @@ export default function Chill() {
                                             )}
                                         </div>
 
-                                        {/* AI Assistant */}
+                                        {/* AI Assistant pill */}
                                         {!editing && (
-                                            <button style={S.actionBtn} onClick={() => setChatOpen(true)} title="AI Assistant">
-                                                <MessageSquare size={42} />
+                                            <button style={S.pillBlue} onClick={() => setChatOpen(true)} title="AI Assistant">
+                                                <MessageSquare size={18} />
+                                                Ask Livingston
                                             </button>
                                         )}
 
-                                        {/* Read aloud */}
+                                        {/* Read aloud pill */}
                                         {!editing && !isSpeaking && (
-                                            <button style={S.actionBtn} onClick={() => readTextAloud(selectedSection.text)} title="Read Aloud">
-                                                <Volume2 size={42} />
+                                            <button style={S.pillTeal} onClick={() => readTextAloud(selectedSection.text)} title="Read Aloud">
+                                                <Volume2 size={18} />
+                                                Read Aloud
                                             </button>
                                         )}
                                         {isSpeaking && (
-                                            <button style={S.actionBtnRed} onClick={stopSpeech} title="Stop Reading">
-                                                <VolumeX size={42} />
+                                            <button style={S.pillRed} onClick={stopSpeech} title="Stop Reading">
+                                                <VolumeX size={18} />
+                                                Stop
                                             </button>
                                         )}
 
-                                        {/* Edit / Save */}
+                                        {/* Edit pill */}
                                         {!editing && (
-                                            <button style={S.actionBtn} onClick={() => setEditing(true)} title="Edit">
-                                                <Edit2 size={42} />
+                                            <button style={S.pillAmber} onClick={() => setEditing(true)} title="Edit">
+                                                <Edit2 size={18} />
+                                                Edit
                                             </button>
                                         )}
+                                        {/* Save pill */}
                                         {editing && (
-                                            <button style={S.actionBtnGreen} onClick={handleSave} title="Save">
-                                                <Save size={42} />
+                                            <button style={S.pillGreen} onClick={handleSave} title="Save">
+                                                <Save size={18} />
+                                                Save
                                             </button>
                                         )}
                                     </div>
@@ -747,14 +824,14 @@ export default function Chill() {
 
                                 <div className="section-footer">
                                     <button onClick={handleBack} className="footer-btn back-btn">
-                                        <ChevronLeft size={30} /> Back to Sections
+                                        <ChevronLeft size={18} /> Back to Sections
                                     </button>
                                     <div className="footer-actions">
                                         <button onClick={quizMe} className="footer-btn quiz-btn">
-                                            <BrainIcon size={30} /> Quiz Me
+                                            <BrainIcon size={18} /> Quiz Me
                                         </button>
                                         <button onClick={() => handleDelete(selectedSection.section)} className="footer-btn delete-btn">
-                                            <Trash2 size={30} /> Delete
+                                            <Trash2 size={18} /> Delete
                                         </button>
                                     </div>
                                 </div>
@@ -765,7 +842,7 @@ export default function Chill() {
                                     {filteredSections.length > 0 ? (
                                         filteredSections.map((section, i) => (
                                             <div key={i} className="section-item" onClick={() => fetchSectionData(section)}>
-                                                <Bookmark size={30} className="section-icon" />
+                                                <Bookmark size={18} className="section-icon" />
                                                 <span className="section-name">{section.section}</span>
                                             </div>
                                         ))
@@ -781,19 +858,19 @@ export default function Chill() {
                         <div className="add-section-container">
                             {!selectedSection && (
                                 <button onClick={() => setShowNewEntryForm(!showNewEntryForm)} className="add-section-btn">
-                                    <PlusCircle size={30} />
+                                    <PlusCircle size={18} />
                                     {showNewEntryForm ? "Cancel" : "Add New Section"}
                                 </button>
                             )}
                             {showNewEntryForm && (
                                 <div className="new-section-form">
-                                    <h5 className="form-title"><PlusCircle size={30} /> Create New Section</h5>
+                                    <h5 className="form-title"><PlusCircle size={18} /> Create New Section</h5>
                                     <input type="text" className="section-name-input" placeholder="Section Name"
                                         value={newSection} onChange={(e) => setNewSection(e.target.value)} />
                                     <textarea placeholder="Section Content" className="section-content-input"
                                         value={newText} onChange={(e) => setNewText(e.target.value)} />
                                     <button onClick={handleCreateNewEntry} className="save-new-section-btn">
-                                        <Save size={30} /> Save New Section
+                                        <Save size={18} /> Save New Section
                                     </button>
                                 </div>
                             )}
