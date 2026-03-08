@@ -96,7 +96,7 @@ export default function GoogleCalendar() {
         }
     };
 
-    // ── PDF Download: calls backend ReportLab endpoint ───────────────────
+    // ── PDF Download: sends trades already in state to backend ──────────
     const downloadMonthlyReport = async () => {
         setDownloadingPDF(true);
         setPdfError(null);
@@ -105,6 +105,7 @@ export default function GoogleCalendar() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1; // 1-based
 
+            // Send the trades we already have — no second fetch needed on the backend
             const response = await fetch(`${baseUrl}/api/trading-pdf-report/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -113,6 +114,7 @@ export default function GoogleCalendar() {
                     language: selectedLanguage,
                     year,
                     month,
+                    trades, // <-- already in state, avoids backend timeout
                 }),
             });
 
