@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { useNavigate } from "react-router-dom";
 import {
     BookOpen, Bookmark, ChevronLeft, Edit2, Trash2,
     Volume2, VolumeX, PlusCircle, Folder, MessageSquare,
-    Save, X, List, Grid, RefreshCw, Pause, Play, RotateCcw, Download
+    Save, X, List, Grid, RefreshCw, Pause, Play, RotateCcw, Download, FileText
 } from "react-feather";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -48,6 +48,8 @@ const S = {
     pillGreen: { ...pillBase, background: 'linear-gradient(135deg,#22c55e,#15803d)', color: '#fff', boxShadow: '0 2px 12px rgba(34,197,94,0.28)' },
     pillPurple: { ...pillBase, background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', color: '#fff', boxShadow: '0 2px 12px rgba(139,92,246,0.28)' },
     pillOrange: { ...pillBase, background: 'linear-gradient(135deg,#f97316,#c2410c)', color: '#fff', boxShadow: '0 2px 12px rgba(249,115,22,0.28)' },
+    pillSlate: { ...pillBase, background: 'linear-gradient(135deg,#475569,#1e293b)', color: '#fff', boxShadow: '0 2px 12px rgba(71,85,105,0.28)' },
+    pillDisabled: { ...pillBase, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)', border: '1.5px solid rgba(255,255,255,0.1)', cursor: 'not-allowed' },
     toggleGroup: { display: 'inline-flex', borderRadius: '50px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.18)', gap: 0 },
     toggleBtnBase: { display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 20px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: 600, lineHeight: 1, transition: 'all 0.18s ease', whiteSpace: 'nowrap' },
     toggleBtnActive: { background: 'linear-gradient(135deg,#1d6fd8,#1251a3)', color: '#fff' },
@@ -73,29 +75,23 @@ const S = {
     livingstonInput: { flex: 1, border: '1.5px solid #93c5fd', borderRadius: '8px', padding: '9px 12px', fontSize: '13px', outline: 'none', background: '#fff', color: '#1a1a2e', fontFamily: 'inherit' },
     livingstonSendBtn: (d) => ({ background: 'linear-gradient(135deg,#1d6fd8,#1251a3)', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, fontSize: '13px', cursor: d ? 'not-allowed' : 'pointer', opacity: d ? 0.4 : 1, flexShrink: 0, fontFamily: 'inherit' }),
     // Reader panel
-    readerPanel: { background: 'rgba(0,0,0,0.06)', borderRadius: '12px', padding: '14px 18px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.1)' },
-    readerLabel: { fontSize: '13px', fontWeight: 600, opacity: 0.7, marginRight: '4px' },
-    // Word highlight
-    wordHighlight: { background: '#fde047', color: '#1a1a2e', borderRadius: '3px', padding: '0 2px', transition: 'background 0.1s' },
+    readerPanel: { background: 'rgba(0,0,0,0.06)', borderRadius: '12px', padding: '14px 18px', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', border: '1px solid rgba(255,255,255,0.1)' },
+    readerLabel: { fontSize: '13px', fontWeight: 600, opacity: 0.6, display: 'flex', alignItems: 'center', gap: '5px', marginRight: '4px' },
+    readerDivider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.15)', margin: '0 4px' },
+    wordHighlight: { background: '#fde047', color: '#1a1a2e', borderRadius: '3px', padding: '0 2px' },
 };
 
-// ─── Highlighted text renderer ────────────────────────────────────────────────
+// ─── Word-highlighted text renderer ──────────────────────────────────────────
 function HighlightedText({ text, highlightIndex }) {
-    // Split the clean text into words, render each as a span
-    const words = text.split(/(\s+)/); // keep whitespace tokens
+    const tokens = text.split(/(\s+)/);
     let wordIdx = 0;
     return (
         <>
-            {words.map((token, i) => {
+            {tokens.map((token, i) => {
                 if (/^\s+$/.test(token)) return <span key={i}>{token}</span>;
-                const currentWord = wordIdx;
-                wordIdx++;
+                const idx = wordIdx++;
                 return (
-                    <span
-                        key={i}
-                        data-word-index={currentWord}
-                        style={currentWord === highlightIndex ? S.wordHighlight : undefined}
-                    >
+                    <span key={i} style={idx === highlightIndex ? S.wordHighlight : undefined}>
                         {token}
                     </span>
                 );
@@ -104,32 +100,22 @@ function HighlightedText({ text, highlightIndex }) {
     );
 }
 
-// ─── Formatted content with word highlighting ─────────────────────────────────
 function FormattedContent({ text, highlightWordIndex, isReading }) {
-    const lines = text.split('\n');
-    // Build a flat word list offset map per line so highlight index is global
     let globalWordOffset = 0;
-
     return (
         <>
-            {lines.map((line, i) => {
+            {text.split('\n').map((line, i) => {
                 line = line.trim();
                 if (!line) return null;
-
                 const cleanLine = line.replace(/^#{1,3}\s*/, '').replace(/^->\s*/, '');
                 const wordsInLine = cleanLine.split(/\s+/).filter(Boolean).length;
                 const lineOffset = globalWordOffset;
                 globalWordOffset += wordsInLine;
-
-                // Compute local highlight index for this line
                 const localHighlight = (isReading && highlightWordIndex >= lineOffset && highlightWordIndex < lineOffset + wordsInLine)
-                    ? highlightWordIndex - lineOffset
-                    : -1;
-
+                    ? highlightWordIndex - lineOffset : -1;
                 const content = isReading
                     ? <HighlightedText text={cleanLine} highlightIndex={localHighlight} />
                     : cleanLine;
-
                 if (line.startsWith('## ')) return <h5 key={i} className="subheading">{content}</h5>;
                 if (line.startsWith('### ')) return <p key={i} className="subpoint">{content}</p>;
                 if (line.startsWith('-> ')) return <p key={i} className="note">{content}</p>;
@@ -166,65 +152,64 @@ export default function Chill() {
     });
     const [showVoiceSelector, setShowVoiceSelector] = useState(false);
 
-    // ── Reader state ──
-    const [readState, setReadState] = useState('idle'); // 'idle' | 'playing' | 'paused'
+    // ── Reader state ──────────────────────────────────────────────────────────
+    // readState: 'idle' | 'playing' | 'paused'
+    const [readState, setReadState] = useState('idle');
     const [highlightWordIndex, setHighlightWordIndex] = useState(-1);
-    const [isDownloading, setIsDownloading] = useState(false);
+    // resumeCharOffset: the charIndex we were at when paused
+    const resumeCharOffsetRef = useRef(0);
+    const lastBoundaryCharRef = useRef(0); // tracks latest charIndex from onboundary
+
+    // ── Download state ────────────────────────────────────────────────────────
+    const [isExportingPdf, setIsExportingPdf] = useState(false);
+    const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
 
     const messagesEndRef = useRef(null);
-    const sectionTopRef = useRef(null); // scroll target
-    const uttRef = useRef(null);
+    const sectionTopRef = useRef(null);
     const navigate = useNavigate();
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
-    // Auto-scroll chat to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Scroll to TOP of section when a section is selected
+    // Scroll to TOP when section opens
     useEffect(() => {
         if (selectedSection) {
-            setTimeout(() => {
-                sectionTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 80);
+            setTimeout(() => sectionTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
         }
     }, [selectedSection]);
 
-    // Load voices
+    // Load browser voices
     useEffect(() => {
-        const loadVoices = () => {
+        const load = () => {
             const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                setAvailableVoices(voices);
-                if (!selectedVoiceName) {
-                    const def = voices.find(v => v.lang.startsWith('en')) || voices[0];
-                    if (def) {
-                        setSelectedVoiceName(def.name);
-                        try { localStorage.setItem(VOICE_STORAGE_KEY, def.name); } catch {}
-                    }
-                }
+            if (!voices.length) return;
+            setAvailableVoices(voices);
+            if (!selectedVoiceName) {
+                const def = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                if (def) { setSelectedVoiceName(def.name); try { localStorage.setItem(VOICE_STORAGE_KEY, def.name); } catch {} }
             }
         };
-        loadVoices();
-        window.speechSynthesis.onvoiceschanged = loadVoices;
+        load();
+        window.speechSynthesis.onvoiceschanged = load;
         return () => { window.speechSynthesis.onvoiceschanged = null; };
     }, []);
 
-    const handleVoiceChange = (voiceName) => {
-        setSelectedVoiceName(voiceName);
-        try { localStorage.setItem(VOICE_STORAGE_KEY, voiceName); } catch {}
+    const handleVoiceChange = (name) => {
+        setSelectedVoiceName(name);
+        try { localStorage.setItem(VOICE_STORAGE_KEY, name); } catch {}
         setShowVoiceSelector(false);
     };
 
+    // ── Data fetching ─────────────────────────────────────────────────────────
     useEffect(() => {
         (async () => {
             try {
                 setLoading(true);
                 const r = await fetch(`${baseUrl}/fetch-chill-sections`);
-                const data = await r.json();
-                if (r.ok) setSections(data.sections);
-                else console.error(data.message);
+                const d = await r.json();
+                if (r.ok) setSections(d.sections);
             } catch (e) { console.error(e); }
             finally { setLoading(false); }
         })();
@@ -244,17 +229,16 @@ export default function Chill() {
     const fetchSectionData = async (section) => {
         try {
             setImageViewState(false); setLoading(true); setShowNewEntryForm(false);
-            stopSpeech();
+            hardStop();
             const r = await fetch(`${baseUrl}/fetch-chill-data?section=${encodeURIComponent(section.section)}`);
-            const data = await r.json();
-            if (r.ok) { setSelectedSection(data); setEditedText(data.text); }
-            else console.error(data.message);
+            const d = await r.json();
+            if (r.ok) { setSelectedSection(d); setEditedText(d.text); }
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
     const handleBack = () => {
-        stopSpeech();
+        hardStop();
         setChatOpen(false); setSelectedSection(null); setMessages([]);
         setEditing(false); setImageViewState(true);
     };
@@ -266,9 +250,8 @@ export default function Chill() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section: selectedSection.section, text: editedText }),
             });
-            const data = await r.json();
+            const d = await r.json();
             if (r.ok) { setSelectedSection({ ...selectedSection, text: editedText }); setEditing(false); }
-            else console.error(data.message);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -281,9 +264,8 @@ export default function Chill() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section }),
             });
-            const data = await r.json();
+            const d = await r.json();
             if (r.ok) { setSections(sections.filter(s => s.section !== section)); setSelectedSection(null); setEditing(false); }
-            else console.error(data.message);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
@@ -296,210 +278,157 @@ export default function Chill() {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ section: newSection, text: newText }),
             });
-            const data = await r.json();
-            if (r.ok) {
-                setSections([...sections, { section: newSection }]);
-                setNewSection(""); setNewText(""); setShowNewEntryForm(false);
-            } else console.error(data.message);
+            const d = await r.json();
+            if (r.ok) { setSections([...sections, { section: newSection }]); setNewSection(""); setNewText(""); setShowNewEntryForm(false); }
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
     };
 
-    // ─── Speech helpers ────────────────────────────────────────────────────────
-    const getSelectedVoice = () => {
-        const voices = window.speechSynthesis.getVoices();
-        return voices.find(v => v.name === selectedVoiceName)
-            || voices.find(v => v.lang.startsWith('en'))
-            || voices[0];
+    // ─── Speech engine ────────────────────────────────────────────────────────
+    // cleanText: strips markdown, used for both TTS and word counting
+    const cleanForSpeech = (raw) => raw.replace(/#{1,3}/g, '').replace(/->/g, '');
+
+    const getVoice = () => {
+        const v = window.speechSynthesis.getVoices();
+        return v.find(x => x.name === selectedVoiceName) || v.find(x => x.lang.startsWith('en')) || v[0];
     };
 
-    const buildUtterance = (text) => {
-        const clean = text.replace(/#{1,3}/g, '').replace(/->/g, '');
-        const utt = new SpeechSynthesisUtterance(clean);
-        const voice = getSelectedVoice();
+    /**
+     * Speak `text` starting from character offset `fromChar`.
+     * This is the core function — pause/resume both use it by slicing the string.
+     */
+    const speakFrom = (text, fromChar = 0) => {
+        window.speechSynthesis.cancel();
+        const slice = text.slice(fromChar);
+        if (!slice.trim()) { setReadState('idle'); setHighlightWordIndex(-1); return; }
+
+        // Count words before fromChar so highlight index stays globally correct
+        const wordsBefore = text.slice(0, fromChar).trim().split(/\s+/).filter(Boolean).length;
+
+        const utt = new SpeechSynthesisUtterance(slice);
+        const voice = getVoice();
         if (voice) utt.voice = voice;
         utt.volume = 1; utt.pitch = 1; utt.rate = 0.95;
 
-        // Word boundary → highlight
         utt.onboundary = (e) => {
-            if (e.name === 'word') {
-                // charIndex maps to word index
-                const textBefore = clean.substring(0, e.charIndex);
-                const wordsBefore = textBefore.trim().split(/\s+/).filter(Boolean).length;
-                setHighlightWordIndex(wordsBefore);
-            }
+            if (e.name !== 'word') return;
+            // Track absolute char position for pause/resume
+            lastBoundaryCharRef.current = fromChar + e.charIndex;
+            // Global word index = words before this slice + words into this slice
+            const localWordsBefore = slice.slice(0, e.charIndex).trim().split(/\s+/).filter(Boolean).length;
+            setHighlightWordIndex(wordsBefore + localWordsBefore);
         };
         utt.onend = () => {
             setReadState('idle');
             setHighlightWordIndex(-1);
+            resumeCharOffsetRef.current = 0;
+            lastBoundaryCharRef.current = 0;
         };
         utt.onerror = (e) => {
             if (e.error !== 'interrupted') console.error('Speech error:', e.error);
             setReadState('idle');
             setHighlightWordIndex(-1);
         };
-        return utt;
-    };
 
-    const startReading = (text) => {
-        if (!('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
-        const utt = buildUtterance(text);
-        uttRef.current = utt;
-        setReadState('playing');
-        setHighlightWordIndex(0);
         window.speechSynthesis.speak(utt);
+        setReadState('playing');
     };
 
+    const startReading = () => {
+        if (!selectedSection) return;
+        resumeCharOffsetRef.current = 0;
+        lastBoundaryCharRef.current = 0;
+        setHighlightWordIndex(0);
+        speakFrom(cleanForSpeech(selectedSection.text), 0);
+    };
+
+    /**
+     * Pause — Chrome's speechSynthesis.pause() is broken (it never fires resume correctly).
+     * Fix: we cancel instead, but save the last known char offset so we can restart from there.
+     */
     const pauseReading = () => {
-        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-            window.speechSynthesis.pause();
-            setReadState('paused');
-        }
+        // Save where we are (last word boundary char)
+        resumeCharOffsetRef.current = lastBoundaryCharRef.current;
+        window.speechSynthesis.cancel(); // cancel instead of pause — Chrome-safe
+        setReadState('paused');
     };
 
+    /**
+     * Resume — restart speech from the saved char offset.
+     */
     const resumeReading = () => {
-        if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-            setReadState('playing');
-        }
-    };
-
-    const stopSpeech = () => {
-        window.speechSynthesis.cancel();
-        setReadState('idle');
-        setHighlightWordIndex(-1);
+        if (!selectedSection) return;
+        speakFrom(cleanForSpeech(selectedSection.text), resumeCharOffsetRef.current);
     };
 
     const restartReading = () => {
-        if (selectedSection) {
-            stopSpeech();
-            setTimeout(() => startReading(selectedSection.text), 80);
-        }
+        resumeCharOffsetRef.current = 0;
+        lastBoundaryCharRef.current = 0;
+        if (!selectedSection) return;
+        speakFrom(cleanForSpeech(selectedSection.text), 0);
     };
 
-    // ─── Download audio via MediaRecorder (records system TTS output) ──────────
-    const downloadAudio = async () => {
-        if (!('speechSynthesis' in window)) { alert('TTS not supported'); return; }
-        if (isDownloading) return;
+    const hardStop = () => {
+        window.speechSynthesis.cancel();
+        setReadState('idle');
+        setHighlightWordIndex(-1);
+        resumeCharOffsetRef.current = 0;
+        lastBoundaryCharRef.current = 0;
+    };
 
-        // We need AudioContext + MediaRecorder to capture TTS.
-        // Strategy: use a hidden AudioContext with a destination stream,
-        // speak through it via Web Audio, record via MediaRecorder.
-        // Simpler cross-browser approach: use MediaRecorder on a dest stream
-        // from AudioContext connected to a ScriptProcessor or AudioWorklet.
-        // 
-        // However the MOST reliable approach for recording browser TTS is:
-        // speechSynthesis → system audio → captured via getDisplayMedia (needs user permission)
-        // OR just offer an MP3 download via a TTS REST API.
-        //
-        // Since we don't have an external TTS API, we'll use the cleanest
-        // pure-browser approach: AudioContext + oscillator trick doesn't work for TTS.
-        // 
-        // REAL approach that works: record using MediaRecorder on a silent dest,
-        // while also speaking. But TTS audio doesn't go through WebAudio graph.
-        //
-        // BEST PURE BROWSER APPROACH:
-        // Use SpeechSynthesis to speak, and MediaRecorder on
-        // AudioContext.createMediaStreamDestination() while routing
-        // a dummy gain node — this captures NOTHING from TTS since TTS
-        // bypasses WebAudio entirely.
-        //
-        // PRACTICAL SOLUTION that actually works:
-        // Use the Web Speech API to speak while simultaneously recording
-        // via getUserMedia (microphone) — user records what their speakers play.
-        // This is unreliable and requires mic permission.
-        //
-        // REAL WORKING SOLUTION: generate audio client-side using the
-        // browser's AudioContext with a speech synthesis polyfill, OR
-        // use a simple approach: create a Blob from TTS via Web Worker.
-        //
-        // Since we're constrained to browser TTS only and MediaRecorder
-        // cannot tap TTS output directly, we'll generate a plain-text file
-        // and offer it as a download, while also speaking.
-        // 
-        // ── Actually the cleanest real solution: ──
-        // Use the SpeechSynthesis Utterance with MediaRecorder
-        // by routing through AudioContext.createMediaStreamDestination
-        // using a Web Audio trick where we connect an audio source.
-        // This still won't capture TTS.
-        //
-        // ── FINAL DECISION: ──
-        // We'll download the text as a .txt file for import into
-        // any TTS tool, AND also try to record using MediaRecorder
-        // on AudioContext destination stream (works in some browsers
-        // when TTS routes through the audio graph).
-
-        setIsDownloading(true);
-        const text = (selectedSection?.text || '').replace(/#{1,3}/g, '').replace(/->/g, '').trim();
-        const sectionName = selectedSection?.section || 'section';
-
+    // ─── PDF Export via backend ───────────────────────────────────────────────
+    const exportPdf = async () => {
+        if (isExportingPdf || !selectedSection) return;
+        setIsExportingPdf(true);
         try {
-            // Try AudioContext MediaRecorder approach
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const ctx = new AudioContext();
-            const dest = ctx.createMediaStreamDestination();
-
-            // Create a very quiet oscillator to keep the stream alive
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            gain.gain.value = 0.00001; // nearly silent
-            osc.connect(gain);
-            gain.connect(dest);
-            osc.start();
-
-            const recorder = new MediaRecorder(dest.stream);
-            const chunks = [];
-            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-            recorder.onstop = () => {
-                osc.stop();
-                ctx.close();
-                // The recording will only contain the silent oscillator,
-                // not TTS audio (TTS bypasses WebAudio in all browsers).
-                // So instead, we fall back to downloading as text.
-                const blob = new Blob([text], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${sectionName.replace(/\s+/g, '_')}_notes.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-                setIsDownloading(false);
-                alert('Downloaded as text file. You can import this into any TTS app (e.g. macOS "say" command, Balabolka, or paste into Google TTS) to get audio in the voice of your choice.');
-            };
-
-            recorder.start();
-
-            // Speak the content
-            window.speechSynthesis.cancel();
-            const utt = buildUtterance(text);
-            const origOnEnd = utt.onend;
-            utt.onend = (e) => {
-                recorder.stop();
-                if (origOnEnd) origOnEnd(e);
-            };
-            utt.onerror = (e) => {
-                recorder.stop();
-            };
-            setReadState('playing');
-            window.speechSynthesis.speak(utt);
-
-        } catch (err) {
-            console.error('Audio download error:', err);
-            // Fallback: just download text
-            const blob = new Blob([text], { type: 'text/plain' });
+            const r = await fetch(`${baseUrl}/chill/export-section-pdf/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: selectedSection.section, text: selectedSection.text }),
+            });
+            if (!r.ok) throw new Error('PDF export failed');
+            const blob = await r.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${sectionName.replace(/\s+/g, '_')}_notes.txt`;
+            a.download = `${selectedSection.section.replace(/\s+/g, '_')}_notes.pdf`;
             a.click();
             URL.revokeObjectURL(url);
-            setIsDownloading(false);
+        } catch (e) {
+            console.error(e);
+            alert('PDF export failed. Make sure the backend has reportlab installed.');
+        } finally {
+            setIsExportingPdf(false);
         }
     };
 
-    // ─── Chat ──────────────────────────────────────────────────────────────────
+    // ─── TTS Audio Download via backend (gTTS) ────────────────────────────────
+    const downloadAudio = async () => {
+        if (isDownloadingAudio || !selectedSection) return;
+        setIsDownloadingAudio(true);
+        try {
+            const r = await fetch(`${baseUrl}/chill/download-section-audio/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: selectedSection.section, text: selectedSection.text }),
+            });
+            if (!r.ok) throw new Error('TTS failed');
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${selectedSection.section.replace(/\s+/g, '_')}_audio.mp3`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error(e);
+            alert('Audio download failed. Make sure the backend has gTTS installed (pip install gtts).');
+        } finally {
+            setIsDownloadingAudio(false);
+        }
+    };
+
+    // ─── Chat ─────────────────────────────────────────────────────────────────
     const handleSendMessage = async (input) => {
         if (!input.trim()) return;
         setUserInput('');
@@ -516,8 +445,8 @@ export default function Chill() {
                     ],
                 }),
             });
-            const data = await r.json();
-            setMessages(prev => [...prev, { role: "assistant", content: data.choices[0].message.content }]);
+            const d = await r.json();
+            setMessages(prev => [...prev, { role: "assistant", content: d.choices[0].message.content }]);
         } catch {
             setMessages(prev => [...prev, { role: "assistant", content: "Sorry, I encountered an error. Please try again." }]);
         }
@@ -532,8 +461,8 @@ export default function Chill() {
         setImageProcess('Fetching Images...');
         try {
             const r = await fetch(`${baseUrl}/fetch-trading-images`);
-            const data = await r.json();
-            if (r.ok) { setImageFolders(p => JSON.stringify(p) !== JSON.stringify(data.folders) ? data.folders : p); setImageProcess('View Trading Images'); }
+            const d = await r.json();
+            if (r.ok) { setImageFolders(p => JSON.stringify(p) !== JSON.stringify(d.folders) ? d.folders : p); setImageProcess('View Trading Images'); }
             else { alert('Error fetching images.'); setImageProcess('View Trading Images'); }
         } catch { alert('Error fetching images.'); setImageProcess('View Trading Images'); }
     };
@@ -553,8 +482,7 @@ export default function Chill() {
                     <div className="chill-interface">
                         <div className="chill-header">
                             <h5 className="chill-title">
-                                <BookOpen className="icon" />
-                                C.H.I.L.L Interface
+                                <BookOpen className="icon" /> C.H.I.L.L Interface
                                 <span className="version-tag">v2.0</span>
                             </h5>
                             <div className="chill-subtitle">Comprehensive Hybrid Interface for Learning & Logging</div>
@@ -574,18 +502,15 @@ export default function Chill() {
                                             <p style={{ margin: 0 }}>Ask Livingston about this section.<br />The AI will analyze the content and provide insights.</p>
                                         </div>
                                     ) : messages.map((msg, idx) => (
-                                        <div key={idx} style={msg.role === 'assistant' ? S.livingstonMsgAI : S.livingstonMsgUser}>
-                                            {msg.content}
-                                        </div>
+                                        <div key={idx} style={msg.role === 'assistant' ? S.livingstonMsgAI : S.livingstonMsgUser}>{msg.content}</div>
                                     ))}
                                     <div ref={messagesEndRef} />
                                 </div>
                                 <div style={S.livingstonInputRow}>
                                     <input style={S.livingstonInput} type="text" placeholder="Ask me something..."
-                                        value={userInput} onChange={(e) => setUserInput(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === "Enter") handleSendMessage(userInput); }} />
-                                    <button style={S.livingstonSendBtn(!userInput.trim())}
-                                        onClick={() => handleSendMessage(userInput)} disabled={!userInput.trim()}>Send</button>
+                                        value={userInput} onChange={e => setUserInput(e.target.value)}
+                                        onKeyDown={e => { if (e.key === "Enter") handleSendMessage(userInput); }} />
+                                    <button style={S.livingstonSendBtn(!userInput.trim())} onClick={() => handleSendMessage(userInput)} disabled={!userInput.trim()}>Send</button>
                                 </div>
                             </div>
                         )}
@@ -595,31 +520,30 @@ export default function Chill() {
                             <div className="dashboard-section">
                                 <div className="section-controls">
                                     <button onClick={fetchImages} className="control-btn image-btn">
-                                        <RefreshCw size={18} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} />
-                                        {imageProcess}
+                                        <RefreshCw size={16} className={imageProcess === 'Fetching Images...' ? 'spinning' : ''} /> {imageProcess}
                                     </button>
                                     <div style={S.toggleGroup}>
                                         <button style={{ ...S.toggleBtnBase, ...(viewMode === 'grid' ? S.toggleBtnActive : S.toggleBtnInactive) }} onClick={() => setViewMode('grid')}>
-                                            <Grid size={16} /> Grid
+                                            <Grid size={15} /> Grid
                                         </button>
                                         <button style={{ ...S.toggleBtnBase, ...(viewMode === 'list' ? S.toggleBtnActive : S.toggleBtnInactive) }} onClick={() => setViewMode('list')}>
-                                            <List size={16} /> List
+                                            <List size={15} /> List
                                         </button>
                                     </div>
                                 </div>
                                 {!selectedSection && (
                                     <div className="search-container">
                                         <input type="text" placeholder="Search sections..." value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)} className="search-input" />
+                                            onChange={e => setSearchQuery(e.target.value)} className="search-input" />
                                     </div>
                                 )}
                                 {imageFolders && (
                                     <div className="image-folders">
-                                        <h6 className="section-subheading"><Folder size={18} /> Image Folders</h6>
+                                        <h6 className="section-subheading"><Folder size={16} /> Image Folders</h6>
                                         <div className="folder-grid">
                                             {Object.keys(imageFolders).map((folder, i) => (
                                                 <button key={i} onClick={() => { setSelectedFolder(folder); setFolderState(true); }} className="folder-btn">
-                                                    <Folder size={18} /><span>{folder}</span>
+                                                    <Folder size={16} /><span>{folder}</span>
                                                     <span className="file-count">{imageFolders[folder].length}</span>
                                                 </button>
                                             ))}
@@ -632,8 +556,8 @@ export default function Chill() {
                         {selectedFolder && folderState && (
                             <div className="folder-view">
                                 <div className="folder-header">
-                                    <h6><Folder size={18} /> {selectedFolder}</h6>
-                                    <button onClick={() => setFolderState(false)} className="close-folder-btn"><X size={18} /></button>
+                                    <h6><Folder size={16} /> {selectedFolder}</h6>
+                                    <button onClick={() => setFolderState(false)} className="close-folder-btn"><X size={16} /></button>
                                 </div>
                                 <div className="images-grid">
                                     {imageFolders[selectedFolder].map((imageData, i) => (
@@ -649,7 +573,7 @@ export default function Chill() {
                         {expandedImage && (
                             <div className="expanded-image-overlay" onClick={() => setExpandedImage(null)}>
                                 <div className="expanded-image-container" onClick={e => e.stopPropagation()}>
-                                    <button className="close-expanded-btn" onClick={() => setExpandedImage(null)}><X size={18} /></button>
+                                    <button className="close-expanded-btn" onClick={() => setExpandedImage(null)}><X size={16} /></button>
                                     <img src={expandedImage.data} alt="Expanded Trading Image" className="expanded-image" />
                                     <div className="image-filename">{expandedImage.filename || "Trading Image"}</div>
                                 </div>
@@ -664,28 +588,23 @@ export default function Chill() {
                             </div>
                         ) : selectedSection ? (
                             <div className="section-view" ref={sectionTopRef}>
-                                {/* Section header + action buttons */}
+                                {/* ── Header row ── */}
                                 <div className="section-header">
                                     <h4 className="section-title">
-                                        <Bookmark size={18} className="icon" />
-                                        {selectedSection.section}
+                                        <Bookmark size={16} className="icon" /> {selectedSection.section}
                                     </h4>
-
                                     <div style={S.actionRow}>
                                         {/* Voice picker */}
                                         <div style={S.voicePickerWrap}>
-                                            <button
-                                                style={showVoiceSelector ? S.pillBlueOutline : S.pillGhost}
-                                                onClick={() => setShowVoiceSelector(v => !v)}
-                                                title={`Voice: ${selectedVoiceName || 'Default'}`}
-                                            >
-                                                <MicIcon size={16} /> {shortVoiceName}
+                                            <button style={showVoiceSelector ? S.pillBlueOutline : S.pillGhost}
+                                                onClick={() => setShowVoiceSelector(v => !v)} title={`Voice: ${selectedVoiceName || 'Default'}`}>
+                                                <MicIcon size={15} /> {shortVoiceName}
                                             </button>
                                             {showVoiceSelector && (
                                                 <div style={S.voiceDropdown}>
                                                     <div style={S.voiceDropdownHeader}>
                                                         <span>Choose Voice</span>
-                                                        <button style={S.voiceCloseBtn} onClick={() => setShowVoiceSelector(false)}><X size={16} /></button>
+                                                        <button style={S.voiceCloseBtn} onClick={() => setShowVoiceSelector(false)}><X size={15} /></button>
                                                     </div>
                                                     {englishVoices.length > 0 && <>
                                                         <div style={S.voiceGroupLabel}>English</div>
@@ -708,88 +627,69 @@ export default function Chill() {
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* AI Assistant */}
-                                        {!editing && (
-                                            <button style={S.pillBlue} onClick={() => setChatOpen(true)}>
-                                                <MessageSquare size={16} /> Ask Livingston
-                                            </button>
-                                        )}
-
-                                        {/* Edit / Save */}
-                                        {!editing && (
-                                            <button style={S.pillAmber} onClick={() => setEditing(true)}>
-                                                <Edit2 size={16} /> Edit
-                                            </button>
-                                        )}
-                                        {editing && (
-                                            <button style={S.pillGreen} onClick={handleSave}>
-                                                <Save size={16} /> Save
-                                            </button>
-                                        )}
+                                        {!editing && <button style={S.pillBlue} onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Ask Livingston</button>}
+                                        {!editing && <button style={S.pillAmber} onClick={() => setEditing(true)}><Edit2 size={15} /> Edit</button>}
+                                        {editing && <button style={S.pillGreen} onClick={handleSave}><Save size={15} /> Save</button>}
                                     </div>
                                 </div>
 
-                                {/* ── Reader controls bar (shown when not editing) ── */}
+                                {/* ── Reader controls bar ── */}
                                 {!editing && (
                                     <div style={S.readerPanel}>
-                                        <span style={S.readerLabel}>
-                                            <Volume2 size={15} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                                            Read Aloud
-                                        </span>
+                                        <span style={S.readerLabel}><Volume2 size={14} /> Read Aloud</span>
+                                        <div style={S.readerDivider} />
 
-                                        {/* Play */}
+                                        {/* Play (only when idle) */}
                                         {readState === 'idle' && (
-                                            <button style={S.pillTeal} onClick={() => startReading(selectedSection.text)}>
-                                                <Play size={15} /> Play
-                                            </button>
+                                            <button style={S.pillTeal} onClick={startReading}><Play size={14} /> Play</button>
                                         )}
-
-                                        {/* Pause */}
+                                        {/* Pause (only when playing) */}
                                         {readState === 'playing' && (
-                                            <button style={S.pillAmber} onClick={pauseReading}>
-                                                <Pause size={15} /> Pause
-                                            </button>
+                                            <button style={S.pillAmber} onClick={pauseReading}><Pause size={14} /> Pause</button>
                                         )}
-
-                                        {/* Resume */}
+                                        {/* Resume (only when paused) */}
                                         {readState === 'paused' && (
-                                            <button style={S.pillTeal} onClick={resumeReading}>
-                                                <Play size={15} /> Resume
-                                            </button>
+                                            <button style={S.pillTeal} onClick={resumeReading}><Play size={14} /> Resume</button>
                                         )}
-
-                                        {/* Restart (shown when playing or paused) */}
+                                        {/* Restart (when playing or paused) */}
                                         {readState !== 'idle' && (
-                                            <button style={S.pillOrange} onClick={restartReading}>
-                                                <RotateCcw size={15} /> Restart
-                                            </button>
+                                            <button style={S.pillOrange} onClick={restartReading}><RotateCcw size={14} /> Restart</button>
                                         )}
-
-                                        {/* Stop (shown when playing or paused) */}
+                                        {/* Stop (when playing or paused) */}
                                         {readState !== 'idle' && (
-                                            <button style={S.pillRed} onClick={stopSpeech}>
-                                                <VolumeX size={15} /> Stop
-                                            </button>
+                                            <button style={S.pillRed} onClick={hardStop}><VolumeX size={14} /> Stop</button>
                                         )}
 
-                                        {/* Download notes */}
+                                        <div style={{ ...S.readerDivider, marginLeft: 'auto' }} />
+
+                                        {/* PDF export */}
                                         <button
-                                            style={{ ...S.pillPurple, marginLeft: 'auto', opacity: isDownloading ? 0.6 : 1 }}
-                                            onClick={downloadAudio}
-                                            disabled={isDownloading}
-                                            title="Download notes as text file"
+                                            style={isExportingPdf ? S.pillDisabled : S.pillPurple}
+                                            onClick={exportPdf}
+                                            disabled={isExportingPdf}
+                                            title="Export as styled PDF"
                                         >
-                                            <Download size={15} />
-                                            {isDownloading ? 'Reading...' : 'Download Notes'}
+                                            <FileText size={14} />
+                                            {isExportingPdf ? 'Exporting…' : 'Export PDF'}
+                                        </button>
+
+                                        {/* Audio download via gTTS backend */}
+                                        <button
+                                            style={isDownloadingAudio ? S.pillDisabled : S.pillSlate}
+                                            onClick={downloadAudio}
+                                            disabled={isDownloadingAudio}
+                                            title="Download MP3 via Google TTS"
+                                        >
+                                            <Download size={14} />
+                                            {isDownloadingAudio ? 'Generating…' : 'Download MP3'}
                                         </button>
                                     </div>
                                 )}
 
-                                {/* Section content */}
+                                {/* ── Section content ── */}
                                 <div className="section-content">
                                     {editing ? (
-                                        <textarea value={editedText} onChange={(e) => setEditedText(e.target.value)}
+                                        <textarea value={editedText} onChange={e => setEditedText(e.target.value)}
                                             className="content-editor" placeholder="Enter section content..." />
                                     ) : (
                                         <div className="formatted-content">
@@ -804,15 +704,11 @@ export default function Chill() {
 
                                 <div className="section-footer">
                                     <button onClick={handleBack} className="footer-btn back-btn">
-                                        <ChevronLeft size={16} /> Back to Sections
+                                        <ChevronLeft size={15} /> Back to Sections
                                     </button>
                                     <div className="footer-actions">
-                                        <button onClick={quizMe} className="footer-btn quiz-btn">
-                                            <BrainIcon size={16} /> Quiz Me
-                                        </button>
-                                        <button onClick={() => handleDelete(selectedSection.section)} className="footer-btn delete-btn">
-                                            <Trash2 size={16} /> Delete
-                                        </button>
+                                        <button onClick={quizMe} className="footer-btn quiz-btn"><BrainIcon size={15} /> Quiz Me</button>
+                                        <button onClick={() => handleDelete(selectedSection.section)} className="footer-btn delete-btn"><Trash2 size={15} /> Delete</button>
                                     </div>
                                 </div>
                             </div>
@@ -822,7 +718,7 @@ export default function Chill() {
                                     {filteredSections.length > 0 ? (
                                         filteredSections.map((section, i) => (
                                             <div key={i} className="section-item" onClick={() => fetchSectionData(section)}>
-                                                <Bookmark size={16} className="section-icon" />
+                                                <Bookmark size={15} className="section-icon" />
                                                 <span className="section-name">{section.section}</span>
                                             </div>
                                         ))
@@ -838,19 +734,18 @@ export default function Chill() {
                         <div className="add-section-container">
                             {!selectedSection && (
                                 <button onClick={() => setShowNewEntryForm(!showNewEntryForm)} className="add-section-btn">
-                                    <PlusCircle size={16} />
-                                    {showNewEntryForm ? "Cancel" : "Add New Section"}
+                                    <PlusCircle size={15} /> {showNewEntryForm ? "Cancel" : "Add New Section"}
                                 </button>
                             )}
                             {showNewEntryForm && (
                                 <div className="new-section-form">
-                                    <h5 className="form-title"><PlusCircle size={16} /> Create New Section</h5>
+                                    <h5 className="form-title"><PlusCircle size={15} /> Create New Section</h5>
                                     <input type="text" className="section-name-input" placeholder="Section Name"
-                                        value={newSection} onChange={(e) => setNewSection(e.target.value)} />
+                                        value={newSection} onChange={e => setNewSection(e.target.value)} />
                                     <textarea placeholder="Section Content" className="section-content-input"
-                                        value={newText} onChange={(e) => setNewText(e.target.value)} />
+                                        value={newText} onChange={e => setNewText(e.target.value)} />
                                     <button onClick={handleCreateNewEntry} className="save-new-section-btn">
-                                        <Save size={16} /> Save New Section
+                                        <Save size={15} /> Save New Section
                                     </button>
                                 </div>
                             )}
