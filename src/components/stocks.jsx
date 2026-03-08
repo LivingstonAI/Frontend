@@ -1406,6 +1406,10 @@ Return this exact JSON structure:
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 @keyframes sessionPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.3); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0.08); } }
                 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+                @media (max-width: 768px) {
+                    .compare-grid { grid-template-columns: 1fr !important; }
+                    .compare-layout-toggle { display: none !important; }
+                }
                 @keyframes articleModalPop {
                     from { opacity: 0; transform: scale(0.93) translateY(10px); }
                     to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -1822,34 +1826,34 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const totalBars  = allData.length;
             if (totalBars === 0) { recorder.stop(); return; }
 
-            const currentRange = chartRef.current.timeScale().getVisibleLogicalRange();
-            const windowSize   = currentRange ? Math.round(currentRange.to - currentRange.from) : 60;
+            // Use a fixed window size (how many bars visible at once) — never read from
+            // user's current scroll position since they might be anywhere in the chart.
+            // ~60 bars is a comfortable window for most timeframes.
+            const windowSize = Math.min(60, Math.round(totalBars * 0.35));
+            const rightPad   = Math.round(windowSize * 0.35); // breathing room after last candle
 
-            // frameDelay controls real-world pace — each bar gets this many ms on screen
-            // For 45s video with 180 bars: 45000/180 = 250ms per bar
-            // For 45s video with 500 bars: 45000/500 = 90ms per bar
-            // Floor at 40ms (no faster than ~25 bars/sec) so canvas stream isn't starved
-            const frameDelay   = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
-            const barsPerStep  = frameDelay < 60 ? 2 : 1;
+            const frameDelay     = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
+            const barsPerStep    = frameDelay < 60 ? 2 : 1;
             const effectiveDelay = frameDelay * barsPerStep;
 
-            // Right-side padding: keep ~30% of the window as empty space to the right
-            // of the last candle. LWC accepts logical indices beyond data length fine.
-            const rightPad = Math.round(windowSize * 0.3);
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms → est. ${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
 
-            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms → est. duration=${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
+            // ── Hard reset to bar 0 regardless of where user navigated ──────────
+            // scrollToPosition(0) alone isn't enough — setVisibleLogicalRange is authoritative
+            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
+
+            // Small delay so the chart actually renders frame 0 before recorder starts
+            await new Promise(r => setTimeout(r, 400));
 
             let bar = 0;
             const animate = () => {
                 if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
                 if (bar >= totalBars) {
-                    // Hold last frame (last candle nicely padded) for 1.5s before stopping
                     setTimeout(() => { try { recorder.stop(); } catch {} }, 1500);
                     return;
                 }
                 chartRef.current.timeScale().setVisibleLogicalRange({
-                    from: Math.max(0, bar - Math.round(windowSize * 0.70)),
-                    // Always leave rightPad bars of breathing room past the current bar
+                    from: Math.max(0, bar - Math.round(windowSize * 0.65)),
                     to:   bar + rightPad,
                 });
                 setRecordingProgress(Math.round((bar / totalBars) * 95));
@@ -1857,9 +1861,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 setTimeout(animate, effectiveDelay);
             };
 
-            // Kick off from bar 0 with the same right padding so opening frame looks good
-            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
-            setTimeout(animate, 300);
+            animate();
 
         } catch(e) {
             console.error('[Video] Recording failed:', e);
@@ -3087,6 +3089,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             📊 {ticker} <span style={{ color:'#aaa', fontWeight:'400', margin:'0 4px' }}>vs</span> {compareTicker}
                         </div>
                         <div style={{ display:'flex', gap:'6px', marginLeft:'auto' }}>
+                            <span className="compare-layout-toggle" style={{ display:'contents' }}>
                             {[['side','⬛⬛ Side'],['stack','⬛↕ Stack']].map(([m,lbl]) => (
                                 <button key={m} onClick={() => setCompareMode(m)}
                                     style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
@@ -3096,6 +3099,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                     {lbl}
                                 </button>
                             ))}
+                            </span>
                             <button onClick={() => setShowComparePicker(true)}
                                 style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', backgroundColor:'#fff', color:'#555' }}>
                                 ⊕ Swap
@@ -3106,10 +3110,9 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             </button>
                         </div>
                     </div>
-                    <div style={{
-                        display: compareMode==='side' ? 'grid' : 'flex',
-                        gridTemplateColumns: compareMode==='side' ? '1fr 1fr' : undefined,
-                        flexDirection: compareMode==='stack' ? 'column' : undefined,
+                    <div className="compare-grid" style={{
+                        display: 'grid',
+                        gridTemplateColumns: compareMode==='side' ? '1fr 1fr' : '1fr',
                         gap: '14px', alignItems: 'start',
                     }}>
                         <div style={{ minWidth:0 }}>
