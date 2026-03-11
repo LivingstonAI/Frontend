@@ -1852,11 +1852,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const totalBars  = allData.length;
             if (totalBars === 0) { recorder.stop(); return; }
 
-            // Use a fixed window size (how many bars visible at once) — never read from
-            // user's current scroll position since they might be anywhere in the chart.
-            // ~60 bars is a comfortable window for most timeframes.
-            const windowSize = Math.min(60, Math.round(totalBars * 0.35));
-            const rightPad   = Math.round(windowSize * 0.35); // breathing room after last candle
+            // Window size = how many bars are visible at once during recording.
+            // Want ~120-150 bars — enough context to read structure/trends without
+            // being so zoomed out candles become invisible.
+            // Cap at 60% of total so we don't show the whole dataset at once.
+            const windowSize = Math.min(150, Math.max(80, Math.round(totalBars * 0.60)));
+            const rightPad   = Math.round(windowSize * 0.15); // small right-side breathing room
 
             const frameDelay     = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
             const barsPerStep    = frameDelay < 60 ? 2 : 1;
