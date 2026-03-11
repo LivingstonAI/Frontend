@@ -1667,48 +1667,74 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
     // Band = TWAP ± 1 stddev of (price - TWAP) over the whole dataset
     // ── Live session tracker ─────────────────────────────────────────────────────
-    // All times in US/Eastern. NYSE hours: Pre 4:00-9:30, Regular 9:30-16:00, Post 16:00-20:00
+    // Uses Intl.DateTimeFormat with America/New_York — handles DST automatically
+    // regardless of where the user's browser is located (e.g. South Africa, UTC+2).
+    // This is the ONLY correct way to get NYC time — manual offset math breaks on
+    // DST transitions since getTimezoneOffset() reflects the LOCAL browser timezone.
     const getSessionState = () => {
         const now = new Date();
-        // Convert to ET (UTC-5 standard, UTC-4 daylight)
-        const etOffset  = (() => {
-            // DST: second Sunday March → first Sunday November
-            const jan = new Date(now.getFullYear(), 0, 1).getTimezoneOffset();
-            const jul = new Date(now.getFullYear(), 6, 1).getTimezoneOffset();
-            const stdOff = Math.max(jan, jul); // e.g. 300 = UTC-5
-            const isDST  = now.getTimezoneOffset() < stdOff;
-            return isDST ? -4 : -5;
-        })();
-        const utc  = now.getTime() + now.getTimezoneOffset() * 60000;
-        const et   = new Date(utc + etOffset * 3600000);
-        const day  = et.getDay(); // 0=Sun, 6=Sat
-        const h    = et.getHours();
-        const m    = et.getMinutes();
+
+        // Extract NYC time parts directly from the IANA tz database
+        const nyParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour:     'numeric',
+            minute:   'numeric',
+            second:   'numeric',
+            weekday:  'short',
+            hour12:   false,
+        }).formatToParts(now);
+
+        const part = (type) => parseInt(nyParts.find(p => p.type === type)?.value ?? '0', 10);
+        const weekday = nyParts.find(p => p.type === 'weekday')?.value; // 'Mon','Tue'…
+        const h    = part('hour') % 24;   // formatToParts can return 24 for midnight
+        const m    = part('minute');
         const mins = h * 60 + m;
 
-        const isWeekend = day === 0 || day === 6;
-        if (isWeekend) return { session: 'closed', label: 'Market Closed', sub: 'Weekend', color: '#6b7280', dot: '#6b7280', et };
+        // Build a Date object representing NYC "now" for display (toLocaleTimeString)
+        // We need this so the session widget shows actual NYC clock time
+        const nyTimeStr = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false,
+        }).format(now);
 
-        // NYSE session windows (minutes from midnight ET)
+        // Determine if NYC is currently on EDT (UTC-4) or EST (UTC-5)
+        // by comparing UTC offset — Intl handles the DST boundary precisely
+        const nyOffsetMins = (() => {
+            // Trick: format the same instant in UTC and NYC, diff them
+            const utcH = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:'UTC', hour:'numeric', hour12:false }).format(now), 10) % 24;
+            const diff = ((h - utcH + 24) % 24);
+            // diff will be 20 (= -4 mod 24) for EDT, 19 (= -5 mod 24) for EST
+            return diff >= 12 ? diff - 24 : diff; // → -4 or -5
+        })();
+        const tzLabel = nyOffsetMins === -4 ? 'EDT' : 'EST';
+
+        const isWeekend = weekday === 'Sun' || weekday === 'Sat';
+        if (isWeekend) return { session:'closed', label:'Market Closed', sub:'Weekend', color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+
+        // NYSE session windows (minutes from midnight NYC)
         const PRE_OPEN   = 4  * 60;       // 04:00
         const MKT_OPEN   = 9  * 60 + 30;  // 09:30
         const MKT_CLOSE  = 16 * 60;       // 16:00
         const POST_CLOSE = 20 * 60;       // 20:00
 
-        const minsUntil = (target) => target - mins;
-        const fmt = (m) => `${Math.floor(Math.abs(m)/60).toString().padStart(2,'0')}:${(Math.abs(m)%60).toString().padStart(2,'0')}`;
+        const minsUntil = (t) => t - mins;
+        const fmt = (d) => {
+            const abs = Math.abs(d);
+            return `${Math.floor(abs/60).toString().padStart(2,'0')}:${(abs%60).toString().padStart(2,'0')}`;
+        };
 
-        if (mins < PRE_OPEN)   return { session: 'closed',   label: 'Market Closed',    sub: `Pre-market opens in ${fmt(minsUntil(PRE_OPEN))}`,   color: '#6b7280', dot: '#6b7280', et };
-        if (mins < MKT_OPEN)   return { session: 'pre',      label: 'Pre-Market',       sub: `Regular opens in ${fmt(minsUntil(MKT_OPEN))}`,       color: '#f59e0b', dot: '#f59e0b', et };
-        if (mins < MKT_CLOSE)  return { session: 'regular',  label: 'Market Open',      sub: `Closes in ${fmt(minsUntil(MKT_CLOSE))}`,             color: '#10b981', dot: '#10b981', et };
-        if (mins < POST_CLOSE) return { session: 'post',     label: 'After Hours',      sub: `Post-market closes in ${fmt(minsUntil(POST_CLOSE))}`, color: '#60a5fa', dot: '#60a5fa', et };
-        return                         { session: 'closed',   label: 'Market Closed',    sub: 'After-hours ended',                                   color: '#6b7280', dot: '#6b7280', et };
+        if (mins < PRE_OPEN)   return { session:'closed',   label:'Market Closed', sub:`Pre-market opens in ${fmt(minsUntil(PRE_OPEN))}`,    color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+        if (mins < MKT_OPEN)   return { session:'pre',      label:'Pre-Market',    sub:`Regular opens in ${fmt(minsUntil(MKT_OPEN))}`,        color:'#f59e0b', dot:'#f59e0b', nyTimeStr, tzLabel };
+        if (mins < MKT_CLOSE)  return { session:'regular',  label:'Market Open',   sub:`Closes in ${fmt(minsUntil(MKT_CLOSE))}`,              color:'#10b981', dot:'#10b981', nyTimeStr, tzLabel };
+        if (mins < POST_CLOSE) return { session:'post',     label:'After Hours',   sub:`Post-market closes in ${fmt(minsUntil(POST_CLOSE))}`,  color:'#60a5fa', dot:'#60a5fa', nyTimeStr, tzLabel };
+        return                         { session:'closed',   label:'Market Closed', sub:'After-hours ended',                                   color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
     };
 
     useEffect(() => {
         const tick = () => setSessionNow(getSessionState());
         tick();
-        const id = setInterval(tick, 30000);
+        const id = setInterval(tick, 1000); // every second — live NYC clock
         return () => clearInterval(id);
     }, []);
 
@@ -2352,7 +2378,6 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 {/* Session tracker widget */}
                                 {sessionNow && (() => {
                                     const s = sessionNow;
-                                    const etStr = s.et.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZone:'America/New_York', hour12:false });
                                     return (
                                         <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'8px', backgroundColor: s.color+'14', border:`1px solid ${s.color}30`, marginLeft:'auto' }}>
                                             <span style={{ width:'7px', height:'7px', borderRadius:'50%', backgroundColor:s.dot, flexShrink:0,
@@ -2360,7 +2385,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                                 animation: s.session === 'regular' ? 'sessionPulse 2s ease-in-out infinite' : 'none',
                                             }} />
                                             <span style={{ fontSize:'11px', fontWeight:'700', color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>
-                                            <span style={{ fontSize:'10px', color:s.color, opacity:0.7, whiteSpace:'nowrap' }}>{etStr} ET</span>
+                                            <span style={{ fontSize:'10px', color:s.color, opacity:0.7, whiteSpace:'nowrap' }}>{s.nyTimeStr} {s.tzLabel}</span>
                                         </div>
                                     );
                                 })()}
