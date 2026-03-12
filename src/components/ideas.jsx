@@ -2265,6 +2265,752 @@ function TrendAgeModal() {
     );
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trend Exhaustion + Reversal Detector
+// Colour palette: amber/orange = exhaustion, green = bull reversal,
+//                 red = bear reversal, slate = neutral
+// ─────────────────────────────────────────────────────────────────────────────
+const REV_CACHE_KEY  = "ideas_hub_reversal_bulk_v1";
+const REV_MCAP_TIERS = ["Mega","Large","Mid"]; // only quality names
+
+// Mini score bar component
+function ScoreBar({ label, value, color }) {
+    const { React: R } = { React: window.React || React };
+    return (
+        <div style={{ marginBottom: "6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                <span style={{ fontSize: "10px", color: "#64748B", fontWeight: "600" }}>{label}</span>
+                <span style={{ fontSize: "10px", fontWeight: "800", color }}>{Math.round(value)}</span>
+            </div>
+            <div style={{ height: "4px", background: "#F1F5F9", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${value}%`, background: color, borderRadius: "2px", transition: "width 0.4s ease" }} />
+            </div>
+        </div>
+    );
+}
+
+function ReversalModal() {
+    const { useState, useEffect, useMemo } = React;
+
+    const [open, setOpen]       = useState(false);
+    const [tab, setTab]         = useState("single"); // "single" | "bulk" | "guide"
+
+    // Single
+    const [revSymbol,    setRevSymbol]    = useState("");
+    const [revCustom,    setRevCustom]    = useState("");
+    const [revResult,    setRevResult]    = useState(null);
+    const [revLoading,   setRevLoading]   = useState(false);
+    const [revError,     setRevError]     = useState(null);
+    const [revChartOpen, setRevChartOpen] = useState(false);
+
+    // Bulk
+    const [revBulk,        setRevBulk]        = useState(null);
+    const [revBulkDate,    setRevBulkDate]     = useState("");
+    const [revScanning,    setRevScanning]     = useState(false);
+    const [revProgress,    setRevProgress]     = useState({ done: 0, total: 0 });
+    const [revCacheLoad,   setRevCacheLoad]    = useState(false);
+    const [revBulkError,   setRevBulkError]    = useState(null);
+    const [revSearch,      setRevSearch]       = useState("");
+    const [revSortBy,      setRevSortBy]       = useState("combined_score");
+    const [revFilterGrade, setRevFilterGrade]  = useState("All");
+    const [revFilterDir,   setRevFilterDir]    = useState("All"); // "All"|"Bear→Bull"|"Bull→Bear"
+    const [revFilterMcap,  setRevFilterMcap]   = useState("All");
+    const [revChartRows,   setRevChartRows]    = useState({});
+    const [revInfoOpen,    setRevInfoOpen]     = useState({});
+    const [revInfoData,    setRevInfoData]     = useState({});
+    const [revInfoLoading, setRevInfoLoading]  = useState({});
+
+    const baseUrl = "https://backend-production-c0ab.up.railway.app";
+
+    // ── Load bulk cache on open ──────────────────────────────────────────────
+    useEffect(() => {
+        if (!open) return;
+        (async () => {
+            setRevCacheLoad(true);
+            try {
+                const res = await window.storage.get(REV_CACHE_KEY);
+                if (res?.value) {
+                    const p = JSON.parse(res.value);
+                    setRevBulk(p.stocks);
+                    setRevBulkDate(p.date);
+                }
+            } catch (_) {}
+            finally { setRevCacheLoad(false); }
+        })();
+    }, [open]);
+
+    // ── Single analysis ──────────────────────────────────────────────────────
+    const analyzeSingle = async () => {
+        const sym = (revCustom || revSymbol).trim().toUpperCase();
+        if (!sym) return;
+        setRevLoading(true); setRevError(null); setRevResult(null); setRevChartOpen(false);
+        try {
+            const r = await fetch(`${baseUrl}/ideas_hub_reversal_v1`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: sym }),
+            });
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error || "API error");
+            setRevResult(d);
+        } catch (e) { setRevError(e.message); }
+        finally { setRevLoading(false); }
+    };
+
+    // ── Bulk scan ────────────────────────────────────────────────────────────
+    const runBulkScan = async () => {
+        setRevScanning(true); setRevBulkError(null);
+        const stocks = STOCK_LIST;
+        const BATCH  = 5;
+        const results = [];
+        setRevProgress({ done: 0, total: stocks.length });
+        for (let i = 0; i < stocks.length; i += BATCH) {
+            const batch = stocks.slice(i, i + BATCH);
+            await Promise.all(batch.map(async sym => {
+                try {
+                    const r = await fetch(`${baseUrl}/ideas_hub_reversal_v1`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ symbol: sym }),
+                    });
+                    const d = await r.json();
+                    if (r.ok) results.push(d);
+                } catch (_) {}
+            }));
+            setRevProgress(p => ({ ...p, done: Math.min(i + BATCH, stocks.length) }));
+        }
+        const payload = { stocks: results, date: new Date().toLocaleString() };
+        try { await window.storage.set(REV_CACHE_KEY, JSON.stringify(payload)); } catch (_) {}
+        setRevBulk(results);
+        setRevBulkDate(payload.date);
+        setRevScanning(false);
+    };
+
+    // ── Stock info popover ───────────────────────────────────────────────────
+    const fetchInfo = async (sym) => {
+        if (revInfoData[sym]) { setRevInfoOpen(p => ({ ...p, [sym]: !p[sym] })); return; }
+        setRevInfoLoading(p => ({ ...p, [sym]: true }));
+        setRevInfoOpen(p => ({ ...p, [sym]: true }));
+        try {
+            const r = await fetch(`${baseUrl}/ideas_hub_stock_info_v1`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: sym }),
+            });
+            const d = await r.json();
+            if (r.ok) setRevInfoData(p => ({ ...p, [sym]: d }));
+        } catch (_) {}
+        finally { setRevInfoLoading(p => ({ ...p, [sym]: false })); }
+    };
+
+    // ── Filtered + sorted bulk list ──────────────────────────────────────────
+    const revFiltered = useMemo(() => {
+        if (!revBulk) return [];
+        return revBulk
+            .filter(s => {
+                const g = s.classification?.grade || "";
+                const d = s.direction_label || "";
+                const m = s.mc_tier || "";
+                if (revFilterGrade !== "All" && g !== revFilterGrade) return false;
+                if (revFilterDir   !== "All" && d !== revFilterDir)   return false;
+                if (revFilterMcap  !== "All" && m !== revFilterMcap)  return false;
+                if (revSearch && !s.symbol.includes(revSearch.toUpperCase())) return false;
+                // Only show signals that have some evidence
+                if (g === "No Signal") return false;
+                return true;
+            })
+            .sort((a, b) => {
+                const key = revSortBy;
+                return (b[key] || 0) - (a[key] || 0);
+            });
+    }, [revBulk, revFilterGrade, revFilterDir, revFilterMcap, revSearch, revSortBy]);
+
+    // ── Colour helpers ───────────────────────────────────────────────────────
+    const dirColor  = d => d === "Bear→Bull" ? "#15803D" : "#DC2626";
+    const dirBg     = d => d === "Bear→Bull" ? "#DCFCE7" : "#FEE2E2";
+    const dirBorder = d => d === "Bear→Bull" ? "#86EFAC" : "#FCA5A5";
+    const dirEmoji  = d => d === "Bear→Bull" ? "🟢" : "🔴";
+
+    if (!open) return (
+        <button onClick={() => setOpen(true)}
+            style={{ display: "flex", alignItems: "center", gap: "6px", background: "#B45309", color: "#fff", border: "none", padding: "0.55rem 1.1rem", borderRadius: "6px", fontWeight: "600", fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(180,83,9,0.35)" }}>
+            🔄 Reversal Detector
+        </button>
+    );
+
+    return (
+        <>
+            {/* ── CSS ─────────────────────────────────────────────────────── */}
+            <style>{`
+                .rev-row:hover { background: #FFFBEB !important; }
+                .rev-btn-tab { transition: all 0.15s; }
+                .rev-btn-tab:hover { background: #FEF3C7 !important; }
+                @keyframes rev-fadeUp {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
+
+            {/* ── Overlay ─────────────────────────────────────────────────── */}
+            <div style={taStyles.overlay} onClick={e => e.target === e.currentTarget && setOpen(false)}>
+                <div style={{ ...taStyles.modal, maxWidth: "900px" }}>
+
+                    {/* ── Sticky header ──────────────────────────────────── */}
+                    <div style={{ ...taStyles.header, borderBottom: "1px solid #FDE68A" }}>
+                        <div>
+                            <p style={{ ...taStyles.title, display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontSize: "20px" }}>🔄</span> Trend Exhaustion + Reversal Detector
+                            </p>
+                            <p style={taStyles.subtitle}>
+                                Mega / Large / Mid Cap stocks showing fresh institutional reversals — catch the new trend early, not after it's extended
+                            </p>
+                        </div>
+                        <button style={taStyles.closeBtn} onClick={() => setOpen(false)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6 6 18M6 6l12 12" stroke="#64748B" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </button>
+                    </div>
+
+                    {/* ── Tabs ────────────────────────────────────────────── */}
+                    <div style={{ ...taStyles.tabRow, borderBottom: "1px solid #FDE68A", background: "#FFFBEB" }}>
+                        {[["single","🔍 Single Stock"],["bulk","📊 Bulk Scan"],["guide","📖 Strategy Guide"]].map(([t, label]) => (
+                            <button key={t} onClick={() => setTab(t)}
+                                style={{ ...taStyles.tab, ...(tab === t ? { color: "#B45309", borderBottomColor: "#B45309" } : {}) }}
+                                className="rev-btn-tab">{label}</button>
+                        ))}
+                    </div>
+
+                    <div style={{ padding: "18px 22px" }}>
+
+                        {/* ════════════════ STRATEGY GUIDE TAB ════════════════ */}
+                        {tab === "guide" && (
+                            <div style={{ animation: "rev-fadeUp 0.2s ease" }}>
+                                {/* Thesis */}
+                                <div style={{ background: "linear-gradient(135deg, #1C1917 0%, #292524 100%)", borderRadius: "12px", padding: "18px", marginBottom: "18px", border: "1px solid #78350F" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                                        <span style={{ fontSize: "22px" }}>🧠</span>
+                                        <span style={{ fontSize: "15px", fontWeight: "800", color: "#FDE68A" }}>The Strategy Thesis</span>
+                                    </div>
+                                    <p style={{ fontSize: "13px", color: "#D6D3D1", lineHeight: 1.8, margin: "0 0 12px" }}>
+                                        Most traders <strong style={{ color: "#FDE68A" }}>chase extended trends</strong> — they see a stock that's been running for weeks, pile in, and then watch it stall. The trend was real, but they arrived late.
+                                    </p>
+                                    <p style={{ fontSize: "13px", color: "#D6D3D1", lineHeight: 1.8, margin: "0 0 12px" }}>
+                                        This detector flips that logic. It finds stocks where a <strong style={{ color: "#FDE68A" }}>high-quality, institutionally-backed trend has exhausted</strong>, and a reversal has just begun — giving you the first days of the new trend instead of the last days of the old one.
+                                    </p>
+                                    <p style={{ fontSize: "13px", color: "#D6D3D1", lineHeight: 1.8, margin: 0 }}>
+                                        We focus on <strong style={{ color: "#FDE68A" }}>Mega, Large, and Mid Cap stocks</strong> because institutional money creates sustained moves in both directions. When a $50B company reverses on above-average volume, it's not noise — it's rotation. And rotations in quality names tend to run.
+                                    </p>
+                                </div>
+
+                                {/* Why exhaustion matters */}
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px", marginBottom: "18px" }}>
+                                    {[
+                                        { icon: "📉", title: "Price Extension", color: "#D97706",
+                                          body: "A trend that has stretched 2–3 standard deviations from its mean is statistically unlikely to continue indefinitely. Extension doesn't predict timing, but it tells you the risk/reward has shifted against trend followers." },
+                                        { icon: "📊", title: "Volume Divergence", color: "#2563EB",
+                                          body: "Volume should expand as a trend progresses. When price keeps pushing but volume is declining, fewer participants are supporting the move. This is the classic exhaustion signature — the trend is running on fumes." },
+                                        { icon: "⚡", title: "RSI at Extremes", color: "#7C3AED",
+                                          body: "RSI above 70 (overbought) or below 30 (oversold) during the prior trend peak confirms the move was stretched. When RSI then reverses back toward 50, momentum is shifting hands." },
+                                        { icon: "📈", title: "Prior R² Quality", color: "#15803D",
+                                          body: "A high R² in the prior trend means it was a real, consistent institutional move — not random noise. This matters because when institutions reverse a genuine trend, they commit to the new direction too." },
+                                    ].map(c => (
+                                        <div key={c.title} style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "10px", padding: "12px 14px" }}>
+                                            <div style={{ fontSize: "18px", marginBottom: "6px" }}>{c.icon}</div>
+                                            <div style={{ fontSize: "12px", fontWeight: "800", color: c.color, marginBottom: "5px" }}>{c.title}</div>
+                                            <p style={{ fontSize: "11px", color: "#57534E", lineHeight: 1.65, margin: 0 }}>{c.body}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Signal grades */}
+                                <p style={{ fontSize: "11px", fontWeight: "700", color: "#B45309", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Signal Grades — What Each Means</p>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "18px" }}>
+                                    {[
+                                        { emoji:"🎯", grade:"Prime Reversal", color:"#15803D", bg:"#DCFCE7", border:"#86EFAC",
+                                          when:"Exhaustion ≥60 + Reversal ≥65 + Combined ≥72",
+                                          meaning:"All three pillars confirmed. Prior trend was genuine, reversal came on volume, new direction is already building. These setups run.",
+                                          action:"Early entry, tight stop beyond reversal candle. Size up on confirmation." },
+                                        { emoji:"⚡", grade:"Strong Signal", color:"#2563EB", bg:"#DBEAFE", border:"#93C5FD",
+                                          when:"Reversal ≥45 + Combined ≥55",
+                                          meaning:"Solid evidence across most metrics. Not every box ticked but the weight of evidence points to a sustained reversal.",
+                                          action:"Starter position. Add on next session if new-direction R² builds." },
+                                        { emoji:"👀", grade:"Watch Closely", color:"#D97706", bg:"#FEF9C3", border:"#FDE047",
+                                          when:"Combined ≥38 + partial signals",
+                                          meaning:"Early-stage reversal or a deep pullback within the prior trend. Not yet confirmed.",
+                                          action:"Set an alert. Check back in 2–3 sessions for confirmation before entering." },
+                                        { emoji:"⏳", grade:"Exhaustion Only", color:"#7C3AED", bg:"#EDE9FE", border:"#C4B5FD",
+                                          when:"Exhaustion ≥55 but Reversal <35",
+                                          meaning:"The prior trend is worn out but the reversal hasn't triggered yet. Pre-reversal alert — the setup is priming.",
+                                          action:"Watch for a high-volume reversal candle. Do not enter until confirmed." },
+                                    ].map(s => (
+                                        <div key={s.grade} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: "10px", padding: "10px 14px" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                                                <span style={{ fontSize: "16px" }}>{s.emoji}</span>
+                                                <span style={{ fontSize: "12px", fontWeight: "800", color: s.color }}>{s.grade}</span>
+                                                <span style={{ fontSize: "10px", background: "rgba(0,0,0,0.07)", color: s.color, borderRadius: "4px", padding: "1px 7px", fontWeight: "600", fontFamily: "monospace" }}>{s.when}</span>
+                                            </div>
+                                            <p style={{ fontSize: "11px", color: "#475569", margin: "0 0 3px", lineHeight: 1.55 }}>{s.meaning}</p>
+                                            <p style={{ fontSize: "11px", fontWeight: "700", color: s.color, margin: 0 }}>→ {s.action}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Score formula */}
+                                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "10px", padding: "14px 16px" }}>
+                                    <p style={{ fontSize: "11px", fontWeight: "700", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Score Components</p>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" }}>
+                                        {[
+                                            ["Exhaustion Score (35%)", "#D97706", "Price extension (35pts) + Prior R² (25pts) + RSI extreme (20pts) + Volume divergence (20pts)"],
+                                            ["Reversal Score (40%)", "#2563EB", "Reversal candle strength (45pts) + EMA cross (25pts) + RSI turning (20pts) + Volume ratio (10pts)"],
+                                            ["Freshness Score (25%)", "#15803D", "New-direction R² (60pts) + Days since turn (40pts — fresher = higher)"],
+                                        ].map(([label, color, formula]) => (
+                                            <div key={label}>
+                                                <div style={{ fontSize: "11px", fontWeight: "700", color, marginBottom: "4px" }}>{label}</div>
+                                                <p style={{ fontSize: "10px", color: "#64748B", margin: 0, lineHeight: 1.6 }}>{formula}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ════════════════ SINGLE STOCK TAB ════════════════ */}
+                        {tab === "single" && (
+                            <div style={{ animation: "rev-fadeUp 0.2s ease" }}>
+                                {/* Input row */}
+                                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "12px", padding: "14px 16px", marginBottom: "18px" }}>
+                                    <p style={{ fontSize: "12px", fontWeight: "700", color: "#B45309", margin: "0 0 10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                        🔍 Analyse a Single Stock
+                                    </p>
+                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                                        <select value={revSymbol} onChange={e => { setRevSymbol(e.target.value); setRevCustom(""); }}
+                                            style={{ ...taStyles.select, flex: "1 1 140px" }}>
+                                            <option value="">-- Choose stock --</option>
+                                            {STOCK_LIST.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                        <input placeholder="Or type symbol..." value={revCustom}
+                                            onChange={e => { setRevCustom(e.target.value.toUpperCase()); setRevSymbol(""); }}
+                                            style={{ ...taStyles.input, flex: "1 1 120px" }} />
+                                        <button onClick={analyzeSingle} disabled={revLoading}
+                                            style={{ background: revLoading ? "#FDE68A" : "#B45309", color: revLoading ? "#92400E" : "#fff", border: "none", borderRadius: "8px", padding: "8px 18px", fontSize: "13px", fontWeight: "700", cursor: revLoading ? "not-allowed" : "pointer", whiteSpace: "nowrap", transition: "background 0.15s" }}>
+                                            {revLoading ? "Analysing…" : "🔄 Detect →"}
+                                        </button>
+                                    </div>
+                                    {revError && <div style={{ ...taStyles.errorBox, marginTop: "10px" }}>{revError}</div>}
+                                </div>
+
+                                {/* Single result */}
+                                {revResult && (() => {
+                                    const d   = revResult;
+                                    const cls = d.classification;
+                                    return (
+                                        <div style={{ animation: "rev-fadeUp 0.2s ease" }}>
+                                            {/* Hero card */}
+                                            <div style={{ background: cls.bg, border: `2px solid ${cls.border}`, borderRadius: "12px", padding: "16px", marginBottom: "14px" }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                                                    <div style={{ flex: 1, minWidth: "200px" }}>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                                                            <span style={{ fontSize: "22px" }}>{cls.emoji}</span>
+                                                            <span style={{ fontSize: "17px", fontWeight: "900", color: cls.color }}>{cls.grade}</span>
+                                                            <span style={{ background: "#0F172A", color: "#fff", fontSize: "11px", fontWeight: "700", borderRadius: "20px", padding: "2px 10px" }}>{d.symbol}</span>
+                                                            <span style={{ background: dirBg(d.direction_label), color: dirColor(d.direction_label), border: `1px solid ${dirBorder(d.direction_label)}`, fontSize: "11px", fontWeight: "700", borderRadius: "20px", padding: "2px 10px" }}>
+                                                                {dirEmoji(d.direction_label)} {d.direction_label}
+                                                            </span>
+                                                            <span style={{ background: "#F1F5F9", color: "#475569", fontSize: "10px", fontWeight: "600", borderRadius: "4px", padding: "2px 7px" }}>{d.mc_tier}</span>
+                                                        </div>
+                                                        <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.65, maxWidth: "500px" }}>{cls.detail}</p>
+                                                    </div>
+                                                    {/* Score cluster */}
+                                                    <div style={{ flexShrink: 0, minWidth: "140px" }}>
+                                                        <div style={{ textAlign: "center", marginBottom: "10px" }}>
+                                                            <div style={{ fontSize: "36px", fontWeight: "900", color: cls.color, lineHeight: 1 }}>{Math.round(d.combined_score)}</div>
+                                                            <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", textTransform: "uppercase" }}>Combined /100</div>
+                                                        </div>
+                                                        <ScoreBar label="Exhaustion" value={d.exhaustion_score} color="#D97706" />
+                                                        <ScoreBar label="Reversal"   value={d.reversal_score}   color="#2563EB" />
+                                                        <ScoreBar label="Freshness"  value={d.freshness_score}  color="#15803D" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Evidence grid */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                                                {/* Prior trend */}
+                                                <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: "10px", padding: "12px 14px" }}>
+                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#C2410C", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Prior Trend</p>
+                                                    {[
+                                                        ["Direction",       d.prior_direction,                                    d.prior_direction === "Bullish" ? "#15803D" : "#DC2626"],
+                                                        ["Trend R²",        `${Math.round(d.prior_r2 * 100)}%`,                   d.prior_r2 >= 0.6 ? "#15803D" : d.prior_r2 >= 0.35 ? "#D97706" : "#94A3B8"],
+                                                        ["Price Extension", `${d.price_extension_sd.toFixed(1)} σ`,               d.price_extension_sd >= 2 ? "#DC2626" : d.price_extension_sd >= 1 ? "#D97706" : "#94A3B8"],
+                                                        ["RSI at Peak",     `${d.rsi_at_peak.toFixed(0)}`,                        d.rsi_at_peak >= 70 || d.rsi_at_peak <= 30 ? "#DC2626" : "#94A3B8"],
+                                                        ["Vol Divergence",  d.volume_divergence ? "Yes ⚠ Fading" : "No — Stable", d.volume_divergence ? "#DC2626" : "#15803D"],
+                                                    ].map(([k, v, c]) => (
+                                                        <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "baseline" }}>
+                                                            <span style={{ fontSize: "11px", color: "#78716C" }}>{k}</span>
+                                                            <span style={{ fontSize: "12px", fontWeight: "700", color: c }}>{v}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Reversal evidence */}
+                                                <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "10px", padding: "12px 14px" }}>
+                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Reversal Evidence</p>
+                                                    {[
+                                                        ["EMA Cross",      d.ema_cross ? "✓ Confirmed" : "✗ Not yet",                                d.ema_cross ? "#15803D" : "#94A3B8"],
+                                                        ["Reversal Candle",d.reversal_candle ? `✓ Strength ${Math.round(d.reversal_candle_str*100)}%` : "✗ Not seen", d.reversal_candle ? "#15803D" : "#94A3B8"],
+                                                        ["Rev Vol Ratio",  d.reversal_vol_ratio > 0 ? `${d.reversal_vol_ratio.toFixed(1)}x avg` : "—", d.reversal_vol_ratio >= 1.5 ? "#15803D" : "#94A3B8"],
+                                                        ["RSI Reversing",  d.rsi_reversing ? `✓ RSI ${d.current_rsi.toFixed(0)}` : `✗ RSI ${d.current_rsi.toFixed(0)}`, d.rsi_reversing ? "#15803D" : "#94A3B8"],
+                                                        ["Days Since Turn",d.days_since_turn === 0 ? "Today / <1d" : `${d.days_since_turn}d ago`,     d.days_since_turn <= 2 ? "#15803D" : d.days_since_turn <= 5 ? "#D97706" : "#94A3B8"],
+                                                    ].map(([k, v, c]) => (
+                                                        <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "baseline" }}>
+                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>{k}</span>
+                                                            <span style={{ fontSize: "12px", fontWeight: "700", color: c }}>{v}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* New trend + mini bars */}
+                                            <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: "10px", padding: "12px 14px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                                                <div>
+                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#15803D", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 6px" }}>New Trend (last 10 days)</p>
+                                                    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                                                        <span style={{ fontSize: "12px", color: "#374151" }}>Direction: <strong style={{ color: d.new_direction === "Bullish" ? "#15803D" : "#DC2626" }}>{d.new_direction}</strong></span>
+                                                        <span style={{ fontSize: "12px", color: "#374151" }}>New R²: <strong style={{ color: d.new_r2 >= 0.4 ? "#15803D" : "#D97706" }}>{Math.round(d.new_r2 * 100)}%</strong></span>
+                                                        <span style={{ fontSize: "12px", color: "#374151" }}>Correct: <strong style={{ color: d.correct_reversal ? "#15803D" : "#DC2626" }}>{d.correct_reversal ? "Yes ✓" : "Not yet ✗"}</strong></span>
+                                                    </div>
+                                                </div>
+                                                {/* 20-bar recent price strip */}
+                                                <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: "32px" }}>
+                                                    {(d.recent_bars || []).map((b, i) => {
+                                                        const maxRat = Math.max(...d.recent_bars.map(x => x.vol_rat), 1);
+                                                        const h = Math.max(4, Math.round((b.vol_rat / maxRat) * 32));
+                                                        return (
+                                                            <div key={i} title={`RSI: ${b.rsi} | Vol: ${b.vol_rat}x`}
+                                                                style={{ flex: 1, height: `${h}px`, background: b.is_up ? "#22C55E" : "#EF4444", borderRadius: "1px 1px 0 0", opacity: 0.8 }} />
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Chart toggle */}
+                                            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                                                <button onClick={() => setRevChartOpen(o => !o)}
+                                                    style={{ background: revChartOpen ? "#B45309" : "#FFFBEB", color: revChartOpen ? "#fff" : "#B45309", border: "1px solid #FDE68A", borderRadius: "8px", padding: "7px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "all 0.15s" }}>
+                                                    {revChartOpen ? "Hide Chart ↑" : "📈 Show Chart ↓"}
+                                                </button>
+                                            </div>
+                                            {revChartOpen && (
+                                                <div style={{ marginBottom: "14px", animation: "rev-fadeUp 0.15s ease" }}>
+                                                    <TradingViewChart
+                                                        key={`rev-single-${d.symbol}`}
+                                                        symbol={d.symbol}
+                                                        theme="light"
+                                                        chartType="candle"
+                                                        interval="1d"
+                                                        height={320}
+                                                        fullscreenable={true}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        {/* ════════════════ BULK SCAN TAB ════════════════ */}
+                        {tab === "bulk" && (
+                            <div style={{ animation: "rev-fadeUp 0.2s ease" }}>
+
+                                {/* Bulk header bar */}
+                                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "12px", padding: "12px 16px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                                    <div>
+                                        <span style={{ fontSize: "13px", fontWeight: "700", color: "#B45309" }}>🔄 Bulk Reversal Scan</span>
+                                        {revBulkDate && <span style={{ fontSize: "11px", color: "#D97706", marginLeft: "8px" }}>Last: {revBulkDate}</span>}
+                                        <p style={{ fontSize: "11px", color: "#78716C", margin: "2px 0 0" }}>Scans all {STOCK_LIST.length} stocks · filters out "No Signal" results automatically</p>
+                                    </div>
+                                    <button onClick={runBulkScan} disabled={revScanning}
+                                        style={{ background: revScanning ? "#FDE68A" : "#B45309", color: revScanning ? "#92400E" : "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12px", fontWeight: "700", cursor: revScanning ? "not-allowed" : "pointer", transition: "background 0.15s", whiteSpace: "nowrap" }}>
+                                        {revScanning ? `Scanning ${revProgress.done}/${revProgress.total}…` : (revBulk ? "↻ Refresh Scan" : `🔄 Run Reversal Scan (${STOCK_LIST.length} stocks)`)}
+                                    </button>
+                                </div>
+
+                                {/* Progress bar */}
+                                {revScanning && (
+                                    <div style={{ marginBottom: "10px" }}>
+                                        <div style={{ height: "6px", background: "#FDE68A", borderRadius: "3px", overflow: "hidden" }}>
+                                            <div style={{ height: "100%", width: `${Math.round(revProgress.done / Math.max(revProgress.total, 1) * 100)}%`, background: "linear-gradient(90deg, #B45309, #F59E0B)", borderRadius: "3px", transition: "width 0.3s" }} />
+                                        </div>
+                                        <p style={{ fontSize: "11px", color: "#D97706", margin: "4px 0 0" }}>Analysing trend exhaustion and reversal signals…</p>
+                                    </div>
+                                )}
+
+                                {/* Cache loading */}
+                                {revCacheLoad && (
+                                    <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "10px", color: "#B45309", fontSize: "13px" }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ animation: "ta-spin 1s linear infinite" }}>
+                                            <circle cx="12" cy="12" r="10" stroke="#B45309" strokeWidth="2.5" strokeDasharray="31.4" strokeDashoffset="10"/>
+                                        </svg>
+                                        Loading saved results…
+                                    </div>
+                                )}
+
+                                {/* Empty state */}
+                                {!revCacheLoad && !revBulk && !revScanning && (
+                                    <div style={{ padding: "40px", textAlign: "center" }}>
+                                        <div style={{ fontSize: "40px", marginBottom: "12px" }}>🔄</div>
+                                        <p style={{ fontSize: "13px", color: "#78716C", margin: "0 0 16px", lineHeight: 1.7 }}>
+                                            Scan all {STOCK_LIST.length} stocks for trend exhaustion and fresh reversal signals.<br/>
+                                            Results cached — opens instantly next time.
+                                        </p>
+                                        <button onClick={runBulkScan}
+                                            style={{ background: "#B45309", color: "#fff", border: "none", borderRadius: "8px", padding: "11px 24px", fontSize: "13px", fontWeight: "700", cursor: "pointer" }}>
+                                            🔄 Run Reversal Scan ({STOCK_LIST.length} stocks)
+                                        </button>
+                                    </div>
+                                )}
+
+                                {revBulk && !revScanning && (
+                                    <div>
+                                        {/* Filters */}
+                                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px", alignItems: "center" }}>
+                                            {/* Grade chips */}
+                                            {["All","Prime Reversal","Strong Signal","Watch Closely","Exhaustion Only"].map(g => {
+                                                const count = g === "All" ? revFiltered.length : revBulk.filter(s => s.classification?.grade === g).length;
+                                                const isActive = revFilterGrade === g;
+                                                const gradeColors = { "Prime Reversal": ["#15803D","#DCFCE7","#86EFAC"], "Strong Signal": ["#2563EB","#DBEAFE","#93C5FD"], "Watch Closely": ["#D97706","#FEF9C3","#FDE047"], "Exhaustion Only": ["#7C3AED","#EDE9FE","#C4B5FD"] };
+                                                const [tc, bg, bc] = gradeColors[g] || ["#475569","#F8FAFC","#E2E8F0"];
+                                                return (
+                                                    <button key={g} onClick={() => setRevFilterGrade(isActive && g !== "All" ? "All" : g)}
+                                                        style={{ background: isActive ? bg : "#fff", color: isActive ? tc : "#475569", border: `1px solid ${isActive ? bc : "#E2E8F0"}`, borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                                                        {g} {g !== "All" ? `· ${count}` : `· ${revFiltered.length}`}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Direction + mcap + search + sort row */}
+                                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px", alignItems: "center" }}>
+                                            {/* Direction filter */}
+                                            {["All","Bear→Bull","Bull→Bear"].map(d => (
+                                                <button key={d} onClick={() => setRevFilterDir(d)}
+                                                    style={{ background: revFilterDir === d ? (d === "Bear→Bull" ? "#DCFCE7" : d === "Bull→Bear" ? "#FEE2E2" : "#F1F5F9") : "#fff",
+                                                             color: revFilterDir === d ? (d === "Bear→Bull" ? "#15803D" : d === "Bull→Bear" ? "#DC2626" : "#475569") : "#475569",
+                                                             border: `1px solid ${revFilterDir === d ? (d === "Bear→Bull" ? "#86EFAC" : d === "Bull→Bear" ? "#FCA5A5" : "#CBD5E1") : "#E2E8F0"}`,
+                                                             borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap" }}>
+                                                    {d === "Bear→Bull" ? "🟢" : d === "Bull→Bear" ? "🔴" : ""} {d}
+                                                </button>
+                                            ))}
+                                            <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+                                            {/* Mcap filter */}
+                                            {["All","Mega","Large","Mid"].map(m => (
+                                                <button key={m} onClick={() => setRevFilterMcap(m)}
+                                                    style={{ background: revFilterMcap === m ? "#FFF7ED" : "#fff", color: revFilterMcap === m ? "#B45309" : "#475569", border: `1px solid ${revFilterMcap === m ? "#FDE68A" : "#E2E8F0"}`, borderRadius: "20px", padding: "4px 12px", fontSize: "11px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s" }}>
+                                                    {m}
+                                                </button>
+                                            ))}
+                                            <div style={{ flex: 1, minWidth: "80px" }}>
+                                                <input placeholder="Search symbol…" value={revSearch} onChange={e => setRevSearch(e.target.value)}
+                                                    style={{ ...taStyles.input, width: "100%" }} />
+                                            </div>
+                                        </div>
+
+                                        {/* Sort bar */}
+                                        <div style={{ display: "flex", gap: "4px", marginBottom: "8px", alignItems: "center" }}>
+                                            <span style={{ fontSize: "11px", color: "#94A3B8", whiteSpace: "nowrap" }}>Sort:</span>
+                                            {[["combined_score","🎯 Score"],["exhaustion_score","📉 Exhaust"],["reversal_score","⚡ Reversal"],["freshness_score","🌱 Fresh"]].map(([key, label]) => (
+                                                <button key={key} onClick={() => setRevSortBy(key)}
+                                                    style={{ background: revSortBy === key ? "#B45309" : "#fff", color: revSortBy === key ? "#fff" : "#B45309", border: `1px solid ${revSortBy === key ? "#B45309" : "#FDE68A"}`, borderRadius: "6px", padding: "4px 9px", fontSize: "11px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Table */}
+                                        <div style={{ border: "1px solid #FDE68A", borderRadius: "10px", overflow: "hidden" }}>
+                                            {/* Col headers */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "52px 80px 1fr 52px 52px 52px 60px 28px 28px", gap: "4px", padding: "7px 14px", background: "#FFF7ED", borderBottom: "1px solid #FDE68A" }}>
+                                                {["Symbol","Direction","Grade","Exh","Rev","Fresh","Score","📈","ℹ"].map(h => (
+                                                    <span key={h} style={{ fontSize: "9px", fontWeight: "700", color: "#D97706", textTransform: "uppercase" }}>{h}</span>
+                                                ))}
+                                            </div>
+
+                                            <div style={{ maxHeight: "440px", overflowY: "auto" }}>
+                                                {revFiltered.length === 0 && (
+                                                    <p style={{ padding: "24px", textAlign: "center", color: "#94A3B8", fontSize: "13px" }}>No stocks match your filters.</p>
+                                                )}
+
+                                                {revFiltered.map(stock => {
+                                                    const cls         = stock.classification || {};
+                                                    const chartOpen   = revChartRows[stock.symbol];
+                                                    const infoIsOpen  = revInfoOpen[stock.symbol];
+                                                    const infoD       = revInfoData[stock.symbol];
+                                                    const infoLoad    = revInfoLoading[stock.symbol];
+                                                    return (
+                                                        <div key={stock.symbol} style={{ borderBottom: "1px solid #FEF3C7" }}>
+                                                            {/* ── Row ── */}
+                                                            <div style={{ display: "grid", gridTemplateColumns: "52px 80px 1fr 52px 52px 52px 60px 28px 28px", gap: "4px", padding: "9px 14px", alignItems: "center", background: "#fff", transition: "background 0.1s" }} className="rev-row">
+
+                                                                {/* Symbol */}
+                                                                <div>
+                                                                    <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{stock.symbol}</div>
+                                                                    <div style={{ fontSize: "9px", color: "#94A3B8" }}>{stock.mc_tier}</div>
+                                                                </div>
+
+                                                                {/* Direction pill */}
+                                                                <div style={{ background: dirBg(stock.direction_label), border: `1px solid ${dirBorder(stock.direction_label)}`, borderRadius: "20px", padding: "2px 7px", textAlign: "center" }}>
+                                                                    <span style={{ fontSize: "10px", fontWeight: "700", color: dirColor(stock.direction_label), whiteSpace: "nowrap" }}>
+                                                                        {dirEmoji(stock.direction_label)} {stock.direction_label}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* Grade */}
+                                                                <div style={{ display: "flex", alignItems: "center", gap: "4px", minWidth: 0 }}>
+                                                                    <span style={{ fontSize: "13px", flexShrink: 0 }}>{cls.emoji}</span>
+                                                                    <span style={{ fontSize: "10px", fontWeight: "600", color: cls.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.grade}</span>
+                                                                </div>
+
+                                                                {/* Exhaustion */}
+                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.exhaustion_score >= 65 ? "#DC2626" : stock.exhaustion_score >= 40 ? "#D97706" : "#94A3B8" }}>
+                                                                    {Math.round(stock.exhaustion_score)}
+                                                                </span>
+
+                                                                {/* Reversal */}
+                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.reversal_score >= 65 ? "#15803D" : stock.reversal_score >= 40 ? "#2563EB" : "#94A3B8" }}>
+                                                                    {Math.round(stock.reversal_score)}
+                                                                </span>
+
+                                                                {/* Freshness */}
+                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.freshness_score >= 55 ? "#15803D" : stock.freshness_score >= 30 ? "#D97706" : "#94A3B8" }}>
+                                                                    {Math.round(stock.freshness_score)}
+                                                                </span>
+
+                                                                {/* Combined score pill */}
+                                                                <div style={{ background: cls.bg || "#F1F5F9", border: `1px solid ${cls.border || "#E2E8F0"}`, borderRadius: "20px", padding: "2px 6px", textAlign: "center" }}>
+                                                                    <span style={{ fontSize: "12px", fontWeight: "900", color: cls.color || "#475569" }}>{Math.round(stock.combined_score)}</span>
+                                                                </div>
+
+                                                                {/* Chart toggle btn */}
+                                                                <button onClick={() => setRevChartRows(p => ({ ...p, [stock.symbol]: !p[stock.symbol] }))}
+                                                                    title="Toggle chart"
+                                                                    style={{ background: chartOpen ? "#B45309" : "transparent", border: "1px solid", borderColor: chartOpen ? "#B45309" : "#FDE68A", borderRadius: "5px", padding: "3px 4px", cursor: "pointer", fontSize: "11px", color: chartOpen ? "#fff" : "#B45309", transition: "all 0.15s", lineHeight: 1, justifySelf: "center" }}>
+                                                                    📈
+                                                                </button>
+
+                                                                {/* Info btn */}
+                                                                <button onClick={() => fetchInfo(stock.symbol)}
+                                                                    title="Stock info"
+                                                                    style={{ background: infoIsOpen ? "#0EA5E9" : "transparent", border: "1px solid", borderColor: infoIsOpen ? "#0EA5E9" : "#BAE6FD", borderRadius: "5px", padding: "3px 4px", cursor: "pointer", fontSize: "11px", color: infoIsOpen ? "#fff" : "#0EA5E9", transition: "all 0.15s", lineHeight: 1, justifySelf: "center" }}>
+                                                                    ℹ
+                                                                </button>
+                                                            </div>
+
+                                                            {/* ── Chart panel ── */}
+                                                            {chartOpen && (
+                                                                <div style={{ borderTop: "1px solid #FDE68A", background: "#FFFBEB", padding: "10px 14px", animation: "rev-fadeUp 0.15s ease" }}>
+                                                                    <div style={{ display: "flex", gap: "10px", marginBottom: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                                                                        <div style={{ background: cls.bg, border: `1px solid ${cls.border}`, borderRadius: "20px", padding: "3px 10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                            <span style={{ fontSize: "12px" }}>{cls.emoji}</span>
+                                                                            <span style={{ fontSize: "11px", fontWeight: "700", color: cls.color }}>{cls.grade}</span>
+                                                                        </div>
+                                                                        <span style={{ fontSize: "11px", color: "#64748B" }}>
+                                                                            Exhaustion <strong style={{ color: "#D97706" }}>{Math.round(stock.exhaustion_score)}</strong>
+                                                                        </span>
+                                                                        <span style={{ fontSize: "11px", color: "#64748B" }}>
+                                                                            Reversal <strong style={{ color: "#2563EB" }}>{Math.round(stock.reversal_score)}</strong>
+                                                                        </span>
+                                                                        <span style={{ fontSize: "11px", color: "#64748B" }}>
+                                                                            {dirEmoji(stock.direction_label)} {stock.direction_label}
+                                                                        </span>
+                                                                    </div>
+                                                                    <TradingViewChart
+                                                                        key={`rev-bulk-${stock.symbol}`}
+                                                                        symbol={stock.symbol}
+                                                                        theme="light"
+                                                                        chartType="candle"
+                                                                        interval="1d"
+                                                                        height={280}
+                                                                        fullscreenable={true}
+                                                                        onClose={() => setRevChartRows(p => ({ ...p, [stock.symbol]: false }))}
+                                                                    />
+                                                                </div>
+                                                            )}
+
+                                                            {/* ── Info panel ── */}
+                                                            {infoIsOpen && (
+                                                                <div style={{ borderTop: "1px solid #BAE6FD", background: "#F0F9FF", padding: "12px 14px", animation: "rev-fadeUp 0.15s ease" }}>
+                                                                    {infoLoad && <p style={{ fontSize: "12px", color: "#0EA5E9", margin: 0 }}>Loading info…</p>}
+                                                                    {infoD && (() => {
+                                                                        const id = infoD;
+                                                                        return (
+                                                                            <div>
+                                                                                <div style={{ display: "flex", gap: "8px", alignItems: "baseline", flexWrap: "wrap", marginBottom: "8px" }}>
+                                                                                    <span style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>{id.name}</span>
+                                                                                    <span style={{ fontSize: "11px", color: "#64748B" }}>{id.exchange}</span>
+                                                                                    {id.sector && <span style={{ fontSize: "10px", background: "#DBEAFE", color: "#1D4ED8", borderRadius: "4px", padding: "1px 7px", fontWeight: "600" }}>{id.sector}</span>}
+                                                                                    <span style={{ fontSize: "10px", background: "#FEF3C7", color: "#B45309", borderRadius: "4px", padding: "1px 7px", fontWeight: "600" }}>{id.market_cap_tier}</span>
+                                                                                </div>
+                                                                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "6px", marginBottom: "8px" }}>
+                                                                                    {[
+                                                                                        ["Price",      id.price != null ? `$${Number(id.price).toFixed(2)}` : "—"],
+                                                                                        ["Day Chg",    id.day_change_pct != null ? `${id.day_change_pct > 0 ? "+" : ""}${Number(id.day_change_pct).toFixed(2)}%` : "—"],
+                                                                                        ["Mkt Cap",    id.market_cap || "—"],
+                                                                                        ["P/E TTM",    id.pe_ttm     || "—"],
+                                                                                        ["EPS TTM",    id.eps_ttm    || "—"],
+                                                                                        ["Rev Growth", id.revenue_growth || "—"],
+                                                                                        ["Gross Mgn",  id.gross_margin  || "—"],
+                                                                                        ["Div Yield",  id.dividend_yield || "—"],
+                                                                                    ].map(([k, v]) => (
+                                                                                        <div key={k} style={{ background: "#fff", border: "1px solid #BAE6FD", borderRadius: "6px", padding: "5px 8px" }}>
+                                                                                            <div style={{ fontSize: "9px", color: "#64748B", fontWeight: "700" }}>{k}</div>
+                                                                                            <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A" }}>{v}</div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                                {id.analyst_rating && (
+                                                                                    <p style={{ fontSize: "11px", color: "#475569", margin: 0 }}>
+                                                                                        Analyst: <strong>{id.analyst_rating}</strong>
+                                                                                        {id.price_target_mean && <> · Target: <strong>${id.price_target_mean}</strong> (low ${id.price_target_low} / high ${id.price_target_high})</>}
+                                                                                    </p>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div style={{ padding: "8px 14px", background: "#FFF7ED", borderTop: "1px solid #FDE68A", display: "flex", gap: "16px", flexWrap: "wrap" }}>
+                                                {["Prime Reversal","Strong Signal","Watch Closely","Exhaustion Only"].map(g => {
+                                                    const count = (revBulk || []).filter(s => s.classification?.grade === g).length;
+                                                    const gradeColors = { "Prime Reversal": "#15803D", "Strong Signal": "#2563EB", "Watch Closely": "#D97706", "Exhaustion Only": "#7C3AED" };
+                                                    const gradeEmojis = { "Prime Reversal": "🎯", "Strong Signal": "⚡", "Watch Closely": "👀", "Exhaustion Only": "⏳" };
+                                                    return count > 0 ? (
+                                                        <span key={g} style={{ fontSize: "11px", color: gradeColors[g], fontWeight: "600" }}>
+                                                            {gradeEmojis[g]} {g}: <strong>{count}</strong>
+                                                        </span>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {revBulkError && <div style={{ ...taStyles.errorBox, marginTop: "12px" }}>{revBulkError}</div>}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
 const taStyles = {
     triggerBtn: { display: "flex", alignItems: "center", background: "#7C3AED", color: "#fff", border: "none", padding: "0.55rem 1.1rem", borderRadius: "6px", fontWeight: "600", fontSize: "13px", cursor: "pointer", transition: "all 0.2s ease", whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" },
     overlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "16px" },
@@ -2521,6 +3267,7 @@ export default function IdeasSection() {
                     <div style={styles.headerActions}>
                         <StockTrendModal />
                         <TrendAgeModal />
+                        <ReversalModal />
                         <button
                             style={styles.createButton}
                             onClick={toggleCreateForm}
