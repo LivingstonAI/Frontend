@@ -136,6 +136,34 @@ const YtBadge = () => (
   }}>YT</span>
 );
 
+
+// ─── YT QUICK-PLAY BAR ────────────────────────────────────────────────────────
+const YtQuickBar = ({ onPlay }) => {
+  const [qUrl, setQUrl] = useState('');
+  const [qErr, setQErr] = useState('');
+  const handle = () => {
+    const id = extractYtId(qUrl.trim());
+    if (!id) return setQErr('No YouTube video ID found in that URL');
+    setQErr('');
+    onPlay({ id: 'qp_' + Date.now(), video_title: 'Quick Play', video_url: qUrl, youtube_embed_id: id, notes: null, category_name: '' });
+    setQUrl('');
+  };
+  return (
+    <div style={{ background: T.surface, borderRadius: T.radius, border: `1px solid ${T.border}`, padding: '14px 18px', marginBottom: 18, boxShadow: T.shadow }}>
+      <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 12, color: T.textMuted, marginBottom: 10, letterSpacing: '0.06em' }}>⚡ QUICK PLAY — watch without saving</div>
+      {qErr && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: T.radiusSm, padding: '8px 12px', color: T.danger, fontSize: 12, fontFamily: T.fontBody, marginBottom: 8 }}>{qErr}</div>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input value={qUrl} onChange={e => { setQUrl(e.target.value); setQErr(''); }} onKeyDown={e => e.key === 'Enter' && handle()}
+          placeholder="Paste any YouTube URL or video ID…"
+          style={{ flex: 1, padding: '10px 13px', border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontFamily: T.fontBody, fontSize: 13, color: T.textPrimary, background: T.bg, outline: 'none' }}
+          onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border}
+        />
+        <button onClick={handle} style={{ padding: '10px 20px', background: 'linear-gradient(135deg,#dc2626,#ef4444)', color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', boxShadow: '0 3px 10px rgba(220,38,38,0.25)' }}>▶ Play</button>
+      </div>
+    </div>
+  );
+};
+
 // ─── INSTAGRAM STORY RING ─────────────────────────────────────────────────────
 const StoryRing = ({ label, url, onClick, active }) => (
   <div
@@ -656,6 +684,57 @@ const YtVideoCard = ({ video, index, onPlay, onEdit, onDelete, playing }) => {
   );
 };
 
+
+// ─── INSTA QUICK-VIEW MODAL ───────────────────────────────────────────────────
+const InstaQuickViewModal = ({ onClose, onOpenReel }) => {
+  const [qUrl, setQUrl] = useState('');
+  const [qPost, setQPost] = useState(null);
+  const [qErr, setQErr] = useState('');
+  const handleLoad = () => {
+    if (!qUrl.trim()) return;
+    if (!qUrl.includes('instagram.com')) return setQErr('Please paste a valid Instagram URL');
+    setQErr('');
+    const mediaType = qUrl.includes('/reel/') ? 'REEL' : qUrl.includes('/tv/') ? 'TV' : 'POST';
+    setQPost({ id: 'qv_' + Date.now(), title: 'Quick View', post_url: qUrl.trim(), account_handle: '', caption: '', thumbnail_url: null, media_type: mediaType, is_reel: mediaType === 'REEL', date_added: new Date().toISOString() });
+  };
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} className="sas-modal-enter" style={{ background: T.surface, borderRadius: T.radius, width: '100%', maxWidth: 460, boxShadow: T.shadowMd, overflow: 'hidden' }}>
+        <div style={{ background: instaGrad, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontFamily: T.font, fontWeight: 800, fontSize: 15, color: '#fff' }}>⚡ Insta Quick-View</div>
+            <div style={{ fontFamily: T.fontBody, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Paste any Instagram post/reel — no saving needed</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 17 }}>×</button>
+        </div>
+        <div style={{ padding: '18px' }}>
+          {qErr && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: T.radiusSm, padding: '8px 12px', color: T.danger, fontSize: 12, fontFamily: T.fontBody, marginBottom: 10 }}>{qErr}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={qUrl} onChange={e => { setQUrl(e.target.value); setQPost(null); setQErr(''); }} onKeyDown={e => e.key === 'Enter' && handleLoad()}
+              placeholder="https://www.instagram.com/reel/Cxxx…"
+              style={{ flex: 1, padding: '10px 13px', border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontFamily: T.fontBody, fontSize: 13, color: T.textPrimary, background: T.bg, outline: 'none' }}
+              onFocus={e => e.target.style.borderColor = '#c13584'} onBlur={e => e.target.style.borderColor = T.border}
+            />
+            <button onClick={handleLoad} style={{ padding: '10px 16px', background: instaGrad, color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 13 }}>Preview</button>
+          </div>
+          {qPost && (
+            <div style={{ marginTop: 14, animation: 'sas-fadein 0.3s ease' }}>
+              <div style={{ background: T.surfaceAlt, borderRadius: T.radiusSm, border: `1px solid ${T.border}`, padding: '11px 13px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontFamily: T.fontBody, fontSize: 11, color: T.textMuted, marginBottom: 2 }}>Detected</div>
+                  <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 14, color: T.textPrimary }}>{qPost.media_type === 'REEL' ? '🎬 Reel' : qPost.media_type === 'TV' ? '📺 IGTV' : '📸 Post'}</div>
+                </div>
+                <a href={qPost.post_url} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 13px', background: instaGrad, color: '#fff', borderRadius: T.radiusSm, fontFamily: T.font, fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>Open ↗</a>
+              </div>
+              <button onClick={() => { onOpenReel(qPost); onClose(); }} style={{ width: '100%', padding: '11px', background: instaGrad, color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 14 }}>▶ Open in Viewer</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function SnowAIVideos() {
   const BASE = 'https://backend-production-c0ab.up.railway.app';
@@ -684,6 +763,7 @@ export default function SnowAIVideos() {
   const [ytForm, setYtForm] = useState({ video_title: '', video_url: '', category_id: '', notes: '' });
   const [ytCatFormOpen, setYtCatFormOpen] = useState(false);
   const [ytNewCat, setYtNewCat] = useState('');
+  const [showInstaQV, setShowInstaQV] = useState(false);
 
   // ── Instagram state ──
   const [instaPosts, setInstaPosts] = useState([]);
@@ -1006,6 +1086,9 @@ export default function SnowAIVideos() {
           ════════════════════════════════════════════════════════════ */}
           {activeSection === 'youtube' && (
             <div style={{ animation: 'sas-fadein 0.3s ease' }}>
+              {/* Quick play bar */}
+              <YtQuickBar onPlay={setYtPlaying} />
+
               {/* Category section */}
               <div style={{
                 background: T.surface, borderRadius: T.radius,
@@ -1135,7 +1218,7 @@ export default function SnowAIVideos() {
                       width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 16
                     }}>×</button>
                   </div>
-                  <div style={{ position: 'relative', paddingBottom: '50%', borderRadius: T.radiusSm, overflow: 'hidden' }}>
+                  <div style={{ position: 'relative', paddingBottom: '42%', borderRadius: T.radiusSm, overflow: 'hidden' }}>
                     <iframe
                       src={`https://www.youtube.com/embed/${ytEmbedId}?autoplay=1`}
                       title={ytPlaying.video_title}
@@ -1224,6 +1307,8 @@ export default function SnowAIVideos() {
                     Save posts & reels. Open on Instagram or try quick-view below.
                   </div>
                 </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button onClick={() => setShowInstaQV(true)} style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.4)', color: '#fff', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 12, backdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}>⚡ Quick-View</button>
                 {/* Grid / Reels toggle */}
                 <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 4 }}>
                   <button
@@ -1245,6 +1330,8 @@ export default function SnowAIVideos() {
                     }}
                   >🎬 Reels</button>
                 </div>
+              </div>
+
               </div>
 
               {/* Stories bar */}
@@ -1501,6 +1588,14 @@ export default function SnowAIVideos() {
                 </>
               )}
             </div>
+          )}
+
+          {/* Insta Quick-View */}
+          {showInstaQV && (
+            <InstaQuickViewModal
+              onClose={() => setShowInstaQV(false)}
+              onOpenReel={(post) => { setInstaPlaying(post); setInstaPlayIdx(null); }}
+            />
           )}
 
           {/* Reel Modal */}
