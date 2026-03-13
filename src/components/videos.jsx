@@ -1,732 +1,227 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
-// ─── FONTS ────────────────────────────────────────────────────────────────────
-const fontLink = document.createElement("link");
-fontLink.rel = "stylesheet";
-fontLink.href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap";
-if (!document.head.querySelector('link[data-snowaistream]')) {
-  fontLink.setAttribute('data-snowaistream', 'true');
-  document.head.appendChild(fontLink);
+if (!document.head.querySelector('link[data-sas-font]')) {
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap";
+  l.setAttribute('data-sas-font', '1');
+  document.head.appendChild(l);
+}
+if (!document.head.querySelector('style[data-sas]')) {
+  const s = document.createElement("style");
+  s.setAttribute('data-sas', '1');
+  s.innerHTML = `
+    @keyframes sas-spin { to { transform: rotate(360deg); } }
+    @keyframes sas-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes sas-up { from { opacity:0; transform:translateY(28px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+    .sas-in  { animation: sas-in  .3s ease both; }
+    .sas-up  { animation: sas-up  .28s cubic-bezier(.34,1.4,.64,1) both; }
+    .sas-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .sas-card:hover { transform: translateY(-2px); }
+    .sas-grid-yt  { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+    .sas-grid-ig  { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+    .sas-two-col  { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .sas-player-ratio { position:relative; padding-bottom:56.25%; border-radius:10px; overflow:hidden; background:#000; }
+    .sas-player-ratio iframe { position:absolute; inset:0; width:100%; height:100%; }
+    .sas-flex-row { display:flex; gap:10px; align-items:stretch; }
+    .sas-banner { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .sas-banner-right { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+    .sas-pl-queue { max-height:300px; overflow-y:auto; }
+    @media (max-width: 660px) {
+      .sas-grid-yt  { grid-template-columns: 1fr !important; }
+      .sas-grid-ig  { grid-template-columns: repeat(2, 1fr) !important; }
+      .sas-two-col  { grid-template-columns: 1fr !important; }
+      .sas-flex-row { flex-wrap: wrap; }
+      .sas-banner   { flex-direction: column; align-items: flex-start; }
+      .sas-banner-right { width:100%; justify-content:space-between; }
+      .sas-pl-queue { max-height:200px; }
+    }
+    .sas-scroll::-webkit-scrollbar { width:4px; height:4px; }
+    .sas-scroll::-webkit-scrollbar-track { background:transparent; }
+    .sas-scroll::-webkit-scrollbar-thumb { background:#c8dfff; border-radius:4px; }
+  `;
+  document.head.appendChild(s);
 }
 
-// ─── GLOBAL STYLES ────────────────────────────────────────────────────────────
-const globalStyleEl = document.createElement("style");
-globalStyleEl.setAttribute('data-snowaistream-styles', 'true');
-globalStyleEl.innerHTML = `
-  @keyframes sas-spin { to { transform: rotate(360deg); } }
-  @keyframes sas-fadein { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes sas-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-  @keyframes sas-slideup { from { opacity: 0; transform: translateY(30px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-  @keyframes sas-shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-  }
-  .sas-card-enter { animation: sas-fadein 0.35s ease both; }
-  .sas-modal-enter { animation: sas-slideup 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
-  .sas-shimmer {
-    background: linear-gradient(90deg, #e8f0ff 25%, #d0e4ff 50%, #e8f0ff 75%);
-    background-size: 400px 100%;
-    animation: sas-shimmer 1.4s infinite;
-    border-radius: 8px;
-  }
-`;
-if (!document.head.querySelector('style[data-snowaistream-styles]')) {
-  document.head.appendChild(globalStyleEl);
-}
-
-// ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const T = {
-  bg: '#f0f6ff',
-  surface: '#ffffff',
-  surfaceAlt: '#e8f2ff',
-  border: '#c8dfff',
-  borderLight: '#dceeff',
-  accent: '#2563eb',
-  accentLight: '#3b82f6',
-  accentPale: '#dbeafe',
-  accentMid: '#93c5fd',
-  instaA: '#405de6',
-  instaB: '#5851db',
-  instaC: '#833ab4',
-  instaD: '#c13584',
-  instaE: '#e1306c',
-  instaF: '#fd1d1d',
-  instaG: '#f56040',
-  instaH: '#f77737',
-  instaI: '#fcaf45',
-  instaJ: '#ffdc80',
-  textPrimary: '#0f172a',
-  textSecondary: '#475569',
-  textMuted: '#94a3b8',
-  danger: '#ef4444',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  font: "'Syne', sans-serif",
-  fontBody: "'DM Sans', sans-serif",
-  radius: '12px',
-  radiusSm: '8px',
-  radiusLg: '20px',
-  shadow: '0 4px 24px rgba(37,99,235,0.08)',
-  shadowMd: '0 8px 32px rgba(37,99,235,0.13)',
-  shadowLg: '0 16px 48px rgba(37,99,235,0.18)',
+  bg:'#f0f6ff', surface:'#fff', surfaceAlt:'#e8f2ff',
+  border:'#c8dfff', borderLight:'#dceeff',
+  accent:'#2563eb', accentPale:'#dbeafe', accentMid:'#93c5fd',
+  iD:'#c13584', text:'#0f172a', textSec:'#475569', textMut:'#94a3b8',
+  danger:'#ef4444', success:'#22c55e', warning:'#f59e0b',
+  font:"'Syne',sans-serif", body:"'DM Sans',sans-serif",
+  r:'12px', rs:'8px', rl:'20px',
+  sh:'0 2px 16px rgba(37,99,235,.07)', shm:'0 6px 28px rgba(37,99,235,.12)',
 };
+const IG  = 'linear-gradient(45deg,#f56040,#fd1d1d,#e1306c,#c13584,#833ab4,#5851db,#405de6)';
+const YTG = 'linear-gradient(135deg,#dc2626,#ef4444)';
+const AG  = 'linear-gradient(135deg,#2563eb,#60a5fa)';
 
-const instaGrad = `linear-gradient(45deg, ${T.instaG}, ${T.instaF}, ${T.instaE}, ${T.instaD}, ${T.instaC}, ${T.instaB}, ${T.instaA})`;
-const accentGrad = `linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)`;
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-const extractYtId = (url) => {
+const ytId = url => {
   if (!url) return '';
-  if (url.length === 11 && !url.includes('/')) return url;
-  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+  if (/^[A-Za-z0-9_-]{11}$/.test(url.trim())) return url.trim();
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]{11})/);
   return m ? m[1] : '';
 };
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+const isReel  = url => url && (url.includes('/reel/') || url.includes('/tv/'));
 
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-
-const extractInstaShortcode = (url) => {
-  if (!url) return null;
-  const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  return m ? m[1] : null;
+const Spinner = ({sz=20,c=T.accent}) => (
+  <div style={{width:sz,height:sz,borderRadius:'50%',border:`2.5px solid ${c}22`,borderTopColor:c,animation:'sas-spin .8s linear infinite',display:'inline-block',flexShrink:0}}/>
+);
+const Toast = ({msg,type='success'}) => {
+  const map={error:{bg:'#fef2f2',b:T.danger,c:T.danger},warn:{bg:'#fffbeb',b:T.warning,c:'#92400e'},success:{bg:'#f0fdf4',b:T.success,c:'#166534'}};
+  const s=map[type]||map.success;
+  return <div className="sas-in" style={{background:s.bg,border:`1px solid ${s.b}`,borderRadius:T.rs,padding:'10px 14px',color:s.c,fontSize:13,fontFamily:T.body,marginBottom:12}}>{msg}</div>;
 };
-
-const isReel = (url) => url && url.includes('/reel/');
-
-// ─── MICRO COMPONENTS ─────────────────────────────────────────────────────────
-const Spinner = ({ size = 20, color = T.accent }) => (
-  <div style={{
-    width: size, height: size, borderRadius: '50%',
-    border: `2.5px solid ${color}22`,
-    borderTopColor: color,
-    animation: 'sas-spin 0.8s linear infinite',
-    display: 'inline-block', flexShrink: 0
-  }} />
+const Inp = ({style,...p}) => (
+  <input style={{padding:'10px 13px',border:`1.5px solid ${T.border}`,borderRadius:T.rs,fontFamily:T.body,fontSize:14,color:T.text,background:T.bg,outline:'none',width:'100%',boxSizing:'border-box',...style}}
+    onFocus={e=>e.target.style.borderColor=p.insta?'#c13584':T.accent}
+    onBlur={e=>e.target.style.borderColor=T.border} {...p}/>
+);
+const Sel = ({style,...p}) => (
+  <select style={{padding:'10px 13px',border:`1.5px solid ${T.border}`,borderRadius:T.rs,fontFamily:T.body,fontSize:14,color:T.text,background:T.bg,outline:'none',width:'100%',boxSizing:'border-box',...style}} {...p}/>
+);
+const Btn = ({style,children,...p}) => (
+  <button style={{border:'none',borderRadius:T.rs,cursor:'pointer',fontFamily:T.font,fontWeight:700,fontSize:13,...style}} {...p}>{children}</button>
+);
+const Badge = ({label,bg,color='#fff'}) => (
+  <span style={{background:bg,color,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font,letterSpacing:'.03em'}}>{label}</span>
+);
+const SC = ({children,style}) => (
+  <div style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'14px 16px',marginBottom:14,boxShadow:T.sh,...style}}>{children}</div>
 );
 
-const Toast = ({ msg, type }) => {
-  const bg = type === 'error' ? '#fef2f2' : type === 'warn' ? '#fffbeb' : '#f0fdf4';
-  const border = type === 'error' ? T.danger : type === 'warn' ? T.warning : T.success;
-  const color = type === 'error' ? T.danger : type === 'warn' ? '#92400e' : '#166534';
-  return (
-    <div style={{
-      background: bg, border: `1px solid ${border}`, borderRadius: T.radiusSm,
-      padding: '12px 16px', color, fontSize: 13, fontFamily: T.fontBody,
-      marginBottom: 12, animation: 'sas-fadein 0.3s ease'
-    }}>
-      {msg}
+const StoryRing = ({label,url,onClick,active}) => (
+  <div onClick={onClick} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,cursor:'pointer',flexShrink:0,width:62}}>
+    <div style={{width:52,height:52,borderRadius:'50%',background:active?IG:T.border,padding:2,transition:'all .2s'}}>
+      <div style={{width:'100%',height:'100%',borderRadius:'50%',background:T.surface,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{isReel(url)?'🎬':'📸'}</div>
     </div>
-  );
-};
-
-const InstaBadge = () => (
-  <span style={{
-    background: instaGrad, borderRadius: 6, padding: '2px 8px',
-    fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: T.font,
-    letterSpacing: '0.04em'
-  }}>INSTA</span>
-);
-
-const YtBadge = () => (
-  <span style={{
-    background: '#dc2626', borderRadius: 6, padding: '2px 8px',
-    fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: T.font,
-    letterSpacing: '0.04em'
-  }}>YT</span>
-);
-
-
-// ─── YT QUICK-PLAY BAR ────────────────────────────────────────────────────────
-const YtQuickBar = ({ onPlay }) => {
-  const [qUrl, setQUrl] = useState('');
-  const [qErr, setQErr] = useState('');
-  const handle = () => {
-    const id = extractYtId(qUrl.trim());
-    if (!id) return setQErr('No YouTube video ID found in that URL');
-    setQErr('');
-    onPlay({ id: 'qp_' + Date.now(), video_title: 'Quick Play', video_url: qUrl, youtube_embed_id: id, notes: null, category_name: '' });
-    setQUrl('');
-  };
-  return (
-    <div style={{ background: T.surface, borderRadius: T.radius, border: `1px solid ${T.border}`, padding: '14px 18px', marginBottom: 18, boxShadow: T.shadow }}>
-      <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 12, color: T.textMuted, marginBottom: 10, letterSpacing: '0.06em' }}>⚡ QUICK PLAY — watch without saving</div>
-      {qErr && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: T.radiusSm, padding: '8px 12px', color: T.danger, fontSize: 12, fontFamily: T.fontBody, marginBottom: 8 }}>{qErr}</div>}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input value={qUrl} onChange={e => { setQUrl(e.target.value); setQErr(''); }} onKeyDown={e => e.key === 'Enter' && handle()}
-          placeholder="Paste any YouTube URL or video ID…"
-          style={{ flex: 1, padding: '10px 13px', border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontFamily: T.fontBody, fontSize: 13, color: T.textPrimary, background: T.bg, outline: 'none' }}
-          onFocus={e => e.target.style.borderColor = T.accent} onBlur={e => e.target.style.borderColor = T.border}
-        />
-        <button onClick={handle} style={{ padding: '10px 20px', background: 'linear-gradient(135deg,#dc2626,#ef4444)', color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', boxShadow: '0 3px 10px rgba(220,38,38,0.25)' }}>▶ Play</button>
-      </div>
-    </div>
-  );
-};
-
-// ─── INSTAGRAM STORY RING ─────────────────────────────────────────────────────
-const StoryRing = ({ label, url, onClick, active }) => (
-  <div
-    onClick={onClick}
-    style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 6, cursor: 'pointer', flexShrink: 0, width: 72
-    }}
-  >
-    <div style={{
-      width: 60, height: 60, borderRadius: '50%',
-      background: active ? instaGrad : T.border,
-      padding: 2, transition: 'all 0.2s'
-    }}>
-      <div style={{
-        width: '100%', height: '100%', borderRadius: '50%',
-        background: T.surface, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', fontSize: 22
-      }}>
-        {isReel(url) ? '🎬' : '📸'}
-      </div>
-    </div>
-    <span style={{
-      fontSize: 11, color: T.textSecondary, fontFamily: T.fontBody,
-      maxWidth: 68, overflow: 'hidden', textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap', textAlign: 'center'
-    }}>{label}</span>
+    <span style={{fontSize:10,color:T.textSec,fontFamily:T.body,maxWidth:60,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>{label}</span>
   </div>
 );
 
-// ─── REEL MODAL ───────────────────────────────────────────────────────────────
-const ReelModal = ({ post, onClose, onPrev, onNext, hasPrev, hasNext, baseUrl }) => {
-  const [mediaUrl, setMediaUrl] = useState(null);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaError, setMediaError] = useState('');
-  const videoRef = useRef(null);
+// Instagram oEmbed viewer — uses Instagram official API, no auth needed for public posts
+const InstaEmbed = ({url}) => {
+  const [html,setHtml]=useState('');
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState('');
+  const ref=useRef(null);
 
-  useEffect(() => {
-    setMediaUrl(null); setMediaError('');
-    if (post?.is_reel || post?.media_type === 'VIDEO') {
-      attemptMediaFetch();
-    }
-  }, [post?.id]);
-
-  const attemptMediaFetch = async () => {
-    setMediaLoading(true);
-    try {
-      const res = await fetch(`${baseUrl}/api/snowai-insta-fetch-media/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_url: post.post_url })
+  useEffect(()=>{
+    if(!url)return;
+    setLoading(true);setErr('');setHtml('');
+    const enc=encodeURIComponent(url);
+    fetch(`https://api.instagram.com/oembed/?url=${enc}&omitscript=true&maxwidth=500`)
+      .then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(d=>{setHtml(d.html||'');setLoading(false);})
+      .catch(()=>{
+        fetch(`https://graph.facebook.com/v18.0/instagram_oembed?url=${enc}&omitscript=true&maxwidth=500`)
+          .then(r=>r.ok?r.json():Promise.reject(r.status))
+          .then(d=>{setHtml(d.html||'');setLoading(false);})
+          .catch(()=>{setErr('Could not load — post may be private or login-required.');setLoading(false);});
       });
-      const data = await res.json();
-      if (res.ok && data.media_url) {
-        setMediaUrl(data.media_url);
-      } else {
-        setMediaError(data.error || 'Media unavailable — open on Instagram');
-      }
-    } catch {
-      setMediaError('Could not fetch media — open on Instagram');
-    } finally {
-      setMediaLoading(false);
+  },[url]);
+
+  useEffect(()=>{
+    if(!html||!ref.current)return;
+    ref.current.innerHTML=html;
+    if(window.instgrm){window.instgrm.Embeds.process();}
+    else{
+      const sc=document.createElement('script');sc.src='https://www.instagram.com/embed.js';sc.async=true;
+      sc.onload=()=>window.instgrm?.Embeds.process();document.body.appendChild(sc);
     }
-  };
+  },[html]);
 
-  if (!post) return null;
+  if(loading)return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:'40px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,minHeight:260}}>
+      <Spinner sz={32} c="#fff"/>
+      <span style={{color:'rgba(255,255,255,.6)',fontFamily:T.body,fontSize:13}}>Loading Instagram embed…</span>
+    </div>
+  );
+  if(err)return(
+    <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,textAlign:'center',minHeight:180,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14}}>
+      <div style={{fontSize:36}}>🔒</div>
+      <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0,lineHeight:1.5,maxWidth:280}}>{err}</p>
+      <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
+    </div>
+  );
+  return(
+    <div style={{borderRadius:T.r,overflow:'hidden',background:'#fafafa'}}>
+      <div ref={ref}/>
+      <div style={{padding:'10px 14px',background:'#fafafa',borderTop:`1px solid ${T.borderLight}`}}>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{display:'block',textAlign:'center',padding:'9px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open on Instagram ↗</a>
+      </div>
+    </div>
+  );
+};
 
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-        zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 20
-      }}
-    >
-      {/* Reel container */}
-      <div
-        onClick={e => e.stopPropagation()}
-        className="sas-modal-enter"
-        style={{
-          width: '100%', maxWidth: 420,
-          background: '#000', borderRadius: 20,
-          overflow: 'hidden', position: 'relative',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
-          display: 'flex', flexDirection: 'column'
-        }}
-      >
-        {/* Top bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: '50%',
-              background: instaGrad, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 16
-            }}>
-              {post.profile_pic ? (
-                <img src={post.profile_pic} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} alt="" />
-              ) : '👤'}
-            </div>
+const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
+  if(!post)return null;
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.92)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:520,borderRadius:20,overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,.7)',background:'#000',marginTop:'auto',marginBottom:'auto'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'rgba(0,0,0,.85)',backdropFilter:'blur(8px)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:9}}>
+            <div style={{width:32,height:32,borderRadius:'50%',background:IG,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>{post.profile_pic?<img src={post.profile_pic} style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}} alt=""/>:'👤'}</div>
             <div>
-              <div style={{ color: '#fff', fontFamily: T.font, fontWeight: 700, fontSize: 14 }}>
-                {post.account_handle || 'instagram'}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontFamily: T.fontBody, fontSize: 11 }}>
-                {fmtDate(post.date_added)}
-              </div>
+              <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13}}>{post.account_handle?`@${post.account_handle}`:post.title}</div>
+              <div style={{color:'rgba(255,255,255,.5)',fontFamily:T.body,fontSize:11}}>{post.is_reel?'Reel':'Post'} · {fmtDate(post.date_added)}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-            width: 32, height: 32, borderRadius: '50%', cursor: 'pointer',
-            fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(4px)'
-          }}>×</button>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
-
-        {/* Media area - 9:16 aspect */}
-        <div style={{
-          width: '100%', paddingTop: '177.78%', position: 'relative',
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-          minHeight: 300
-        }}>
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            flexDirection: 'column', gap: 16
-          }}>
-            {mediaLoading ? (
-              <>
-                <Spinner size={36} color="#fff" />
-                <span style={{ color: 'rgba(255,255,255,0.6)', fontFamily: T.fontBody, fontSize: 13 }}>
-                  Fetching media…
-                </span>
-              </>
-            ) : mediaUrl ? (
-              <video
-                ref={videoRef}
-                src={mediaUrl}
-                controls autoPlay loop playsInline
-                style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
-              />
-            ) : (
-              <>
-                <div style={{ fontSize: 64 }}>{isReel(post.post_url) ? '🎬' : '📸'}</div>
-                {post.thumbnail_url ? (
-                  <img
-                    src={post.thumbnail_url}
-                    alt="thumbnail"
-                    style={{
-                      position: 'absolute', inset: 0, width: '100%', height: '100%',
-                      objectFit: 'cover', opacity: 0.6
-                    }}
-                  />
-                ) : null}
-                <div style={{
-                  position: 'absolute', bottom: 80, left: 0, right: 0,
-                  textAlign: 'center', padding: '0 20px'
-                }}>
-                  {mediaError && (
-                    <div style={{
-                      background: 'rgba(0,0,0,0.6)', borderRadius: 10,
-                      padding: '10px 16px', color: 'rgba(255,255,255,0.8)',
-                      fontFamily: T.fontBody, fontSize: 12,
-                      backdropFilter: 'blur(8px)'
-                    }}>
-                      {mediaError}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom bar */}
-        <div style={{
-          background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          padding: '20px 16px 16px', zIndex: 10
-        }}>
-          {post.caption && (
-            <p style={{
-              color: '#fff', fontFamily: T.fontBody, fontSize: 13,
-              lineHeight: 1.5, marginBottom: 12,
-              display: '-webkit-box', WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical', overflow: 'hidden'
-            }}>
-              {post.caption}
-            </p>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <a
-              href={post.post_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                flex: 1, padding: '10px 0', textAlign: 'center',
-                background: instaGrad, color: '#fff', borderRadius: T.radiusSm,
-                fontFamily: T.font, fontWeight: 700, fontSize: 13,
-                textDecoration: 'none', letterSpacing: '0.02em'
-              }}
-            >
-              Open on Instagram ↗
-            </a>
-            {mediaError && (
-              <button
-                onClick={attemptMediaFetch}
-                style={{
-                  padding: '10px 14px',
-                  background: 'rgba(255,255,255,0.15)', border: 'none',
-                  color: '#fff', borderRadius: T.radiusSm, cursor: 'pointer',
-                  fontFamily: T.fontBody, fontSize: 12, backdropFilter: 'blur(4px)'
-                }}
-              >
-                Retry ↺
-              </button>
-            )}
-          </div>
-
-          {/* Prev / Next */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
-            <button
-              onClick={onPrev} disabled={!hasPrev}
-              style={{
-                background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
-                padding: '8px 18px', borderRadius: T.radiusSm, cursor: hasPrev ? 'pointer' : 'not-allowed',
-                fontFamily: T.fontBody, fontSize: 12, opacity: hasPrev ? 1 : 0.4
-              }}
-            >← Prev</button>
-            <button
-              onClick={onNext} disabled={!hasNext}
-              style={{
-                background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff',
-                padding: '8px 18px', borderRadius: T.radiusSm, cursor: hasNext ? 'pointer' : 'not-allowed',
-                fontFamily: T.fontBody, fontSize: 12, opacity: hasNext ? 1 : 0.4
-              }}
-            >Next →</button>
-          </div>
+        <div style={{background:'#000'}}><InstaEmbed url={post.post_url}/></div>
+        <div style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'rgba(0,0,0,.85)'}}>
+          {[['← Prev',onPrev,hasPrev],['Next →',onNext,hasNext]].map(([lbl,fn,en])=>(
+            <button key={lbl} onClick={fn} disabled={!en} style={{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,opacity:en?1:.35}}>{lbl}</button>
+          ))}
         </div>
       </div>
     </div>
   );
 };
 
-// ─── INSTAGRAM POST CARD ──────────────────────────────────────────────────────
-const InstaPostCard = ({ post, index, onPlay, onEdit, onDelete }) => {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      className="sas-card-enter"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        animationDelay: `${index * 0.04}s`,
-        background: T.surface,
-        borderRadius: T.radius,
-        border: `1px solid ${hovered ? T.accentMid : T.border}`,
-        overflow: 'hidden',
-        boxShadow: hovered ? T.shadowMd : T.shadow,
-        transition: 'all 0.25s ease',
-        transform: hovered ? 'translateY(-3px)' : 'none',
-        display: 'flex', flexDirection: 'column'
-      }}
-    >
-      {/* Thumbnail */}
-      <div
-        onClick={() => onPlay(post)}
-        style={{
-          position: 'relative', paddingTop: '100%', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-          overflow: 'hidden'
-        }}
-      >
-        {post.thumbnail_url ? (
-          <img
-            src={post.thumbnail_url}
-            alt={post.caption || 'Instagram post'}
-            style={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', transition: 'transform 0.3s ease',
-              transform: hovered ? 'scale(1.05)' : 'scale(1)'
-            }}
-          />
-        ) : (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            flexDirection: 'column', gap: 8
-          }}>
-            <span style={{ fontSize: 40 }}>{isReel(post.post_url) ? '🎬' : '📸'}</span>
-          </div>
-        )}
-
-        {/* Overlay on hover */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `rgba(37,99,235,${hovered ? 0.3 : 0})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.25s'
-        }}>
-          {hovered && (
-            <div style={{
-              background: 'rgba(255,255,255,0.95)', borderRadius: '50%',
-              width: 48, height: 48, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 20
-            }}>▶</div>
-          )}
-        </div>
-
-        {/* Type badge */}
-        <div style={{ position: 'absolute', top: 8, left: 8 }}>
-          {isReel(post.post_url) ? (
-            <span style={{
-              background: instaGrad, color: '#fff', borderRadius: 6,
-              padding: '2px 8px', fontSize: 10, fontWeight: 700, fontFamily: T.font
-            }}>REEL</span>
-          ) : (
-            <span style={{
-              background: 'rgba(0,0,0,0.5)', color: '#fff', borderRadius: 6,
-              padding: '2px 8px', fontSize: 10, fontWeight: 700, fontFamily: T.font,
-              backdropFilter: 'blur(4px)'
-            }}>POST</span>
-          )}
-        </div>
-      </div>
-
-      {/* Info */}
-      <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <span style={{
-            fontFamily: T.font, fontWeight: 700, fontSize: 14,
-            color: T.textPrimary, flex: 1,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-          }}>{post.title}</span>
-        </div>
-
-        {post.account_handle && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
-              width: 20, height: 20, borderRadius: '50%',
-              background: instaGrad, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', flexShrink: 0
-            }}>
-              <span style={{ fontSize: 10, color: '#fff' }}>@</span>
-            </div>
-            <span style={{ fontFamily: T.fontBody, fontSize: 12, color: T.textSecondary }}>
-              {post.account_handle}
-            </span>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{
-            background: T.accentPale, color: T.accent, borderRadius: 6,
-            padding: '2px 8px', fontSize: 11, fontFamily: T.fontBody, fontWeight: 500
-          }}>{post.category_name}</span>
-          <span style={{ fontSize: 11, color: T.textMuted, fontFamily: T.fontBody }}>
-            {fmtDate(post.date_added)}
-          </span>
-        </div>
-
-        {post.notes && (
-          <p style={{
-            fontFamily: T.fontBody, fontSize: 12, color: T.textSecondary,
-            lineHeight: 1.5, margin: 0,
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-          }}>{post.notes}</p>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div style={{
-        display: 'flex', gap: 6, padding: '10px 14px',
-        borderTop: `1px solid ${T.borderLight}`
-      }}>
-        <button onClick={() => onPlay(post)} style={{
-          flex: 1, padding: '7px 0', background: accentGrad, color: '#fff',
-          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-          fontFamily: T.font, fontWeight: 700, fontSize: 12
-        }}>▶ View</button>
-        <button onClick={() => onEdit(post)} style={{
-          padding: '7px 12px', background: T.accentPale, color: T.accent,
-          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-          fontFamily: T.fontBody, fontSize: 12
-        }}>✎</button>
-        <button onClick={() => onDelete(post.id)} style={{
-          padding: '7px 12px', background: '#fef2f2', color: T.danger,
-          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-          fontFamily: T.fontBody, fontSize: 12
-        }}>🗑</button>
-      </div>
-    </div>
-  );
-};
-
-// ─── YOUTUBE VIDEO CARD ───────────────────────────────────────────────────────
-const YtVideoCard = ({ video, index, onPlay, onEdit, onDelete, playing }) => {
-  const [hovered, setHovered] = useState(false);
-  const ytId = video.youtube_embed_id || extractYtId(video.video_url);
-
-  return (
-    <div
-      className="sas-card-enter"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        animationDelay: `${index * 0.04}s`,
-        background: T.surface, borderRadius: T.radius,
-        border: `1px solid ${playing ? T.accent : hovered ? T.accentMid : T.border}`,
-        overflow: 'hidden',
-        boxShadow: playing ? `0 0 0 2px ${T.accent}, ${T.shadowMd}` : hovered ? T.shadowMd : T.shadow,
-        transition: 'all 0.25s ease',
-        transform: hovered ? 'translateY(-3px)' : 'none',
-        display: 'flex', flexDirection: 'column'
-      }}
-    >
-      <div
-        onClick={() => onPlay(video)}
-        style={{
-          position: 'relative', paddingTop: '56.25%', cursor: 'pointer',
-          background: '#0f172a', overflow: 'hidden'
-        }}
-      >
-        {ytId && (
-          <img
-            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-            alt={video.video_title}
-            style={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', transition: 'transform 0.3s ease',
-              transform: hovered ? 'scale(1.05)' : 'scale(1)'
-            }}
-          />
-        )}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: `rgba(15,23,42,${hovered ? 0.4 : 0.15})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.25s'
-        }}>
-          <div style={{
-            background: playing ? T.accent : 'rgba(255,255,255,0.9)',
-            borderRadius: '50%', width: 48, height: 48,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, transition: 'all 0.2s',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-            transform: hovered ? 'scale(1.1)' : 'scale(1)'
-          }}>
-            {playing ? <span style={{ color: '#fff' }}>■</span> : '▶'}
-          </div>
-        </div>
-        <div style={{ position: 'absolute', top: 8, left: 8 }}>
-          <YtBadge />
-        </div>
-      </div>
-
-      <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div
-          onClick={() => onPlay(video)}
-          style={{
-            fontFamily: T.font, fontWeight: 700, fontSize: 14, color: T.textPrimary,
-            cursor: 'pointer', lineHeight: 1.4,
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-          }}
-        >{video.video_title}</div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{
-            background: T.accentPale, color: T.accent, borderRadius: 6,
-            padding: '2px 8px', fontSize: 11, fontFamily: T.fontBody, fontWeight: 500
-          }}>{video.category_name}</span>
-          <span style={{ fontSize: 11, color: T.textMuted, fontFamily: T.fontBody }}>
-            {fmtDate(video.date_entered)}
-          </span>
-        </div>
-
-        {video.notes && (
-          <p style={{
-            fontFamily: T.fontBody, fontSize: 12, color: T.textSecondary,
-            lineHeight: 1.5, margin: 0,
-            overflow: 'hidden', display: '-webkit-box',
-            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-          }}>{video.notes}</p>
-        )}
-      </div>
-
-      <div style={{
-        display: 'flex', gap: 6, padding: '10px 14px',
-        borderTop: `1px solid ${T.borderLight}`
-      }}>
-        <button onClick={() => onPlay(video)} style={{
-          flex: 1, padding: '7px 0',
-          background: playing ? '#dc2626' : 'linear-gradient(135deg, #dc2626, #ef4444)',
-          color: '#fff', border: 'none', borderRadius: T.radiusSm,
-          cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 12
-        }}>{playing ? '■ Stop' : '▶ Play'}</button>
-        <button onClick={() => onEdit(video)} style={{
-          padding: '7px 12px', background: T.accentPale, color: T.accent,
-          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-          fontFamily: T.fontBody, fontSize: 12
-        }}>✎</button>
-        <button onClick={() => onDelete(video.id)} style={{
-          padding: '7px 12px', background: '#fef2f2', color: T.danger,
-          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-          fontFamily: T.fontBody, fontSize: 12
-        }}>🗑</button>
-      </div>
-    </div>
-  );
-};
-
-
-// ─── INSTA QUICK-VIEW MODAL ───────────────────────────────────────────────────
-const InstaQuickViewModal = ({ onClose, onOpenReel }) => {
-  const [qUrl, setQUrl] = useState('');
-  const [qPost, setQPost] = useState(null);
-  const [qErr, setQErr] = useState('');
-  const handleLoad = () => {
-    if (!qUrl.trim()) return;
-    if (!qUrl.includes('instagram.com')) return setQErr('Please paste a valid Instagram URL');
-    setQErr('');
-    const mediaType = qUrl.includes('/reel/') ? 'REEL' : qUrl.includes('/tv/') ? 'TV' : 'POST';
-    setQPost({ id: 'qv_' + Date.now(), title: 'Quick View', post_url: qUrl.trim(), account_handle: '', caption: '', thumbnail_url: null, media_type: mediaType, is_reel: mediaType === 'REEL', date_added: new Date().toISOString() });
+const InstaQuickView = ({onClose,onOpenViewer}) => {
+  const [url,setUrl]=useState('');
+  const [post,setPost]=useState(null);
+  const [err,setErr]=useState('');
+  const preview=()=>{
+    const u=url.trim();
+    if(!u)return;
+    if(!u.includes('instagram.com'))return setErr('Please paste a valid instagram.com URL');
+    setErr('');
+    const mt=u.includes('/reel/')?'REEL':u.includes('/tv/')?'TV':'POST';
+    setPost({id:'qv_'+Date.now(),title:'Quick View',post_url:u,account_handle:'',caption:'',thumbnail_url:null,media_type:mt,is_reel:mt==='REEL',date_added:new Date().toISOString()});
   };
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} className="sas-modal-enter" style={{ background: T.surface, borderRadius: T.radius, width: '100%', maxWidth: 460, boxShadow: T.shadowMd, overflow: 'hidden' }}>
-        <div style={{ background: instaGrad, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:900,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:480,boxShadow:T.shm,overflow:'hidden'}}>
+        <div style={{background:IG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
-            <div style={{ fontFamily: T.font, fontWeight: 800, fontSize: 15, color: '#fff' }}>⚡ Insta Quick-View</div>
-            <div style={{ fontFamily: T.fontBody, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2 }}>Paste any Instagram post/reel — no saving needed</div>
+            <div style={{fontFamily:T.font,fontWeight:800,fontSize:15,color:'#fff'}}>⚡ Insta Quick-View</div>
+            <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Paste any public Instagram post/reel — no saving needed</div>
           </div>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 17 }}>×</button>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:28,height:28,borderRadius:'50%',cursor:'pointer',fontSize:17}}>×</button>
         </div>
-        <div style={{ padding: '18px' }}>
-          {qErr && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: T.radiusSm, padding: '8px 12px', color: T.danger, fontSize: 12, fontFamily: T.fontBody, marginBottom: 10 }}>{qErr}</div>}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={qUrl} onChange={e => { setQUrl(e.target.value); setQPost(null); setQErr(''); }} onKeyDown={e => e.key === 'Enter' && handleLoad()}
-              placeholder="https://www.instagram.com/reel/Cxxx…"
-              style={{ flex: 1, padding: '10px 13px', border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontFamily: T.fontBody, fontSize: 13, color: T.textPrimary, background: T.bg, outline: 'none' }}
-              onFocus={e => e.target.style.borderColor = '#c13584'} onBlur={e => e.target.style.borderColor = T.border}
-            />
-            <button onClick={handleLoad} style={{ padding: '10px 16px', background: instaGrad, color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 13 }}>Preview</button>
+        <div style={{padding:18}}>
+          {err&&<Toast msg={err} type="error"/>}
+          <div className="sas-flex-row" style={{marginBottom:12}}>
+            <Inp value={url} onChange={e=>{setUrl(e.target.value);setPost(null);setErr('');}} onKeyDown={e=>e.key==='Enter'&&preview()} insta="1" placeholder="https://www.instagram.com/reel/Cxxx…" style={{flex:1}}/>
+            <Btn onClick={preview} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap'}}>Preview</Btn>
           </div>
-          {qPost && (
-            <div style={{ marginTop: 14, animation: 'sas-fadein 0.3s ease' }}>
-              <div style={{ background: T.surfaceAlt, borderRadius: T.radiusSm, border: `1px solid ${T.border}`, padding: '11px 13px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {post&&(
+            <div className="sas-in">
+              <div style={{background:T.surfaceAlt,borderRadius:T.rs,border:`1px solid ${T.border}`,padding:'11px 13px',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div>
-                  <div style={{ fontFamily: T.fontBody, fontSize: 11, color: T.textMuted, marginBottom: 2 }}>Detected</div>
-                  <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 14, color: T.textPrimary }}>{qPost.media_type === 'REEL' ? '🎬 Reel' : qPost.media_type === 'TV' ? '📺 IGTV' : '📸 Post'}</div>
+                  <div style={{fontFamily:T.body,fontSize:11,color:T.textMut,marginBottom:2}}>Detected</div>
+                  <div style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>{post.media_type==='REEL'?'🎬 Reel':post.media_type==='TV'?'📺 IGTV':'📸 Post'}</div>
                 </div>
-                <a href={qPost.post_url} target="_blank" rel="noopener noreferrer" style={{ padding: '7px 13px', background: instaGrad, color: '#fff', borderRadius: T.radiusSm, fontFamily: T.font, fontWeight: 700, fontSize: 12, textDecoration: 'none' }}>Open ↗</a>
+                <a href={post.post_url} target="_blank" rel="noopener noreferrer" style={{padding:'7px 13px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open ↗</a>
               </div>
-              <button onClick={() => { onOpenReel(qPost); onClose(); }} style={{ width: '100%', padding: '11px', background: instaGrad, color: '#fff', border: 'none', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 14 }}>▶ Open in Viewer</button>
+              <Btn onClick={()=>{onOpenViewer(post);onClose();}} style={{width:'100%',padding:11,background:IG,color:'#fff',fontSize:14}}>▶ Open in Viewer</Btn>
             </div>
           )}
         </div>
@@ -735,881 +230,474 @@ const InstaQuickViewModal = ({ onClose, onOpenReel }) => {
   );
 };
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+const YtQuickBar = ({onPlay,onAddToPlaylist}) => {
+  const [url,setUrl]=useState('');
+  const [err,setErr]=useState('');
+  const play=()=>{const id=ytId(url.trim());if(!id)return setErr('No YouTube video ID found');setErr('');onPlay({id:'qp_'+Date.now(),video_title:'Quick Play',video_url:url,youtube_embed_id:id,notes:null,category_name:''});setUrl('');};
+  const addPL=()=>{const id=ytId(url.trim());if(!id)return setErr('No YouTube video ID found');setErr('');onAddToPlaylist({id:'qp_'+Date.now(),video_title:url,video_url:url,youtube_embed_id:id,notes:null,category_name:''});setUrl('');};
+  return(
+    <div style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'13px 16px',marginBottom:14,boxShadow:T.sh}}>
+      <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — watch or queue without saving</div>
+      {err&&<Toast msg={err} type="error"/>}
+      <div className="sas-flex-row">
+        <Inp value={url} onChange={e=>{setUrl(e.target.value);setErr('');}} onKeyDown={e=>e.key==='Enter'&&play()} placeholder="Paste YouTube URL or video ID…" style={{flex:1}}/>
+        <Btn onClick={play} style={{padding:'10px 18px',background:YTG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(220,38,38,.25)'}}>▶ Play</Btn>
+        <Btn onClick={addPL} style={{padding:'10px 13px',background:T.accentPale,color:T.accent,whiteSpace:'nowrap'}}>+ Queue</Btn>
+      </div>
+    </div>
+  );
+};
+
+const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
+  const [name,setName]=useState('');
+  const [queue,setQueue]=useState(initVideo?[{...initVideo,_qid:'init_'+Date.now()}]:[]);
+  const [urlInput,setUrlInput]=useState('');
+  const [err,setErr]=useState('');
+  const addSaved=v=>{if(queue.find(q=>q.id===v.id))return;setQueue(q=>[...q,{...v,_qid:Date.now()+'_'+v.id}]);};
+  const addUrl=()=>{const id=ytId(urlInput.trim());if(!id)return setErr('No YouTube video ID found');setErr('');setQueue(q=>[...q,{id:'u_'+Date.now(),video_title:urlInput,video_url:urlInput,youtube_embed_id:id,category_name:'',_qid:'u_'+Date.now()}]);setUrlInput('');};
+  const rem=qid=>setQueue(q=>q.filter(x=>x._qid!==qid));
+  const mv=(i,dir)=>{const a=[...queue];[a[i],a[i+dir]]=[a[i+dir],a[i]];setQueue(a);};
+  const save=()=>{if(!name.trim())return setErr('Give your playlist a name');if(queue.length===0)return setErr('Add at least one video');onSave({id:'pl_'+Date.now(),name:name.trim(),queue:[...queue]});onClose();};
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:900,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:540,boxShadow:T.shm,overflow:'hidden',maxHeight:'90vh',display:'flex',flexDirection:'column'}}>
+        <div style={{background:AG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+          <div style={{fontFamily:T.font,fontWeight:800,fontSize:15,color:'#fff'}}>🎵 Create Playlist</div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:28,height:28,borderRadius:'50%',cursor:'pointer',fontSize:17}}>×</button>
+        </div>
+        <div style={{padding:18,overflowY:'auto',flex:1}} className="sas-scroll">
+          {err&&<Toast msg={err} type="error"/>}
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,letterSpacing:'.06em',display:'block',marginBottom:6}}>PLAYLIST NAME</label>
+            <Inp value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Morning Focus…"/>
+          </div>
+          <div style={{marginBottom:12}}>
+            <label style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,letterSpacing:'.06em',display:'block',marginBottom:6}}>ADD BY URL</label>
+            <div className="sas-flex-row">
+              <Inp value={urlInput} onChange={e=>{setUrlInput(e.target.value);setErr('');}} onKeyDown={e=>e.key==='Enter'&&addUrl()} placeholder="YouTube URL or ID…" style={{flex:1}}/>
+              <Btn onClick={addUrl} style={{padding:'10px 13px',background:AG,color:'#fff'}}>+ Add</Btn>
+            </div>
+          </div>
+          {savedVideos.length>0&&(
+            <div style={{marginBottom:12}}>
+              <label style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,letterSpacing:'.06em',display:'block',marginBottom:6}}>ADD FROM SAVED</label>
+              <div style={{maxHeight:150,overflowY:'auto',border:`1px solid ${T.border}`,borderRadius:T.rs}} className="sas-scroll">
+                {savedVideos.map(v=>(
+                  <div key={v.id} onClick={()=>addSaved(v)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'7px 12px',cursor:'pointer',borderBottom:`1px solid ${T.borderLight}`,background:queue.find(q=>q.id===v.id)?T.accentPale:'transparent',transition:'background .15s'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+                      <img src={`https://img.youtube.com/vi/${v.youtube_embed_id||ytId(v.video_url)}/default.jpg`} style={{width:34,height:25,objectFit:'cover',borderRadius:3,flexShrink:0}} alt=""/>
+                      <span style={{fontFamily:T.body,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v.video_title}</span>
+                    </div>
+                    <span style={{fontFamily:T.body,fontSize:11,color:queue.find(q=>q.id===v.id)?T.accent:T.textMut,flexShrink:0,marginLeft:8}}>{queue.find(q=>q.id===v.id)?'✓':'+ Add'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {queue.length>0&&(
+            <div style={{marginBottom:14}}>
+              <label style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,letterSpacing:'.06em',display:'block',marginBottom:6}}>QUEUE ({queue.length})</label>
+              <div className="sas-pl-queue sas-scroll" style={{border:`1px solid ${T.border}`,borderRadius:T.rs}}>
+                {queue.map((v,i)=>(
+                  <div key={v._qid} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 10px',borderBottom:`1px solid ${T.borderLight}`,background:T.surface}}>
+                    <span style={{fontFamily:T.body,fontSize:11,color:T.textMut,width:18,textAlign:'center',flexShrink:0}}>{i+1}</span>
+                    <img src={`https://img.youtube.com/vi/${v.youtube_embed_id||ytId(v.video_url)}/default.jpg`} style={{width:30,height:22,objectFit:'cover',borderRadius:3,flexShrink:0}} alt=""/>
+                    <span style={{fontFamily:T.body,fontSize:12,color:T.text,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{v.video_title}</span>
+                    <div style={{display:'flex',gap:3,flexShrink:0}}>
+                      <button onClick={()=>mv(i,-1)} disabled={i===0} style={{background:'none',border:'none',cursor:i===0?'not-allowed':'pointer',color:T.textMut,fontSize:13,padding:'2px 4px',opacity:i===0?.3:1}}>↑</button>
+                      <button onClick={()=>mv(i,1)} disabled={i===queue.length-1} style={{background:'none',border:'none',cursor:i===queue.length-1?'not-allowed':'pointer',color:T.textMut,fontSize:13,padding:'2px 4px',opacity:i===queue.length-1?.3:1}}>↓</button>
+                      <button onClick={()=>rem(v._qid)} style={{background:'none',border:'none',cursor:'pointer',color:T.danger,fontSize:14,padding:'2px 4px'}}>×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <Btn onClick={save} style={{width:'100%',padding:11,background:AG,color:'#fff',fontSize:14}}>💾 Save Playlist</Btn>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PlaylistPlayer = ({playlist,onClose,onDelete,onUpdatePlaylist}) => {
+  const [idx,setIdx]=useState(0);
+  const [loop,setLoop]=useState(true);
+  const current=playlist.queue[idx];
+  const eid=current?(current.youtube_embed_id||ytId(current.video_url)):null;
+  const next=useCallback(()=>setIdx(i=>i<playlist.queue.length-1?i+1:loop?0:i),[loop,playlist.queue.length]);
+  const prev=()=>setIdx(i=>i>0?i-1:loop?playlist.queue.length-1:0);
+  return(
+    <div style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'14px 14px',marginBottom:16,boxShadow:T.shm}} className="sas-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,flexWrap:'wrap',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+          <Badge label="▶ PLAYLIST" bg={AG} color="#fff"/>
+          <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{playlist.name}</span>
+          <span style={{fontFamily:T.body,fontSize:12,color:T.textMut,flexShrink:0}}>({idx+1}/{playlist.queue.length})</span>
+        </div>
+        <div style={{display:'flex',gap:7,flexShrink:0}}>
+          <button onClick={()=>setLoop(l=>!l)} style={{background:loop?T.accentPale:'transparent',border:`1.5px solid ${loop?T.accent:T.border}`,color:loop?T.accent:T.textMut,borderRadius:T.rs,padding:'5px 10px',cursor:'pointer',fontFamily:T.body,fontSize:12,fontWeight:600}}>🔁 {loop?'On':'Off'}</button>
+          <Btn onClick={onDelete} style={{padding:'5px 9px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
+          <Btn onClick={onClose} style={{padding:'5px 9px',background:T.surfaceAlt,color:T.textSec,fontSize:12}}>✕</Btn>
+        </div>
+      </div>
+      {eid&&<div className="sas-player-ratio" style={{marginBottom:10}}><iframe src={`https://www.youtube.com/embed/${eid}?autoplay=1&enablejsapi=1`} title={current.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,gap:8,flexWrap:'wrap'}}>
+        <Btn onClick={prev} style={{padding:'7px 16px',background:T.accentPale,color:T.accent}}>← Prev</Btn>
+        <div style={{fontFamily:T.body,fontSize:12,color:T.text,flex:1,textAlign:'center',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{current?.video_title}</div>
+        <Btn onClick={next} style={{padding:'7px 16px',background:AG,color:'#fff'}}>Next →</Btn>
+      </div>
+      <div style={{border:`1px solid ${T.borderLight}`,borderRadius:T.rs,overflow:'hidden'}}>
+        <div style={{maxHeight:150,overflowY:'auto'}} className="sas-scroll">
+          {playlist.queue.map((v,i)=>{const vid=v.youtube_embed_id||ytId(v.video_url);return(
+            <div key={(v._qid||v.id)+'_'+i} onClick={()=>setIdx(i)} style={{display:'flex',alignItems:'center',gap:7,padding:'6px 10px',cursor:'pointer',borderBottom:`1px solid ${T.borderLight}`,background:i===idx?T.accentPale:'transparent',transition:'background .15s'}}>
+              <span style={{fontFamily:T.body,fontSize:11,color:i===idx?T.accent:T.textMut,width:18,textAlign:'center',flexShrink:0}}>{i===idx?'▶':i+1}</span>
+              {vid&&<img src={`https://img.youtube.com/vi/${vid}/default.jpg`} style={{width:30,height:22,objectFit:'cover',borderRadius:3,flexShrink:0}} alt=""/>}
+              <span style={{fontFamily:T.body,fontSize:12,color:i===idx?T.accent:T.text,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:i===idx?600:400}}>{v.video_title}</span>
+            </div>
+          );})}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) => {
+  const [hov,setHov]=useState(false);
+  const vid=video.youtube_embed_id||ytId(video.video_url);
+  return(
+    <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${playing?T.accent:hov?T.accentMid:T.border}`,overflow:'hidden',boxShadow:playing?`0 0 0 2px ${T.accent},${T.shm}`:T.sh,display:'flex',flexDirection:'column'}}>
+      <div onClick={()=>onPlay(video)} style={{position:'relative',paddingTop:'56.25%',cursor:'pointer',background:'#0f172a',overflow:'hidden'}}>
+        {vid&&<img src={`https://img.youtube.com/vi/${vid}/hqdefault.jpg`} alt={video.video_title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s',transform:hov?'scale(1.05)':'scale(1)'}}/>}
+        <div style={{position:'absolute',inset:0,background:`rgba(15,23,42,${hov?.35:.15})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}>
+          <div style={{background:playing?T.accent:'rgba(255,255,255,.92)',borderRadius:'50%',width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,boxShadow:'0 3px 12px rgba(0,0,0,.3)',transform:hov?'scale(1.1)':'scale(1)',transition:'all .2s'}}>{playing?<span style={{color:'#fff',fontSize:13}}>■</span>:'▶'}</div>
+        </div>
+        <div style={{position:'absolute',top:7,left:7}}><Badge label="YT" bg="#dc2626"/></div>
+      </div>
+      <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:5}}>
+        <div onClick={()=>onPlay(video)} style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,cursor:'pointer',lineHeight:1.4,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{video.video_title}</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:4}}>
+          <Badge label={video.category_name||'–'} bg={T.accentPale} color={T.accent}/>
+          <span style={{fontSize:11,color:T.textMut,fontFamily:T.body}}>{fmtDate(video.date_entered)}</span>
+        </div>
+        {video.notes&&<p style={{fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.5,margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{video.notes}</p>}
+      </div>
+      <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`,flexWrap:'wrap'}}>
+        <Btn onClick={()=>onPlay(video)} style={{flex:1,padding:'6px 0',background:playing?'#dc2626':YTG,color:'#fff',fontSize:12,minWidth:60}}>{playing?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>onAddToPlaylist(video)} title="Add to playlist" style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>🎵</Btn>
+        <Btn onClick={()=>onEdit(video)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
+        <Btn onClick={()=>onDelete(video.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
+      </div>
+    </div>
+  );
+};
+
+const IgCard = ({post,index,onPlay,onEdit,onDelete}) => {
+  const [hov,setHov]=useState(false);
+  return(
+    <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
+      <div onClick={()=>onPlay(post)} style={{position:'relative',paddingTop:'100%',cursor:'pointer',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden'}}>
+        {post.thumbnail_url&&<img src={post.thumbnail_url} alt={post.title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s',transform:hov?'scale(1.05)':'scale(1)'}}/>}
+        {!post.thumbnail_url&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30}}>{isReel(post.post_url)?'🎬':'📸'}</div>}
+        <div style={{position:'absolute',inset:0,background:`rgba(193,53,132,${hov?.22:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s'}}>
+          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>▶</div>}
+        </div>
+        <div style={{position:'absolute',top:7,left:7}}><Badge label={isReel(post.post_url)?'REEL':'POST'} bg={isReel(post.post_url)?IG:'rgba(0,0,0,.45)'}/></div>
+      </div>
+      <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:5}}>
+        <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{post.title}</div>
+        {post.account_handle&&<div style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:16,height:16,borderRadius:'50%',background:IG,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={{fontSize:8,color:'#fff'}}>@</span></div><span style={{fontFamily:T.body,fontSize:12,color:T.textSec}}>@{post.account_handle}</span></div>}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:4}}>
+          <Badge label={post.category_name||'–'} bg={T.accentPale} color={T.accent}/>
+          <span style={{fontSize:11,color:T.textMut,fontFamily:T.body}}>{fmtDate(post.date_added)}</span>
+        </div>
+        {post.notes&&<p style={{fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.5,margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{post.notes}</p>}
+      </div>
+      <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`}}>
+        <Btn onClick={()=>onPlay(post)} style={{flex:1,padding:'6px 0',background:IG,color:'#fff',fontSize:12}}>▶ View</Btn>
+        <Btn onClick={()=>onEdit(post)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
+        <Btn onClick={()=>onDelete(post.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
+      </div>
+    </div>
+  );
+};
+
 export default function SnowAIVideos() {
-  const BASE = 'https://backend-production-c0ab.up.railway.app';
+  const BASE='https://backend-production-c0ab.up.railway.app';
+  const [tab,setTab]=useState('youtube');
+  const [toast,setToast]=useState({msg:'',type:''});
+  const [loading,setLoading]=useState(false);
+  const showToast=(msg,type='success')=>{setToast({msg,type});setTimeout(()=>setToast({msg:'',type:''}),4000);};
 
-  // Tab state: 'youtube' | 'instagram'
-  const [activeSection, setActiveSection] = useState('youtube');
+  const [ytVideos,setYtVideos]=useState([]);
+  const [ytFiltered,setYtFiltered]=useState([]);
+  const [ytCats,setYtCats]=useState([]);
+  const [ytCat,setYtCat]=useState('all');
+  const [ytSearch,setYtSearch]=useState('');
+  const [ytPlaying,setYtPlaying]=useState(null);
+  const [ytFormOpen,setYtFormOpen]=useState(false);
+  const [ytEditing,setYtEditing]=useState(null);
+  const [ytForm,setYtForm]=useState({video_title:'',video_url:'',category_id:'',notes:''});
+  const [ytCatForm,setYtCatForm]=useState(false);
+  const [ytNewCat,setYtNewCat]=useState('');
+  const [playlists,setPlaylists]=useState([]);
+  const [showPLModal,setShowPLModal]=useState(false);
+  const [activePL,setActivePL]=useState(null);
+  const [pendingPLVid,setPendingPLVid]=useState(null);
 
-  // ── Shared UI state ──
-  const [toast, setToast] = useState({ msg: '', type: '' });
-  const [loading, setLoading] = useState(false);
+  const [igPosts,setIgPosts]=useState([]);
+  const [igFiltered,setIgFiltered]=useState([]);
+  const [igCats,setIgCats]=useState([]);
+  const [igCat,setIgCat]=useState('all');
+  const [igSearch,setIgSearch]=useState('');
+  const [igPlaying,setIgPlaying]=useState(null);
+  const [igPlayIdx,setIgPlayIdx]=useState(null);
+  const [igFormOpen,setIgFormOpen]=useState(false);
+  const [igEditing,setIgEditing]=useState(null);
+  const [igForm,setIgForm]=useState({title:'',post_url:'',category_id:'',account_handle:'',notes:''});
+  const [igCatForm,setIgCatForm]=useState(false);
+  const [igNewCat,setIgNewCat]=useState('');
+  const [igView,setIgView]=useState('grid');
+  const [showIgQV,setShowIgQV]=useState(false);
 
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast({ msg: '', type: '' }), 4500);
-  };
+  useEffect(()=>{fetchYtCats();fetchYtVideos();},[]);
+  useEffect(()=>{fetchIgCats();fetchIgPosts();},[]);
+  useEffect(()=>{try{const s=localStorage.getItem('sas_playlists');if(s)setPlaylists(JSON.parse(s));}catch{}},[]);
 
-  // ── YouTube state ──
-  const [ytVideos, setYtVideos] = useState([]);
-  const [ytFiltered, setYtFiltered] = useState([]);
-  const [ytCategories, setYtCategories] = useState([]);
-  const [ytSelCat, setYtSelCat] = useState('all');
-  const [ytSearch, setYtSearch] = useState('');
-  const [ytPlaying, setYtPlaying] = useState(null);
-  const [ytFormOpen, setYtFormOpen] = useState(false);
-  const [ytEditing, setYtEditing] = useState(null);
-  const [ytForm, setYtForm] = useState({ video_title: '', video_url: '', category_id: '', notes: '' });
-  const [ytCatFormOpen, setYtCatFormOpen] = useState(false);
-  const [ytNewCat, setYtNewCat] = useState('');
-  const [showInstaQV, setShowInstaQV] = useState(false);
+  const savePLs=pls=>{setPlaylists(pls);try{localStorage.setItem('sas_playlists',JSON.stringify(pls));}catch{}};
 
-  // ── Instagram state ──
-  const [instaPosts, setInstaPosts] = useState([]);
-  const [instaFiltered, setInstaFiltered] = useState([]);
-  const [instaCategories, setInstaCategories] = useState([]);
-  const [instaSelCat, setInstaSelCat] = useState('all');
-  const [instaSearch, setInstaSearch] = useState('');
-  const [instaPlaying, setInstaPlaying] = useState(null);
-  const [instaPlayIdx, setInstaPlayIdx] = useState(null);
-  const [instaFormOpen, setInstaFormOpen] = useState(false);
-  const [instaEditing, setInstaEditing] = useState(null);
-  const [instaForm, setInstaForm] = useState({ title: '', post_url: '', category_id: '', account_handle: '', notes: '' });
-  const [instaCatFormOpen, setInstaCatFormOpen] = useState(false);
-  const [instaNewCat, setInstaNewCat] = useState('');
-  const [instaView, setInstaView] = useState('grid'); // 'grid' | 'reels'
+  useEffect(()=>{if(!ytSearch.trim())return setYtFiltered(ytVideos);const q=ytSearch.toLowerCase();setYtFiltered(ytVideos.filter(v=>v.video_title?.toLowerCase().includes(q)||v.notes?.toLowerCase().includes(q)||v.category_name?.toLowerCase().includes(q)));},[ytSearch,ytVideos]);
+  useEffect(()=>{if(!igSearch.trim())return setIgFiltered(igPosts);const q=igSearch.toLowerCase();setIgFiltered(igPosts.filter(p=>p.title?.toLowerCase().includes(q)||p.account_handle?.toLowerCase().includes(q)||p.caption?.toLowerCase().includes(q)||p.notes?.toLowerCase().includes(q)||p.category_name?.toLowerCase().includes(q)));},[igSearch,igPosts]);
 
-  // ── Load data ──
-  useEffect(() => { fetchYtCategories(); fetchYtVideos(); }, []);
-  useEffect(() => { fetchInstaCategories(); fetchInstaPosts(); }, []);
+  const fetchYtCats=async()=>{try{const r=await fetch(`${BASE}/api/snowai-video-categories/`);const d=await r.json();setYtCats(d.categories||[]);}catch{}};
+  const fetchYtVideos=async(cid=null)=>{setLoading(true);try{const r=await fetch(cid?`${BASE}/api/snowai-video-entries/?category_id=${cid}`:`${BASE}/api/snowai-video-entries/`);const d=await r.json();setYtVideos(d.videos||[]);setYtFiltered(d.videos||[]);}catch{showToast('Failed to load videos','error');}finally{setLoading(false);}};
+  const handleYtCatF=id=>{setYtCat(id);setYtSearch('');fetchYtVideos(id==='all'?null:id);};
+  const handleYtAddCat=async e=>{e.preventDefault();if(!ytNewCat.trim())return;try{const r=await fetch(`${BASE}/api/snowai-video-categories/create/`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category_name:ytNewCat})});if(r.ok){setYtNewCat('');setYtCatForm(false);fetchYtCats();}}catch{showToast('Failed','error');}};
+  const handleYtSubmit=async e=>{e.preventDefault();if(!ytForm.video_title||!ytForm.video_url||!ytForm.category_id)return showToast('Fill all required fields','error');try{const url=ytEditing?`${BASE}/api/snowai-video-entries/${ytEditing.id}/update/`:`${BASE}/api/snowai-video-entries/create/`;const r=await fetch(url,{method:ytEditing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ytForm)});if(r.ok){setYtForm({video_title:'',video_url:'',category_id:'',notes:''});setYtFormOpen(false);setYtEditing(null);fetchYtVideos(ytCat==='all'?null:ytCat);showToast(ytEditing?'Updated!':'Saved!');}}catch{showToast('Failed','error');}};
+  const handleYtDelete=async id=>{if(!window.confirm('Delete?'))return;try{await fetch(`${BASE}/api/snowai-video-entries/${id}/delete/`,{method:'DELETE'});fetchYtVideos(ytCat==='all'?null:ytCat);if(ytPlaying?.id===id)setYtPlaying(null);showToast('Deleted');}catch{showToast('Failed','error');}};
+  const handleYtEdit=v=>{setYtEditing(v);setYtForm({video_title:v.video_title,video_url:v.video_url,category_id:v.category_id,notes:v.notes||''});setYtFormOpen(true);};
 
-  // ── YT filter ──
-  useEffect(() => {
-    if (!ytSearch.trim()) return setYtFiltered(ytVideos);
-    const q = ytSearch.toLowerCase();
-    setYtFiltered(ytVideos.filter(v =>
-      v.video_title.toLowerCase().includes(q) ||
-      v.notes?.toLowerCase().includes(q) ||
-      v.category_name?.toLowerCase().includes(q)
-    ));
-  }, [ytSearch, ytVideos]);
+  const handleSavePL=pl=>{const updated=[...playlists,pl];savePLs(updated);setPendingPLVid(null);showToast(`Playlist "${pl.name}" created!`);};
+  const handleAddToPL=v=>{if(activePL){const updated=playlists.map(p=>p.id===activePL.id?{...p,queue:[...p.queue,{...v,_qid:Date.now()+'_'+v.id}]}:p);savePLs(updated);setActivePL(updated.find(p=>p.id===activePL.id));showToast(`Added to "${activePL.name}"`);}else{setPendingPLVid(v);setShowPLModal(true);}};
+  const handleDelPL=id=>{const updated=playlists.filter(p=>p.id!==id);savePLs(updated);if(activePL?.id===id)setActivePL(null);showToast('Playlist deleted');};
 
-  // ── Insta filter ──
-  useEffect(() => {
-    if (!instaSearch.trim()) return setInstaFiltered(instaPosts);
-    const q = instaSearch.toLowerCase();
-    setInstaFiltered(instaPosts.filter(p =>
-      p.title?.toLowerCase().includes(q) ||
-      p.account_handle?.toLowerCase().includes(q) ||
-      p.caption?.toLowerCase().includes(q) ||
-      p.notes?.toLowerCase().includes(q) ||
-      p.category_name?.toLowerCase().includes(q)
-    ));
-  }, [instaSearch, instaPosts]);
+  const fetchIgCats=async()=>{try{const r=await fetch(`${BASE}/api/snowai-insta-categories/`);const d=await r.json();setIgCats(d.categories||[]);}catch{}};
+  const fetchIgPosts=async(cid=null)=>{setLoading(true);try{const r=await fetch(cid?`${BASE}/api/snowai-insta-posts/?category_id=${cid}`:`${BASE}/api/snowai-insta-posts/`);const d=await r.json();setIgPosts(d.posts||[]);setIgFiltered(d.posts||[]);}catch{showToast('Failed to load posts','error');}finally{setLoading(false);}};
+  const handleIgCatF=id=>{setIgCat(id);setIgSearch('');fetchIgPosts(id==='all'?null:id);};
+  const handleIgAddCat=async e=>{e.preventDefault();if(!igNewCat.trim())return;try{const r=await fetch(`${BASE}/api/snowai-insta-categories/create/`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category_name:igNewCat})});if(r.ok){setIgNewCat('');setIgCatForm(false);fetchIgCats();}}catch{showToast('Failed','error');}};
+  const handleIgSubmit=async e=>{e.preventDefault();if(!igForm.title||!igForm.post_url||!igForm.category_id)return showToast('Fill all required fields','error');if(!igForm.post_url.includes('instagram.com'))return showToast('Must be instagram.com URL','warn');try{const url=igEditing?`${BASE}/api/snowai-insta-posts/${igEditing.id}/update/`:`${BASE}/api/snowai-insta-posts/create/`;const r=await fetch(url,{method:igEditing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(igForm)});if(r.ok){setIgForm({title:'',post_url:'',category_id:'',account_handle:'',notes:''});setIgFormOpen(false);setIgEditing(null);fetchIgPosts(igCat==='all'?null:igCat);showToast(igEditing?'Updated!':'Saved!');}}catch{showToast('Failed','error');}};
+  const handleIgDelete=async id=>{if(!window.confirm('Delete?'))return;try{await fetch(`${BASE}/api/snowai-insta-posts/${id}/delete/`,{method:'DELETE'});fetchIgPosts(igCat==='all'?null:igCat);showToast('Deleted');}catch{showToast('Failed','error');}};
+  const handleIgEdit=p=>{setIgEditing(p);setIgForm({title:p.title,post_url:p.post_url,category_id:p.category_id,account_handle:p.account_handle||'',notes:p.notes||''});setIgFormOpen(true);};
+  const handleIgPlay=p=>{const i=igFiltered.findIndex(x=>x.id===p.id);setIgPlayIdx(i>=0?i:null);setIgPlaying(p);};
+  const handleIgNext=()=>{if(igPlayIdx===null)return;const n=igPlayIdx+1;if(n<igFiltered.length){setIgPlayIdx(n);setIgPlaying(igFiltered[n]);}};
+  const handleIgPrev=()=>{if(igPlayIdx===null)return;const p=igPlayIdx-1;if(p>=0){setIgPlayIdx(p);setIgPlaying(igFiltered[p]);}};
 
-  // ── YouTube API ──
-  const fetchYtCategories = async () => {
-    try {
-      const r = await fetch(`${BASE}/api/snowai-video-categories/`);
-      const d = await r.json();
-      setYtCategories(d.categories || []);
-    } catch { showToast('Failed to load YT categories', 'error'); }
-  };
+  const secBtn=(active,insta)=>({padding:'10px 20px',background:active?(insta?IG:AG):'transparent',color:active?'#fff':T.textSec,border:`2px solid ${active?'transparent':T.border}`,borderRadius:T.rl,cursor:'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,transition:'all .2s',boxShadow:active?T.shm:'none'});
+  const catBtn=(active,insta)=>({padding:'5px 13px',background:active?(insta?IG:AG):T.surface,color:active?'#fff':T.accent,border:`1.5px solid ${active?'transparent':T.border}`,borderRadius:15,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:12,transition:'all .18s',whiteSpace:'nowrap'});
+  const tareaStyle={width:'100%',padding:'10px 13px',border:`1.5px solid ${T.border}`,borderRadius:T.rs,fontFamily:T.body,fontSize:14,color:T.text,background:T.bg,outline:'none',resize:'vertical',marginBottom:10,boxSizing:'border-box'};
 
-  const fetchYtVideos = async (catId = null) => {
-    setLoading(true);
-    try {
-      const url = catId
-        ? `${BASE}/api/snowai-video-entries/?category_id=${catId}`
-        : `${BASE}/api/snowai-video-entries/`;
-      const r = await fetch(url);
-      const d = await r.json();
-      setYtVideos(d.videos || []);
-      setYtFiltered(d.videos || []);
-    } catch { showToast('Failed to load videos', 'error'); }
-    finally { setLoading(false); }
-  };
+  const ytEmbedId=ytPlaying?(ytPlaying.youtube_embed_id||ytId(ytPlaying.video_url)):null;
 
-  const handleYtCatFilter = (id) => {
-    setYtSelCat(id);
-    setYtSearch('');
-    fetchYtVideos(id === 'all' ? null : id);
-  };
+  return(
+    <div style={{background:T.bg,minHeight:'100vh',fontFamily:T.body}}>
+      <div className="header"><Header/></div>
+      <div className="main-page-body" style={{minHeight:'calc(100vh - 60px)'}}>
+        <SideNavs/>
+        <div className="main-body-info" style={{flex:1,padding:'16px 14px',background:T.bg,minWidth:0,overflow:'hidden'}}>
 
-  const handleYtAddCat = async (e) => {
-    e.preventDefault();
-    if (!ytNewCat.trim()) return;
-    try {
-      const r = await fetch(`${BASE}/api/snowai-video-categories/create/`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category_name: ytNewCat })
-      });
-      if (r.ok) { setYtNewCat(''); setYtCatFormOpen(false); fetchYtCategories(); }
-    } catch { showToast('Failed to add category', 'error'); }
-  };
-
-  const handleYtSubmit = async (e) => {
-    e.preventDefault();
-    if (!ytForm.video_title || !ytForm.video_url || !ytForm.category_id) {
-      return showToast('Title, URL and category required', 'error');
-    }
-    try {
-      const url = ytEditing
-        ? `${BASE}/api/snowai-video-entries/${ytEditing.id}/update/`
-        : `${BASE}/api/snowai-video-entries/create/`;
-      const r = await fetch(url, {
-        method: ytEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ytForm)
-      });
-      if (r.ok) {
-        setYtForm({ video_title: '', video_url: '', category_id: '', notes: '' });
-        setYtFormOpen(false); setYtEditing(null);
-        fetchYtVideos(ytSelCat === 'all' ? null : ytSelCat);
-        showToast(ytEditing ? 'Video updated!' : 'Video added!');
-      }
-    } catch { showToast('Failed to save video', 'error'); }
-  };
-
-  const handleYtDelete = async (id) => {
-    if (!window.confirm('Delete this video?')) return;
-    try {
-      await fetch(`${BASE}/api/snowai-video-entries/${id}/delete/`, { method: 'DELETE' });
-      fetchYtVideos(ytSelCat === 'all' ? null : ytSelCat);
-      if (ytPlaying?.id === id) setYtPlaying(null);
-      showToast('Video deleted');
-    } catch { showToast('Failed to delete', 'error'); }
-  };
-
-  const handleYtEdit = (v) => {
-    setYtEditing(v);
-    setYtForm({ video_title: v.video_title, video_url: v.video_url, category_id: v.category_id, notes: v.notes || '' });
-    setYtFormOpen(true);
-  };
-
-  // ── Instagram API ──
-  const fetchInstaCategories = async () => {
-    try {
-      const r = await fetch(`${BASE}/api/snowai-insta-categories/`);
-      const d = await r.json();
-      setInstaCategories(d.categories || []);
-    } catch { showToast('Failed to load Insta categories', 'error'); }
-  };
-
-  const fetchInstaPosts = async (catId = null) => {
-    setLoading(true);
-    try {
-      const url = catId
-        ? `${BASE}/api/snowai-insta-posts/?category_id=${catId}`
-        : `${BASE}/api/snowai-insta-posts/`;
-      const r = await fetch(url);
-      const d = await r.json();
-      setInstaPosts(d.posts || []);
-      setInstaFiltered(d.posts || []);
-    } catch { showToast('Failed to load posts', 'error'); }
-    finally { setLoading(false); }
-  };
-
-  const handleInstaCatFilter = (id) => {
-    setInstaSelCat(id);
-    setInstaSearch('');
-    fetchInstaPosts(id === 'all' ? null : id);
-  };
-
-  const handleInstaAddCat = async (e) => {
-    e.preventDefault();
-    if (!instaNewCat.trim()) return;
-    try {
-      const r = await fetch(`${BASE}/api/snowai-insta-categories/create/`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category_name: instaNewCat })
-      });
-      if (r.ok) { setInstaNewCat(''); setInstaCatFormOpen(false); fetchInstaCategories(); }
-    } catch { showToast('Failed to add category', 'error'); }
-  };
-
-  const handleInstaSubmit = async (e) => {
-    e.preventDefault();
-    if (!instaForm.title || !instaForm.post_url || !instaForm.category_id) {
-      return showToast('Title, URL and category required', 'error');
-    }
-    if (!instaForm.post_url.includes('instagram.com')) {
-      return showToast('Please enter a valid Instagram URL', 'warn');
-    }
-    try {
-      const url = instaEditing
-        ? `${BASE}/api/snowai-insta-posts/${instaEditing.id}/update/`
-        : `${BASE}/api/snowai-insta-posts/create/`;
-      const r = await fetch(url, {
-        method: instaEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(instaForm)
-      });
-      if (r.ok) {
-        setInstaForm({ title: '', post_url: '', category_id: '', account_handle: '', notes: '' });
-        setInstaFormOpen(false); setInstaEditing(null);
-        fetchInstaPosts(instaSelCat === 'all' ? null : instaSelCat);
-        showToast(instaEditing ? 'Post updated!' : 'Post saved!');
-      }
-    } catch { showToast('Failed to save post', 'error'); }
-  };
-
-  const handleInstaDelete = async (id) => {
-    if (!window.confirm('Delete this post?')) return;
-    try {
-      await fetch(`${BASE}/api/snowai-insta-posts/${id}/delete/`, { method: 'DELETE' });
-      fetchInstaPosts(instaSelCat === 'all' ? null : instaSelCat);
-      showToast('Post deleted');
-    } catch { showToast('Failed to delete', 'error'); }
-  };
-
-  const handleInstaEdit = (p) => {
-    setInstaEditing(p);
-    setInstaForm({
-      title: p.title, post_url: p.post_url,
-      category_id: p.category_id, account_handle: p.account_handle || '',
-      notes: p.notes || ''
-    });
-    setInstaFormOpen(true);
-  };
-
-  const handleInstaPlay = (post) => {
-    const idx = instaFiltered.findIndex(p => p.id === post.id);
-    setInstaPlayIdx(idx);
-    setInstaPlaying(post);
-  };
-
-  const handleInstaNext = () => {
-    const next = instaPlayIdx + 1;
-    if (next < instaFiltered.length) {
-      setInstaPlayIdx(next);
-      setInstaPlaying(instaFiltered[next]);
-    }
-  };
-
-  const handleInstaPrev = () => {
-    const prev = instaPlayIdx - 1;
-    if (prev >= 0) {
-      setInstaPlayIdx(prev);
-      setInstaPlaying(instaFiltered[prev]);
-    }
-  };
-
-  // ── SHARED LAYOUT ──
-  const sectionBtnStyle = (active) => ({
-    padding: '12px 28px',
-    background: active ? accentGrad : 'transparent',
-    color: active ? '#fff' : T.textSecondary,
-    border: `2px solid ${active ? 'transparent' : T.border}`,
-    borderRadius: T.radiusLg, cursor: 'pointer',
-    fontFamily: T.font, fontWeight: 700, fontSize: 15,
-    transition: 'all 0.25s ease',
-    boxShadow: active ? T.shadowMd : 'none',
-    letterSpacing: '0.02em'
-  });
-
-  const catBtnStyle = (active, isInsta = false) => ({
-    padding: '7px 18px',
-    background: active ? (isInsta ? instaGrad : accentGrad) : T.surface,
-    color: active ? '#fff' : T.accent,
-    border: `1.5px solid ${active ? 'transparent' : T.border}`,
-    borderRadius: 20, cursor: 'pointer',
-    fontFamily: T.fontBody, fontWeight: 600, fontSize: 13,
-    transition: 'all 0.2s ease',
-    whiteSpace: 'nowrap'
-  });
-
-  const inputStyle = {
-    width: '100%', padding: '11px 14px',
-    border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm,
-    fontFamily: T.fontBody, fontSize: 14, color: T.textPrimary,
-    background: T.surface, boxSizing: 'border-box',
-    outline: 'none', transition: 'border-color 0.2s'
-  };
-
-  const ytEmbedId = ytPlaying ? (ytPlaying.youtube_embed_id || extractYtId(ytPlaying.video_url)) : null;
-
-  return (
-    <div style={{ background: T.bg, minHeight: '100vh', fontFamily: T.fontBody }}>
-      <div className="header"><Header /></div>
-      <div className="main-page-body" style={{ minHeight: 'calc(100vh - 60px)' }}>
-        <SideNavs />
-        <div className="main-body-info" style={{
-          flex: 1, padding: 24, maxWidth: '100%',
-          background: T.bg, margin: 0
-        }}>
-
-          {/* ── PAGE HEADER ── */}
-          <div style={{ marginBottom: 28 }}>
-            <h1 style={{
-              fontFamily: T.font, fontWeight: 800, fontSize: 28,
-              color: T.textPrimary, margin: 0, letterSpacing: '-0.02em'
-            }}>
-              SnowAI{' '}
-              <span style={{
-                background: accentGrad,
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>Stream</span>
+          <div style={{marginBottom:16}}>
+            <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:0,letterSpacing:'-.02em'}}>
+              SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
             </h1>
-            <p style={{ fontFamily: T.fontBody, color: T.textMuted, margin: '6px 0 0', fontSize: 14 }}>
-              Your curated media hub — YouTube & Instagram, all in one place.
-            </p>
+            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube & Instagram in one place.</p>
           </div>
 
-          {/* ── SECTION SWITCHER ── */}
-          <div style={{
-            display: 'flex', gap: 10, marginBottom: 28,
-            background: T.surface, padding: 6, borderRadius: T.radiusLg,
-            border: `1px solid ${T.border}`, width: 'fit-content',
-            boxShadow: T.shadow
-          }}>
-            <button style={sectionBtnStyle(activeSection === 'youtube')} onClick={() => setActiveSection('youtube')}>
-              ▶ YouTube
-            </button>
-            <button
-              style={{
-                ...sectionBtnStyle(activeSection === 'instagram'),
-                ...(activeSection === 'instagram' ? { background: instaGrad } : {})
-              }}
-              onClick={() => setActiveSection('instagram')}
-            >
-              📸 Instagram
-            </button>
+          <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
+            <button style={secBtn(tab==='youtube',false)} onClick={()=>setTab('youtube')}>▶ YouTube</button>
+            <button style={{...secBtn(tab==='instagram',true),background:tab==='instagram'?IG:undefined}} onClick={()=>setTab('instagram')}>📸 Instagram</button>
           </div>
 
-          {/* Toast */}
-          {toast.msg && <Toast msg={toast.msg} type={toast.type} />}
+          {toast.msg&&<Toast msg={toast.msg} type={toast.type}/>}
 
-          {/* ════════════════════════════════════════════════════════════
-              YOUTUBE SECTION
-          ════════════════════════════════════════════════════════════ */}
-          {activeSection === 'youtube' && (
-            <div style={{ animation: 'sas-fadein 0.3s ease' }}>
-              {/* Quick play bar */}
-              <YtQuickBar onPlay={setYtPlaying} />
+          {tab==='youtube'&&(
+            <div className="sas-in">
+              <YtQuickBar onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onAddToPlaylist={handleAddToPL}/>
 
-              {/* Category section */}
-              <div style={{
-                background: T.surface, borderRadius: T.radius,
-                border: `1px solid ${T.border}`, padding: '20px 24px',
-                marginBottom: 20, boxShadow: T.shadow
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h3 style={{ fontFamily: T.font, fontWeight: 700, fontSize: 16, color: T.textPrimary, margin: 0 }}>
-                    Categories
-                  </h3>
-                  <button
-                    onClick={() => setYtCatFormOpen(v => !v)}
-                    style={{
-                      padding: '6px 14px', background: T.accentPale, color: T.accent,
-                      border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                      fontFamily: T.fontBody, fontWeight: 600, fontSize: 13
-                    }}
-                  >{ytCatFormOpen ? 'Cancel' : '+ Category'}</button>
+              {activePL&&<PlaylistPlayer playlist={activePL} onClose={()=>setActivePL(null)} onDelete={()=>handleDelPL(activePL.id)}/>}
+
+              {!activePL&&playlists.length>0&&(
+                <SC style={{marginBottom:14}}>
+                  <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:10,letterSpacing:'.07em'}}>🎵 YOUR PLAYLISTS</div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {playlists.map(pl=>(
+                      <div key={pl.id} style={{display:'flex',alignItems:'center',gap:0,background:T.accentPale,borderRadius:T.rs,overflow:'hidden',border:`1px solid ${T.border}`}}>
+                        <button onClick={()=>{setYtPlaying(null);setActivePL(pl);}} style={{padding:'6px 11px',background:'none',border:'none',cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:13,color:T.accent}}>▶ {pl.name} <span style={{fontWeight:400,color:T.textMut}}>({pl.queue.length})</span></button>
+                        <button onClick={()=>handleDelPL(pl.id)} style={{padding:'6px 8px',background:'none',border:'none',cursor:'pointer',color:T.danger,fontSize:14,borderLeft:`1px solid ${T.border}`}}>×</button>
+                      </div>
+                    ))}
+                    <Btn onClick={()=>{setPendingPLVid(null);setShowPLModal(true);}} style={{padding:'6px 12px',background:T.accentPale,color:T.accent,border:`1px solid ${T.border}`}}>+ New</Btn>
+                  </div>
+                </SC>
+              )}
+              {!activePL&&playlists.length===0&&(
+                <div style={{marginBottom:14}}>
+                  <Btn onClick={()=>{setPendingPLVid(null);setShowPLModal(true);}} style={{padding:'7px 14px',background:T.accentPale,color:T.accent,border:`1.5px solid ${T.border}`,fontSize:13}}>🎵 Create Playlist</Btn>
                 </div>
+              )}
 
-                {ytCatFormOpen && (
-                  <form onSubmit={handleYtAddCat} style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                    <input
-                      value={ytNewCat}
-                      onChange={e => setYtNewCat(e.target.value)}
-                      placeholder="Category name"
-                      style={{ ...inputStyle, flex: 1 }}
-                    />
-                    <button type="submit" style={{
-                      padding: '11px 20px', background: accentGrad, color: '#fff',
-                      border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                      fontFamily: T.font, fontWeight: 700, fontSize: 13
-                    }}>Add</button>
-                  </form>
-                )}
+              {!activePL&&ytPlaying&&ytEmbedId&&(
+                <SC className="sas-in" style={{marginBottom:14}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:9,flexWrap:'wrap',gap:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+                      <Badge label="▶ NOW PLAYING" bg="#dc2626" color="#fff"/>
+                      <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ytPlaying.video_title}</span>
+                    </div>
+                    <button onClick={()=>setYtPlaying(null)} style={{background:'#fef2f2',border:'none',color:T.danger,width:26,height:26,borderRadius:'50%',cursor:'pointer',fontSize:15,flexShrink:0}}>×</button>
+                  </div>
+                  <div className="sas-player-ratio">
+                    <iframe src={`https://www.youtube.com/embed/${ytEmbedId}?autoplay=1`} title={ytPlaying.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+                  </div>
+                  {ytPlaying.notes&&<div style={{marginTop:9,padding:'8px 12px',background:T.surfaceAlt,borderRadius:T.rs,fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.6}}><strong>Notes:</strong> {ytPlaying.notes}</div>}
+                </SC>
+              )}
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button style={catBtnStyle(ytSelCat === 'all')} onClick={() => handleYtCatFilter('all')}>All</button>
-                  {ytCategories.map(c => (
-                    <button key={c.id} style={catBtnStyle(ytSelCat === c.id)} onClick={() => handleYtCatFilter(c.id)}>
-                      {c.category_name}
-                    </button>
-                  ))}
+              <SC>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>Categories</span>
+                  <Btn onClick={()=>setYtCatForm(v=>!v)} style={{padding:'5px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>{ytCatForm?'Cancel':'+ Category'}</Btn>
                 </div>
+                {ytCatForm&&(<form onSubmit={handleYtAddCat} style={{display:'flex',gap:8,marginBottom:10}}><Inp value={ytNewCat} onChange={e=>setYtNewCat(e.target.value)} placeholder="Category name" style={{flex:1}}/><Btn type="submit" style={{padding:'10px 14px',background:AG,color:'#fff'}}>Add</Btn></form>)}
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  <button style={catBtn(ytCat==='all',false)} onClick={()=>handleYtCatF('all')}>All</button>
+                  {ytCats.map(c=><button key={c.id} style={catBtn(ytCat===c.id,false)} onClick={()=>handleYtCatF(c.id)}>{c.category_name}</button>)}
+                </div>
+              </SC>
+
+              <div className="sas-flex-row" style={{marginBottom:12}}>
+                <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={ytSearch} onChange={e=>setYtSearch(e.target.value)} placeholder="Search saved videos…" style={{paddingLeft:32}}/></div>
+                <Btn onClick={()=>{setYtFormOpen(true);setYtEditing(null);setYtForm({video_title:'',video_url:'',category_id:'',notes:''}); }} style={{padding:'10px 16px',background:YTG,color:'#fff',whiteSpace:'nowrap'}}>+ Save</Btn>
               </div>
 
-              {/* Search + Add */}
-              <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16 }}>🔍</span>
-                  <input
-                    value={ytSearch}
-                    onChange={e => setYtSearch(e.target.value)}
-                    placeholder="Search videos…"
-                    style={{ ...inputStyle, paddingLeft: 38 }}
-                  />
-                </div>
-                <button
-                  onClick={() => { setYtFormOpen(true); setYtEditing(null); setYtForm({ video_title: '', video_url: '', category_id: '', notes: '' }); }}
-                  style={{
-                    padding: '11px 22px', background: 'linear-gradient(135deg, #dc2626, #ef4444)',
-                    color: '#fff', border: 'none', borderRadius: T.radiusSm,
-                    cursor: 'pointer', fontFamily: T.font, fontWeight: 700,
-                    fontSize: 14, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(220,38,38,0.3)'
-                  }}
-                >+ Add Video</button>
-              </div>
-
-              {/* Add/Edit Form */}
-              {ytFormOpen && (
-                <div style={{
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1px solid ${T.border}`, padding: '24px',
-                  marginBottom: 20, boxShadow: T.shadowMd,
-                  animation: 'sas-fadein 0.3s ease'
-                }}>
-                  <h3 style={{ fontFamily: T.font, fontWeight: 700, fontSize: 16, margin: '0 0 18px', color: T.textPrimary }}>
-                    {ytEditing ? '✎ Edit Video' : '+ Add YouTube Video'}
-                  </h3>
+              {ytFormOpen&&(
+                <SC className="sas-in">
+                  <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,marginBottom:12,color:T.text}}>{ytEditing?'✎ Edit':'+ Save Video'}</div>
                   <form onSubmit={handleYtSubmit}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                      <input value={ytForm.video_title} onChange={e => setYtForm(f => ({ ...f, video_title: e.target.value }))}
-                        placeholder="Video Title *" style={inputStyle} required />
-                      <input value={ytForm.video_url} onChange={e => setYtForm(f => ({ ...f, video_url: e.target.value }))}
-                        placeholder="YouTube URL *" style={inputStyle} required />
-                    </div>
-                    <select value={ytForm.category_id} onChange={e => setYtForm(f => ({ ...f, category_id: e.target.value }))}
-                      style={{ ...inputStyle, marginBottom: 12 }} required>
-                      <option value="">Select Category *</option>
-                      {ytCategories.map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
-                    </select>
-                    <textarea value={ytForm.notes} onChange={e => setYtForm(f => ({ ...f, notes: e.target.value }))}
-                      placeholder="Notes (optional)" rows={3}
-                      style={{ ...inputStyle, resize: 'vertical', marginBottom: 14 }} />
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="submit" style={{
-                        padding: '11px 24px', background: accentGrad, color: '#fff',
-                        border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                        fontFamily: T.font, fontWeight: 700, fontSize: 14
-                      }}>{ytEditing ? 'Update' : 'Save'}</button>
-                      <button type="button"
-                        onClick={() => { setYtFormOpen(false); setYtEditing(null); }}
-                        style={{
-                          padding: '11px 24px', background: T.surfaceAlt, color: T.textSecondary,
-                          border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                          fontFamily: T.fontBody, fontSize: 14
-                        }}>Cancel</button>
-                    </div>
+                    <div className="sas-two-col" style={{marginBottom:10}}><Inp value={ytForm.video_title} onChange={e=>setYtForm(f=>({...f,video_title:e.target.value}))} placeholder="Title *" required/><Inp value={ytForm.video_url} onChange={e=>setYtForm(f=>({...f,video_url:e.target.value}))} placeholder="YouTube URL *" required/></div>
+                    <Sel value={ytForm.category_id} onChange={e=>setYtForm(f=>({...f,category_id:e.target.value}))} style={{marginBottom:10}} required><option value="">Category *</option>{ytCats.map(c=><option key={c.id} value={c.id}>{c.category_name}</option>)}</Sel>
+                    <textarea value={ytForm.notes} onChange={e=>setYtForm(f=>({...f,notes:e.target.value}))} placeholder="Notes (optional)" rows={2} style={tareaStyle}/>
+                    <div style={{display:'flex',gap:8}}><Btn type="submit" style={{padding:'9px 18px',background:AG,color:'#fff'}}>{ytEditing?'Update':'Save'}</Btn><Btn type="button" onClick={()=>{setYtFormOpen(false);setYtEditing(null);}} style={{padding:'9px 18px',background:T.surfaceAlt,color:T.textSec}}>Cancel</Btn></div>
                   </form>
-                </div>
+                </SC>
               )}
 
-              {/* Player */}
-              {ytPlaying && ytEmbedId && (
-                <div style={{
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1px solid ${T.border}`, padding: '20px',
-                  marginBottom: 24, boxShadow: T.shadowLg,
-                  animation: 'sas-fadein 0.3s ease'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <h3 style={{ fontFamily: T.font, fontWeight: 700, fontSize: 16, color: T.textPrimary, margin: 0 }}>
-                      {ytPlaying.video_title}
-                    </h3>
-                    <button onClick={() => setYtPlaying(null)} style={{
-                      background: '#fef2f2', border: 'none', color: T.danger,
-                      width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: 16
-                    }}>×</button>
-                  </div>
-                  <div style={{ position: 'relative', paddingBottom: '42%', borderRadius: T.radiusSm, overflow: 'hidden' }}>
-                    <iframe
-                      src={`https://www.youtube.com/embed/${ytEmbedId}?autoplay=1`}
-                      title={ytPlaying.video_title}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-                    />
-                  </div>
-                  {ytPlaying.notes && (
-                    <div style={{
-                      marginTop: 14, padding: '12px 16px',
-                      background: T.surfaceAlt, borderRadius: T.radiusSm,
-                      fontFamily: T.fontBody, fontSize: 13, color: T.textSecondary, lineHeight: 1.6
-                    }}>
-                      <strong>Notes:</strong> {ytPlaying.notes}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Grid */}
-              {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={36} /></div>
-              ) : ytFiltered.length === 0 ? (
-                <div style={{
-                  textAlign: 'center', padding: '60px 20px',
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1px solid ${T.border}`, color: T.textMuted,
-                  fontFamily: T.fontBody, fontSize: 15
-                }}>
-                  {ytSearch ? `No videos matching "${ytSearch}"` : 'No videos yet — add your first one!'}
-                </div>
-              ) : (
+              {loading?(<div style={{display:'flex',justifyContent:'center',padding:48}}><Spinner sz={32}/></div>):ytFiltered.length===0?(
+                <div style={{textAlign:'center',padding:'44px 20px',background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,color:T.textMut,fontFamily:T.body}}>{ytSearch?`No videos matching "${ytSearch}"`:'No saved videos yet — Quick Play above or save one!'}</div>
+              ):(
                 <>
-                  {ytSearch && (
-                    <div style={{
-                      padding: '8px 14px', background: T.accentPale,
-                      borderLeft: `4px solid ${T.accent}`, borderRadius: T.radiusSm,
-                      marginBottom: 14, fontFamily: T.fontBody, fontSize: 13, color: T.accent
-                    }}>
-                      {ytFiltered.length} result{ytFiltered.length !== 1 ? 's' : ''} for "{ytSearch}"
-                    </div>
-                  )}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: 18
-                  }}>
-                    {ytFiltered.map((v, i) => (
-                      <YtVideoCard
-                        key={v.id} video={v} index={i}
-                        playing={ytPlaying?.id === v.id}
-                        onPlay={setYtPlaying}
-                        onEdit={handleYtEdit}
-                        onDelete={handleYtDelete}
-                      />
-                    ))}
+                  {ytSearch&&<div style={{padding:'6px 12px',background:T.accentPale,borderLeft:`4px solid ${T.accent}`,borderRadius:T.rs,marginBottom:10,fontFamily:T.body,fontSize:13,color:T.accent}}>{ytFiltered.length} result{ytFiltered.length!==1?'s':''}</div>}
+                  <div className="sas-grid-yt">
+                    {ytFiltered.map((v,i)=><YtCard key={v.id} video={v} index={i} playing={ytPlaying?.id===v.id} onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onEdit={handleYtEdit} onDelete={handleYtDelete} onAddToPlaylist={handleAddToPL}/>)}
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {/* ════════════════════════════════════════════════════════════
-              INSTAGRAM SECTION
-          ════════════════════════════════════════════════════════════ */}
-          {activeSection === 'instagram' && (
-            <div style={{ animation: 'sas-fadein 0.3s ease' }}>
-
-              {/* Insta header banner */}
-              <div style={{
-                background: instaGrad, borderRadius: T.radius,
-                padding: '20px 24px', marginBottom: 20,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                boxShadow: '0 8px 32px rgba(193,53,132,0.3)'
-              }}>
-                <div>
-                  <div style={{
-                    fontFamily: T.font, fontWeight: 800, fontSize: 22,
-                    color: '#fff', letterSpacing: '-0.02em'
-                  }}>
-                    SnowAI Insta 📸
+          {tab==='instagram'&&(
+            <div className="sas-in">
+              <div style={{background:IG,borderRadius:T.r,padding:'13px 14px',marginBottom:12,boxShadow:'0 6px 24px rgba(193,53,132,.28)'}}>
+                <div className="sas-banner">
+                  <div>
+                    <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#fff',letterSpacing:'-.02em'}}>SnowAI Insta 📸</div>
+                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Save posts & reels, or quick-view any public URL via Instagram oEmbed.</div>
                   </div>
-                  <div style={{ fontFamily: T.fontBody, fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-                    Save posts & reels. Open on Instagram or try quick-view below.
+                  <div className="sas-banner-right">
+                    <Btn onClick={()=>setShowIgQV(true)} style={{padding:'7px 12px',background:'rgba(255,255,255,.2)',color:'#fff',border:'1.5px solid rgba(255,255,255,.4)',fontSize:12,backdropFilter:'blur(4px)'}}>⚡ Quick-View</Btn>
+                    <div style={{display:'flex',gap:3,background:'rgba(255,255,255,.15)',borderRadius:7,padding:3}}>
+                      {[['⊞','grid'],['🎬','reels']].map(([ic,m])=>(
+                        <button key={m} onClick={()=>setIgView(m)} style={{padding:'4px 10px',border:'none',borderRadius:5,cursor:'pointer',background:igView===m?'rgba(255,255,255,.9)':'transparent',color:igView===m?T.iD:'#fff',fontFamily:T.body,fontWeight:600,fontSize:12}}>{ic}</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button onClick={() => setShowInstaQV(true)} style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.4)', color: '#fff', borderRadius: T.radiusSm, cursor: 'pointer', fontFamily: T.font, fontWeight: 700, fontSize: 12, backdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}>⚡ Quick-View</button>
-                {/* Grid / Reels toggle */}
-                <div style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: 4 }}>
-                  <button
-                    onClick={() => setInstaView('grid')}
-                    style={{
-                      padding: '6px 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
-                      background: instaView === 'grid' ? 'rgba(255,255,255,0.9)' : 'transparent',
-                      color: instaView === 'grid' ? T.instaD : '#fff',
-                      fontFamily: T.fontBody, fontWeight: 600, fontSize: 13
-                    }}
-                  >⊞ Grid</button>
-                  <button
-                    onClick={() => setInstaView('reels')}
-                    style={{
-                      padding: '6px 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
-                      background: instaView === 'reels' ? 'rgba(255,255,255,0.9)' : 'transparent',
-                      color: instaView === 'reels' ? T.instaD : '#fff',
-                      fontFamily: T.fontBody, fontWeight: 600, fontSize: 13
-                    }}
-                  >🎬 Reels</button>
                 </div>
               </div>
 
-              </div>
-
-              {/* Stories bar */}
-              {instaPosts.length > 0 && (
-                <div style={{
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1px solid ${T.border}`, padding: '16px 20px',
-                  marginBottom: 20, boxShadow: T.shadow
-                }}>
-                  <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 13, color: T.textMuted, marginBottom: 12, letterSpacing: '0.06em' }}>
-                    QUICK ACCESS
+              {igPosts.length>0&&(
+                <SC>
+                  <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>QUICK ACCESS</div>
+                  <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:3}} className="sas-scroll">
+                    {igPosts.slice(0,14).map(p=><StoryRing key={p.id} label={p.account_handle||p.title} url={p.post_url} active={igPlaying?.id===p.id} onClick={()=>handleIgPlay(p)}/>)}
                   </div>
-                  <div style={{
-                    display: 'flex', gap: 16, overflowX: 'auto',
-                    paddingBottom: 4,
-                    scrollbarWidth: 'thin'
-                  }}>
-                    {instaPosts.slice(0, 12).map(p => (
-                      <StoryRing
-                        key={p.id}
-                        label={p.account_handle || p.title}
-                        url={p.post_url}
-                        active={instaPlaying?.id === p.id}
-                        onClick={() => handleInstaPlay(p)}
-                      />
-                    ))}
-                  </div>
-                </div>
+                </SC>
               )}
 
-              {/* Categories */}
-              <div style={{
-                background: T.surface, borderRadius: T.radius,
-                border: `1px solid ${T.border}`, padding: '20px 24px',
-                marginBottom: 20, boxShadow: T.shadow
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <h3 style={{ fontFamily: T.font, fontWeight: 700, fontSize: 16, color: T.textPrimary, margin: 0 }}>Categories</h3>
-                  <button
-                    onClick={() => setInstaCatFormOpen(v => !v)}
-                    style={{
-                      padding: '6px 14px', background: 'rgba(193,53,132,0.1)', color: T.instaD,
-                      border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                      fontFamily: T.fontBody, fontWeight: 600, fontSize: 13
-                    }}
-                  >{instaCatFormOpen ? 'Cancel' : '+ Category'}</button>
+              <SC>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>Categories</span>
+                  <Btn onClick={()=>setIgCatForm(v=>!v)} style={{padding:'5px 10px',background:'rgba(193,53,132,.1)',color:T.iD,fontSize:12}}>{igCatForm?'Cancel':'+ Category'}</Btn>
                 </div>
+                {igCatForm&&(<form onSubmit={handleIgAddCat} style={{display:'flex',gap:8,marginBottom:10}}><Inp value={igNewCat} onChange={e=>setIgNewCat(e.target.value)} placeholder="Category name" insta="1" style={{flex:1}}/><Btn type="submit" style={{padding:'10px 14px',background:IG,color:'#fff'}}>Add</Btn></form>)}
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  <button style={catBtn(igCat==='all',true)} onClick={()=>handleIgCatF('all')}>All</button>
+                  {igCats.map(c=><button key={c.id} style={catBtn(igCat===c.id,true)} onClick={()=>handleIgCatF(c.id)}>{c.category_name}</button>)}
+                </div>
+              </SC>
 
-                {instaCatFormOpen && (
-                  <form onSubmit={handleInstaAddCat} style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                    <input value={instaNewCat} onChange={e => setInstaNewCat(e.target.value)}
-                      placeholder="Category name" style={{ ...inputStyle, flex: 1 }} />
-                    <button type="submit" style={{
-                      padding: '11px 20px', background: instaGrad, color: '#fff',
-                      border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                      fontFamily: T.font, fontWeight: 700, fontSize: 13
-                    }}>Add</button>
+              <div className="sas-flex-row" style={{marginBottom:12}}>
+                <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={igSearch} onChange={e=>setIgSearch(e.target.value)} placeholder="Search posts, handles, captions…" style={{paddingLeft:32}}/></div>
+                <Btn onClick={()=>{setIgFormOpen(true);setIgEditing(null);setIgForm({title:'',post_url:'',category_id:'',account_handle:'',notes:''}); }} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(193,53,132,.3)'}}>+ Save</Btn>
+              </div>
+
+              {igFormOpen&&(
+                <SC style={{border:`1.5px solid ${T.iD}33`}} className="sas-in">
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}><div style={{width:4,height:22,borderRadius:3,background:IG}}/><span style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text}}>{igEditing?'✎ Edit Post':'+ Save Post / Reel'}</span></div>
+                  <form onSubmit={handleIgSubmit}>
+                    <div className="sas-two-col" style={{marginBottom:10}}><Inp value={igForm.title} onChange={e=>setIgForm(f=>({...f,title:e.target.value}))} placeholder="Label *" insta="1" required/><Inp value={igForm.account_handle} onChange={e=>setIgForm(f=>({...f,account_handle:e.target.value}))} placeholder="@handle" insta="1"/></div>
+                    <Inp value={igForm.post_url} onChange={e=>setIgForm(f=>({...f,post_url:e.target.value}))} placeholder="Instagram URL * (https://instagram.com/reel/…)" insta="1" style={{marginBottom:10}} required/>
+                    <Sel value={igForm.category_id} onChange={e=>setIgForm(f=>({...f,category_id:e.target.value}))} style={{marginBottom:10}} required><option value="">Category *</option>{igCats.map(c=><option key={c.id} value={c.id}>{c.category_name}</option>)}</Sel>
+                    <textarea value={igForm.notes} onChange={e=>setIgForm(f=>({...f,notes:e.target.value}))} placeholder="Notes (optional)" rows={2} style={tareaStyle}/>
+                    <div style={{padding:'7px 11px',background:'#fff8f0',border:'1px solid #fed7aa',borderRadius:T.rs,fontFamily:T.body,fontSize:11,color:'#92400e',marginBottom:10}}>
+                      💡 Uses Instagram oEmbed — works for <strong>public</strong> posts & reels only.
+                    </div>
+                    <div style={{display:'flex',gap:8}}><Btn type="submit" style={{padding:'9px 18px',background:IG,color:'#fff'}}>{igEditing?'Update':'Save'}</Btn><Btn type="button" onClick={()=>{setIgFormOpen(false);setIgEditing(null);}} style={{padding:'9px 18px',background:T.surfaceAlt,color:T.textSec}}>Cancel</Btn></div>
                   </form>
-                )}
+                </SC>
+              )}
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button style={catBtnStyle(instaSelCat === 'all', true)} onClick={() => handleInstaCatFilter('all')}>All</button>
-                  {instaCategories.map(c => (
-                    <button key={c.id} style={catBtnStyle(instaSelCat === c.id, true)} onClick={() => handleInstaCatFilter(c.id)}>
-                      {c.category_name}
-                    </button>
+              {loading?(<div style={{display:'flex',justifyContent:'center',padding:48}}><Spinner sz={32}/></div>):igFiltered.length===0?(
+                <div style={{textAlign:'center',padding:'44px 20px',background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,color:T.textMut,fontFamily:T.body}}>{igSearch?`No posts matching "${igSearch}"`:'No saved posts — use ⚡ Quick-View or save one!'}</div>
+              ):igView==='grid'?(
+                <div className="sas-grid-ig">{igFiltered.map((p,i)=><IgCard key={p.id} post={p} index={i} onPlay={handleIgPlay} onEdit={handleIgEdit} onDelete={handleIgDelete}/>)}</div>
+              ):(
+                <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:380,margin:'0 auto'}}>
+                  {igFiltered.map((p,i)=>(
+                    <div key={p.id} className="sas-card sas-in" style={{animationDelay:`${i*.05}s`,background:'#000',borderRadius:T.r,overflow:'hidden',border:`1px solid ${T.border}`}}>
+                      <div onClick={()=>handleIgPlay(p)} style={{position:'relative',paddingTop:'120%',cursor:'pointer',overflow:'hidden',maxHeight:300}}>
+                        <div style={{position:'absolute',inset:0}}>
+                          {p.thumbnail_url?<img src={p.thumbnail_url} alt={p.title} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<div style={{width:'100%',height:'100%',background:IG,opacity:.25}}/>}
+                          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}><div style={{width:48,height:48,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,boxShadow:'0 4px 18px rgba(0,0,0,.4)'}}>▶</div></div>
+                        </div>
+                      </div>
+                      <div style={{padding:'10px 13px',background:'#111'}}>
+                        <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:'#fff',marginBottom:3}}>{p.title}</div>
+                        {p.account_handle&&<div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.55)',marginBottom:7}}>@{p.account_handle}</div>}
+                        <div style={{display:'flex',gap:6}}>
+                          <Btn onClick={()=>handleIgPlay(p)} style={{flex:1,padding:'7px 0',background:IG,color:'#fff',fontSize:12}}>▶ Open</Btn>
+                          <a href={p.post_url} target="_blank" rel="noopener noreferrer" style={{padding:'7px 12px',background:'rgba(255,255,255,.1)',color:'#fff',borderRadius:T.rs,fontSize:12,textDecoration:'none',display:'flex',alignItems:'center'}}>↗</a>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Search + Add */}
-              <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 16 }}>🔍</span>
-                  <input
-                    value={instaSearch} onChange={e => setInstaSearch(e.target.value)}
-                    placeholder="Search posts, handles, captions…"
-                    style={{ ...inputStyle, paddingLeft: 38 }}
-                  />
-                </div>
-                <button
-                  onClick={() => { setInstaFormOpen(true); setInstaEditing(null); setInstaForm({ title: '', post_url: '', category_id: '', account_handle: '', notes: '' }); }}
-                  style={{
-                    padding: '11px 22px', background: instaGrad, color: '#fff',
-                    border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                    fontFamily: T.font, fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap',
-                    boxShadow: '0 4px 12px rgba(193,53,132,0.35)'
-                  }}
-                >+ Add Post</button>
-              </div>
-
-              {/* Add/Edit Form */}
-              {instaFormOpen && (
-                <div style={{
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1.5px solid ${T.instaD}33`, padding: '24px',
-                  marginBottom: 20, boxShadow: T.shadowMd,
-                  animation: 'sas-fadein 0.3s ease'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-                    <div style={{ width: 6, height: 28, borderRadius: 3, background: instaGrad }} />
-                    <h3 style={{ fontFamily: T.font, fontWeight: 700, fontSize: 16, margin: 0, color: T.textPrimary }}>
-                      {instaEditing ? '✎ Edit Post' : '+ Save Instagram Post / Reel'}
-                    </h3>
-                  </div>
-                  <form onSubmit={handleInstaSubmit}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                      <input value={instaForm.title} onChange={e => setInstaForm(f => ({ ...f, title: e.target.value }))}
-                        placeholder="Title / Label *" style={inputStyle} required />
-                      <input value={instaForm.account_handle} onChange={e => setInstaForm(f => ({ ...f, account_handle: e.target.value }))}
-                        placeholder="@account_handle" style={inputStyle} />
-                    </div>
-                    <input value={instaForm.post_url} onChange={e => setInstaForm(f => ({ ...f, post_url: e.target.value }))}
-                      placeholder="Instagram URL * (e.g. https://www.instagram.com/reel/Cxxx...)" style={{ ...inputStyle, marginBottom: 12 }} required />
-                    <select value={instaForm.category_id} onChange={e => setInstaForm(f => ({ ...f, category_id: e.target.value }))}
-                      style={{ ...inputStyle, marginBottom: 12 }} required>
-                      <option value="">Select Category *</option>
-                      {instaCategories.map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
-                    </select>
-                    <textarea value={instaForm.notes} onChange={e => setInstaForm(f => ({ ...f, notes: e.target.value }))}
-                      placeholder="Notes (optional)" rows={2} style={{ ...inputStyle, resize: 'vertical', marginBottom: 14 }} />
-                    <div style={{
-                      padding: '10px 14px', background: '#fff8f0',
-                      border: '1px solid #fed7aa', borderRadius: T.radiusSm,
-                      fontFamily: T.fontBody, fontSize: 12, color: '#92400e', marginBottom: 14
-                    }}>
-                      💡 <strong>Tip:</strong> Paste the full Instagram post or reel URL. The backend will attempt to fetch metadata (thumbnail, caption). Reel playback requires the backend media-fetch endpoint — if unavailable, you'll get a direct Instagram link.
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <button type="submit" style={{
-                        padding: '11px 24px', background: instaGrad, color: '#fff',
-                        border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                        fontFamily: T.font, fontWeight: 700, fontSize: 14
-                      }}>{instaEditing ? 'Update' : 'Save'}</button>
-                      <button type="button" onClick={() => { setInstaFormOpen(false); setInstaEditing(null); }} style={{
-                        padding: '11px 24px', background: T.surfaceAlt, color: T.textSecondary,
-                        border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                        fontFamily: T.fontBody, fontSize: 14
-                      }}>Cancel</button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Content */}
-              {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner size={36} /></div>
-              ) : instaFiltered.length === 0 ? (
-                <div style={{
-                  textAlign: 'center', padding: '60px 20px',
-                  background: T.surface, borderRadius: T.radius,
-                  border: `1px solid ${T.border}`, color: T.textMuted,
-                  fontFamily: T.fontBody, fontSize: 15
-                }}>
-                  {instaSearch ? `No posts matching "${instaSearch}"` : 'No posts yet — save your first Instagram post or reel!'}
-                </div>
-              ) : (
-                <>
-                  {instaSearch && (
-                    <div style={{
-                      padding: '8px 14px', borderLeft: `4px solid ${T.instaD}`,
-                      background: 'rgba(193,53,132,0.06)', borderRadius: T.radiusSm,
-                      marginBottom: 14, fontFamily: T.fontBody, fontSize: 13, color: T.instaD
-                    }}>
-                      {instaFiltered.length} result{instaFiltered.length !== 1 ? 's' : ''} for "{instaSearch}"
-                    </div>
-                  )}
-
-                  {instaView === 'grid' ? (
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                      gap: 18
-                    }}>
-                      {instaFiltered.map((p, i) => (
-                        <InstaPostCard
-                          key={p.id} post={p} index={i}
-                          onPlay={handleInstaPlay}
-                          onEdit={handleInstaEdit}
-                          onDelete={handleInstaDelete}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    /* Reels-style vertical scroll */
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420, margin: '0 auto' }}>
-                      {instaFiltered.map((p, i) => (
-                        <div
-                          key={p.id}
-                          className="sas-card-enter"
-                          style={{
-                            animationDelay: `${i * 0.05}s`,
-                            background: '#000', borderRadius: T.radius, overflow: 'hidden',
-                            border: `1px solid ${T.border}`, boxShadow: T.shadowMd
-                          }}
-                        >
-                          {/* Reel preview tile */}
-                          <div
-                            onClick={() => handleInstaPlay(p)}
-                            style={{
-                              position: 'relative', paddingTop: '177.78%', cursor: 'pointer',
-                              background: 'linear-gradient(135deg, #1a1a2e, #0f3460)',
-                              maxHeight: 320, overflow: 'hidden'
-                            }}
-                          >
-                            <div style={{ position: 'absolute', inset: 0, maxHeight: 320, overflow: 'hidden' }}>
-                              {p.thumbnail_url ? (
-                                <img src={p.thumbnail_url} alt={p.title}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <div style={{
-                                  width: '100%', height: '100%', display: 'flex',
-                                  alignItems: 'center', justifyContent: 'center',
-                                  background: instaGrad, opacity: 0.3
-                                }} />
-                              )}
-                              <div style={{
-                                position: 'absolute', inset: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}>
-                                <div style={{
-                                  width: 56, height: 56, borderRadius: '50%',
-                                  background: 'rgba(255,255,255,0.9)',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
-                                }}>▶</div>
-                              </div>
-                            </div>
-                          </div>
-                          {/* Reel info */}
-                          <div style={{ padding: '14px 16px', background: '#111' }}>
-                            <div style={{ fontFamily: T.font, fontWeight: 700, fontSize: 14, color: '#fff', marginBottom: 6 }}>{p.title}</div>
-                            {p.account_handle && (
-                              <div style={{ fontFamily: T.fontBody, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>@{p.account_handle}</div>
-                            )}
-                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                              <button onClick={() => handleInstaPlay(p)} style={{
-                                flex: 1, padding: '8px 0', background: instaGrad, color: '#fff',
-                                border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                                fontFamily: T.font, fontWeight: 700, fontSize: 12
-                              }}>▶ Open</button>
-                              <a href={p.post_url} target="_blank" rel="noopener noreferrer" style={{
-                                padding: '8px 14px', background: 'rgba(255,255,255,0.1)', color: '#fff',
-                                border: 'none', borderRadius: T.radiusSm, cursor: 'pointer',
-                                fontFamily: T.fontBody, fontSize: 12, textDecoration: 'none',
-                                display: 'flex', alignItems: 'center'
-                              }}>↗</a>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
               )}
             </div>
           )}
 
-          {/* Insta Quick-View */}
-          {showInstaQV && (
-            <InstaQuickViewModal
-              onClose={() => setShowInstaQV(false)}
-              onOpenReel={(post) => { setInstaPlaying(post); setInstaPlayIdx(null); }}
-            />
-          )}
-
-          {/* Reel Modal */}
-          {instaPlaying && (
-            <ReelModal
-              post={instaPlaying}
-              onClose={() => setInstaPlaying(null)}
-              onNext={handleInstaNext}
-              onPrev={handleInstaPrev}
-              hasPrev={instaPlayIdx > 0}
-              hasNext={instaPlayIdx < instaFiltered.length - 1}
-              baseUrl={BASE}
-            />
-          )}
+          {showIgQV&&<InstaQuickView onClose={()=>setShowIgQV(false)} onOpenViewer={p=>{setIgPlaying(p);setIgPlayIdx(null);}}/>}
+          {igPlaying&&<ReelModal post={igPlaying} onClose={()=>{setIgPlaying(null);setIgPlayIdx(null);}} onNext={handleIgNext} onPrev={handleIgPrev} hasPrev={igPlayIdx!==null&&igPlayIdx>0} hasNext={igPlayIdx!==null&&igPlayIdx<igFiltered.length-1}/>}
+          {showPLModal&&<PlaylistModal onClose={()=>{setShowPLModal(false);setPendingPLVid(null);}} savedVideos={ytVideos} onSave={handleSavePL} initVideo={pendingPLVid}/>}
         </div>
       </div>
     </div>
