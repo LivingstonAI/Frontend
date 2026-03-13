@@ -2312,7 +2312,7 @@ function ReversalModal() {
     const [revCacheLoad,   setRevCacheLoad]    = useState(false);
     const [revBulkError,   setRevBulkError]    = useState(null);
     const [revSearch,      setRevSearch]       = useState("");
-    const [revSortBy,      setRevSortBy]       = useState("combined_score");
+    const [revSortBy,      setRevSortBy]       = useState("setup_score");
     const [revFilterGrade, setRevFilterGrade]  = useState("All");
     const [revFilterDir,   setRevFilterDir]    = useState("All"); // "All"|"Bear→Bull"|"Bull→Bear"
     const [revFilterMcap,  setRevFilterMcap]   = useState("All");
@@ -2525,22 +2525,22 @@ function ReversalModal() {
                                 <p style={{ fontSize: "11px", fontWeight: "700", color: "#B45309", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>Signal Grades — What Each Means</p>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "18px" }}>
                                     {[
-                                        { emoji:"🎯", grade:"Prime Reversal", color:"#15803D", bg:"#DCFCE7", border:"#86EFAC",
-                                          when:"Exhaustion ≥60 + Reversal ≥65 + Combined ≥72",
-                                          meaning:"All three pillars confirmed. Prior trend was genuine, reversal came on volume, new direction is already building. These setups run.",
-                                          action:"Early entry, tight stop beyond reversal candle. Size up on confirmation." },
+                                        { emoji:"🎯", grade:"Prime Setup", color:"#15803D", bg:"#DCFCE7", border:"#86EFAC",
+                                          when:"Structure ≥60% + Break confirmed + Freshness ≥70% + Combined ≥72",
+                                          meaning:"Clean prior swing structure, key structural level just broken fresh. Price has broken the last Higher Low (in an uptrend) or the last Lower High (in a downtrend). These setups run.",
+                                          action:"Entry now. Stop just beyond the broken structural level. Highest conviction." },
                                         { emoji:"⚡", grade:"Strong Signal", color:"#2563EB", bg:"#DBEAFE", border:"#93C5FD",
-                                          when:"Reversal ≥45 + Combined ≥55",
-                                          meaning:"Solid evidence across most metrics. Not every box ticked but the weight of evidence points to a sustained reversal.",
-                                          action:"Starter position. Add on next session if new-direction R² builds." },
+                                          when:"Break confirmed + Combined ≥50 + Freshness ≥40%",
+                                          meaning:"Structural break confirmed with solid prior swing structure. Good setup, not quite as fresh or clean as Prime but the weight of evidence favours continuation.",
+                                          action:"Starter position. Stop beyond the broken level. Add on follow-through confirmation." },
                                         { emoji:"👀", grade:"Watch Closely", color:"#D97706", bg:"#FEF9C3", border:"#FDE047",
-                                          when:"Combined ≥38 + partial signals",
-                                          meaning:"Early-stage reversal or a deep pullback within the prior trend. Not yet confirmed.",
-                                          action:"Set an alert. Check back in 2–3 sessions for confirmation before entering." },
-                                        { emoji:"⏳", grade:"Exhaustion Only", color:"#7C3AED", bg:"#EDE9FE", border:"#C4B5FD",
-                                          when:"Exhaustion ≥55 but Reversal <35",
-                                          meaning:"The prior trend is worn out but the reversal hasn't triggered yet. Pre-reversal alert — the setup is priming.",
-                                          action:"Watch for a high-volume reversal candle. Do not enter until confirmed." },
+                                          when:"Break confirmed but >24h old, or prior structure weak",
+                                          meaning:"Break happened but is getting stale, or the prior swing structure wasn't clean enough for high conviction. May still play out but risk/reward has narrowed.",
+                                          action:"Monitor for a re-test of the broken level as support/resistance. Re-test + hold = better entry." },
+                                        { emoji:"⏳", grade:"Pre-Break Alert", color:"#7C3AED", bg:"#EDE9FE", border:"#C4B5FD",
+                                          when:"Clean trend structure (≥55%) but key level NOT broken yet",
+                                          meaning:"The prior swing structure is strong and clear. The key structural level — last Higher Low or Lower High — has not been broken yet. This is a setup that is priming.",
+                                          action:"Set a price alert at the level. Do NOT enter yet. Wait for the structural break to confirm." },
                                     ].map(s => (
                                         <div key={s.grade} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: "10px", padding: "10px 14px" }}>
                                             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
@@ -2559,9 +2559,9 @@ function ReversalModal() {
                                     <p style={{ fontSize: "11px", fontWeight: "700", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Score Components</p>
                                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px" }}>
                                         {[
-                                            ["Exhaustion Score (35%)", "#D97706", "Price extension (35pts) + Prior R² (25pts) + RSI extreme (20pts) + Volume divergence (20pts)"],
-                                            ["Reversal Score (40%)", "#2563EB", "Reversal candle strength (45pts) + EMA cross (25pts) + RSI turning (20pts) + Volume ratio (10pts)"],
-                                            ["Freshness Score (25%)", "#15803D", "New-direction R² (60pts) + Days since turn (40pts — fresher = higher)"],
+                                            ["Structure Score (35%)", "#B45309", "Consistency of HH+HL or LH+LL swing sequence over the auto-selected 1H window (2–5 weeks). Higher = cleaner prior trend."],
+                                            ["Freshness Score (35%)", "#15803D", "How recent the structural break is. Decays to zero over 48 hours. A break <6h ago scores near-maximum."],
+                                            ["Swing Depth (20%)", "#2563EB", "How many confirmed pivot sequences the prior trend had. More swings = longer committed trend = more potent reversal."],
                                         ].map(([label, color, formula]) => (
                                             <div key={label}>
                                                 <div style={{ fontSize: "11px", fontWeight: "700", color, marginBottom: "4px" }}>{label}</div>
@@ -2602,9 +2602,13 @@ function ReversalModal() {
                                 {revResult && (() => {
                                     const d   = revResult;
                                     const cls = d.classification;
+                                    const maxClose = Math.max(...(d.recent_bars||[]).map(b=>b.close),1);
+                                    const minClose = Math.min(...(d.recent_bars||[]).map(b=>b.close),maxClose);
+                                    const closeRange = maxClose - minClose || 1;
                                     return (
                                         <div style={{ animation: "rev-fadeUp 0.2s ease" }}>
-                                            {/* Hero card */}
+
+                                            {/* ── Hero card ── */}
                                             <div style={{ background: cls.bg, border: `2px solid ${cls.border}`, borderRadius: "12px", padding: "16px", marginBottom: "14px" }}>
                                                 <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
                                                     <div style={{ flex: 1, minWidth: "200px" }}>
@@ -2612,37 +2616,39 @@ function ReversalModal() {
                                                             <span style={{ fontSize: "22px" }}>{cls.emoji}</span>
                                                             <span style={{ fontSize: "17px", fontWeight: "900", color: cls.color }}>{cls.grade}</span>
                                                             <span style={{ background: "#0F172A", color: "#fff", fontSize: "11px", fontWeight: "700", borderRadius: "20px", padding: "2px 10px" }}>{d.symbol}</span>
-                                                            <span style={{ background: dirBg(d.direction_label), color: dirColor(d.direction_label), border: `1px solid ${dirBorder(d.direction_label)}`, fontSize: "11px", fontWeight: "700", borderRadius: "20px", padding: "2px 10px" }}>
-                                                                {dirEmoji(d.direction_label)} {d.direction_label}
-                                                            </span>
-                                                            <span style={{ background: "#F1F5F9", color: "#475569", fontSize: "10px", fontWeight: "600", borderRadius: "4px", padding: "2px 7px" }}>{d.mc_tier}</span>
+                                                            {d.direction_label !== "N/A" && (
+                                                                <span style={{ background: dirBg(d.direction_label), color: dirColor(d.direction_label), border: `1px solid ${dirBorder(d.direction_label)}`, fontSize: "11px", fontWeight: "700", borderRadius: "20px", padding: "2px 10px" }}>
+                                                                    {dirEmoji(d.direction_label)} {d.direction_label}
+                                                                </span>
+                                                            )}
+                                                            <span style={{ background: "#FEF3C7", color: "#B45309", fontSize: "10px", fontWeight: "600", borderRadius: "4px", padding: "2px 7px" }}>{d.mc_tier}</span>
                                                         </div>
                                                         <p style={{ fontSize: "12px", color: "#475569", margin: 0, lineHeight: 1.65, maxWidth: "500px" }}>{cls.detail}</p>
                                                     </div>
-                                                    {/* Score cluster */}
-                                                    <div style={{ flexShrink: 0, minWidth: "140px" }}>
-                                                        <div style={{ textAlign: "center", marginBottom: "10px" }}>
-                                                            <div style={{ fontSize: "36px", fontWeight: "900", color: cls.color, lineHeight: 1 }}>{Math.round(d.combined_score)}</div>
-                                                            <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", textTransform: "uppercase" }}>Combined /100</div>
-                                                        </div>
-                                                        <ScoreBar label="Exhaustion" value={d.exhaustion_score} color="#D97706" />
-                                                        <ScoreBar label="Reversal"   value={d.reversal_score}   color="#2563EB" />
-                                                        <ScoreBar label="Freshness"  value={d.freshness_score}  color="#15803D" />
+                                                    {/* Setup score */}
+                                                    <div style={{ flexShrink: 0, textAlign: "center", minWidth: "80px" }}>
+                                                        <div style={{ fontSize: "38px", fontWeight: "900", color: cls.color, lineHeight: 1 }}>{Math.round(d.setup_score)}</div>
+                                                        <div style={{ fontSize: "10px", color: "#94A3B8", fontWeight: "700", textTransform: "uppercase" }}>Setup /100</div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Evidence grid */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+                                            {/* ── Structure + level panel ── */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "14px" }}>
+
                                                 {/* Prior trend */}
                                                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: "10px", padding: "12px 14px" }}>
-                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#C2410C", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Prior Trend</p>
+                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#C2410C", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>
+                                                        Price Structure (1H · {d.window_desc})
+                                                    </p>
                                                     {[
-                                                        ["Direction",       d.prior_direction,                                    d.prior_direction === "Bullish" ? "#15803D" : "#DC2626"],
-                                                        ["Trend R²",        `${Math.round(d.prior_r2 * 100)}%`,                   d.prior_r2 >= 0.6 ? "#15803D" : d.prior_r2 >= 0.35 ? "#D97706" : "#94A3B8"],
-                                                        ["Price Extension", `${d.price_extension_sd.toFixed(1)} σ`,               d.price_extension_sd >= 2 ? "#DC2626" : d.price_extension_sd >= 1 ? "#D97706" : "#94A3B8"],
-                                                        ["RSI at Peak",     `${d.rsi_at_peak.toFixed(0)}`,                        d.rsi_at_peak >= 70 || d.rsi_at_peak <= 30 ? "#DC2626" : "#94A3B8"],
-                                                        ["Vol Divergence",  d.volume_divergence ? "Yes ⚠ Fading" : "No — Stable", d.volume_divergence ? "#DC2626" : "#15803D"],
+                                                        ["Trend",            d.prior_trend,
+                                                            d.prior_trend === "Uptrend" ? "#15803D" : d.prior_trend === "Downtrend" ? "#DC2626" : "#94A3B8"],
+                                                        ["Structure Score",  `${Math.round(d.structure_score * 100)}%`,
+                                                            d.structure_score >= 0.6 ? "#15803D" : d.structure_score >= 0.35 ? "#D97706" : "#94A3B8"],
+                                                        ["Swing Highs",      `${d.n_swing_highs} pivots`,        "#475569"],
+                                                        ["Swing Lows",       `${d.n_swing_lows} pivots`,         "#475569"],
+                                                        ["ATR (1H)",         `$${d.atr?.toFixed(2) ?? "—"}`,     "#94A3B8"],
                                                     ].map(([k, v, c]) => (
                                                         <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "baseline" }}>
                                                             <span style={{ fontSize: "11px", color: "#78716C" }}>{k}</span>
@@ -2651,15 +2657,18 @@ function ReversalModal() {
                                                     ))}
                                                 </div>
 
-                                                {/* Reversal evidence */}
+                                                {/* Structural break */}
                                                 <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "10px", padding: "12px 14px" }}>
-                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>Reversal Evidence</p>
+                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#1D4ED8", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 10px" }}>
+                                                        Structural Break
+                                                    </p>
                                                     {[
-                                                        ["EMA Cross",      d.ema_cross ? "✓ Confirmed" : "✗ Not yet",                                d.ema_cross ? "#15803D" : "#94A3B8"],
-                                                        ["Reversal Candle",d.reversal_candle ? `✓ Strength ${Math.round(d.reversal_candle_str*100)}%` : "✗ Not seen", d.reversal_candle ? "#15803D" : "#94A3B8"],
-                                                        ["Rev Vol Ratio",  d.reversal_vol_ratio > 0 ? `${d.reversal_vol_ratio.toFixed(1)}x avg` : "—", d.reversal_vol_ratio >= 1.5 ? "#15803D" : "#94A3B8"],
-                                                        ["RSI Reversing",  d.rsi_reversing ? `✓ RSI ${d.current_rsi.toFixed(0)}` : `✗ RSI ${d.current_rsi.toFixed(0)}`, d.rsi_reversing ? "#15803D" : "#94A3B8"],
-                                                        ["Days Since Turn",d.days_since_turn === 0 ? "Today / <1d" : `${d.days_since_turn}d ago`,     d.days_since_turn <= 2 ? "#15803D" : d.days_since_turn <= 5 ? "#D97706" : "#94A3B8"],
+                                                        ["Key Level Type",   d.level_type,                                                    "#475569"],
+                                                        ["Level Price",      d.level_price != null ? `$${d.level_price.toFixed(2)}` : "—",    "#0F172A"],
+                                                        ["Broken?",          d.is_broken ? "✓ Yes — broken" : "✗ Not yet",                   d.is_broken ? "#15803D" : "#94A3B8"],
+                                                        ["Break Distance",   d.is_broken ? `${d.break_pct.toFixed(2)}% through` : "—",        d.break_pct > 1 ? "#15803D" : "#D97706"],
+                                                        ["Hours Since Break",d.is_broken ? (d.hours_since_break === 0 ? "< 1h ago 🔥" : `${d.hours_since_break}h ago`) : "—",
+                                                            d.hours_since_break <= 6 ? "#15803D" : d.hours_since_break <= 24 ? "#D97706" : "#94A3B8"],
                                                     ].map(([k, v, c]) => (
                                                         <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "baseline" }}>
                                                             <span style={{ fontSize: "11px", color: "#64748B" }}>{k}</span>
@@ -2669,45 +2678,57 @@ function ReversalModal() {
                                                 </div>
                                             </div>
 
-                                            {/* New trend + mini bars */}
-                                            <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: "10px", padding: "12px 14px", marginBottom: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-                                                <div>
-                                                    <p style={{ fontSize: "10px", fontWeight: "700", color: "#15803D", textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 6px" }}>New Trend (last 10 days)</p>
-                                                    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                                                        <span style={{ fontSize: "12px", color: "#374151" }}>Direction: <strong style={{ color: d.new_direction === "Bullish" ? "#15803D" : "#DC2626" }}>{d.new_direction}</strong></span>
-                                                        <span style={{ fontSize: "12px", color: "#374151" }}>New R²: <strong style={{ color: d.new_r2 >= 0.4 ? "#15803D" : "#D97706" }}>{Math.round(d.new_r2 * 100)}%</strong></span>
-                                                        <span style={{ fontSize: "12px", color: "#374151" }}>Correct: <strong style={{ color: d.correct_reversal ? "#15803D" : "#DC2626" }}>{d.correct_reversal ? "Yes ✓" : "Not yet ✗"}</strong></span>
-                                                    </div>
+                                            {/* ── Recent 48-bar 1H price strip ── */}
+                                            <div style={{ background: "#0F172A", borderRadius: "10px", padding: "12px 14px", marginBottom: "14px", border: "1px solid #1E293B" }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
+                                                    <span style={{ fontSize: "10px", color: "#64748B", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                        Recent 48-bar 1H Price Action
+                                                    </span>
+                                                    {d.level_price && (
+                                                        <span style={{ fontSize: "10px", color: d.is_broken ? "#22C55E" : "#F59E0B", fontWeight: "700" }}>
+                                                            Key level: ${d.level_price.toFixed(2)} {d.is_broken ? "✓ broken" : "⚠ not broken"}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                {/* 20-bar recent price strip */}
-                                                <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: "32px" }}>
-                                                    {(d.recent_bars || []).map((b, i) => {
-                                                        const maxRat = Math.max(...d.recent_bars.map(x => x.vol_rat), 1);
-                                                        const h = Math.max(4, Math.round((b.vol_rat / maxRat) * 32));
+                                                <div style={{ display: "flex", alignItems: "flex-end", gap: "2px", height: "52px", position: "relative" }}>
+                                                    {/* Level line */}
+                                                    {d.level_price && (() => {
+                                                        const pct = Math.max(0, Math.min(1, (d.level_price - minClose) / closeRange));
+                                                        const bottom = Math.round(pct * 52);
                                                         return (
-                                                            <div key={i} title={`RSI: ${b.rsi} | Vol: ${b.vol_rat}x`}
-                                                                style={{ flex: 1, height: `${h}px`, background: b.is_up ? "#22C55E" : "#EF4444", borderRadius: "1px 1px 0 0", opacity: 0.8 }} />
+                                                            <div style={{ position: "absolute", left: 0, right: 0, bottom: `${bottom}px`, height: "1px", background: d.is_broken ? "#22C55E" : "#F59E0B", zIndex: 2, opacity: 0.8 }} />
+                                                        );
+                                                    })()}
+                                                    {(d.recent_bars || []).map((b, i) => {
+                                                        const h = Math.max(3, Math.round(((b.close - minClose) / closeRange) * 52));
+                                                        return (
+                                                            <div key={i} style={{ flex: 1, height: `${h}px`, background: b.is_up ? "#22C55E" : "#EF4444", borderRadius: "1px 1px 0 0", opacity: 0.85, zIndex: 1 }} />
                                                         );
                                                     })}
                                                 </div>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "5px" }}>
+                                                    <span style={{ fontSize: "9px", color: "#475569" }}>48h ago</span>
+                                                    <span style={{ fontSize: "9px", color: "#475569" }}>Now</span>
+                                                </div>
                                             </div>
 
-                                            {/* Chart toggle */}
-                                            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+                                            {/* ── Chart toggle ── */}
+                                            <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
                                                 <button onClick={() => setRevChartOpen(o => !o)}
                                                     style={{ background: revChartOpen ? "#B45309" : "#FFFBEB", color: revChartOpen ? "#fff" : "#B45309", border: "1px solid #FDE68A", borderRadius: "8px", padding: "7px 16px", fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "all 0.15s" }}>
-                                                    {revChartOpen ? "Hide Chart ↑" : "📈 Show Chart ↓"}
+                                                    {revChartOpen ? "Hide Chart ↑" : "📈 Show 1H Chart ↓"}
                                                 </button>
+                                                <span style={{ fontSize: "11px", color: "#94A3B8", alignSelf: "center" }}>Tip: open 1H timeframe to see swing structure visually</span>
                                             </div>
                                             {revChartOpen && (
                                                 <div style={{ marginBottom: "14px", animation: "rev-fadeUp 0.15s ease" }}>
                                                     <TradingViewChart
                                                         key={`rev-single-${d.symbol}`}
                                                         symbol={d.symbol}
-                                                        theme="light"
+                                                        theme="dark"
                                                         chartType="candle"
-                                                        interval="1d"
-                                                        height={320}
+                                                        interval="60m"
+                                                        height={340}
                                                         fullscreenable={true}
                                                     />
                                                 </div>
@@ -2775,10 +2796,10 @@ function ReversalModal() {
                                         {/* Filters */}
                                         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "10px", alignItems: "center" }}>
                                             {/* Grade chips */}
-                                            {["All","Prime Reversal","Strong Signal","Watch Closely","Exhaustion Only"].map(g => {
+                                            {["All","Prime Setup","Strong Signal","Watch Closely","Pre-Break Alert"].map(g => {
                                                 const count = g === "All" ? revFiltered.length : revBulk.filter(s => s.classification?.grade === g).length;
                                                 const isActive = revFilterGrade === g;
-                                                const gradeColors = { "Prime Reversal": ["#15803D","#DCFCE7","#86EFAC"], "Strong Signal": ["#2563EB","#DBEAFE","#93C5FD"], "Watch Closely": ["#D97706","#FEF9C3","#FDE047"], "Exhaustion Only": ["#7C3AED","#EDE9FE","#C4B5FD"] };
+                                                const gradeColors = { "Prime Setup": ["#15803D","#DCFCE7","#86EFAC"], "Strong Signal": ["#2563EB","#DBEAFE","#93C5FD"], "Watch Closely": ["#D97706","#FEF9C3","#FDE047"], "Pre-Break Alert": ["#7C3AED","#EDE9FE","#C4B5FD"] };
                                                 const [tc, bg, bc] = gradeColors[g] || ["#475569","#F8FAFC","#E2E8F0"];
                                                 return (
                                                     <button key={g} onClick={() => setRevFilterGrade(isActive && g !== "All" ? "All" : g)}
@@ -2818,7 +2839,7 @@ function ReversalModal() {
                                         {/* Sort bar */}
                                         <div style={{ display: "flex", gap: "4px", marginBottom: "8px", alignItems: "center" }}>
                                             <span style={{ fontSize: "11px", color: "#94A3B8", whiteSpace: "nowrap" }}>Sort:</span>
-                                            {[["combined_score","🎯 Score"],["exhaustion_score","📉 Exhaust"],["reversal_score","⚡ Reversal"],["freshness_score","🌱 Fresh"]].map(([key, label]) => (
+                                            {[["setup_score","🎯 Score"],["structure_score","📐 Structure"],["hours_since_break","⏱ Freshest"],["break_pct","📍 Break %"]].map(([key, label]) => (
                                                 <button key={key} onClick={() => setRevSortBy(key)}
                                                     style={{ background: revSortBy === key ? "#B45309" : "#fff", color: revSortBy === key ? "#fff" : "#B45309", border: `1px solid ${revSortBy === key ? "#B45309" : "#FDE68A"}`, borderRadius: "6px", padding: "4px 9px", fontSize: "11px", fontWeight: "600", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s" }}>
                                                     {label}
@@ -2858,9 +2879,9 @@ function ReversalModal() {
                                                                 </div>
 
                                                                 {/* Direction pill */}
-                                                                <div style={{ background: dirBg(stock.direction_label), border: `1px solid ${dirBorder(stock.direction_label)}`, borderRadius: "20px", padding: "2px 7px", textAlign: "center" }}>
-                                                                    <span style={{ fontSize: "10px", fontWeight: "700", color: dirColor(stock.direction_label), whiteSpace: "nowrap" }}>
-                                                                        {dirEmoji(stock.direction_label)} {stock.direction_label}
+                                                                <div style={{ background: stock.direction_label === "N/A" ? "#F1F5F9" : dirBg(stock.direction_label), border: `1px solid ${stock.direction_label === "N/A" ? "#E2E8F0" : dirBorder(stock.direction_label)}`, borderRadius: "20px", padding: "2px 6px", textAlign: "center" }}>
+                                                                    <span style={{ fontSize: "9px", fontWeight: "700", color: stock.direction_label === "N/A" ? "#94A3B8" : dirColor(stock.direction_label), whiteSpace: "nowrap" }}>
+                                                                        {stock.direction_label === "N/A" ? "—" : <>{dirEmoji(stock.direction_label)} {stock.direction_label}</>}
                                                                     </span>
                                                                 </div>
 
@@ -2870,24 +2891,24 @@ function ReversalModal() {
                                                                     <span style={{ fontSize: "10px", fontWeight: "600", color: cls.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cls.grade}</span>
                                                                 </div>
 
-                                                                {/* Exhaustion */}
-                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.exhaustion_score >= 65 ? "#DC2626" : stock.exhaustion_score >= 40 ? "#D97706" : "#94A3B8" }}>
-                                                                    {Math.round(stock.exhaustion_score)}
+                                                                {/* Structure score % */}
+                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.structure_score >= 0.6 ? "#15803D" : stock.structure_score >= 0.35 ? "#D97706" : "#94A3B8" }}>
+                                                                    {Math.round((stock.structure_score || 0) * 100)}%
                                                                 </span>
 
-                                                                {/* Reversal */}
-                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.reversal_score >= 65 ? "#15803D" : stock.reversal_score >= 40 ? "#2563EB" : "#94A3B8" }}>
-                                                                    {Math.round(stock.reversal_score)}
+                                                                {/* Hours since break */}
+                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: !stock.is_broken ? "#94A3B8" : stock.hours_since_break <= 6 ? "#15803D" : stock.hours_since_break <= 24 ? "#D97706" : "#EF4444" }}>
+                                                                    {stock.is_broken ? (stock.hours_since_break === 0 ? "<1h 🔥" : `${stock.hours_since_break}h`) : "—"}
                                                                 </span>
 
-                                                                {/* Freshness */}
-                                                                <span style={{ fontSize: "11px", fontWeight: "700", color: stock.freshness_score >= 55 ? "#15803D" : stock.freshness_score >= 30 ? "#D97706" : "#94A3B8" }}>
-                                                                    {Math.round(stock.freshness_score)}
+                                                                {/* Level price */}
+                                                                <span style={{ fontSize: "10px", fontWeight: "700", color: stock.is_broken ? "#15803D" : "#94A3B8" }}>
+                                                                    {stock.level_price != null ? `$${stock.level_price.toFixed(2)}` : "—"}
                                                                 </span>
 
-                                                                {/* Combined score pill */}
+                                                                {/* Setup score pill */}
                                                                 <div style={{ background: cls.bg || "#F1F5F9", border: `1px solid ${cls.border || "#E2E8F0"}`, borderRadius: "20px", padding: "2px 6px", textAlign: "center" }}>
-                                                                    <span style={{ fontSize: "12px", fontWeight: "900", color: cls.color || "#475569" }}>{Math.round(stock.combined_score)}</span>
+                                                                    <span style={{ fontSize: "12px", fontWeight: "900", color: cls.color || "#475569" }}>{Math.round(stock.setup_score || 0)}</span>
                                                                 </div>
 
                                                                 {/* Chart toggle btn */}
@@ -2913,22 +2934,31 @@ function ReversalModal() {
                                                                             <span style={{ fontSize: "12px" }}>{cls.emoji}</span>
                                                                             <span style={{ fontSize: "11px", fontWeight: "700", color: cls.color }}>{cls.grade}</span>
                                                                         </div>
+                                                                        {stock.direction_label !== "N/A" && (
+                                                                            <span style={{ fontSize: "11px", fontWeight: "700", color: dirColor(stock.direction_label) }}>
+                                                                                {dirEmoji(stock.direction_label)} {stock.direction_label}
+                                                                            </span>
+                                                                        )}
                                                                         <span style={{ fontSize: "11px", color: "#64748B" }}>
-                                                                            Exhaustion <strong style={{ color: "#D97706" }}>{Math.round(stock.exhaustion_score)}</strong>
+                                                                            Structure <strong style={{ color: "#B45309" }}>{Math.round((stock.structure_score||0)*100)}%</strong>
                                                                         </span>
-                                                                        <span style={{ fontSize: "11px", color: "#64748B" }}>
-                                                                            Reversal <strong style={{ color: "#2563EB" }}>{Math.round(stock.reversal_score)}</strong>
-                                                                        </span>
-                                                                        <span style={{ fontSize: "11px", color: "#64748B" }}>
-                                                                            {dirEmoji(stock.direction_label)} {stock.direction_label}
-                                                                        </span>
+                                                                        {stock.is_broken && (
+                                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>
+                                                                                Broke <strong style={{ color: stock.hours_since_break <= 6 ? "#15803D" : "#D97706" }}>{stock.hours_since_break}h ago</strong>
+                                                                            </span>
+                                                                        )}
+                                                                        {stock.level_price && (
+                                                                            <span style={{ fontSize: "11px", color: "#64748B" }}>
+                                                                                Level <strong>${stock.level_price.toFixed(2)}</strong>
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                     <TradingViewChart
                                                                         key={`rev-bulk-${stock.symbol}`}
                                                                         symbol={stock.symbol}
-                                                                        theme="light"
+                                                                        theme="dark"
                                                                         chartType="candle"
-                                                                        interval="1d"
+                                                                        interval="60m"
                                                                         height={280}
                                                                         fullscreenable={true}
                                                                         onClose={() => setRevChartRows(p => ({ ...p, [stock.symbol]: false }))}
@@ -2985,10 +3015,10 @@ function ReversalModal() {
 
                                             {/* Footer */}
                                             <div style={{ padding: "8px 14px", background: "#FFF7ED", borderTop: "1px solid #FDE68A", display: "flex", gap: "16px", flexWrap: "wrap" }}>
-                                                {["Prime Reversal","Strong Signal","Watch Closely","Exhaustion Only"].map(g => {
+                                                {["Prime Setup","Strong Signal","Watch Closely","Pre-Break Alert"].map(g => {
                                                     const count = (revBulk || []).filter(s => s.classification?.grade === g).length;
-                                                    const gradeColors = { "Prime Reversal": "#15803D", "Strong Signal": "#2563EB", "Watch Closely": "#D97706", "Exhaustion Only": "#7C3AED" };
-                                                    const gradeEmojis = { "Prime Reversal": "🎯", "Strong Signal": "⚡", "Watch Closely": "👀", "Exhaustion Only": "⏳" };
+                                                    const gradeColors = { "Prime Setup": "#15803D", "Strong Signal": "#2563EB", "Watch Closely": "#D97706", "Pre-Break Alert": "#7C3AED" };
+                                                    const gradeEmojis = { "Prime Setup": "🎯", "Strong Signal": "⚡", "Watch Closely": "👀", "Pre-Break Alert": "⏳" };
                                                     return count > 0 ? (
                                                         <span key={g} style={{ fontSize: "11px", color: gradeColors[g], fontWeight: "600" }}>
                                                             {gradeEmojis[g]} {g}: <strong>{count}</strong>
