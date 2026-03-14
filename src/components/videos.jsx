@@ -440,7 +440,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,maxHeight:'94vh',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,width:'100%',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
 
         {/* ── HEADER ── */}
         <div style={{flexShrink:0}}>
@@ -469,8 +469,8 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
           </div>
         </div>
 
-        {/* ── PLAYER — fills remaining viewport height ── */}
-        <div style={{flex:'1 1 0',minHeight:0,background:'#000'}}>
+        {/* ── PLAYER — true 16:9 via aspect-ratio ── */}
+        <div style={{width:'100%',aspectRatio:'16/9',background:'#000',flexShrink:0}}>
           <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&enablejsapi=1`}
             title={video.video_title} frameBorder="0" style={{width:'100%',height:'100%',display:'block'}}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
@@ -523,7 +523,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-export default function SnowAIStream() {
+export default function SnowAIVideos() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
