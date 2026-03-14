@@ -113,10 +113,28 @@ const igShortcode = url => {
 
 // Direct Instagram embed iframe — uses instagram.com/p/{code}/embed/
 // This is what every third-party site uses; works for public posts & reels without any JS/auth
-const InstaEmbed = ({url}) => {
+const InstaEmbed = ({url, loop=false}) => {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const iframeRef = useRef(null);
   const code = igShortcode(url);
+
+  // Loop: listen for Instagram's videoEnded postMessage then reload iframe
+  useEffect(() => {
+    if (!loop) return;
+    const handler = e => {
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (data?.type === 'videoEnded' || data?.event === 'videoEnded') {
+          setLoaded(false);
+          setReloadKey(k => k + 1);
+        }
+      } catch {}
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [loop]);
 
   if (!code) return (
     <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:160}}>
@@ -133,7 +151,7 @@ const InstaEmbed = ({url}) => {
       {!loaded && !errored && (
         <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,background:'linear-gradient(135deg,#1a1a2e,#0f3460)',zIndex:1,minHeight:340}}>
           <Spinner sz={28} c="#fff"/>
-          <span style={{color:'rgba(255,255,255,.55)',fontFamily:T.body,fontSize:12}}>Loading post…</span>
+          <span style={{color:'rgba(255,255,255,.55)',fontFamily:T.body,fontSize:12}}>Loading{loop?' & looping':''}…</span>
         </div>
       )}
       {errored ? (
@@ -144,6 +162,8 @@ const InstaEmbed = ({url}) => {
         </div>
       ) : (
         <iframe
+          key={reloadKey}
+          ref={iframeRef}
           src={embedUrl}
           style={{width:'100%',minHeight:560,border:'none',display:'block',background:'#fff'}}
           scrolling="no"
@@ -161,24 +181,56 @@ const InstaEmbed = ({url}) => {
 
 const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   if(!post)return null;
+  const isReelPost = isReel(post.post_url);
   return(
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.92)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:520,borderRadius:20,overflow:'hidden',boxShadow:'0 24px 80px rgba(0,0,0,.7)',background:'#000',marginTop:'auto',marginBottom:'auto'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'rgba(0,0,0,.85)',backdropFilter:'blur(8px)'}}>
-          <div style={{display:'flex',alignItems:'center',gap:9}}>
-            <div style={{width:32,height:32,borderRadius:'50%',background:IG,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>{post.profile_pic?<img src={post.profile_pic} style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}} alt=""/>:'👤'}</div>
-            <div>
-              <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13}}>{post.account_handle?`@${post.account_handle}`:post.title}</div>
-              <div style={{color:'rgba(255,255,255,.5)',fontFamily:T.body,fontSize:11}}>{post.is_reel?'Reel':'Post'} · {fmtDate(post.date_added)}</div>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:520,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',marginTop:'auto',marginBottom:'auto'}}>
+
+        {/* ── FIRE HEADER ── */}
+        <div style={{position:'relative',background:'#0a0a0a',padding:'0',overflow:'hidden'}}>
+          {/* gradient bar across top */}
+          <div style={{height:3,background:IG,width:'100%'}}/>
+          <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            {/* Left: branding + post info */}
+            <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+              {/* SnowAI logo pill */}
+              <div style={{flexShrink:0,background:IG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5}}>
+                <span style={{fontSize:13}}>❄️</span>
+                <span style={{fontFamily:T.font,fontWeight:800,fontSize:11,color:'#fff',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI Instagram</span>
+              </div>
+              {/* post handle / title */}
+              <div style={{minWidth:0}}>
+                <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {post.account_handle ? `@${post.account_handle}` : post.title}
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:5,marginTop:1}}>
+                  <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:isReelPost?'#fd1d1d':'#833ab4',flexShrink:0}}/>
+                  <span style={{color:'rgba(255,255,255,.45)',fontFamily:T.body,fontSize:10}}>{isReelPost?'Reel':'Post'} · {fmtDate(post.date_added)} · 🔁 Looping</span>
+                </div>
+              </div>
             </div>
+            {/* Close */}
+            <button onClick={onClose} style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'background .15s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.2)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
           </div>
-          <button onClick={onClose} style={{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
-        <div style={{background:'#000'}}><InstaEmbed url={post.post_url}/></div>
-        <div style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'rgba(0,0,0,.85)'}}>
+
+        {/* ── EMBED ── */}
+        <div style={{background:'#000'}}>
+          <InstaEmbed url={post.post_url} loop={isReelPost}/>
+        </div>
+
+        {/* ── NAV ── */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
           {[['← Prev',onPrev,hasPrev],['Next →',onNext,hasNext]].map(([lbl,fn,en])=>(
-            <button key={lbl} onClick={fn} disabled={!en} style={{background:'rgba(255,255,255,.1)',border:'none',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,opacity:en?1:.35}}>{lbl}</button>
+            <button key={lbl} onClick={fn} disabled={!en} style={{background:en?'rgba(255,255,255,.08)':'transparent',border:`1px solid ${en?'rgba(255,255,255,.15)':'rgba(255,255,255,.04)'}`,color:en?'#fff':'rgba(255,255,255,.2)',padding:'7px 20px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,transition:'all .15s'}}
+              onMouseEnter={e=>{if(en)e.currentTarget.style.background='rgba(255,255,255,.14)';}}
+              onMouseLeave={e=>{if(en)e.currentTarget.style.background='rgba(255,255,255,.08)';}}
+            >{lbl}</button>
           ))}
+          {/* centre watermark */}
+          <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:IG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
         </div>
       </div>
     </div>
