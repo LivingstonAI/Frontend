@@ -104,55 +104,56 @@ const StoryRing = ({label,url,onClick,active}) => (
 );
 
 // Instagram oEmbed viewer — uses Instagram official API, no auth needed for public posts
+// Extract Instagram shortcode from any post/reel/tv URL
+const igShortcode = url => {
+  if (!url) return null;
+  const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+  return m ? m[1] : null;
+};
+
+// Direct Instagram embed iframe — uses instagram.com/p/{code}/embed/
+// This is what every third-party site uses; works for public posts & reels without any JS/auth
 const InstaEmbed = ({url}) => {
-  const [html,setHtml]=useState('');
-  const [loading,setLoading]=useState(true);
-  const [err,setErr]=useState('');
-  const ref=useRef(null);
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  const code = igShortcode(url);
 
-  useEffect(()=>{
-    if(!url)return;
-    setLoading(true);setErr('');setHtml('');
-    const enc=encodeURIComponent(url);
-    fetch(`https://api.instagram.com/oembed/?url=${enc}&omitscript=true&maxwidth=500`)
-      .then(r=>r.ok?r.json():Promise.reject(r.status))
-      .then(d=>{setHtml(d.html||'');setLoading(false);})
-      .catch(()=>{
-        fetch(`https://graph.facebook.com/v18.0/instagram_oembed?url=${enc}&omitscript=true&maxwidth=500`)
-          .then(r=>r.ok?r.json():Promise.reject(r.status))
-          .then(d=>{setHtml(d.html||'');setLoading(false);})
-          .catch(()=>{setErr('Could not load — post may be private or login-required.');setLoading(false);});
-      });
-  },[url]);
-
-  useEffect(()=>{
-    if(!html||!ref.current)return;
-    ref.current.innerHTML=html;
-    if(window.instgrm){window.instgrm.Embeds.process();}
-    else{
-      const sc=document.createElement('script');sc.src='https://www.instagram.com/embed.js';sc.async=true;
-      sc.onload=()=>window.instgrm?.Embeds.process();document.body.appendChild(sc);
-    }
-  },[html]);
-
-  if(loading)return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,padding:'40px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,minHeight:260}}>
-      <Spinner sz={32} c="#fff"/>
-      <span style={{color:'rgba(255,255,255,.6)',fontFamily:T.body,fontSize:13}}>Loading Instagram embed…</span>
-    </div>
-  );
-  if(err)return(
-    <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,textAlign:'center',minHeight:180,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:14}}>
-      <div style={{fontSize:36}}>🔒</div>
-      <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0,lineHeight:1.5,maxWidth:280}}>{err}</p>
+  if (!code) return (
+    <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:160}}>
+      <div style={{fontSize:32}}>🔗</div>
+      <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0}}>Could not parse shortcode from this URL.</p>
       <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
     </div>
   );
-  return(
-    <div style={{borderRadius:T.r,overflow:'hidden',background:'#fafafa'}}>
-      <div ref={ref}/>
-      <div style={{padding:'10px 14px',background:'#fafafa',borderTop:`1px solid ${T.borderLight}`}}>
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{display:'block',textAlign:'center',padding:'9px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open on Instagram ↗</a>
+
+  const embedUrl = `https://www.instagram.com/p/${code}/embed/`;
+
+  return (
+    <div style={{borderRadius:T.r,overflow:'hidden',background:'#000',position:'relative'}}>
+      {!loaded && !errored && (
+        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,background:'linear-gradient(135deg,#1a1a2e,#0f3460)',zIndex:1,minHeight:340}}>
+          <Spinner sz={28} c="#fff"/>
+          <span style={{color:'rgba(255,255,255,.55)',fontFamily:T.body,fontSize:12}}>Loading post…</span>
+        </div>
+      )}
+      {errored ? (
+        <div style={{padding:'28px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:13,minHeight:200}}>
+          <div style={{fontSize:34}}>🔒</div>
+          <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0,lineHeight:1.5,maxWidth:260}}>Post may be private or login-required.</p>
+          <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
+        </div>
+      ) : (
+        <iframe
+          src={embedUrl}
+          style={{width:'100%',minHeight:560,border:'none',display:'block',background:'#fff'}}
+          scrolling="no"
+          allowTransparency="true"
+          onLoad={()=>setLoaded(true)}
+          onError={()=>{setLoaded(true);setErrored(true);}}
+        />
+      )}
+      <div style={{padding:'9px 14px',background:'#111',borderTop:'1px solid #222'}}>
+        <a href={url} target="_blank" rel="noopener noreferrer" style={{display:'block',textAlign:'center',padding:'8px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open on Instagram ↗</a>
       </div>
     </div>
   );
@@ -424,7 +425,35 @@ const IgCard = ({post,index,onPlay,onEdit,onDelete}) => {
   );
 };
 
-export default function SnowAIVideos() {
+const YtNowPlaying = ({video, embedId, onClose}) => {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="sas-in" style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'10px 12px',marginBottom:14,boxShadow:T.sh}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+          <Badge label="▶ NOW PLAYING" bg="#dc2626" color="#fff"/>
+          <span style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{video.video_title}</span>
+        </div>
+        <div style={{display:'flex',gap:6,flexShrink:0}}>
+          <button onClick={()=>setExpanded(e=>!e)} style={{background:T.accentPale,border:'none',color:T.accent,padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>{expanded?'⬆ Compact':'⬇ Expand'}</button>
+          <button onClick={onClose} style={{background:'#fef2f2',border:'none',color:T.danger,width:24,height:24,borderRadius:'50%',cursor:'pointer',fontSize:14}}>×</button>
+        </div>
+      </div>
+      {expanded ? (
+        <div className="sas-player-ratio">
+          <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1`} title={video.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+        </div>
+      ) : (
+        <div style={{width:'100%',height:196,borderRadius:8,overflow:'hidden',background:'#000'}}>
+          <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1`} title={video.video_title} frameBorder="0" style={{width:'100%',height:'100%'}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+        </div>
+      )}
+      {video.notes&&<div style={{marginTop:8,padding:'7px 10px',background:T.surfaceAlt,borderRadius:T.rs,fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.6}}><strong>Notes:</strong> {video.notes}</div>}
+    </div>
+  );
+};
+
+export default function SnowAIVidoes() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
@@ -547,21 +576,7 @@ export default function SnowAIVideos() {
                 </div>
               )}
 
-              {!activePL&&ytPlaying&&ytEmbedId&&(
-                <SC className="sas-in" style={{marginBottom:14}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:9,flexWrap:'wrap',gap:8}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
-                      <Badge label="▶ NOW PLAYING" bg="#dc2626" color="#fff"/>
-                      <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ytPlaying.video_title}</span>
-                    </div>
-                    <button onClick={()=>setYtPlaying(null)} style={{background:'#fef2f2',border:'none',color:T.danger,width:26,height:26,borderRadius:'50%',cursor:'pointer',fontSize:15,flexShrink:0}}>×</button>
-                  </div>
-                  <div className="sas-player-ratio">
-                    <iframe src={`https://www.youtube.com/embed/${ytEmbedId}?autoplay=1`} title={ytPlaying.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
-                  </div>
-                  {ytPlaying.notes&&<div style={{marginTop:9,padding:'8px 12px',background:T.surfaceAlt,borderRadius:T.rs,fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.6}}><strong>Notes:</strong> {ytPlaying.notes}</div>}
-                </SC>
-              )}
+              {!activePL&&ytPlaying&&ytEmbedId&&<YtNowPlaying video={ytPlaying} embedId={ytEmbedId} onClose={()=>setYtPlaying(null)}/>}
 
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
