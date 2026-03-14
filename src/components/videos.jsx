@@ -439,11 +439,11 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:700,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,maxHeight:'94vh',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
 
         {/* ── HEADER ── */}
-        <div style={{position:'relative',overflow:'hidden'}}>
+        <div style={{flexShrink:0}}>
           <div style={{height:3,background:YTG,width:'100%'}}/>
           <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
             <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
@@ -469,23 +469,23 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
           </div>
         </div>
 
-        {/* ── PLAYER — true 16:9 ── */}
-        <div className="sas-player-ratio" style={{borderRadius:0}}>
+        {/* ── PLAYER — fills remaining viewport height ── */}
+        <div style={{flex:'1 1 0',minHeight:0,background:'#000'}}>
           <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&enablejsapi=1`}
-            title={video.video_title} frameBorder="0"
+            title={video.video_title} frameBorder="0" style={{width:'100%',height:'100%',display:'block'}}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
         </div>
 
         {/* ── NOTES ── */}
         {video.notes && (
-          <div style={{padding:'10px 16px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
+          <div style={{flexShrink:0,padding:'8px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
             <span style={{fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.5)',lineHeight:1.6}}><strong style={{color:'rgba(255,255,255,.7)'}}>Notes:</strong> {video.notes}</span>
           </div>
         )}
 
         {/* ── PLAYLIST CONTROLS (if active) ── */}
         {hasPl && (
-          <div style={{borderTop:'1px solid rgba(255,255,255,.07)'}}>
+          <div style={{flexShrink:0,borderTop:'1px solid rgba(255,255,255,.07)'}}>
             {/* prev / loop / next */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',gap:8}}>
               <button onClick={onPlPrev} disabled={plIdx===0&&!loopPl} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,opacity:(plIdx===0&&!loopPl)?.35:1}}>← Prev</button>
