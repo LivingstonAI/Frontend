@@ -373,42 +373,7 @@ const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
   );
 };
 
-const PlaylistPlayer = ({playlist,onClose,onDelete,onUpdatePlaylist}) => {
-  const [idx,setIdx]=useState(0);
-  const [loop,setLoop]=useState(true);
-  const current=playlist.queue[idx];
-  const eid=current?(current.youtube_embed_id||ytId(current.video_url)):null;
-  const next=useCallback(()=>setIdx(i=>i<playlist.queue.length-1?i+1:loop?0:i),[loop,playlist.queue.length]);
-  const prev=()=>setIdx(i=>i>0?i-1:loop?playlist.queue.length-1:0);
-  return(
-    <div style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'14px 14px',marginBottom:16,boxShadow:T.shm}} className="sas-in">
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10,flexWrap:'wrap',gap:8}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
-          <Badge label="▶ PLAYLIST" bg={AG} color="#fff"/>
-          <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{playlist.name}</span>
-          <span style={{fontFamily:T.body,fontSize:12,color:T.textMut,flexShrink:0}}>({idx+1}/{playlist.queue.length})</span>
-        </div>
-        <div style={{display:'flex',gap:7,flexShrink:0}}>
-          <button onClick={()=>setLoop(l=>!l)} style={{background:loop?T.accentPale:'transparent',border:`1.5px solid ${loop?T.accent:T.border}`,color:loop?T.accent:T.textMut,borderRadius:T.rs,padding:'5px 10px',cursor:'pointer',fontFamily:T.body,fontSize:12,fontWeight:600}}>🔁 {loop?'On':'Off'}</button>
-          <Btn onClick={onDelete} style={{padding:'5px 9px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
-          <Btn onClick={onClose} style={{padding:'5px 9px',background:T.surfaceAlt,color:T.textSec,fontSize:12}}>✕</Btn>
-        </div>
-      </div>
-      {eid&&<div className="sas-player-ratio" style={{marginBottom:10}}><iframe src={`https://www.youtube.com/embed/${eid}?autoplay=1&enablejsapi=1`} title={current.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/></div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,gap:8,flexWrap:'wrap'}}>
-        <Btn onClick={prev} style={{padding:'7px 16px',background:T.accentPale,color:T.accent}}>← Prev</Btn>
-        <div style={{fontFamily:T.body,fontSize:12,color:T.text,flex:1,textAlign:'center',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{current?.video_title}</div>
-        <Btn onClick={next} style={{padding:'7px 16px',background:AG,color:'#fff'}}>Next →</Btn>
-      </div>
-      <div style={{border:`1px solid ${T.borderLight}`,borderRadius:T.rs,overflow:'hidden'}}>
-        <div style={{maxHeight:150,overflowY:'auto'}} className="sas-scroll">
-          {playlist.queue.map((v,i)=>{const vid=v.youtube_embed_id||ytId(v.video_url);return(
-            <div key={(v._qid||v.id)+'_'+i} onClick={()=>setIdx(i)} style={{display:'flex',alignItems:'center',gap:7,padding:'6px 10px',cursor:'pointer',borderBottom:`1px solid ${T.borderLight}`,background:i===idx?T.accentPale:'transparent',transition:'background .15s'}}>
-              <span style={{fontFamily:T.body,fontSize:11,color:i===idx?T.accent:T.textMut,width:18,textAlign:'center',flexShrink:0}}>{i===idx?'▶':i+1}</span>
-              {vid&&<img src={`https://img.youtube.com/vi/${vid}/default.jpg`} style={{width:30,height:22,objectFit:'cover',borderRadius:3,flexShrink:0}} alt=""/>}
-              <span style={{fontFamily:T.body,fontSize:12,color:i===idx?T.accent:T.text,flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:i===idx?600:400}}>{v.video_title}</span>
-            </div>
-          );})}
+const YtCard
         </div>
       </div>
     </div>
@@ -477,35 +442,95 @@ const IgCard = ({post,index,onPlay,onEdit,onDelete}) => {
   );
 };
 
-const YtNowPlaying = ({video, embedId, onClose}) => {
-  const [expanded, setExpanded] = useState(false);
+const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJump, onPlLoop, loopPl, plIdx}) => {
+  if (!video) return null;
+  const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   return (
-    <div className="sas-in" style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'10px 12px',marginBottom:14,boxShadow:T.sh}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:8}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
-          <Badge label="▶ NOW PLAYING" bg="#dc2626" color="#fff"/>
-          <span style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{video.video_title}</span>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:700,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+
+        {/* ── HEADER ── */}
+        <div style={{position:'relative',overflow:'hidden'}}>
+          <div style={{height:3,background:YTG,width:'100%'}}/>
+          <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+              {/* SnowAI YT pill */}
+              <div style={{flexShrink:0,background:YTG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5,boxShadow:'0 2px 10px rgba(220,38,38,.4)'}}>
+                <span style={{fontSize:13}}>❄️</span>
+                <span style={{fontFamily:T.font,fontWeight:800,fontSize:11,color:'#fff',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI YouTube</span>
+              </div>
+              <div style={{minWidth:0}}>
+                <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{video.video_title}</div>
+                <div style={{display:'flex',alignItems:'center',gap:5,marginTop:1}}>
+                  <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'#ef4444',flexShrink:0}}/>
+                  <span style={{color:'rgba(255,255,255,.45)',fontFamily:T.body,fontSize:10}}>
+                    {video.category_name||'YouTube'}{hasPl?` · 📋 ${playlist.name} (${(plIdx??0)+1}/${playlist.queue.length})`:''}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose}
+              style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.2)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
+          </div>
         </div>
-        <div style={{display:'flex',gap:6,flexShrink:0}}>
-          <button onClick={()=>setExpanded(e=>!e)} style={{background:T.accentPale,border:'none',color:T.accent,padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>{expanded?'⬆ Compact':'⬇ Expand'}</button>
-          <button onClick={onClose} style={{background:'#fef2f2',border:'none',color:T.danger,width:24,height:24,borderRadius:'50%',cursor:'pointer',fontSize:14}}>×</button>
+
+        {/* ── PLAYER — true 16:9 ── */}
+        <div className="sas-player-ratio" style={{borderRadius:0}}>
+          <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&enablejsapi=1`}
+            title={video.video_title} frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
         </div>
+
+        {/* ── NOTES ── */}
+        {video.notes && (
+          <div style={{padding:'10px 16px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
+            <span style={{fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.5)',lineHeight:1.6}}><strong style={{color:'rgba(255,255,255,.7)'}}>Notes:</strong> {video.notes}</span>
+          </div>
+        )}
+
+        {/* ── PLAYLIST CONTROLS (if active) ── */}
+        {hasPl && (
+          <div style={{borderTop:'1px solid rgba(255,255,255,.07)'}}>
+            {/* prev / loop / next */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',gap:8}}>
+              <button onClick={onPlPrev} disabled={plIdx===0&&!loopPl} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,opacity:(plIdx===0&&!loopPl)?.35:1}}>← Prev</button>
+              <button onClick={onPlLoop} style={{background:loopPl?'rgba(239,68,68,.2)':'rgba(255,255,255,.06)',border:`1px solid ${loopPl?'rgba(239,68,68,.5)':'rgba(255,255,255,.12)'}`,color:loopPl?'#fca5a5':'rgba(255,255,255,.6)',padding:'7px 14px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>🔁 Loop {loopPl?'On':'Off'}</button>
+              <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
+              <button onClick={onPlNext} disabled={plIdx===playlist.queue.length-1&&!loopPl} style={{background:'rgba(220,38,38,.7)',border:'none',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,opacity:(plIdx===playlist.queue.length-1&&!loopPl)?.35:1}}>Next →</button>
+            </div>
+            {/* queue strip */}
+            <div style={{maxHeight:130,overflowY:'auto',borderTop:'1px solid rgba(255,255,255,.06)'}} className="sas-scroll">
+              {playlist.queue.map((v,i)=>{
+                const vid=v.youtube_embed_id||ytId(v.video_url);
+                return (
+                  <div key={(v._qid||v.id)+'_'+i} onClick={()=>onPlJump(i)}
+                    style={{display:'flex',alignItems:'center',gap:8,padding:'7px 14px',cursor:'pointer',borderBottom:'1px solid rgba(255,255,255,.04)',background:i===plIdx?'rgba(239,68,68,.12)':'transparent',transition:'background .15s'}}
+                    onMouseEnter={e=>{if(i!==plIdx)e.currentTarget.style.background='rgba(255,255,255,.05)';}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=i===plIdx?'rgba(239,68,68,.12)':'transparent';}}>
+                    <span style={{fontFamily:T.body,fontSize:10,color:i===plIdx?'#f87171':'rgba(255,255,255,.3)',width:18,textAlign:'center',flexShrink:0}}>{i===plIdx?'▶':i+1}</span>
+                    {vid&&<img src={`https://img.youtube.com/vi/${vid}/default.jpg`} style={{width:34,height:25,objectFit:'cover',borderRadius:4,flexShrink:0,opacity:i===plIdx?1:.7}} alt=""/>}
+                    <span style={{fontFamily:T.body,fontSize:12,color:i===plIdx?'#fff':'rgba(255,255,255,.55)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:i===plIdx?600:400}}>{v.video_title}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── FOOTER (no playlist) ── */}
+        {!hasPl && (
+          <div style={{display:'flex',justifyContent:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+            <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
+          </div>
+        )}
       </div>
-      {expanded ? (
-        <div className="sas-player-ratio">
-          <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1`} title={video.video_title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
-        </div>
-      ) : (
-        <div style={{width:'100%',height:196,borderRadius:8,overflow:'hidden',background:'#000'}}>
-          <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1`} title={video.video_title} frameBorder="0" style={{width:'100%',height:'100%'}} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
-        </div>
-      )}
-      {video.notes&&<div style={{marginTop:8,padding:'7px 10px',background:T.surfaceAlt,borderRadius:T.rs,fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.6}}><strong>Notes:</strong> {video.notes}</div>}
     </div>
   );
 };
 
-export default function SnowAIVidoes() {
+export default function SnowAIVideos() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
@@ -527,6 +552,10 @@ export default function SnowAIVidoes() {
   const [showPLModal,setShowPLModal]=useState(false);
   const [activePL,setActivePL]=useState(null);
   const [pendingPLVid,setPendingPLVid]=useState(null);
+  const [plIdx,setPlIdx]=useState(0);
+  const [plLoop,setPlLoop]=useState(true);
+  const plLoopRef=useRef(true);
+  useEffect(()=>{plLoopRef.current=plLoop;},[plLoop]);
 
   const [igPosts,setIgPosts]=useState([]);
   const [igFiltered,setIgFiltered]=useState([]);
@@ -606,7 +635,7 @@ export default function SnowAIVidoes() {
             <div className="sas-in">
               <YtQuickBar onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onAddToPlaylist={handleAddToPL}/>
 
-              {activePL&&<PlaylistPlayer playlist={activePL} onClose={()=>setActivePL(null)} onDelete={()=>handleDelPL(activePL.id)}/>}
+              {activePL&&ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>{setYtPlaying(null);}} playlist={activePL} onPlNext={()=>{ const n=plIdx<activePL.queue.length-1?plIdx+1:(plLoopRef.current?0:plIdx); setPlIdx(n); const v=activePL.queue[n]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlPrev={()=>{ const p=plIdx>0?plIdx-1:(plLoopRef.current?activePL.queue.length-1:0); setPlIdx(p); const v=activePL.queue[p]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlJump={i=>{ setPlIdx(i); const v=activePL.queue[i]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlLoop={()=>setPlLoop(l=>!l)} loopPl={plLoop} plIdx={plIdx}/>}
 
               {!activePL&&playlists.length>0&&(
                 <SC style={{marginBottom:14}}>
@@ -614,7 +643,7 @@ export default function SnowAIVidoes() {
                   <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                     {playlists.map(pl=>(
                       <div key={pl.id} style={{display:'flex',alignItems:'center',gap:0,background:T.accentPale,borderRadius:T.rs,overflow:'hidden',border:`1px solid ${T.border}`}}>
-                        <button onClick={()=>{setYtPlaying(null);setActivePL(pl);}} style={{padding:'6px 11px',background:'none',border:'none',cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:13,color:T.accent}}>▶ {pl.name} <span style={{fontWeight:400,color:T.textMut}}>({pl.queue.length})</span></button>
+                        <button onClick={()=>{ setActivePL(pl); setPlIdx(0); const v=pl.queue[0]; if(v) setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} style={{padding:'6px 11px',background:'none',border:'none',cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:13,color:T.accent}}>▶ {pl.name} <span style={{fontWeight:400,color:T.textMut}}>({pl.queue.length})</span></button>
                         <button onClick={()=>handleDelPL(pl.id)} style={{padding:'6px 8px',background:'none',border:'none',cursor:'pointer',color:T.danger,fontSize:14,borderLeft:`1px solid ${T.border}`}}>×</button>
                       </div>
                     ))}
@@ -628,7 +657,7 @@ export default function SnowAIVidoes() {
                 </div>
               )}
 
-              {!activePL&&ytPlaying&&ytEmbedId&&<YtNowPlaying video={ytPlaying} embedId={ytEmbedId} onClose={()=>setYtPlaying(null)}/>}
+              {!activePL&&ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>setYtPlaying(null)}/>}
 
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
