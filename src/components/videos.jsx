@@ -439,7 +439,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,maxHeight:'94vh',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
 
         {/* ── HEADER ── */}
@@ -523,7 +523,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-export default function SnowAIVideos() {
+export default function SnowAIStream() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
@@ -628,7 +628,6 @@ export default function SnowAIVideos() {
             <div className="sas-in">
               <YtQuickBar onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onAddToPlaylist={handleAddToPL}/>
 
-              {activePL&&ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>{setYtPlaying(null);}} playlist={activePL} onPlNext={()=>{ const n=plIdx<activePL.queue.length-1?plIdx+1:(plLoopRef.current?0:plIdx); setPlIdx(n); const v=activePL.queue[n]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlPrev={()=>{ const p=plIdx>0?plIdx-1:(plLoopRef.current?activePL.queue.length-1:0); setPlIdx(p); const v=activePL.queue[p]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlJump={i=>{ setPlIdx(i); const v=activePL.queue[i]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlLoop={()=>setPlLoop(l=>!l)} loopPl={plLoop} plIdx={plIdx}/>}
 
               {!activePL&&playlists.length>0&&(
                 <SC style={{marginBottom:14}}>
@@ -650,7 +649,6 @@ export default function SnowAIVideos() {
                 </div>
               )}
 
-              {!activePL&&ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>setYtPlaying(null)}/>}
 
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
@@ -784,6 +782,7 @@ export default function SnowAIVideos() {
             </div>
           )}
 
+          {ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>{setYtPlaying(null);setActivePL(null);}} playlist={activePL} onPlNext={()=>{ const n=plIdx<activePL.queue.length-1?plIdx+1:(plLoopRef.current?0:plIdx); setPlIdx(n); const v=activePL.queue[n]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlPrev={()=>{ const p=plIdx>0?plIdx-1:(plLoopRef.current?activePL.queue.length-1:0); setPlIdx(p); const v=activePL.queue[p]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlJump={i=>{ setPlIdx(i); const v=activePL.queue[i]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlLoop={()=>setPlLoop(l=>!l)} loopPl={plLoop} plIdx={plIdx}/>}
           {showIgQV&&<InstaQuickView onClose={()=>setShowIgQV(false)} onOpenViewer={p=>{setIgPlaying(p);setIgPlayIdx(null);}}/>}
           {igPlaying&&<ReelModal post={igPlaying} onClose={()=>{setIgPlaying(null);setIgPlayIdx(null);}} onNext={handleIgNext} onPrev={handleIgPrev} hasPrev={igPlayIdx!==null&&igPlayIdx>0} hasNext={igPlayIdx!==null&&igPlayIdx<igFiltered.length-1}/>}
           {showPLModal&&<PlaylistModal onClose={()=>{setShowPLModal(false);setPendingPLVid(null);}} savedVideos={ytVideos} onSave={handleSavePL} initVideo={pendingPLVid}/>}
