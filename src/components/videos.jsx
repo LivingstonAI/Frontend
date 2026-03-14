@@ -373,13 +373,6 @@ const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
   );
 };
 
-const YtCard
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) => {
   const [hov,setHov]=useState(false);
   const vid=video.youtube_embed_id||ytId(video.video_url);
