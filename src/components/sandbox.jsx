@@ -1793,6 +1793,9 @@ function ModelDetail({ model: initialModel, onDelete }) {
     return 'snw-log-plain';
   };
 
+  const bc = model.best_chromosome;
+  const fh = model.fitness_history || [];
+
   return (
     <div>
       {/* Model header */}
