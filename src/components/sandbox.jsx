@@ -1287,11 +1287,9 @@ function AssetPickerModal({ selected, onChange, onClose }) {
   );
 }
 
-/* ─── Create Model Overlay ───────────────────────────────────────────────── */
 function CreateModelOverlay({ onClose, onCreate }) {
   const [form, setForm] = useState({
     name: '', assets: [], timeframe: '1d',
-    start_year: 2020, end_year: 2024,
     initial_capital: 10000, take_profit: 4.0, stop_loss: 2.0,
     population_size: 30, max_generations: 20, mutation_rate: 0.2,
     elite_fraction: 0.3, rl_enabled: true, rl_learning_rate: 0.01,
@@ -1300,6 +1298,21 @@ function CreateModelOverlay({ onClose, onCreate }) {
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [dupWarning,      setDupWarning]      = useState('');
   const [submitting,      setSubmitting]      = useState(false);
+  const [dataRange,       setDataRange]       = useState(null);  // {start, end, bars, yf_max_period}
+  const [rangeLoading,    setRangeLoading]    = useState(false);
+
+  // Whenever timeframe changes, detect the actual available range using
+  // the first selected asset as a representative sample
+  useEffect(() => {
+    const asset = form.assets[0];
+    if (!asset) { setDataRange(null); return; }
+    setRangeLoading(true);
+    setDataRange(null);
+    fetch(`${BASE_URL}/api/snowai/detect-range/?asset=${encodeURIComponent(asset)}&timeframe=${form.timeframe}`)
+      .then(r => r.json())
+      .then(d => { setDataRange(d); setRangeLoading(false); })
+      .catch(() => setRangeLoading(false));
+  }, [form.timeframe, form.assets[0]]);
 
   const checkDuplicate = async () => {
     if (form.assets.length === 0 || form.allowed_functions.length === 0) return;
@@ -1433,26 +1446,62 @@ function CreateModelOverlay({ onClose, onCreate }) {
             <div className="snw-section-gap">
               <div className="snw-section-label">Parameters</div>
               <div className="snw-field-grid">
+                {/* Timeframe — drives data range detection */}
+                <div className="snw-field">
+                  <label className="snw-label">Timeframe</label>
+                  <select className="snw-select" value={form.timeframe}
+                    onChange={e => fld('timeframe', e.target.value)}>
+                    {['1m','5m','15m','30m','1h','4h','1d','1wk','1mo'].map(o => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
                 {[
-                  {key:'timeframe',       label:'Timeframe',      type:'select', opts:['1m','5m','15m','1h','4h','1d','1wk']},
-                  {key:'start_year',      label:'Start year',     type:'number'},
-                  {key:'end_year',        label:'End year',       type:'number'},
-                  {key:'initial_capital', label:'Capital ($)',    type:'number'},
-                  {key:'take_profit',     label:'Take profit (%)',type:'number', step:0.1},
-                  {key:'stop_loss',       label:'Stop loss (%)',  type:'number', step:0.1},
-                ].map(({key, label, type, opts, step}) => (
+                  {key:'initial_capital', label:'Capital ($)',     type:'number'},
+                  {key:'take_profit',     label:'Take profit (%)', type:'number', step:0.1},
+                  {key:'stop_loss',       label:'Stop loss (%)',   type:'number', step:0.1},
+                ].map(({key, label, step}) => (
                   <div key={key} className="snw-field">
                     <label className="snw-label">{label}</label>
-                    {type === 'select' ? (
-                      <select className="snw-select" value={form[key]} onChange={e => fld(key, e.target.value)}>
-                        {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                    ) : (
-                      <input className="snw-input" type="number" step={step||1}
-                        value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
-                    )}
+                    <input className="snw-input" type="number" step={step||1}
+                      value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
                   </div>
                 ))}
+              </div>
+
+              {/* Data range preview */}
+              <div style={{
+                marginTop: 12,
+                padding: '10px 14px',
+                background: 'var(--snw-bg)',
+                border: '1px solid var(--snw-border)',
+                borderRadius: 4,
+                fontFamily: 'IBM Plex Mono, monospace',
+                fontSize: 11,
+              }}>
+                {!form.assets[0] ? (
+                  <span style={{color:'var(--snw-text-muted)'}}>
+                    ← Select at least one asset to preview available data range
+                  </span>
+                ) : rangeLoading ? (
+                  <span style={{color:'var(--snw-text-dim)'}}>⏳ Detecting available data…</span>
+                ) : dataRange ? (
+                  dataRange.available ? (
+                    <span style={{color:'var(--snw-green)'}}>
+                      ✓ &nbsp;<strong>{form.assets[0]}</strong> @ <strong>{form.timeframe}</strong>
+                      &nbsp;—&nbsp;{dataRange.start} → {dataRange.end}
+                      &nbsp;({dataRange.bars.toLocaleString()} bars)
+                      &nbsp;<span style={{color:'var(--snw-text-muted)'}}>
+                        · yfinance max: {dataRange.yf_max_period}
+                      </span>
+                    </span>
+                  ) : (
+                    <span style={{color:'var(--snw-red)'}}>
+                      ✗ No data available for {form.assets[0]} @ {form.timeframe}
+                      — try a different timeframe
+                    </span>
+                  )
+                ) : null}
               </div>
             </div>
 
@@ -1643,7 +1692,6 @@ function ModelDetail({ model: initialModel, onDelete }) {
               {model.status}
             </span>
             <span>{model.timeframe}</span>
-            <span>{model.start_year}–{model.end_year}</span>
             <span>gen {model.current_generation}/{model.max_generations}</span>
           </div>
         </div>
@@ -1690,7 +1738,7 @@ function ModelDetail({ model: initialModel, onDelete }) {
                 {[
                   {l:'Assets',     v: model.assets?.slice(0,4).join(', ') + (model.assets?.length>4?` +${model.assets.length-4}`:'')},
                   {l:'Timeframe',  v: model.timeframe},
-                  {l:'Period',     v: `${model.start_year}–${model.end_year}`},
+                  {l:'Period',     v: 'Auto-detected'},
                   {l:'Capital',    v: `$${model.initial_capital?.toLocaleString()}`},
                   {l:'TP / SL',    v: `${model.take_profit}% / ${model.stop_loss}%`},
                   {l:'Population', v: model.population_size},
