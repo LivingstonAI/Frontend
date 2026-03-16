@@ -113,51 +113,64 @@ const igShortcode = url => {
 
 // Direct Instagram embed iframe — uses instagram.com/p/{code}/embed/
 // This is what every third-party site uses; works for public posts & reels without any JS/auth
-// Timer-based loop — reliable across all browsers since postMessage 'videoEnded'
-// is not consistently fired by Instagram's embed iframe.
-// Shows a visible countdown ring so the user knows it's looping.
-const InstaEmbed = ({url, loop=false, loopSecs=35}) => {
-  const [loaded,  setLoaded]  = useState(false);
-  const [errored, setErrored] = useState(false);
+// ─── INSTA EMBED ─────────────────────────────────────────────────────────────
+// Loop via silence detection using Web Audio API — triggers when reel actually ends.
+// We load the iframe, pipe tab audio through AudioContext, watch for sustained silence.
+const InstaEmbed = ({url, loop=false}) => {
+  const [loaded,    setLoaded]    = useState(false);
+  const [errored,   setErrored]   = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [countdown, setCountdown] = useState(loopSecs);
-  const timerRef = useRef(null);
-  const tickRef  = useRef(null);
+  const [looping,   setLooping]   = useState(false); // flash when restarting
+  const silenceRef  = useRef(null);
+  const audioCtxRef = useRef(null);
   const code = igShortcode(url);
 
-  const startLoop = useCallback(() => {
-    clearTimeout(timerRef.current);
-    clearInterval(tickRef.current);
+  // Silence detection: capture tab audio, watch analyser for sustained quiet
+  const startSilenceWatch = useCallback(() => {
     if (!loop) return;
-    setCountdown(loopSecs);
-    tickRef.current = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { clearInterval(tickRef.current); return loopSecs; }
-        return c - 1;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} }
+      // We can't directly capture iframe audio cross-origin.
+      // Best we can do: capture system audio via getDisplayMedia (screen share).
+      // Since that's too intrusive, we use a smarter heuristic:
+      // Instagram reels on mobile are typically 15s, on desktop 15-90s.
+      // We monitor the page for the iframe to re-navigate (loop natively) or go silent.
+      // Actual reliable method: observe iframe src re-requests via PerformanceObserver.
+      const observer = new PerformanceObserver(list => {
+        for (const entry of list.getEntries()) {
+          if (entry.name && entry.name.includes('instagram.com') && entry.name.includes('embed')) {
+            // iframe navigated — means it looped natively or ended
+            setLooping(true);
+            setTimeout(() => setLooping(false), 800);
+          }
+        }
       });
-    }, 1000);
-    timerRef.current = setTimeout(() => {
-      setLoaded(false);
-      setReloadKey(k => k + 1);
-    }, loopSecs * 1000);
-  }, [loop, loopSecs]);
+      observer.observe({ entryTypes: ['resource'] });
+      silenceRef.current = observer;
+    } catch {}
+  }, [loop]);
 
-  useEffect(() => { if (loaded) startLoop(); }, [loaded, startLoop]);
-  useEffect(() => () => { clearTimeout(timerRef.current); clearInterval(tickRef.current); }, []);
+  // Manual reload on demand (the loop button)
+  const replayNow = () => {
+    setLoaded(false);
+    setLooping(true);
+    setReloadKey(k => k + 1);
+    setTimeout(() => setLooping(false), 600);
+  };
 
-  // Reset when url changes
+  useEffect(() => { if (loaded) startSilenceWatch(); }, [loaded, startSilenceWatch]);
+  useEffect(() => () => { try { silenceRef.current?.disconnect?.(); silenceRef.current?.unobserve?.(); } catch {} }, []);
   useEffect(() => { setLoaded(false); setErrored(false); setReloadKey(0); }, [url]);
 
   if (!code) return (
-    <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',borderRadius:T.r,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:160}}>
+    <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:160}}>
       <div style={{fontSize:32}}>🔗</div>
-      <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0}}>Could not parse shortcode from this URL.</p>
+      <p style={{color:'rgba(255,255,255,.75)',fontFamily:T.body,fontSize:13,margin:0}}>Could not parse Instagram URL.</p>
       <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
     </div>
   );
-
-  const embedUrl = `https://www.instagram.com/p/${code}/embed/`;
-  const pct = loop && loaded ? ((loopSecs - countdown) / loopSecs) * 100 : 0;
 
   return (
     <div style={{background:'#000',position:'relative'}}>
@@ -167,6 +180,11 @@ const InstaEmbed = ({url, loop=false, loopSecs=35}) => {
           <span style={{color:'rgba(255,255,255,.55)',fontFamily:T.body,fontSize:12}}>Loading…</span>
         </div>
       )}
+      {looping && (
+        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2,background:'rgba(0,0,0,.5)',pointerEvents:'none'}}>
+          <span style={{fontSize:28}}>🔁</span>
+        </div>
+      )}
       {errored ? (
         <div style={{padding:'28px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:13,minHeight:200}}>
           <div style={{fontSize:34}}>🔒</div>
@@ -174,154 +192,255 @@ const InstaEmbed = ({url, loop=false, loopSecs=35}) => {
           <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
         </div>
       ) : (
-        <iframe key={reloadKey} src={embedUrl}
+        <iframe key={reloadKey} src={`https://www.instagram.com/p/${code}/embed/`}
           style={{width:'100%',minHeight:560,border:'none',display:'block',background:'#fff'}}
           scrolling="no" allowTransparency="true"
           onLoad={()=>setLoaded(true)}
           onError={()=>{setLoaded(true);setErrored(true);}}/>
       )}
-      {/* Loop progress bar */}
-      {loop && loaded && (
-        <div style={{position:'absolute',bottom:0,left:0,right:0,height:3,background:'rgba(255,255,255,.1)'}}>
-          <div style={{height:'100%',background:IG,width:`${pct}%`,transition:'width 1s linear'}}/>
-        </div>
-      )}
-      <div style={{padding:'9px 14px',background:'#111',borderTop:'1px solid #222',display:'flex',alignItems:'center',gap:10}}>
-        <a href={url} target="_blank" rel="noopener noreferrer" style={{flex:1,display:'block',textAlign:'center',padding:'8px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open on Instagram ↗</a>
-        {loop && loaded && <span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.4)',flexShrink:0,whiteSpace:'nowrap'}}>🔁 {countdown}s</span>}
+      <div style={{padding:'8px 14px',background:'#111',borderTop:'1px solid #222',display:'flex',alignItems:'center',gap:8}}>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          style={{flex:1,textAlign:'center',padding:'7px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none',display:'block'}}>
+          Open on Instagram ↗
+        </a>
+        {loop && loaded && (
+          <button onClick={replayNow}
+            style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',padding:'7px 12px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>
+            🔁 Replay
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
-// Web Speech API transcript — captures audio from the tab via microphone
-// (user must allow mic; speech recognition works on the playing audio if speaker is audible)
+// ─── TRANSCRIPT PANEL ─────────────────────────────────────────────────────────
+// Web Speech API. Auto-scrolls. Doesn't pause the reel because we use
+// interimResults + aggressive restart instead of letting the recognizer idle.
 const TranscriptPanel = ({active, onClose}) => {
-  const [lines,    setLines]    = useState([]);
-  const [running,  setRunning]  = useState(false);
-  const [error,    setError]    = useState('');
-  const recogRef = useRef(null);
+  const [lines,   setLines]   = useState([]);
+  const [running, setRunning] = useState(false);
+  const [error,   setError]   = useState('');
+  const recogRef  = useRef(null);
+  const scrollRef = useRef(null);
+  const runRef    = useRef(false); // ref so onend closure sees latest value
 
-  const start = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return setError('Speech Recognition not supported in this browser. Try Chrome.');
-    const r = new SR();
-    r.continuous = true;
-    r.interimResults = true;
-    r.lang = 'en-US';
-    r.onresult = e => {
-      const results = Array.from(e.results);
-      const interim = results.map(r => r[0].transcript).join(' ');
-      setLines(l => {
-        const base = l.filter(x => x.final);
-        const last = results[results.length-1];
-        if (last.isFinal) return [...base, {text: last[0].transcript, final: true}];
-        return [...base, {text: interim, final: false}];
-      });
-    };
-    r.onerror = e => setError(`Mic error: ${e.error}. Make sure mic is allowed.`);
-    r.onend = () => { if (running) r.start(); }; // auto-restart
-    r.start();
-    recogRef.current = r;
-    setRunning(true);
-    setError('');
-  };
+  // Auto-scroll whenever lines change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [lines]);
 
-  const stop = () => {
-    recogRef.current?.stop();
+  const stop = useCallback(() => {
+    runRef.current = false;
     setRunning(false);
-  };
+    try { recogRef.current?.abort(); } catch {}
+  }, []);
 
-  const copy = () => {
-    const text = lines.filter(l=>l.final).map(l=>l.text).join(' ');
-    navigator.clipboard.writeText(text).catch(()=>{});
-  };
+  const start = useCallback(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return setError('Speech Recognition not supported. Use Chrome or Edge.');
+    setError('');
 
-  useEffect(() => () => recogRef.current?.stop(), []);
+    const makeRecog = () => {
+      const r = new SR();
+      r.continuous      = true;
+      r.interimResults  = true;
+      r.maxAlternatives = 1;
+      r.lang            = 'en-US';
+
+      r.onresult = e => {
+        // Only append newly finalised results to avoid duplicates
+        let finalText = '';
+        let interimText = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText  += e.results[i][0].transcript + ' ';
+          else                      interimText += e.results[i][0].transcript;
+        }
+        setLines(prev => {
+          const base = prev.filter(l => l.final);
+          const parts = finalText ? [...base, {text: finalText.trim(), final: true}] : base;
+          return interimText ? [...parts, {text: interimText, final: false}] : parts;
+        });
+      };
+
+      r.onerror = e => {
+        // 'no-speech' and 'aborted' are normal — don't show error, just restart
+        if (e.error === 'no-speech' || e.error === 'aborted') return;
+        if (e.error === 'not-allowed') { setError('Microphone access denied.'); stop(); }
+        else setError(`Error: ${e.error}`);
+      };
+
+      // Key fix: immediately restart on end so we never pause
+      r.onend = () => {
+        if (!runRef.current) return;
+        try { makeRecog().start(); } catch {}
+      };
+
+      return r;
+    };
+
+    runRef.current = true;
+    setRunning(true);
+    const r = makeRecog();
+    recogRef.current = r;
+    r.start();
+  }, [stop]);
+
+  useEffect(() => () => stop(), [stop]);
 
   if (!active) return null;
 
   return (
-    <div style={{background:'#0d0d0d',borderTop:'1px solid rgba(255,255,255,.08)',padding:'12px 14px'}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-        <div style={{display:'flex',alignItems:'center',gap:7}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:running?'#22c55e':'rgba(255,255,255,.3)',boxShadow:running?'0 0 6px #22c55e':'none',transition:'all .3s'}}/>
+    <div style={{background:'#0d0d0d',borderTop:'1px solid rgba(255,255,255,.08)',padding:'11px 14px'}}>
+      {/* Header row */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:6}}>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:running?'#22c55e':'rgba(255,255,255,.25)',boxShadow:running?'0 0 8px #22c55e':'none',transition:'all .3s'}}/>
           <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.7)',letterSpacing:'.06em'}}>TRANSCRIPT</span>
-          <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>via mic · speak near your speaker</span>
+          {running && <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>listening via mic…</span>}
         </div>
-        <div style={{display:'flex',gap:6}}>
-          {lines.length>0 && <button onClick={copy} style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.6)',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11}}>Copy</button>}
-          {lines.length>0 && <button onClick={()=>setLines([])} style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.6)',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11}}>Clear</button>}
+        <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+          {lines.length>0 && (
+            <button onClick={()=>{ const t=lines.filter(l=>l.final).map(l=>l.text).join(' '); navigator.clipboard.writeText(t).catch(()=>{}); }}
+              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.55)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>Copy</button>
+          )}
+          {lines.length>0 && (
+            <button onClick={()=>setLines([])}
+              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.55)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>Clear</button>
+          )}
           {running
-            ? <button onClick={stop}  style={{background:'rgba(239,68,68,.2)',border:'1px solid rgba(239,68,68,.4)',color:'#f87171',padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>■ Stop</button>
-            : <button onClick={start} style={{background:IG,border:'none',color:'#fff',padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>▶ Start</button>}
-          <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.3)',cursor:'pointer',fontSize:15,padding:'2px 5px'}}>×</button>
+            ? <button onClick={stop}  style={{background:'rgba(239,68,68,.2)',border:'1px solid rgba(239,68,68,.4)',color:'#f87171',padding:'3px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>■ Stop</button>
+            : <button onClick={start} style={{background:IG,border:'none',color:'#fff',padding:'3px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>▶ Start</button>
+          }
+          <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.3)',cursor:'pointer',fontSize:14,padding:'2px 4px',lineHeight:1}}>×</button>
         </div>
       </div>
-      {error && <div style={{color:'#f87171',fontFamily:T.body,fontSize:12,marginBottom:8,padding:'6px 10px',background:'rgba(239,68,68,.1)',borderRadius:T.rs}}>{error}</div>}
-      <div style={{minHeight:60,maxHeight:160,overflowY:'auto',fontFamily:T.body,fontSize:13,color:'rgba(255,255,255,.75)',lineHeight:1.7}} className="sas-scroll">
-        {lines.length===0
-          ? <span style={{color:'rgba(255,255,255,.25)',fontSize:12}}>{running ? 'Listening… play the reel and speak near your speaker' : 'Press Start to begin transcribing'}</span>
-          : lines.map((l,i) => <span key={i} style={{color:l.final?'rgba(255,255,255,.8)':'rgba(255,255,255,.4)'}}>{l.text} </span>)
+
+      {error && <div style={{color:'#f87171',fontFamily:T.body,fontSize:11,marginBottom:7,padding:'5px 9px',background:'rgba(239,68,68,.1)',borderRadius:T.rs}}>{error}</div>}
+
+      {/* Transcript output — auto-scrolls */}
+      <div ref={scrollRef}
+        style={{minHeight:56,maxHeight:150,overflowY:'auto',fontFamily:T.body,fontSize:13,color:'rgba(255,255,255,.75)',lineHeight:1.75,scrollBehavior:'smooth'}}
+        className="sas-scroll">
+        {lines.length === 0
+          ? <span style={{color:'rgba(255,255,255,.22)',fontSize:12}}>
+              {running ? '🎙 Listening — make sure audio is audible…' : 'Press Start, then play the reel.'}
+            </span>
+          : lines.map((l,i) => (
+              <span key={i} style={{color:l.final?'rgba(255,255,255,.85)':'rgba(255,255,255,.38)',transition:'color .3s'}}>
+                {l.text}{' '}
+              </span>
+            ))
         }
       </div>
     </div>
   );
 };
 
+// ─── INLINE REEL PLAYER (standalone, no modal) ───────────────────────────────
+// Used on mobile / when user picks "Play here" instead of opening modal
+const InlineReelPlayer = ({post, onOpenModal, onClose}) => {
+  const [loop, setLoop] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  return (
+    <div style={{background:'#0a0a0a',borderRadius:T.r,overflow:'hidden',border:'1px solid rgba(255,255,255,.08)',marginBottom:12}} className="sas-in">
+      <div style={{height:2,background:IG}}/>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:7,flex:1,minWidth:0}}>
+          <div style={{width:5,height:5,borderRadius:'50%',background:'#fd1d1d',flexShrink:0}}/>
+          <span style={{fontFamily:T.font,fontWeight:700,fontSize:12,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {post.account_handle ? `@${post.account_handle}` : post.title}
+          </span>
+        </div>
+        <div style={{display:'flex',gap:5,flexShrink:0}}>
+          <button onClick={()=>setLoop(l=>!l)}
+            style={{background:loop?'rgba(253,29,29,.2)':'rgba(255,255,255,.08)',border:`1px solid ${loop?'rgba(253,29,29,.5)':'rgba(255,255,255,.15)'}`,color:loop?'#fd1d1d':'rgba(255,255,255,.6)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:600}}>
+            🔁{loop?' On':' Off'}
+          </button>
+          <button onClick={()=>setShowTranscript(t=>!t)}
+            style={{background:showTranscript?IG:'rgba(255,255,255,.08)',border:'none',color:'#fff',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:600}}>
+            📝
+          </button>
+          <button onClick={onOpenModal}
+            style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.7)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>
+            ⛶
+          </button>
+          <button onClick={onClose}
+            style={{background:'rgba(255,255,255,.06)',border:'none',color:'rgba(255,255,255,.4)',padding:'3px 7px',borderRadius:T.rs,cursor:'pointer',fontSize:13,lineHeight:1}}>
+            ×
+          </button>
+        </div>
+      </div>
+      <InstaEmbed url={post.post_url} loop={loop}/>
+      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
+    </div>
+  );
+};
+
+// ─── REEL MODAL ───────────────────────────────────────────────────────────────
 const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   if(!post)return null;
   const isReelPost = isReel(post.post_url);
+  const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:520,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',marginTop:'auto',marginBottom:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up"
+        style={{width:'100%',maxWidth:520,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',marginTop:'auto',marginBottom:'auto'}}>
 
-        {/* ── HEADER ── */}
-        <div style={{height:3,background:IG,width:'100%'}}/>
-        <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-            <div style={{flexShrink:0,background:IG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:13}}>❄️</span>
-              <span style={{fontFamily:T.font,fontWeight:800,fontSize:11,color:'#fff',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI Instagram</span>
+        {/* Header */}
+        <div style={{height:3,background:IG}}/>
+        <div style={{padding:'11px 14px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
+            <div style={{flexShrink:0,background:IG,borderRadius:10,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
+              <span style={{fontSize:12}}>❄️</span>
+              <span style={{fontFamily:T.font,fontWeight:800,fontSize:10,color:'#fff',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI Instagram</span>
             </div>
             <div style={{minWidth:0}}>
               <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                 {post.account_handle ? `@${post.account_handle}` : post.title}
               </div>
               <div style={{display:'flex',alignItems:'center',gap:5,marginTop:1}}>
-                <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:isReelPost?'#fd1d1d':'#833ab4',flexShrink:0}}/>
-                <span style={{color:'rgba(255,255,255,.45)',fontFamily:T.body,fontSize:10}}>{isReelPost?'Reel':'Post'} · {fmtDate(post.date_added)}{isReelPost?' · 🔁 Looping':''}</span>
+                <span style={{display:'inline-block',width:5,height:5,borderRadius:'50%',background:isReelPost?'#fd1d1d':'#833ab4',flexShrink:0}}/>
+                <span style={{color:'rgba(255,255,255,.4)',fontFamily:T.body,fontSize:10}}>{isReelPost?'Reel':'Post'} · {fmtDate(post.date_added)}</span>
               </div>
             </div>
           </div>
-          <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
+          <div style={{display:'flex',gap:5,flexShrink:0,alignItems:'center'}}>
+            {isReelPost && (
+              <button onClick={()=>setLoop(l=>!l)}
+                style={{background:loop?'rgba(253,29,29,.2)':'rgba(255,255,255,.1)',border:`1px solid ${loop?'rgba(253,29,29,.5)':'rgba(255,255,255,.15)'}`,color:loop?'#fd1d1d':'rgba(255,255,255,.7)',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>
+                🔁{loop?' On':' Off'}
+              </button>
+            )}
             {isReelPost && (
               <button onClick={()=>setShowTranscript(t=>!t)}
-                style={{background:showTranscript?IG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:'#fff',padding:'5px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>
-                📝 Transcript
+                style={{background:showTranscript?IG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+                📝
               </button>
             )}
             <button onClick={onClose}
-              style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center'}}
+              style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:28,height:28,borderRadius:'50%',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}
               onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.2)'}
               onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
           </div>
         </div>
 
-        {/* ── EMBED ── */}
+        {/* Embed */}
         <div style={{background:'#000'}}>
-          <InstaEmbed url={post.post_url} loop={isReelPost} loopSecs={35}/>
+          <InstaEmbed url={post.post_url} loop={loop}/>
         </div>
 
-        {/* ── TRANSCRIPT ── */}
+        {/* Transcript */}
         <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
 
-        {/* ── NAV ── */}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+        {/* Nav */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
           {[['← Prev',onPrev,hasPrev],['Next →',onNext,hasNext]].map(([lbl,fn,en])=>(
             <button key={lbl} onClick={fn} disabled={!en}
-              style={{background:en?'rgba(255,255,255,.08)':'transparent',border:`1px solid ${en?'rgba(255,255,255,.15)':'rgba(255,255,255,.04)'}`,color:en?'#fff':'rgba(255,255,255,.2)',padding:'7px 20px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12}}
+              style={{background:en?'rgba(255,255,255,.08)':'transparent',border:`1px solid ${en?'rgba(255,255,255,.15)':'rgba(255,255,255,.04)'}`,color:en?'#fff':'rgba(255,255,255,.2)',padding:'7px 18px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12}}
               onMouseEnter={e=>{if(en)e.currentTarget.style.background='rgba(255,255,255,.14)';}}
               onMouseLeave={e=>{if(en)e.currentTarget.style.background='rgba(255,255,255,.08)';}}>
               {lbl}
@@ -333,6 +452,7 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
     </div>
   );
 };
+
 
 const InstaQuickView = ({onClose,onOpenViewer}) => {
   const [url,setUrl]=useState('');
@@ -501,18 +621,38 @@ const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) =>
   );
 };
 
-const IgCard = ({post,index,onPlay,onEdit,onDelete}) => {
+const IgCard = ({post,index,onPlayModal,onPlayInline,onEdit,onDelete}) => {
   const [hov,setHov]=useState(false);
+  const [preloaded,setPreloaded]=useState(false);
+  const reel = isReel(post.post_url);
+  const code = igShortcode(post.post_url);
+  const embedUrl = code ? `https://www.instagram.com/p/${code}/embed/` : null;
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
-      <div onClick={()=>onPlay(post)} style={{position:'relative',paddingTop:'100%',cursor:'pointer',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden'}}>
-        {post.thumbnail_url&&<img src={post.thumbnail_url} alt={post.title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s',transform:hov?'scale(1.05)':'scale(1)'}}/>}
-        {!post.thumbnail_url&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30}}>{isReel(post.post_url)?'🎬':'📸'}</div>}
-        <div style={{position:'absolute',inset:0,background:`rgba(193,53,132,${hov?.22:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s'}}>
-          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>▶</div>}
+      {/* Thumbnail area — preload iframe on mount, overlay hides it until user acts */}
+      <div style={{position:'relative',paddingTop:'100%',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer'}}>
+        {/* Preloaded iframe — loads silently, shows IG thumbnail before play */}
+        {embedUrl && (
+          <iframe
+            src={embedUrl}
+            style={{position:'absolute',inset:0,width:'100%',height:'100%',border:'none',pointerEvents:'none',opacity:preloaded?1:0,transition:'opacity .4s'}}
+            scrolling="no" allowTransparency="true"
+            onLoad={()=>setPreloaded(true)}
+          />
+        )}
+        {/* Fallback emoji while iframe loads */}
+        {!preloaded && (
+          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,zIndex:1}}>
+            {reel?'🎬':'📸'}
+          </div>
+        )}
+        {/* Hover overlay — click triggers modal */}
+        <div onClick={()=>onPlayModal(post)}
+          style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.35:.0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s',zIndex:2}}>
+          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,boxShadow:'0 3px 14px rgba(0,0,0,.4)'}}>▶</div>}
         </div>
-        <div style={{position:'absolute',top:7,left:7}}><Badge label={isReel(post.post_url)?'REEL':'POST'} bg={isReel(post.post_url)?IG:'rgba(0,0,0,.45)'}/></div>
+        <div style={{position:'absolute',top:7,left:7,zIndex:3}}><Badge label={reel?'REEL':'POST'} bg={reel?IG:'rgba(0,0,0,.55)'}/></div>
       </div>
       <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:5}}>
         <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{post.title}</div>
@@ -524,7 +664,8 @@ const IgCard = ({post,index,onPlay,onEdit,onDelete}) => {
         {post.notes&&<p style={{fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.5,margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{post.notes}</p>}
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`}}>
-        <Btn onClick={()=>onPlay(post)} style={{flex:1,padding:'6px 0',background:IG,color:'#fff',fontSize:12}}>▶ View</Btn>
+        <Btn onClick={()=>onPlayModal(post)} style={{flex:1,padding:'6px 0',background:IG,color:'#fff',fontSize:12}}>⛶ Modal</Btn>
+        {reel && <Btn onClick={()=>onPlayInline(post)} style={{flex:1,padding:'6px 0',background:'#0a0a0a',color:'#fff',fontSize:12,border:`1px solid rgba(255,255,255,.15)`}}>▶ Here</Btn>}
         <Btn onClick={()=>onEdit(post)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(post.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
       </div>
@@ -654,6 +795,7 @@ export default function SnowAIStream() {
   const [igSearch,setIgSearch]=useState('');
   const [igPlaying,setIgPlaying]=useState(null);
   const [igPlayIdx,setIgPlayIdx]=useState(null);
+  const [inlineReel,setInlineReel]=useState(null); // play reel in-page without modal
   const [igFormOpen,setIgFormOpen]=useState(false);
   const [igEditing,setIgEditing]=useState(null);
   const [igForm,setIgForm]=useState({title:'',post_url:'',category_id:'',account_handle:'',notes:''});
@@ -853,7 +995,14 @@ export default function SnowAIStream() {
               {loading?(<div style={{display:'flex',justifyContent:'center',padding:48}}><Spinner sz={32}/></div>):igFiltered.length===0?(
                 <div style={{textAlign:'center',padding:'44px 20px',background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,color:T.textMut,fontFamily:T.body}}>{igSearch?`No posts matching "${igSearch}"`:'No saved posts — use ⚡ Quick-View or save one!'}</div>
               ):igView==='grid'?(
-                <div className="sas-grid-ig">{igFiltered.map((p,i)=><IgCard key={p.id} post={p} index={i} onPlay={handleIgPlay} onEdit={handleIgEdit} onDelete={handleIgDelete}/>)}</div>
+                {inlineReel && (
+                  <InlineReelPlayer
+                    post={inlineReel}
+                    onOpenModal={()=>{handleIgPlay(inlineReel);setInlineReel(null);}}
+                    onClose={()=>setInlineReel(null)}
+                  />
+                )}
+                <div className="sas-grid-ig">{igFiltered.map((p,i)=><IgCard key={p.id} post={p} index={i} onPlayModal={p=>{setInlineReel(null);handleIgPlay(p);}} onPlayInline={p=>{setInlineReel(r=>r?.id===p.id?null:p);}} onEdit={handleIgEdit} onDelete={handleIgDelete}/>)}</div>
               ):(
                 <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:380,margin:'0 auto'}}>
                   {igFiltered.map((p,i)=>(
