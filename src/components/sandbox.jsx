@@ -701,6 +701,145 @@ const styles = `
 /* ── Sparkline ── */
 .snw-spark { width: 100%; overflow: hidden; }
 
+/* ── Asset Picker Modal ── */
+.snw-ap-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.82);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.snw-ap-modal {
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border2);
+  border-radius: 8px;
+  width: 100%; max-width: 900px;
+  height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  overflow: hidden;
+}
+.snw-ap-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--snw-border);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--snw-surface);
+  flex-shrink: 0;
+}
+.snw-ap-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--snw-accent); flex: 1;
+}
+.snw-ap-search {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  color: var(--snw-text);
+  padding: 6px 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; border-radius: 4px; outline: none;
+  width: 200px; transition: border-color .2s;
+}
+.snw-ap-search:focus { border-color: var(--snw-accent2); }
+.snw-ap-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--snw-text-dim);
+  white-space: nowrap;
+}
+.snw-ap-close {
+  background: none; border: none; color: var(--snw-text-dim);
+  font-size: 20px; cursor: pointer; line-height: 1;
+  transition: color .15s; padding: 0 4px;
+}
+.snw-ap-close:hover { color: var(--snw-text); }
+.snw-ap-body {
+  display: grid; grid-template-columns: 200px 1fr;
+  flex: 1; overflow: hidden;
+}
+.snw-ap-cats {
+  border-right: 1px solid var(--snw-border);
+  overflow-y: auto; background: var(--snw-surface);
+}
+.snw-ap-cat-btn {
+  width: 100%; padding: 10px 14px;
+  background: none; border: none;
+  border-bottom: 1px solid var(--snw-border);
+  color: var(--snw-text-dim);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  text-align: left; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: background .12s, color .12s;
+}
+.snw-ap-cat-btn:hover { background: var(--snw-bg); color: var(--snw-text); }
+.snw-ap-cat-btn.snw-ap-cat-active {
+  color: var(--snw-accent);
+  background: var(--snw-accent-bg);
+  border-left: 2px solid var(--snw-accent);
+}
+.snw-ap-cat-badge {
+  font-size: 9px; padding: 1px 5px;
+  background: var(--snw-accent-bg);
+  border: 1px solid var(--snw-accent2);
+  border-radius: 8px; color: var(--snw-accent);
+}
+.snw-ap-tickers {
+  overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.snw-ap-ticker-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2px;
+}
+.snw-ap-ticker-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--snw-text-dim);
+}
+.snw-ap-ticker-actions { display: flex; gap: 6px; }
+.snw-ap-ticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 5px;
+}
+.snw-ap-ticker-chip {
+  padding: 5px 8px;
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--snw-text-dim);
+  cursor: pointer; text-align: center;
+  transition: all .12s; user-select: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.snw-ap-ticker-chip:hover { border-color: var(--snw-border2); color: var(--snw-text); }
+.snw-ap-ticker-chip.snw-ap-tick-on {
+  background: var(--snw-accent-bg);
+  border-color: var(--snw-accent2);
+  color: var(--snw-accent);
+}
+.snw-ap-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--snw-border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--snw-surface);
+  flex-shrink: 0;
+}
+.snw-ap-selected-tags {
+  flex: 1; display: flex; flex-wrap: wrap; gap: 5px;
+  max-height: 60px; overflow-y: auto;
+}
+.snw-ap-sel-tag {
+  padding: 2px 7px;
+  background: var(--snw-accent-bg);
+  border: 1px solid var(--snw-accent2);
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  color: var(--snw-accent); cursor: pointer; white-space: nowrap;
+}
+.snw-ap-sel-tag:hover { border-color: var(--snw-red); color: var(--snw-red); }
+
 /* ── Scrollbar ── */
 .snw-wrap ::-webkit-scrollbar { width: 4px; height: 4px; }
 .snw-wrap ::-webkit-scrollbar-track { background: transparent; }
@@ -715,6 +854,119 @@ const styles = `
 `;
 
 const BASE_URL = 'https://backend-production-c0ab.up.railway.app';
+
+/* ── Asset catalogue — grouped by class ── */
+const ASSET_CATALOGUE = [
+  { label: 'Forex', tickers: [
+    'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X',
+    'NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
+  ]},
+  { label: 'Tech & Semiconductors', tickers: [
+    'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC',
+    'ORCL','CSCO','ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC',
+    'SNPS','CDNS','MRVL','NXPI','MU','ADI','MPWR','SWKS','QRVO','ON',
+    'IBM','AAOI','ACLS','ACN','ADSK','AKAM','ANSS','APH','ANET','ASML',
+    'AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX','PAYC','PTC',
+    'ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','XLNX','ZBRA',
+  ]},
+  { label: 'Software & Cloud', tickers: [
+    'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR',
+    'TEAM','FTNT','OKTA','S','CYBR',
+  ]},
+  { label: 'Fintech & Payments', tickers: [
+    'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER',
+    'LYFT','DASH','PINS','SNAP','SPOT','ROKU','Z','ZG','AFRM','COIN',
+    'HOOD','SOFI','RBLX','ASTS',
+  ]},
+  { label: 'Banks & Financial Services', tickers: [
+    'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME',
+    'ICE','MCO','BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG',
+    'AMP','BEN','CBOE','CINF','DFS','ERIE','FITB','FRC','GL','HBAN',
+    'HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS','NDAQ','PFG','RF',
+    'RJF','SIVB','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN','EWBC',
+    'WAL','WBS','ALLY',
+  ]},
+  { label: 'Insurance', tickers: [
+    'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
+  ]},
+  { label: 'Healthcare & Pharma', tickers: [
+    'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN',
+    'GILD','CVS','CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA',
+    'BNTX','SGEN','ALNY','BGNE','MCK','CAH','COR','IDXX','A','WAT',
+    'ALGN','ATRC','BAX','BDX','BIO','BSX','CERN','DXCM','EW','EXAS',
+    'HOLX','HSIC','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PKI',
+    'PODD','RMD','STE','SYK','TFX','UHS','WST','XRAY','ZBH','ZTS',
+    'TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
+  ]},
+  { label: 'Consumer Discretionary', tickers: [
+    'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM',
+    'ABNB','SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR',
+    'AAL','DAL','UAL','LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID',
+    'AZO','BBY','BURL','CPRT','DHI','DRI','EXPE','GPC','GRMN','HAS',
+    'HLT','KMX','LEN','LVS','MGM','MHK','NVR','ORLY','PHM','POOL',
+    'RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA','DG',
+    'DLTR','DDS','FIVE','FL','FOXA','FOX','GPS','GT','HBI','LAD',
+    'LKQ','M','NCLH','NWL','PVH',
+  ]},
+  { label: 'Consumer Staples', tickers: [
+    'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS',
+    'KHC','STZ','ADM','BF-B','CAG','CHD','CLX','CPB','EL','HSY','K',
+    'KDP','KR','KVUE','MKC','MNST','SJM','SYY','TAP','TSN','WBA',
+    'BGS','BG','COKE','FLO','HRL','LANC','POST',
+  ]},
+  { label: 'Energy', tickers: [
+    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN',
+    'HES','BKR','APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE',
+    'TRGP','WMB','EQT','AR','CLR','CNX','CQP','EXE','FTI','HP','MTDR',
+    'NBL','OVV','PBF','PR','RIG','SM','VAL','XEC',
+  ]},
+  { label: 'Industrials', tickers: [
+    'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC',
+    'FDX','CSX','HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI',
+    'DOV','EMR','ETN','EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW',
+    'J','JBHT','JCI','LDOS','MAS','NSC','ODFL','OTIS','PCAR','PH','PWR',
+    'ROK','ROL','RSG','SNA','SWK','TT','URI','VRSK','WAB','WM','XYL',
+    'ALK','JBLU','SAVE',
+  ]},
+  { label: 'Communication & Media', tickers: [
+    'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA',
+    'NWS','OMC','PARA','WBD','IPG','DISH',
+  ]},
+  { label: 'Real Estate & REITs', tickers: [
+    'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE',
+    'DLR','EQR','ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC',
+    'SLG','UDR','VTR','WELL','WY','INVH','PEAK','VNO',
+  ]},
+  { label: 'Materials & Chemicals', tickers: [
+    'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB',
+    'EMN','SQM','AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS',
+    'NUE','PKG','PPG','SEE','STLD','SW','VMC','AVY','AA','MP','RS',
+  ]},
+  { label: 'Utilities', tickers: [
+    'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS',
+    'CNP','DTE','ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG',
+    'PCG','PEG','PNW','PPL','VST','WEC','XEL','CEG',
+  ]},
+  { label: 'Chinese ADRs', tickers: ['BABA','JD','PDD','BIDU','NIO','XPEV','LI'] },
+  { label: 'Indices', tickers: [
+    '^GSPC','^DJI','^IXIC','^RUT','^VIX',
+    '^FTSE','^GDAXI','^FCHI','^IBEX','^AEX','^SSMI','^OMXS30','^BFX',
+    '^N225','^HSI','000001.SS','^STI','^BSESN','^NSEI','^KS11','^TWII','^JKSE',
+    '^AXJO','^GSPTSE','^MXX','^BVSP','^MERV',
+  ]},
+  { label: 'Commodities', tickers: [
+    'GC=F','SI=F','PL=F','PA=F','CL=F','BZ=F','NG=F','RB=F','HO=F',
+    'HG=F','ALI=F','ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F','LBS=F',
+  ]},
+  { label: 'Bonds', tickers: ['^TNX','^TYX','^FVX','^IRX','ZN=F','ZB=F','ZT=F','ZF=F'] },
+  { label: 'Crypto', tickers: [
+    'BTC-USD','ETH-USD','BNB-USD','SOL-USD','ADA-USD','XRP-USD',
+    'DOGE-USD','AVAX-USD','DOT-USD','MATIC-USD','LINK-USD','UNI-USD',
+    'LTC-USD','BCH-USD','ATOM-USD',
+  ]},
+];
+
+const ALL_TICKERS = ASSET_CATALOGUE.flatMap(c => c.tickers);
 
 /* ── Full function list grouped by category ── */
 const FUNCTION_CATEGORIES = [
@@ -904,6 +1156,137 @@ function TVChart({ modelId, asset, chartStyle, chartType }) {
   return <div ref={containerRef} className="snw-chart-tv" />;
 }
 
+/* ─── Asset Picker Modal ─────────────────────────────────────────────────── */
+function AssetPickerModal({ selected, onChange, onClose }) {
+  const [activeCat,   setActiveCat]   = useState(0);
+  const [search,      setSearch]      = useState('');
+
+  // Filtered view — when searching, flatten all categories
+  const isSearching = search.trim().length > 0;
+  const searchLower = search.toLowerCase();
+
+  const visibleCats = isSearching
+    ? [{ label: `Results for "${search}"`,
+         tickers: ALL_TICKERS.filter(t => t.toLowerCase().includes(searchLower)) }]
+    : ASSET_CATALOGUE;
+
+  const activeCatData = visibleCats[isSearching ? 0 : activeCat] || visibleCats[0];
+
+  const toggle = (ticker) => {
+    if (selected.includes(ticker)) onChange(selected.filter(t => t !== ticker));
+    else onChange([...selected, ticker]);
+  };
+
+  const selectCatAll = (tickers) => {
+    const toAdd = tickers.filter(t => !selected.includes(t));
+    onChange([...selected, ...toAdd]);
+  };
+
+  const deselectCatAll = (tickers) => {
+    onChange(selected.filter(t => !tickers.includes(t)));
+  };
+
+  const catSelectedCount = (tickers) => tickers.filter(t => selected.includes(t)).length;
+
+  return (
+    <div className="snw-ap-backdrop" onClick={onClose}>
+      <div className="snw-ap-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="snw-ap-header">
+          <span className="snw-ap-title">Select Assets</span>
+          <input className="snw-ap-search" placeholder="Search tickers…"
+            value={search} onChange={e => setSearch(e.target.value)} autoFocus/>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button className="snw-btn snw-btn-ghost snw-btn-sm"
+              onClick={() => onChange(ALL_TICKERS)}>Select all</button>
+            <button className="snw-btn snw-btn-ghost snw-btn-sm"
+              onClick={() => onChange([])}>Clear</button>
+          </div>
+          <span className="snw-ap-count">{selected.length} selected</span>
+          <button className="snw-ap-close" onClick={onClose}>×</button>
+        </div>
+
+        {/* Body */}
+        <div className="snw-ap-body">
+
+          {/* Category sidebar */}
+          {!isSearching && (
+            <div className="snw-ap-cats">
+              {ASSET_CATALOGUE.map((cat, i) => {
+                const cnt = catSelectedCount(cat.tickers);
+                return (
+                  <button key={cat.label}
+                    className={`snw-ap-cat-btn ${activeCat===i?'snw-ap-cat-active':''}`}
+                    onClick={() => setActiveCat(i)}>
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {cat.label}
+                    </span>
+                    {cnt > 0 && <span className="snw-ap-cat-badge">{cnt}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Ticker grid */}
+          <div className="snw-ap-tickers">
+            <div className="snw-ap-ticker-header">
+              <span className="snw-ap-ticker-label">
+                {activeCatData.label} — {activeCatData.tickers.length} tickers
+              </span>
+              <div className="snw-ap-ticker-actions">
+                <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                  onClick={() => selectCatAll(activeCatData.tickers)}>
+                  All
+                </button>
+                <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                  onClick={() => deselectCatAll(activeCatData.tickers)}>
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="snw-ap-ticker-grid">
+              {activeCatData.tickers.map(t => (
+                <div key={t}
+                  className={`snw-ap-ticker-chip ${selected.includes(t)?'snw-ap-tick-on':''}`}
+                  onClick={() => toggle(t)}
+                  title={t}>
+                  {t}
+                </div>
+              ))}
+              {activeCatData.tickers.length === 0 && (
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,
+                  color:'var(--snw-text-muted)',gridColumn:'1/-1',padding:'20px 0'}}>
+                  No results
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer — selected tags + confirm */}
+        <div className="snw-ap-footer">
+          <div className="snw-ap-selected-tags">
+            {selected.length === 0
+              ? <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-muted)'}}>
+                  No assets selected
+                </span>
+              : selected.map(t => (
+                  <span key={t} className="snw-ap-sel-tag" onClick={() => toggle(t)}
+                    title="Click to remove">{t} ×</span>
+                ))
+            }
+          </div>
+          <button className="snw-btn snw-btn-primary" onClick={onClose}>
+            Confirm {selected.length > 0 ? `(${selected.length})` : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Create Model Overlay ───────────────────────────────────────────────── */
 function CreateModelOverlay({ onClose, onCreate }) {
   const [form, setForm] = useState({
@@ -914,104 +1297,9 @@ function CreateModelOverlay({ onClose, onCreate }) {
     elite_fraction: 0.3, rl_enabled: true, rl_learning_rate: 0.01,
     allowed_functions: [],
   });
-  const [assetSearch,   setAssetSearch]   = useState('');
-  const [assetDropdown, setAssetDropdown] = useState(false);
-  const [dupWarning,    setDupWarning]    = useState('');
-  const [submitting,    setSubmitting]    = useState(false);
-
-  const ALL_ASSETS = [
-    // Forex
-    'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X',
-    'NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
-    // Tech Giants & Semiconductors
-    'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC',
-    'ORCL','CSCO','ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC',
-    'SNPS','CDNS','MRVL','NXPI','MU','ADI','MPWR','SWKS','QRVO','ON',
-    'IBM','AAOI','ACLS','ACN','ADSK','AKAM','ANSS','APH','ANET','ASML',
-    'AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX','PAYC','PTC',
-    'ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','XLNX','ZBRA',
-    // Software & Cloud
-    'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR',
-    'TEAM','FTNT','OKTA','S','CYBR',
-    // Fintech & Payments
-    'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER',
-    'LYFT','DASH','PINS','SNAP','SPOT','ROKU','Z','ZG','AFRM','COIN',
-    'HOOD','SOFI','RBLX','ASTS',
-    // Banks & Financial Services
-    'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME',
-    'ICE','MCO','BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG',
-    'AMP','BEN','CBOE','CINF','DFS','ERIE','FITB','FRC','GL','HBAN',
-    'HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS','NDAQ','PFG','RF',
-    'RJF','SIVB','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN',
-    'EWBC','WAL','WBS','ALLY',
-    // Insurance
-    'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
-    // Healthcare & Pharma
-    'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN',
-    'GILD','CVS','CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA',
-    'BNTX','SGEN','ALNY','BGNE','MCK','CAH','COR','IDXX','A','WAT',
-    'ALGN','ATRC','BAX','BDX','BIO','BSX','CERN','DXCM','EW','EXAS',
-    'HOLX','HSIC','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PKI',
-    'PODD','RMD','STE','SYK','TFX','UHS','WST','XRAY','ZBH','ZTS',
-    'TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
-    // Consumer Discretionary
-    'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM',
-    'ABNB','SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR',
-    'AAL','DAL','UAL','LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID',
-    'AZO','BBY','BURL','CPRT','DHI','DRI','EXPE','GPC','GRMN','HAS',
-    'HLT','KMX','LEN','LVS','MGM','MHK','NVR','ORLY','PHM','POOL',
-    'RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA','DG',
-    'DLTR','DDS','FIVE','FL','FOXA','FOX','GPS','GT','HBI','LAD',
-    'LKQ','M','NCLH','NWL','PVH',
-    // Consumer Staples
-    'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS',
-    'KHC','STZ','ADM','BF-B','CAG','CHD','CLX','CPB','EL','HSY','K',
-    'KDP','KR','KVUE','MKC','MNST','SJM','SYY','TAP','TSN','WBA',
-    'BGS','BG','COKE','FLO','HRL','LANC','POST',
-    // Energy
-    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN',
-    'HES','BKR','APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE',
-    'TRGP','WMB','EQT','AR','CLR','CNX','CQP','EXE','FTI','HP','MTDR',
-    'NBL','OVV','PBF','PR','RIG','SM','VAL','XEC',
-    // Industrials
-    'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC',
-    'FDX','CSX','HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI',
-    'DOV','EMR','ETN','EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW',
-    'J','JBHT','JCI','LDOS','MAS','NSC','ODFL','OTIS','PCAR','PH','PWR',
-    'ROK','ROL','RSG','SNA','SWK','TT','URI','VRSK','WAB','WM','XYL',
-    'ALK','JBLU','SAVE',
-    // Communication Services & Media
-    'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA',
-    'NWS','OMC','PARA','WBD','IPG','DISH',
-    // Real Estate & REITs
-    'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE',
-    'DLR','EQR','ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC',
-    'SLG','UDR','VTR','WELL','WY','INVH','PEAK','VNO',
-    // Materials & Chemicals
-    'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB',
-    'EMN','SQM','AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS',
-    'NUE','PKG','PPG','SEE','STLD','SW','VMC','AVY','AA','MP','RS',
-    // Utilities
-    'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS',
-    'CNP','DTE','ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG',
-    'PCG','PEG','PNW','PPL','VST','WEC','XEL','CEG',
-    // Chinese ADRs
-    'BABA','JD','PDD','BIDU','NIO','XPEV','LI',
-    // Indices
-    '^GSPC','^DJI','^IXIC','^RUT','^VIX','^FTSE','^GDAXI','^FCHI',
-    '^IBEX','^AEX','^SSMI','^OMXS30','^BFX','^N225','^HSI','000001.SS',
-    '^STI','^BSESN','^NSEI','^KS11','^TWII','^JKSE','^AXJO','^GSPTSE',
-    '^MXX','^BVSP','^MERV',
-    // Commodities
-    'GC=F','SI=F','PL=F','PA=F','CL=F','BZ=F','NG=F','RB=F','HO=F',
-    'HG=F','ALI=F','ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F','LBS=F',
-    // Bonds
-    '^TNX','^TYX','^FVX','^IRX','ZN=F','ZB=F','ZT=F','ZF=F',
-    // Crypto
-    'BTC-USD','ETH-USD','BNB-USD','SOL-USD','ADA-USD','XRP-USD',
-    'DOGE-USD','AVAX-USD','DOT-USD','MATIC-USD','LINK-USD','UNI-USD',
-    'LTC-USD','BCH-USD','ATOM-USD',
-  ];
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [dupWarning,      setDupWarning]      = useState('');
+  const [submitting,      setSubmitting]      = useState(false);
 
   const checkDuplicate = async () => {
     if (form.assets.length === 0 || form.allowed_functions.length === 0) return;
@@ -1052,187 +1340,182 @@ function CreateModelOverlay({ onClose, onCreate }) {
       ? f.allowed_functions.filter(x => x !== fn)
       : [...f.allowed_functions, fn],
   }));
-  const addAsset = (a) => { setForm(f => ({ ...f, assets: [...f.assets, a] })); setAssetSearch(''); setAssetDropdown(false); };
-  const removeAsset = (a) => setForm(f => ({ ...f, assets: f.assets.filter(x => x !== a) }));
-
-  const ALL_ASSETS_FULL = [
-    'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X','NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
-    'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC','ORCL','CSCO','ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC','SNPS','CDNS','MRVL','NXPI','MU','ADI','MPWR','SWKS','QRVO','ON','IBM','AAOI','ACLS','ACN','ADSK','AKAM','ANSS','APH','ANET','ASML','AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX','PAYC','PTC','ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','XLNX','ZBRA',
-    'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR','TEAM','FTNT','OKTA','S','CYBR',
-    'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER','LYFT','DASH','PINS','SNAP','SPOT','ROKU','Z','ZG','AFRM','COIN','HOOD','SOFI','RBLX','ASTS',
-    'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME','ICE','MCO','BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG','AMP','BEN','CBOE','CINF','DFS','ERIE','FITB','FRC','GL','HBAN','HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS','NDAQ','PFG','RF','RJF','SIVB','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN','EWBC','WAL','WBS','ALLY',
-    'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
-    'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN','GILD','CVS','CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA','BNTX','SGEN','ALNY','BGNE','MCK','CAH','COR','IDXX','A','WAT','ALGN','ATRC','BAX','BDX','BIO','BSX','CERN','DXCM','EW','EXAS','HOLX','HSIC','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PKI','PODD','RMD','STE','SYK','TFX','UHS','WST','XRAY','ZBH','ZTS','TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
-    'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM','ABNB','SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR','AAL','DAL','UAL','LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID','AZO','BBY','BURL','CPRT','DHI','DRI','EXPE','GPC','GRMN','HAS','HLT','KMX','LEN','LVS','MGM','MHK','NVR','ORLY','PHM','POOL','RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA','DG','DLTR','DDS','FIVE','FL','FOXA','FOX','GPS','GT','HBI','LAD','LKQ','M','NCLH','NWL','PVH',
-    'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS','KHC','STZ','ADM','BF-B','CAG','CHD','CLX','CPB','EL','HSY','K','KDP','KR','KVUE','MKC','MNST','SJM','SYY','TAP','TSN','WBA','BGS','BG','COKE','FLO','HRL','LANC','POST',
-    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN','HES','BKR','APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE','TRGP','WMB','EQT','AR','CLR','CNX','CQP','EXE','FTI','HP','MTDR','NBL','OVV','PBF','PR','RIG','SM','VAL','XEC',
-    'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC','FDX','CSX','HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI','DOV','EMR','ETN','EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW','J','JBHT','JCI','LDOS','MAS','NSC','ODFL','OTIS','PCAR','PH','PWR','ROK','ROL','RSG','SNA','SWK','TT','URI','VRSK','WAB','WM','XYL','ALK','JBLU','SAVE',
-    'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA','NWS','OMC','PARA','WBD','IPG','DISH',
-    'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE','DLR','EQR','ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC','SLG','UDR','VTR','WELL','WY','INVH','PEAK','VNO',
-    'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB','EMN','SQM','AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS','NUE','PKG','PPG','SEE','STLD','SW','VMC','AVY','AA','MP','RS',
-    'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS','CNP','DTE','ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG','PCG','PEG','PNW','PPL','VST','WEC','XEL','CEG',
-    'BABA','JD','PDD','BIDU','NIO','XPEV','LI',
-    '^GSPC','^DJI','^IXIC','^RUT','^VIX','^FTSE','^GDAXI','^FCHI','^IBEX','^AEX','^SSMI','^OMXS30','^BFX','^N225','^HSI','000001.SS','^STI','^BSESN','^NSEI','^KS11','^TWII','^JKSE','^AXJO','^GSPTSE','^MXX','^BVSP','^MERV',
-    'GC=F','SI=F','PL=F','PA=F','CL=F','BZ=F','NG=F','RB=F','HO=F','HG=F','ALI=F','ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F','LBS=F',
-    '^TNX','^TYX','^FVX','^IRX','ZN=F','ZB=F','ZT=F','ZF=F',
-    'BTC-USD','ETH-USD','BNB-USD','SOL-USD','ADA-USD','XRP-USD','DOGE-USD','AVAX-USD','DOT-USD','MATIC-USD','LINK-USD','UNI-USD','LTC-USD','BCH-USD','ATOM-USD',
-  ];
-
-  const filtered = ALL_ASSETS_FULL.filter(a =>
-    a.toLowerCase().includes(assetSearch.toLowerCase()) && !form.assets.includes(a)
-  );
 
   return (
-    <div className="snw-overlay-backdrop" onClick={onClose}>
-      <div className="snw-overlay-panel" onClick={e => e.stopPropagation()}>
-        <div className="snw-overlay-header">
-          <span className="snw-overlay-title">New GA Model</span>
-          <button className="snw-overlay-close" onClick={onClose}>×</button>
-        </div>
-        <div className="snw-overlay-body">
+    <>
+      {/* Asset picker sub-modal — rendered outside main overlay so z-index stacks */}
+      {showAssetPicker && (
+        <AssetPickerModal
+          selected={form.assets}
+          onChange={assets => setForm(f => ({ ...f, assets }))}
+          onClose={() => setShowAssetPicker(false)}
+        />
+      )}
 
-          {/* Name */}
-          <div className="snw-section-gap">
-            <div className="snw-section-label">Identification</div>
-            <div className="snw-field" style={{gridColumn:'1/-1'}}>
-              <label className="snw-label">Model name</label>
-              <input className="snw-input" value={form.name}
-                onChange={e => fld('name', e.target.value)}
-                placeholder="e.g. Uptrend Retracement Alpha" />
-            </div>
+      <div className="snw-overlay-backdrop" onClick={onClose}>
+        <div className="snw-overlay-panel" onClick={e => e.stopPropagation()}>
+          <div className="snw-overlay-header">
+            <span className="snw-overlay-title">New GA Model</span>
+            <button className="snw-overlay-close" onClick={onClose}>×</button>
           </div>
+          <div className="snw-overlay-body">
 
-          {/* Assets */}
-          <div className="snw-section-gap">
-            <div className="snw-section-label">Assets</div>
-            <div style={{position:'relative'}}>
-              <input className="snw-input" placeholder="Search tickers…"
-                value={assetSearch}
-                onChange={e => { setAssetSearch(e.target.value); setAssetDropdown(true); }}
-                onFocus={() => setAssetDropdown(true)}
-              />
-              {assetDropdown && filtered.length > 0 && (
-                <div className="snw-asset-dropdown">
-                  {filtered.slice(0, 25).map(a => (
-                    <div key={a} className="snw-asset-opt" onClick={() => addAsset(a)}>{a}</div>
+            {/* Name */}
+            <div className="snw-section-gap">
+              <div className="snw-section-label">Identification</div>
+              <div className="snw-field">
+                <label className="snw-label">Model name</label>
+                <input className="snw-input" value={form.name}
+                  onChange={e => fld('name', e.target.value)}
+                  placeholder="e.g. Uptrend Retracement Alpha" />
+              </div>
+            </div>
+
+            {/* Assets */}
+            <div className="snw-section-gap">
+              <div className="snw-section-label">Assets</div>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <button className="snw-btn snw-btn-ghost" onClick={() => setShowAssetPicker(true)}>
+                  🗂 Browse asset catalogue
+                </button>
+                {form.assets.length > 0 && (
+                  <>
+                    <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'var(--snw-text-dim)'}}>
+                      {form.assets.length} selected
+                    </span>
+                    <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                      onClick={() => fld('assets', [])}>Clear</button>
+                  </>
+                )}
+              </div>
+              {form.assets.length > 0 ? (
+                <div className="snw-asset-tags">
+                  {form.assets.map(a => (
+                    <span key={a} className="snw-asset-tag"
+                      onClick={() => fld('assets', form.assets.filter(x => x !== a))}>
+                      {a} ×
+                    </span>
                   ))}
+                </div>
+              ) : (
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'var(--snw-text-muted)'}}>
+                  No assets selected — open the catalogue to choose
                 </div>
               )}
             </div>
-            <div className="snw-asset-tags">
-              {form.assets.map(a => (
-                <span key={a} className="snw-asset-tag" onClick={() => removeAsset(a)}>{a} ×</span>
-              ))}
-              {form.assets.length === 0 &&
-                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-muted)'}}>
-                  No assets selected
-                </span>
-              }
-            </div>
-          </div>
 
-          {/* Parameters */}
-          <div className="snw-section-gap">
-            <div className="snw-section-label">Parameters</div>
-            <div className="snw-field-grid">
-              {[
-                {key:'timeframe',       label:'Timeframe',       type:'select', opts:['1m','5m','15m','1h','4h','1d','1wk']},
-                {key:'start_year',      label:'Start year',      type:'number'},
-                {key:'end_year',        label:'End year',        type:'number'},
-                {key:'initial_capital', label:'Capital ($)',     type:'number'},
-                {key:'take_profit',     label:'Take profit (%)', type:'number', step:0.1},
-                {key:'stop_loss',       label:'Stop loss (%)',   type:'number', step:0.1},
-              ].map(({key, label, type, opts, step}) => (
-                <div key={key} className="snw-field">
-                  <label className="snw-label">{label}</label>
-                  {type === 'select' ? (
-                    <select className="snw-select" value={form[key]} onChange={e => fld(key, e.target.value)}>
-                      {opts.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  ) : (
+            {/* Parameters */}
+            <div className="snw-section-gap">
+              <div className="snw-section-label">Parameters</div>
+              <div className="snw-field-grid">
+                {[
+                  {key:'timeframe',       label:'Timeframe',      type:'select', opts:['1m','5m','15m','1h','4h','1d','1wk']},
+                  {key:'start_year',      label:'Start year',     type:'number'},
+                  {key:'end_year',        label:'End year',       type:'number'},
+                  {key:'initial_capital', label:'Capital ($)',    type:'number'},
+                  {key:'take_profit',     label:'Take profit (%)',type:'number', step:0.1},
+                  {key:'stop_loss',       label:'Stop loss (%)',  type:'number', step:0.1},
+                ].map(({key, label, type, opts, step}) => (
+                  <div key={key} className="snw-field">
+                    <label className="snw-label">{label}</label>
+                    {type === 'select' ? (
+                      <select className="snw-select" value={form[key]} onChange={e => fld(key, e.target.value)}>
+                        {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input className="snw-input" type="number" step={step||1}
+                        value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* GA / RL */}
+            <div className="snw-section-gap">
+              <div className="snw-section-label">GA / RL Hyper-parameters</div>
+              <div className="snw-field-grid">
+                {[
+                  {key:'population_size', label:'Population'},
+                  {key:'max_generations', label:'Generations'},
+                  {key:'mutation_rate',   label:'Mutation rate',    step:0.01},
+                  {key:'elite_fraction',  label:'Elite fraction',   step:0.05},
+                  {key:'rl_learning_rate',label:'RL learning rate', step:0.001},
+                ].map(({key, label, step}) => (
+                  <div key={key} className="snw-field">
+                    <label className="snw-label">{label}</label>
                     <input className="snw-input" type="number" step={step||1}
                       value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
-                  )}
+                  </div>
+                ))}
+                <div className="snw-field">
+                  <label className="snw-label">RL enabled</label>
+                  <select className="snw-select" value={form.rl_enabled?'yes':'no'}
+                    onChange={e => fld('rl_enabled', e.target.value==='yes')}>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* GA / RL */}
-          <div className="snw-section-gap">
-            <div className="snw-section-label">GA / RL Hyper-parameters</div>
-            <div className="snw-field-grid">
-              {[
-                {key:'population_size', label:'Population'},
-                {key:'max_generations', label:'Generations'},
-                {key:'mutation_rate',   label:'Mutation rate', step:0.01},
-                {key:'elite_fraction',  label:'Elite fraction', step:0.05},
-                {key:'rl_learning_rate',label:'RL learning rate', step:0.001},
-              ].map(({key, label, step}) => (
-                <div key={key} className="snw-field">
-                  <label className="snw-label">{label}</label>
-                  <input className="snw-input" type="number" step={step||1}
-                    value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
-                </div>
-              ))}
-              <div className="snw-field">
-                <label className="snw-label">RL enabled</label>
-                <select className="snw-select" value={form.rl_enabled ? 'yes' : 'no'}
-                  onChange={e => fld('rl_enabled', e.target.value === 'yes')}>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
               </div>
             </div>
-          </div>
 
-          {/* Functions — grouped by category */}
-          <div className="snw-section-gap">
-            <div className="snw-section-label">
-              Function pool — {form.allowed_functions.length} selected
-              <button className="snw-btn snw-btn-ghost snw-btn-sm"
-                style={{marginLeft:12}}
-                onClick={() => setForm(f => ({...f, allowed_functions: ALL_FUNCTIONS}))}>
-                Select all
-              </button>
-              <button className="snw-btn snw-btn-ghost snw-btn-sm"
-                style={{marginLeft:6}}
-                onClick={() => setForm(f => ({...f, allowed_functions: []}))}>
-                Clear
-              </button>
-            </div>
-            {FUNCTION_CATEGORIES.map(cat => (
-              <div key={cat.label} className="snw-func-category">
-                <div className="snw-func-category-label">{cat.label}</div>
-                <div className="snw-func-grid">
-                  {cat.fns.map(fn => (
-                    <div key={fn}
-                      className={`snw-func-chip ${form.allowed_functions.includes(fn) ? 'snw-func-on' : ''}`}
-                      onClick={() => toggleFunc(fn)}>
-                      <span className="snw-func-dot"/>
-                      {fn}
+            {/* Functions — grouped */}
+            <div className="snw-section-gap">
+              <div className="snw-section-label" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span>Function pool — {form.allowed_functions.length} selected</span>
+                <div style={{display:'flex',gap:6}}>
+                  <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                    onClick={() => fld('allowed_functions', ALL_FUNCTIONS)}>Select all</button>
+                  <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                    onClick={() => fld('allowed_functions', [])}>Clear</button>
+                </div>
+              </div>
+              {FUNCTION_CATEGORIES.map(cat => (
+                <div key={cat.label} className="snw-func-category">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                    <div className="snw-func-category-label">{cat.label}</div>
+                    <div style={{display:'flex',gap:5}}>
+                      <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                        onClick={() => fld('allowed_functions',[
+                          ...form.allowed_functions,
+                          ...cat.fns.filter(f => !form.allowed_functions.includes(f))
+                        ])}>All</button>
+                      <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                        onClick={() => fld('allowed_functions',
+                          form.allowed_functions.filter(f => !cat.fns.includes(f)))}>None</button>
                     </div>
-                  ))}
+                  </div>
+                  <div className="snw-func-grid">
+                    {cat.fns.map(fn => (
+                      <div key={fn}
+                        className={`snw-func-chip ${form.allowed_functions.includes(fn)?'snw-func-on':''}`}
+                        onClick={() => toggleFunc(fn)}>
+                        <span className="snw-func-dot"/>
+                        {fn}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {dupWarning && <div className="snw-dup-warn">{dupWarning}</div>}
+            {dupWarning && <div className="snw-dup-warn">{dupWarning}</div>}
 
-          <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
-            <button className="snw-btn snw-btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="snw-btn snw-btn-primary"
-              disabled={submitting || !form.name || form.assets.length===0 || form.allowed_functions.length===0 || !!dupWarning}
-              onClick={submit}>
-              {submitting ? 'Creating…' : 'Create Model'}
-            </button>
+            <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+              <button className="snw-btn snw-btn-ghost" onClick={onClose}>Cancel</button>
+              <button className="snw-btn snw-btn-primary"
+                disabled={submitting||!form.name||form.assets.length===0||form.allowed_functions.length===0||!!dupWarning}
+                onClick={submit}>
+                {submitting ? 'Creating…' : 'Create Model'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
+
 
 /* ─── Model Detail Panel ─────────────────────────────────────────────────── */
 function ModelDetail({ model: initialModel, onDelete }) {
