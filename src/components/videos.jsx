@@ -120,28 +120,33 @@ const InstaEmbed = ({url, loop=false}) => {
   const [loaded,    setLoaded]    = useState(false);
   const [errored,   setErrored]   = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [looping,   setLooping]   = useState(false); // flash when restarting
-  const silenceRef  = useRef(null);
-  const audioCtxRef = useRef(null);
+  const [looping,   setLooping]   = useState(false);
+  const [showNav,   setShowNav]   = useState(false);
+  const silenceRef = useRef(null);
+  const iframeRef  = useRef(null);
   const code = igShortcode(url);
 
-  // Silence detection: capture tab audio, watch analyser for sustained quiet
+  // Detect when iframe steals focus = user clicked end-screen "Watch on Instagram"
+  useEffect(() => {
+    if (!loaded) return;
+    const onBlur = () => {
+      setTimeout(() => {
+        if (document.activeElement === iframeRef.current) {
+          setShowNav(true);
+          window.focus();
+        }
+      }, 100);
+    };
+    window.addEventListener('blur', onBlur);
+    return () => window.removeEventListener('blur', onBlur);
+  }, [loaded]);
+
   const startSilenceWatch = useCallback(() => {
     if (!loop) return;
     try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      if (audioCtxRef.current) { try { audioCtxRef.current.close(); } catch {} }
-      // We can't directly capture iframe audio cross-origin.
-      // Best we can do: capture system audio via getDisplayMedia (screen share).
-      // Since that's too intrusive, we use a smarter heuristic:
-      // Instagram reels on mobile are typically 15s, on desktop 15-90s.
-      // We monitor the page for the iframe to re-navigate (loop natively) or go silent.
-      // Actual reliable method: observe iframe src re-requests via PerformanceObserver.
       const observer = new PerformanceObserver(list => {
         for (const entry of list.getEntries()) {
           if (entry.name && entry.name.includes('instagram.com') && entry.name.includes('embed')) {
-            // iframe navigated — means it looped natively or ended
             setLooping(true);
             setTimeout(() => setLooping(false), 800);
           }
@@ -152,17 +157,17 @@ const InstaEmbed = ({url, loop=false}) => {
     } catch {}
   }, [loop]);
 
-  // Manual reload on demand (the loop button)
   const replayNow = () => {
     setLoaded(false);
     setLooping(true);
+    setShowNav(false);
     setReloadKey(k => k + 1);
     setTimeout(() => setLooping(false), 600);
   };
 
   useEffect(() => { if (loaded) startSilenceWatch(); }, [loaded, startSilenceWatch]);
   useEffect(() => () => { try { silenceRef.current?.disconnect?.(); silenceRef.current?.unobserve?.(); } catch {} }, []);
-  useEffect(() => { setLoaded(false); setErrored(false); setReloadKey(0); }, [url]);
+  useEffect(() => { setLoaded(false); setErrored(false); setReloadKey(0); setShowNav(false); }, [url]);
 
   if (!code) return (
     <div style={{padding:'24px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,minHeight:160}}>
@@ -185,6 +190,32 @@ const InstaEmbed = ({url, loop=false}) => {
           <span style={{fontSize:28}}>🔁</span>
         </div>
       )}
+      {/* Intercept modal — pops up when iframe tries to navigate away */}
+      {showNav && (
+        <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.82)',backdropFilter:'blur(4px)'}} className="sas-in">
+          <div style={{background:'#1a1a1a',borderRadius:16,padding:'22px 20px',maxWidth:240,width:'90%',border:'1px solid rgba(255,255,255,.1)',boxShadow:'0 16px 48px rgba(0,0,0,.6)',display:'flex',flexDirection:'column',alignItems:'center',gap:13,textAlign:'center'}}>
+            <div style={{fontSize:30}}>🤔</div>
+            <div>
+              <div style={{fontFamily:T.font,fontWeight:800,fontSize:14,color:'#fff',marginBottom:4}}>Where to?</div>
+              <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.45)',lineHeight:1.5}}>You tapped the end screen. Replay here or open Instagram?</div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:7,width:'100%'}}>
+              <button onClick={replayNow}
+                style={{width:'100%',padding:'9px 0',background:IG,border:'none',color:'#fff',borderRadius:T.rs,cursor:'pointer',fontFamily:T.font,fontWeight:700,fontSize:13}}>
+                ↺ Replay here
+              </button>
+              <a href={url} target="_blank" rel="noopener noreferrer" onClick={()=>setShowNav(false)}
+                style={{width:'100%',padding:'9px 0',background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.75)',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,textDecoration:'none',display:'block',boxSizing:'border-box'}}>
+                Open on Instagram ↗
+              </a>
+              <button onClick={()=>setShowNav(false)}
+                style={{background:'none',border:'none',color:'rgba(255,255,255,.28)',cursor:'pointer',fontFamily:T.body,fontSize:11,padding:'2px 0'}}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {errored ? (
         <div style={{padding:'28px 20px',background:'linear-gradient(135deg,#1a1a2e,#0f3460)',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:13,minHeight:200}}>
           <div style={{fontSize:34}}>🔒</div>
@@ -192,7 +223,7 @@ const InstaEmbed = ({url, loop=false}) => {
           <a href={url} target="_blank" rel="noopener noreferrer" style={{padding:'9px 18px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:13,textDecoration:'none'}}>Open on Instagram ↗</a>
         </div>
       ) : (
-        <iframe key={reloadKey} src={`https://www.instagram.com/p/${code}/embed/`}
+        <iframe key={reloadKey} ref={iframeRef} src={`https://www.instagram.com/p/${code}/embed/`}
           style={{width:'100%',minHeight:420,border:'none',display:'block',background:'#fff'}}
           scrolling="no" allowTransparency="true"
           onLoad={()=>setLoaded(true)}
@@ -214,9 +245,6 @@ const InstaEmbed = ({url, loop=false}) => {
   );
 };
 
-// ─── TRANSCRIPT PANEL ─────────────────────────────────────────────────────────
-// Web Speech API. Auto-scrolls. Doesn't pause the reel because we use
-// interimResults + aggressive restart instead of letting the recognizer idle.
 const TranscriptPanel = ({active, onClose}) => {
   const [lines,   setLines]   = useState([]);
   const [running, setRunning] = useState(false);
