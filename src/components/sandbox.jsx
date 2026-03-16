@@ -1323,13 +1323,38 @@ function CreateModelOverlay({ onClose, onCreate }) {
     setSubmitting(true);
     try {
       const r = await fetch(`${BASE_URL}/api/snowai/models/`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      const d = await r.json();
-      if (r.ok) { onCreate(d.model); onClose(); }
-      else alert(d.error || 'Failed');
-    } catch (e) { alert(e.message); }
+
+      const rawText = await r.text();
+
+      // Try to parse JSON — if it fails, show the raw response so we can see the actual error
+      let d;
+      try {
+        d = JSON.parse(rawText);
+      } catch (_) {
+        console.error('[SnowAI] Non-JSON response from server:', rawText.slice(0, 500));
+        alert(
+          `Server returned non-JSON (HTTP ${r.status}).\n\n` +
+          `This usually means a Django error. Check your server logs.\n\n` +
+          `First 300 chars of response:\n${rawText.slice(0, 300)}`
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      if (r.ok) {
+        onCreate(d.model);
+        onClose();
+      } else {
+        alert(`Error ${r.status}: ${d.error || JSON.stringify(d)}`);
+      }
+    } catch (e) {
+      console.error('[SnowAI] Fetch error:', e);
+      alert(`Network error: ${e.message}`);
+    }
     setSubmitting(false);
   };
 
@@ -1867,13 +1892,20 @@ export default function SnowAISandbox() {
   const loadModels = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (search)       params.set('q',        search);
-      if (filterStatus) params.set('status',   filterStatus);
-      if (filterTf)     params.set('timeframe',filterTf);
-      const r = await fetch(`${BASE_URL}/api/snowai/models/?${params}`);
-      const d = await r.json();
-      setModels(d.models || []);
-    } catch (_) {}
+      if (search)       params.set('q',         search);
+      if (filterStatus) params.set('status',     filterStatus);
+      if (filterTf)     params.set('timeframe',  filterTf);
+      const r    = await fetch(`${BASE_URL}/api/snowai/models/?${params}`);
+      const text = await r.text();
+      try {
+        const d = JSON.parse(text);
+        setModels(d.models || []);
+      } catch (_) {
+        console.error('[SnowAI] loadModels — non-JSON response:', text.slice(0, 300));
+      }
+    } catch (e) {
+      console.error('[SnowAI] loadModels — fetch error:', e);
+    }
   }, [search, filterStatus, filterTf]);
 
   useEffect(() => { loadModels(); }, [loadModels]);
@@ -1899,10 +1931,19 @@ export default function SnowAISandbox() {
 
   const selectModel = async (m) => {
     try {
-      const r = await fetch(`${BASE_URL}/api/snowai/models/${m.id}/`);
-      const d = await r.json();
-      setSelected(d.model || m);
-    } catch (_) { setSelected(m); }
+      const r    = await fetch(`${BASE_URL}/api/snowai/models/${m.id}/`);
+      const text = await r.text();
+      try {
+        const d = JSON.parse(text);
+        setSelected(d.model || m);
+      } catch (_) {
+        console.error('[SnowAI] selectModel — non-JSON response:', text.slice(0, 300));
+        setSelected(m);
+      }
+    } catch (e) {
+      console.error('[SnowAI] selectModel — fetch error:', e);
+      setSelected(m);
+    }
   };
 
   return (
