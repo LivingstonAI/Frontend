@@ -193,7 +193,7 @@ const InstaEmbed = ({url, loop=false}) => {
         </div>
       ) : (
         <iframe key={reloadKey} src={`https://www.instagram.com/p/${code}/embed/`}
-          style={{width:'100%',minHeight:560,border:'none',display:'block',background:'#fff'}}
+          style={{width:'100%',minHeight:420,border:'none',display:'block',background:'#fff'}}
           scrolling="no" allowTransparency="true"
           onLoad={()=>setLoaded(true)}
           onError={()=>{setLoaded(true);setErrored(true);}}/>
@@ -386,9 +386,9 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   return(
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
-        style={{width:'100%',maxWidth:520,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',marginTop:'auto',marginBottom:'auto'}}>
+        style={{width:'100%',maxWidth:520,maxHeight:'94vh',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
 
         {/* Header */}
         <div style={{height:3,background:IG}}/>
@@ -428,13 +428,11 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
           </div>
         </div>
 
-        {/* Embed */}
-        <div style={{background:'#000'}}>
+        {/* Embed + Transcript — scroll only inside this block */}
+        <div style={{flex:'1 1 0',minHeight:0,overflowY:'auto',background:'#000'}} className="sas-scroll">
           <InstaEmbed url={post.post_url} loop={loop}/>
+          <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
         </div>
-
-        {/* Transcript */}
-        <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
 
         {/* Nav */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
@@ -639,31 +637,31 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${expanded?'#c13584':hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:expanded?`0 0 0 2px #c13584,${T.shm}`:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
-      {/* Thumbnail — preloaded iframe, click toggles inline player */}
-      <div onClick={()=>setExpanded(e=>!e)} style={{position:'relative',paddingTop:'100%',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer'}}>
-        {embedUrl && (
-          <iframe src={embedUrl}
-            style={{position:'absolute',inset:0,width:'100%',height:'100%',border:'none',pointerEvents:'none',opacity:preloaded?1:0,transition:'opacity .4s'}}
-            scrolling="no" allowTransparency="true"
-            onLoad={()=>setPreloaded(true)}/>
-        )}
-        {!preloaded && (
-          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,zIndex:1}}>
-            {reel?'🎬':'📸'}
+      {/* Thumbnail — hidden when expanded; shorter fixed height so it's compact on mobile */}
+      {!expanded && (
+        <div onClick={()=>setExpanded(true)} style={{position:'relative',height:220,background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer',flexShrink:0}}>
+          {embedUrl && (
+            <iframe src={embedUrl}
+              style={{position:'absolute',inset:0,width:'100%',height:'100%',border:'none',pointerEvents:'none',opacity:preloaded?1:0,transition:'opacity .4s'}}
+              scrolling="no" allowTransparency="true"
+              onLoad={()=>setPreloaded(true)}/>
+          )}
+          {!preloaded && (
+            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,zIndex:1}}>
+              {reel?'🎬':'📸'}
+            </div>
+          )}
+          <div style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.3:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s',zIndex:2}}>
+            {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,boxShadow:'0 3px 14px rgba(0,0,0,.4)'}}>▶</div>}
           </div>
-        )}
-        <div style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.3:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s',zIndex:2}}>
-          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,boxShadow:'0 3px 14px rgba(0,0,0,.4)'}}>
-            {expanded?'■':'▶'}
-          </div>}
+          <div style={{position:'absolute',top:7,left:7,zIndex:3}}><Badge label={reel?'REEL':'POST'} bg={reel?IG:'rgba(0,0,0,.55)'}/></div>
         </div>
-        <div style={{position:'absolute',top:7,left:7,zIndex:3}}><Badge label={reel?'REEL':'POST'} bg={reel?IG:'rgba(0,0,0,.55)'}/></div>
-      </div>
-      {/* Inline expand — full embed right inside the card */}
+      )}
+      {/* Inline player — replaces thumbnail entirely when expanded */}
       {expanded && (
-        <div style={{background:'#000',borderTop:'2px solid #c13584'}} className="sas-in">
+        <div style={{background:'#000',borderTop:'2px solid #c13584',flexShrink:0}} className="sas-in">
           <iframe src={embedUrl}
-            style={{width:'100%',minHeight:520,border:'none',display:'block'}}
+            style={{width:'100%',minHeight:480,border:'none',display:'block'}}
             scrolling="no" allowTransparency="true"/>
         </div>
       )}
@@ -773,7 +771,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-export default function SnowAIStream() {
+export default function SnowAIVideos() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
