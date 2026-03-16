@@ -590,21 +590,29 @@ const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
   );
 };
 
-const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) => {
+const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
   const [hov,setHov]=useState(false);
+  const [expanded,setExpanded]=useState(false);
   const vid=video.youtube_embed_id||ytId(video.video_url);
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${playing?T.accent:hov?T.accentMid:T.border}`,overflow:'hidden',boxShadow:playing?`0 0 0 2px ${T.accent},${T.shm}`:T.sh,display:'flex',flexDirection:'column'}}>
-      <div onClick={()=>onPlay(video)} style={{position:'relative',paddingTop:'56.25%',cursor:'pointer',background:'#0f172a',overflow:'hidden'}}>
+      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${expanded?T.accent:hov?T.accentMid:T.border}`,overflow:'hidden',boxShadow:expanded?`0 0 0 2px ${T.accent},${T.shm}`:T.sh,display:'flex',flexDirection:'column'}}>
+      <div onClick={()=>setExpanded(e=>!e)} style={{position:'relative',paddingTop:'56.25%',cursor:'pointer',background:'#0f172a',overflow:'hidden'}}>
         {vid&&<img src={`https://img.youtube.com/vi/${vid}/hqdefault.jpg`} alt={video.video_title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s',transform:hov?'scale(1.05)':'scale(1)'}}/>}
         <div style={{position:'absolute',inset:0,background:`rgba(15,23,42,${hov?.35:.15})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}>
-          <div style={{background:playing?T.accent:'rgba(255,255,255,.92)',borderRadius:'50%',width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,boxShadow:'0 3px 12px rgba(0,0,0,.3)',transform:hov?'scale(1.1)':'scale(1)',transition:'all .2s'}}>{playing?<span style={{color:'#fff',fontSize:13}}>■</span>:'▶'}</div>
+          <div style={{background:expanded?T.accent:'rgba(255,255,255,.92)',borderRadius:'50%',width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,boxShadow:'0 3px 12px rgba(0,0,0,.3)',transform:hov?'scale(1.1)':'scale(1)',transition:'all .2s'}}>{expanded?<span style={{color:'#fff',fontSize:13}}>■</span>:'▶'}</div>
         </div>
         <div style={{position:'absolute',top:7,left:7}}><Badge label="YT" bg="#dc2626"/></div>
       </div>
+      {expanded && (
+        <div style={{width:'100%',aspectRatio:'16/9',background:'#000',flexShrink:0}} className="sas-in">
+          <iframe src={`https://www.youtube.com/embed/${vid}?autoplay=1`} title={video.video_title}
+            frameBorder="0" style={{width:'100%',height:'100%',display:'block'}}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
+        </div>
+      )}
       <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:5}}>
-        <div onClick={()=>onPlay(video)} style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,cursor:'pointer',lineHeight:1.4,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{video.video_title}</div>
+        <div onClick={()=>setExpanded(e=>!e)} style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,cursor:'pointer',lineHeight:1.4,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{video.video_title}</div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:4}}>
           <Badge label={video.category_name||'–'} bg={T.accentPale} color={T.accent}/>
           <span style={{fontSize:11,color:T.textMut,fontFamily:T.body}}>{fmtDate(video.date_entered)}</span>
@@ -612,7 +620,8 @@ const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) =>
         {video.notes&&<p style={{fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.5,margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{video.notes}</p>}
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`,flexWrap:'wrap'}}>
-        <Btn onClick={()=>onPlay(video)} style={{flex:1,padding:'6px 0',background:playing?'#dc2626':YTG,color:'#fff',fontSize:12,minWidth:60}}>{playing?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'#dc2626':YTG,color:'#fff',fontSize:12,minWidth:60}}>{expanded?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>onPlayModal(video)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onAddToPlaylist(video)} title="Add to playlist" style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>🎵</Btn>
         <Btn onClick={()=>onEdit(video)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(video.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
@@ -620,40 +629,44 @@ const YtCard = ({video,index,onPlay,onEdit,onDelete,playing,onAddToPlaylist}) =>
     </div>
   );
 };
-
-const IgCard = ({post,index,onPlayModal,onPlayInline,onEdit,onDelete}) => {
+const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   const [hov,setHov]=useState(false);
+  const [expanded,setExpanded]=useState(false);
   const [preloaded,setPreloaded]=useState(false);
   const reel = isReel(post.post_url);
   const code = igShortcode(post.post_url);
   const embedUrl = code ? `https://www.instagram.com/p/${code}/embed/` : null;
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
-      {/* Thumbnail area — preload iframe on mount, overlay hides it until user acts */}
-      <div style={{position:'relative',paddingTop:'100%',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer'}}>
-        {/* Preloaded iframe — loads silently, shows IG thumbnail before play */}
+      style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${expanded?'#c13584':hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:expanded?`0 0 0 2px #c13584,${T.shm}`:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
+      {/* Thumbnail — preloaded iframe, click toggles inline player */}
+      <div onClick={()=>setExpanded(e=>!e)} style={{position:'relative',paddingTop:'100%',background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer'}}>
         {embedUrl && (
-          <iframe
-            src={embedUrl}
+          <iframe src={embedUrl}
             style={{position:'absolute',inset:0,width:'100%',height:'100%',border:'none',pointerEvents:'none',opacity:preloaded?1:0,transition:'opacity .4s'}}
             scrolling="no" allowTransparency="true"
-            onLoad={()=>setPreloaded(true)}
-          />
+            onLoad={()=>setPreloaded(true)}/>
         )}
-        {/* Fallback emoji while iframe loads */}
         {!preloaded && (
           <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:30,zIndex:1}}>
             {reel?'🎬':'📸'}
           </div>
         )}
-        {/* Hover overlay — click triggers modal */}
-        <div onClick={()=>onPlayModal(post)}
-          style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.35:.0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s',zIndex:2}}>
-          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,boxShadow:'0 3px 14px rgba(0,0,0,.4)'}}>▶</div>}
+        <div style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.3:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .22s',zIndex:2}}>
+          {hov&&<div style={{background:'rgba(255,255,255,.94)',borderRadius:'50%',width:40,height:40,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,boxShadow:'0 3px 14px rgba(0,0,0,.4)'}}>
+            {expanded?'■':'▶'}
+          </div>}
         </div>
         <div style={{position:'absolute',top:7,left:7,zIndex:3}}><Badge label={reel?'REEL':'POST'} bg={reel?IG:'rgba(0,0,0,.55)'}/></div>
       </div>
+      {/* Inline expand — full embed right inside the card */}
+      {expanded && (
+        <div style={{background:'#000',borderTop:'2px solid #c13584'}} className="sas-in">
+          <iframe src={embedUrl}
+            style={{width:'100%',minHeight:520,border:'none',display:'block'}}
+            scrolling="no" allowTransparency="true"/>
+        </div>
+      )}
       <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:5}}>
         <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{post.title}</div>
         {post.account_handle&&<div style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:16,height:16,borderRadius:'50%',background:IG,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><span style={{fontSize:8,color:'#fff'}}>@</span></div><span style={{fontFamily:T.body,fontSize:12,color:T.textSec}}>@{post.account_handle}</span></div>}
@@ -664,15 +677,14 @@ const IgCard = ({post,index,onPlayModal,onPlayInline,onEdit,onDelete}) => {
         {post.notes&&<p style={{fontFamily:T.body,fontSize:12,color:T.textSec,lineHeight:1.5,margin:0,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{post.notes}</p>}
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`}}>
-        <Btn onClick={()=>onPlayModal(post)} style={{flex:1,padding:'6px 0',background:IG,color:'#fff',fontSize:12}}>⛶ Modal</Btn>
-        {reel && <Btn onClick={()=>onPlayInline(post)} style={{flex:1,padding:'6px 0',background:'#0a0a0a',color:'#fff',fontSize:12,border:`1px solid rgba(255,255,255,.15)`}}>▶ Here</Btn>}
+        <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'rgba(193,53,132,.8)':IG,color:'#fff',fontSize:12}}>{expanded?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>onPlayModal(post)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onEdit(post)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(post.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
       </div>
     </div>
   );
 };
-
 const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJump, onPlLoop, loopPl, plIdx}) => {
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
@@ -761,7 +773,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-export default function SnowAIVideos() {
+export default function SnowAIStream() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
   const [toast,setToast]=useState({msg:'',type:''});
@@ -795,7 +807,6 @@ export default function SnowAIVideos() {
   const [igSearch,setIgSearch]=useState('');
   const [igPlaying,setIgPlaying]=useState(null);
   const [igPlayIdx,setIgPlayIdx]=useState(null);
-  const [inlineReel,setInlineReel]=useState(null); // play reel in-page without modal
   const [igFormOpen,setIgFormOpen]=useState(false);
   const [igEditing,setIgEditing]=useState(null);
   const [igForm,setIgForm]=useState({title:'',post_url:'',category_id:'',account_handle:'',notes:''});
@@ -924,7 +935,7 @@ export default function SnowAIVideos() {
                 <>
                   {ytSearch&&<div style={{padding:'6px 12px',background:T.accentPale,borderLeft:`4px solid ${T.accent}`,borderRadius:T.rs,marginBottom:10,fontFamily:T.body,fontSize:13,color:T.accent}}>{ytFiltered.length} result{ytFiltered.length!==1?'s':''}</div>}
                   <div className="sas-grid-yt">
-                    {ytFiltered.map((v,i)=><YtCard key={v.id} video={v} index={i} playing={ytPlaying?.id===v.id} onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onEdit={handleYtEdit} onDelete={handleYtDelete} onAddToPlaylist={handleAddToPL}/>)}
+                    {ytFiltered.map((v,i)=><YtCard key={v.id} video={v} index={i} onPlayModal={v=>{setActivePL(null);setYtPlaying(v);}} onEdit={handleYtEdit} onDelete={handleYtDelete} onAddToPlaylist={handleAddToPL}/>)}
                   </div>
                 </>
               )}
@@ -995,16 +1006,7 @@ export default function SnowAIVideos() {
               {loading?(<div style={{display:'flex',justifyContent:'center',padding:48}}><Spinner sz={32}/></div>):igFiltered.length===0?(
                 <div style={{textAlign:'center',padding:'44px 20px',background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,color:T.textMut,fontFamily:T.body}}>{igSearch?`No posts matching "${igSearch}"`:'No saved posts — use ⚡ Quick-View or save one!'}</div>
               ):igView==='grid'?(
-                <>
-                  {inlineReel && (
-                    <InlineReelPlayer
-                      post={inlineReel}
-                      onOpenModal={()=>{handleIgPlay(inlineReel);setInlineReel(null);}}
-                      onClose={()=>setInlineReel(null)}
-                    />
-                  )}
-                  <div className="sas-grid-ig">{igFiltered.map((p,i)=><IgCard key={p.id} post={p} index={i} onPlayModal={p=>{setInlineReel(null);handleIgPlay(p);}} onPlayInline={p=>{setInlineReel(r=>r?.id===p.id?null:p);}} onEdit={handleIgEdit} onDelete={handleIgDelete}/>)}</div>
-                </>
+                <div className="sas-grid-ig">{igFiltered.map((p,i)=><IgCard key={p.id} post={p} index={i} onPlayModal={handleIgPlay} onEdit={handleIgEdit} onDelete={handleIgDelete}/>)}</div>
               ):(
                 <div style={{display:'flex',flexDirection:'column',gap:10,maxWidth:380,margin:'0 auto'}}>
                   {igFiltered.map((p,i)=>(
