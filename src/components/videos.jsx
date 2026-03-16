@@ -385,10 +385,22 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   const isReelPost = isReel(post.post_url);
   const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [meta, setMeta] = useState(null);
+
+  useEffect(()=>{
+    if(!post.post_url)return;
+    setMeta(null);
+    const enc=encodeURIComponent(post.post_url);
+    fetch(`https://api.instagram.com/oembed/?url=${enc}&omitscript=true&maxwidth=480`)
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>setMeta(d))
+      .catch(()=>{});
+  },[post.post_url]);
+
   return(
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
-        style={{width:'100%',maxWidth:520,maxHeight:'94vh',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+        style={{width:'100%',maxWidth:500,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',margin:'auto'}}>
 
         {/* Header */}
         <div style={{height:3,background:IG}}/>
@@ -400,7 +412,7 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
             </div>
             <div style={{minWidth:0}}>
               <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                {post.account_handle ? `@${post.account_handle}` : post.title}
+                {post.account_handle?`@${post.account_handle}`:(meta?.author_name||post.title)}
               </div>
               <div style={{display:'flex',alignItems:'center',gap:5,marginTop:1}}>
                 <span style={{display:'inline-block',width:5,height:5,borderRadius:'50%',background:isReelPost?'#fd1d1d':'#833ab4',flexShrink:0}}/>
@@ -409,13 +421,13 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
             </div>
           </div>
           <div style={{display:'flex',gap:5,flexShrink:0,alignItems:'center'}}>
-            {isReelPost && (
+            {isReelPost&&(
               <button onClick={()=>setLoop(l=>!l)}
-                style={{background:loop?'rgba(253,29,29,.2)':'rgba(255,255,255,.1)',border:`1px solid ${loop?'rgba(253,29,29,.5)':'rgba(255,255,255,.15)'}`,color:loop?'#fd1d1d':'rgba(255,255,255,.7)',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700,whiteSpace:'nowrap'}}>
+                style={{background:loop?'rgba(253,29,29,.2)':'rgba(255,255,255,.1)',border:`1px solid ${loop?'rgba(253,29,29,.5)':'rgba(255,255,255,.15)'}`,color:loop?'#fd1d1d':'rgba(255,255,255,.7)',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
                 🔁{loop?' On':' Off'}
               </button>
             )}
-            {isReelPost && (
+            {isReelPost&&(
               <button onClick={()=>setShowTranscript(t=>!t)}
                 style={{background:showTranscript?IG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
                 📝
@@ -428,11 +440,29 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
           </div>
         </div>
 
-        {/* Embed + Transcript — scroll only inside this block */}
-        <div style={{flex:'1 1 0',minHeight:0,overflowY:'auto',background:'#000'}} className="sas-scroll">
+        {/* Embed — plain block div, no flex nonsense */}
+        <div style={{background:'#000'}}>
           <InstaEmbed url={post.post_url} loop={loop}/>
-          <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
         </div>
+
+        {/* Metadata strip — caption, author, category, notes */}
+        {(meta?.title||post.caption||post.notes||meta?.author_name)&&(
+          <div style={{padding:'9px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+            {(meta?.title||post.caption)&&(
+              <p style={{margin:'0 0 6px',fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.65)',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical'}}>
+                {meta?.title||post.caption}
+              </p>
+            )}
+            <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+              {meta?.author_name&&<span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.38)'}}>👤 {meta.author_name}</span>}
+              {post.category_name&&<span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.38)'}}>🏷 {post.category_name}</span>}
+              {post.notes&&<span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.38)',fontStyle:'italic'}}>📌 {post.notes}</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Transcript — collapsible, sits below embed */}
+        {showTranscript&&<TranscriptPanel active={true} onClose={()=>setShowTranscript(false)}/>}
 
         {/* Nav */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
