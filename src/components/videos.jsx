@@ -199,16 +199,16 @@ const InstaEmbed = ({url, loop=false}) => {
           onError={()=>{setLoaded(true);setErrored(true);}}/>
       )}
       <div style={{padding:'8px 14px',background:'#111',borderTop:'1px solid #222',display:'flex',alignItems:'center',gap:8}}>
+        {loaded && (
+          <button onClick={replayNow}
+            style={{background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.22)',color:'#fff',padding:'7px 14px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0}}>
+            ↺ Replay
+          </button>
+        )}
         <a href={url} target="_blank" rel="noopener noreferrer"
           style={{flex:1,textAlign:'center',padding:'7px 0',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none',display:'block'}}>
           Open on Instagram ↗
         </a>
-        {loop && loaded && (
-          <button onClick={replayNow}
-            style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',color:'#fff',padding:'7px 12px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600,whiteSpace:'nowrap',flexShrink:0}}>
-            🔁 Replay
-          </button>
-        )}
       </div>
     </div>
   );
