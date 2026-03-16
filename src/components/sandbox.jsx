@@ -1013,27 +1013,6 @@ function CreateModelOverlay({ onClose, onCreate }) {
     'LTC-USD','BCH-USD','ATOM-USD',
   ];
 
-  const filtered = ALL_ASSETS.filter(a =>
-    a.toLowerCase().includes(assetSearch.toLowerCase()) && !form.assets.includes(a)
-  );
-
-  const addAsset = (a) => {
-    setForm(f => ({ ...f, assets: [...f.assets, a] }));
-    setAssetSearch('');
-    setAssetDropdown(false);
-  };
-
-  const removeAsset = (a) => setForm(f => ({ ...f, assets: f.assets.filter(x => x !== a) }));
-
-  const toggleFunc = (fn) => {
-    setForm(f => ({
-      ...f,
-      allowed_functions: f.allowed_functions.includes(fn)
-        ? f.allowed_functions.filter(x => x !== fn)
-        : [...f.allowed_functions, fn],
-    }));
-  };
-
   const checkDuplicate = async () => {
     if (form.assets.length === 0 || form.allowed_functions.length === 0) return;
     try {
