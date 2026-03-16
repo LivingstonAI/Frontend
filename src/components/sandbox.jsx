@@ -3,174 +3,185 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   STYLES  –  scientific / minimal  ("cold lab" aesthetic)
-   Font: IBM Plex Mono + IBM Plex Sans via Google Fonts
+   STYLES  –  all classnames prefixed .snw- to avoid collision with nav
+   Two themes: [data-snw-theme="dark"] and [data-snw-theme="light"]
 ───────────────────────────────────────────────────────────────────────── */
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
-:root {
-  --bg:        #080c10;
-  --surface:   #0d1219;
-  --card:      #111820;
-  --border:    #1e2a36;
-  --border2:   #263545;
-  --text:      #cdd6e0;
-  --text-dim:  #5a7080;
-  --text-muted:#3a5060;
-  --accent:    #00c8ff;
-  --accent2:   #0084aa;
-  --green:     #00e5a0;
-  --red:       #ff4d6a;
-  --yellow:    #f5c842;
-  --mono:      'IBM Plex Mono', monospace;
-  --sans:      'IBM Plex Sans', sans-serif;
+/* ── Theme tokens ── */
+[data-snw-theme="dark"] {
+  --snw-bg:          #080c10;
+  --snw-surface:     #0d1219;
+  --snw-card:        #111820;
+  --snw-border:      #1e2a36;
+  --snw-border2:     #263545;
+  --snw-text:        #cdd6e0;
+  --snw-text-dim:    #5a7080;
+  --snw-text-muted:  #3a5060;
+  --snw-accent:      #00c8ff;
+  --snw-accent2:     #0084aa;
+  --snw-accent-bg:   #00c8ff0d;
+  --snw-green:       #00e5a0;
+  --snw-red:         #ff4d6a;
+  --snw-yellow:      #f5c842;
+  --snw-shadow:      0 4px 20px rgba(0,0,0,0.5);
+  --snw-shadow-sm:   0 2px 8px rgba(0,0,0,0.4);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[data-snw-theme="light"] {
+  --snw-bg:          #f0f5fa;
+  --snw-surface:     #ffffff;
+  --snw-card:        #ffffff;
+  --snw-border:      #d0dce8;
+  --snw-border2:     #b0c4d8;
+  --snw-text:        #1a2a3a;
+  --snw-text-dim:    #6080a0;
+  --snw-text-muted:  #90aabf;
+  --snw-accent:      #0090c8;
+  --snw-accent2:     #006fa0;
+  --snw-accent-bg:   #0090c810;
+  --snw-green:       #00965a;
+  --snw-red:         #d93050;
+  --snw-yellow:      #c09000;
+  --snw-shadow:      0 4px 20px rgba(0,80,140,0.10);
+  --snw-shadow-sm:   0 2px 8px rgba(0,80,140,0.08);
+}
 
-.lab-wrapper {
+/* ── Base reset (scoped) ── */
+.snw-wrap *, .snw-wrap *::before, .snw-wrap *::after {
+  box-sizing: border-box;
+}
+
+.snw-wrap {
   min-height: 100vh;
-  background: var(--bg);
-  font-family: var(--sans);
-  color: var(--text);
+  background: var(--snw-bg);
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--snw-text);
+  transition: background .25s, color .25s;
 }
 
-/* ── Page header ── */
-.lab-topbar {
-  padding: 28px 32px 0;
+/* ── Topbar ── */
+.snw-topbar {
+  padding: 22px 28px 0;
   display: flex;
   align-items: flex-end;
-  gap: 20px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--snw-border);
 }
-.lab-title {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--accent);
+.snw-topbar-left {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 2px solid var(--snw-accent);
   margin-bottom: -1px;
 }
-.lab-title span { color: var(--text-dim); margin-left: 8px; }
-
-/* ── Tab nav ── */
-.tab-row {
-  display: flex;
-  gap: 4px;
-  padding: 0 32px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+.snw-logo-mark {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--snw-accent);
+  letter-spacing: .04em;
 }
-.tab-btn {
-  background: none;
-  border: none;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .12em;
+.snw-logo-sub {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--text-dim);
-  padding: 14px 18px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: color .2s, border-color .2s;
+  color: var(--snw-text-dim);
 }
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.snw-theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--snw-text-dim);
+  transition: all .2s;
+  user-select: none;
+}
+.snw-theme-toggle:hover {
+  border-color: var(--snw-accent2);
+  color: var(--snw-accent);
+}
+.snw-theme-pill {
+  width: 28px; height: 14px;
+  background: var(--snw-border2);
+  border-radius: 7px;
+  position: relative;
+  transition: background .2s;
+}
+.snw-theme-pill.on { background: var(--snw-accent2); }
+.snw-theme-pill::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 10px; height: 10px;
+  background: var(--snw-surface);
+  border-radius: 50%;
+  transition: transform .2s;
+}
+.snw-theme-pill.on::after { transform: translateX(14px); }
 
-/* ── Main layout ── */
-.lab-body {
+/* ── Layout ── */
+.snw-body {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 0;
-  height: calc(100vh - 115px);
+  height: calc(100vh - 112px);
   overflow: hidden;
 }
-.lab-sidebar {
-  border-right: 1px solid var(--border);
+.snw-sidebar {
+  border-right: 1px solid var(--snw-border);
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--snw-surface);
 }
-.lab-main {
+.snw-main {
   overflow-y: auto;
-  padding: 24px 28px;
+  padding: 22px 26px;
+  background: var(--snw-bg);
 }
 
-/* ── Sidebar model list ── */
-.sidebar-search {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+/* ── Sidebar ── */
+.snw-sidebar-search {
+  padding: 14px;
+  border-bottom: 1px solid var(--snw-border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
-.sidebar-search input, .sidebar-search select {
+.snw-sidebar-search input,
+.snw-sidebar-search select {
   width: 100%;
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 8px 10px;
-  font-family: var(--mono);
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  color: var(--snw-text);
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   border-radius: 4px;
   outline: none;
+  transition: border-color .2s;
 }
-.sidebar-search input:focus, .sidebar-search select:focus {
-  border-color: var(--accent2);
+.snw-sidebar-search input:focus,
+.snw-sidebar-search select:focus {
+  border-color: var(--snw-accent2);
 }
-
-.model-item {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background .15s;
-  position: relative;
-}
-.model-item:hover { background: var(--card); }
-.model-item.selected { background: var(--card); border-left: 2px solid var(--accent); }
-.model-item-name {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.model-item-meta {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.status-dot {
-  display: inline-block;
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  margin-right: 4px;
-  vertical-align: middle;
-}
-.dot-pending   { background: var(--yellow); }
-.dot-running   { background: var(--accent); animation: blink 1s ease-in-out infinite; }
-.dot-completed { background: var(--green); }
-.dot-failed    { background: var(--red); }
-.dot-paused    { background: var(--text-dim); }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-.new-model-btn {
-  margin: 16px;
-  width: calc(100% - 32px);
-  padding: 10px;
+.snw-new-btn {
+  margin: 14px;
+  width: calc(100% - 28px);
+  padding: 9px;
   background: transparent;
-  border: 1px solid var(--accent2);
-  color: var(--accent);
-  font-family: var(--mono);
+  border: 1px dashed var(--snw-accent2);
+  color: var(--snw-accent);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -178,428 +189,611 @@ const styles = `
   border-radius: 4px;
   transition: background .2s, border-color .2s;
 }
-.new-model-btn:hover { background: #00c8ff0d; border-color: var(--accent); }
-
-/* ── Cards & panels ── */
-.panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: 20px;
+.snw-new-btn:hover {
+  background: var(--snw-accent-bg);
+  border-style: solid;
 }
-.panel-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
+.snw-model-item {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--snw-border);
+  cursor: pointer;
+  transition: background .15s;
+  position: relative;
+}
+.snw-model-item:hover { background: var(--snw-bg); }
+.snw-model-item.snw-selected {
+  background: var(--snw-bg);
+  border-left: 2px solid var(--snw-accent);
+}
+.snw-model-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--snw-text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snw-model-meta {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--snw-text-dim);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.snw-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.snw-dot-pending   { background: var(--snw-yellow); }
+.snw-dot-running   { background: var(--snw-accent); animation: snw-blink 1s ease-in-out infinite; }
+.snw-dot-completed { background: var(--snw-green); }
+.snw-dot-failed    { background: var(--snw-red); }
+.snw-dot-paused    { background: var(--snw-text-dim); }
+@keyframes snw-blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* ── Progress bar ── */
+.snw-progress-bar {
+  height: 2px;
+  background: var(--snw-border);
+  border-radius: 1px;
+  overflow: hidden;
+  margin: 8px 0 2px;
+}
+.snw-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--snw-accent2), var(--snw-accent));
+  transition: width .4s ease;
+  box-shadow: 0 0 6px var(--snw-accent);
+}
+
+/* ── Panels ── */
+.snw-panel {
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border);
+  border-radius: 6px;
+  margin-bottom: 18px;
+  box-shadow: var(--snw-shadow-sm);
+}
+.snw-panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--snw-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.panel-title {
-  font-family: var(--mono);
+.snw-panel-title {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   letter-spacing: .15em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--snw-accent);
 }
-.panel-body { padding: 18px; }
+.snw-panel-body { padding: 16px; }
 
-/* ── Form elements ── */
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-}
-.field-group { display: flex; flex-direction: column; gap: 5px; }
-.field-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-.field-input, .field-select {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 8px 10px;
-  font-family: var(--mono);
-  font-size: 12px;
-  border-radius: 4px;
-  outline: none;
-  transition: border-color .2s;
-}
-.field-input:focus, .field-select:focus { border-color: var(--accent2); }
-
-/* ── Function selector ── */
-.func-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 6px;
-}
-.func-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  transition: all .15s;
-  user-select: none;
-}
-.func-chip:hover { border-color: var(--border2); color: var(--text); }
-.func-chip.selected {
-  border-color: var(--accent2);
-  color: var(--accent);
-  background: #00c8ff08;
-}
-.func-chip-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  border: 1px solid var(--text-muted);
-  flex-shrink: 0;
-  transition: all .15s;
-}
-.func-chip.selected .func-chip-dot {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-}
-
-/* ── Buttons ── */
-.btn {
-  padding: 9px 20px;
+/* ── Buttons — all prefixed snw-btn ── */
+.snw-btn {
+  padding: 8px 18px;
   border: none;
   border-radius: 4px;
-  font-family: var(--mono);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  letter-spacing: .1em;
+  letter-spacing: .08em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all .2s;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+  white-space: nowrap;
 }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-primary {
-  background: var(--accent);
-  color: #000;
+.snw-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.snw-btn-primary {
+  background: var(--snw-accent);
+  color: #fff;
   font-weight: 600;
 }
-.btn-primary:hover:not(:disabled) { background: #33d4ff; box-shadow: 0 0 14px #00c8ff40; }
-.btn-ghost {
-  background: transparent;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
+[data-snw-theme="dark"] .snw-btn-primary { color: #000; }
+.snw-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--snw-accent) 40%, transparent);
 }
-.btn-ghost:hover:not(:disabled) { border-color: var(--border2); color: var(--text); }
-.btn-danger {
+.snw-btn-ghost {
   background: transparent;
-  color: var(--red);
-  border: 1px solid #ff4d6a30;
+  color: var(--snw-text-dim);
+  border: 1px solid var(--snw-border);
 }
-.btn-danger:hover:not(:disabled) { background: #ff4d6a12; border-color: var(--red); }
-.btn-sm { padding: 6px 13px; font-size: 10px; }
+.snw-btn-ghost:hover:not(:disabled) {
+  border-color: var(--snw-border2);
+  color: var(--snw-text);
+}
+.snw-btn-danger {
+  background: transparent;
+  color: var(--snw-red);
+  border: 1px solid color-mix(in srgb, var(--snw-red) 30%, transparent);
+}
+.snw-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--snw-red) 8%, transparent);
+  border-color: var(--snw-red);
+}
+.snw-btn-sm { padding: 5px 12px; font-size: 10px; }
 
-/* ── Progress ── */
-.progress-bar {
-  height: 2px;
-  background: var(--border);
-  border-radius: 1px;
-  overflow: hidden;
-  margin: 10px 0;
+/* ── Tab nav ── */
+.snw-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--snw-border);
+  margin-bottom: 18px;
 }
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent2), var(--accent));
-  transition: width .4s ease;
-  box-shadow: 0 0 8px var(--accent);
+.snw-tab {
+  background: none;
+  border: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--snw-text-dim);
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+  margin-bottom: -1px;
+}
+.snw-tab:hover { color: var(--snw-text); }
+.snw-tab.snw-tab-active { color: var(--snw-accent); border-bottom-color: var(--snw-accent); }
+
+/* ── Form fields ── */
+.snw-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 13px;
+}
+.snw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.snw-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--snw-text-dim);
+}
+.snw-input, .snw-select {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  color: var(--snw-text);
+  padding: 8px 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color .2s;
+  width: 100%;
+}
+.snw-input:focus, .snw-select:focus { border-color: var(--snw-accent2); }
+
+/* ── Section label ── */
+.snw-section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--snw-text-dim);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--snw-border);
+}
+.snw-section-gap { margin-bottom: 20px; }
+
+/* ── Function chips ── */
+.snw-func-category {
+  margin-bottom: 14px;
+}
+.snw-func-category-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--snw-text-muted);
+  margin-bottom: 7px;
+}
+.snw-func-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 5px;
+}
+.snw-func-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  color: var(--snw-text-dim);
+  transition: all .15s;
+  user-select: none;
+}
+.snw-func-chip:hover {
+  border-color: var(--snw-border2);
+  color: var(--snw-text);
+}
+.snw-func-chip.snw-func-on {
+  border-color: var(--snw-accent2);
+  color: var(--snw-accent);
+  background: var(--snw-accent-bg);
+}
+.snw-func-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  border: 1px solid var(--snw-text-muted);
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.snw-func-chip.snw-func-on .snw-func-dot {
+  background: var(--snw-accent);
+  border-color: var(--snw-accent);
+  box-shadow: 0 0 5px var(--snw-accent);
 }
 
 /* ── Metrics grid ── */
-.metrics-grid {
+.snw-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 9px;
 }
-.metric-cell {
-  background: var(--surface);
-  border: 1px solid var(--border);
+.snw-metric {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
   border-radius: 4px;
-  padding: 12px 14px;
+  padding: 11px 13px;
 }
-.metric-cell-label {
-  font-family: var(--mono);
+.snw-metric-label {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 9px;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
+  color: var(--snw-text-muted);
+  margin-bottom: 5px;
 }
-.metric-cell-value {
-  font-family: var(--mono);
-  font-size: 18px;
+.snw-metric-val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 17px;
   font-weight: 500;
 }
-.val-green { color: var(--green); }
-.val-red   { color: var(--red);   }
-.val-blue  { color: var(--accent);}
-.val-plain { color: var(--text);  }
+.snw-val-green { color: var(--snw-green); }
+.snw-val-red   { color: var(--snw-red); }
+.snw-val-blue  { color: var(--snw-accent); }
+.snw-val-plain { color: var(--snw-text); }
+
+/* ── Function tags ── */
+.snw-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.snw-tag {
+  padding: 3px 8px;
+  background: var(--snw-accent-bg);
+  border: 1px solid var(--snw-accent2);
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--snw-accent);
+}
 
 /* ── Log terminal ── */
-.log-terminal {
-  background: #06090c;
-  border: 1px solid var(--border);
+.snw-terminal {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
   border-radius: 4px;
-  padding: 14px;
-  font-family: var(--mono);
+  padding: 13px;
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   line-height: 1.7;
-  max-height: 220px;
+  max-height: 240px;
   overflow-y: auto;
-  color: #7fa8b8;
+  color: var(--snw-text-dim);
 }
-.log-terminal .log-line { margin: 1px 0; }
-.log-terminal .log-line.info  { color: #7fa8b8; }
-.log-terminal .log-line.good  { color: var(--green); }
-.log-terminal .log-line.bad   { color: var(--red); }
-.log-terminal .log-line.head  { color: var(--accent); }
+.snw-log-good  { color: var(--snw-green); }
+.snw-log-bad   { color: var(--snw-red); }
+.snw-log-head  { color: var(--snw-accent); }
+.snw-log-plain { color: var(--snw-text-dim); }
 
-/* ── Chart area ── */
-.chart-container {
-  position: relative;
-  background: var(--card);
-  border: 1px solid var(--border);
+/* ── Chart ── */
+.snw-chart-wrap {
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border);
   border-radius: 6px;
   overflow: hidden;
 }
-.chart-controls {
+.snw-chart-controls {
   display: flex;
-  gap: 8px;
+  gap: 7px;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--snw-border);
+  background: var(--snw-surface);
   flex-wrap: wrap;
 }
-.chart-style-btn {
-  padding: 4px 10px;
+.snw-chart-btn {
+  padding: 4px 9px;
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  font-family: var(--mono);
+  border: 1px solid var(--snw-border);
+  color: var(--snw-text-dim);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
   border-radius: 3px;
   cursor: pointer;
   transition: all .15s;
 }
-.chart-style-btn.active {
-  background: var(--accent2);
-  border-color: var(--accent);
+.snw-chart-btn.snw-chart-btn-active {
+  background: var(--snw-accent2);
+  border-color: var(--snw-accent);
   color: #fff;
 }
-.chart-tv { width: 100%; height: 400px; }
-.chart-asset-select {
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--text);
+.snw-chart-asset-sel {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-border);
+  color: var(--snw-text);
   padding: 4px 8px;
-  font-family: var(--mono);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   border-radius: 3px;
   outline: none;
 }
+.snw-chart-tv { width: 100%; height: 400px; }
 
-/* ── Snapshot image ── */
-.snapshot-img {
+/* ── Snapshot ── */
+.snw-snapshot {
   width: 100%;
   border-radius: 4px;
-  border: 1px solid var(--border);
-  image-rendering: pixelated;
+  border: 1px solid var(--snw-border);
 }
-.snapshot-label {
-  font-family: var(--mono);
+.snw-snapshot-cap {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: var(--text-dim);
+  color: var(--snw-text-muted);
   margin-top: 5px;
   text-align: center;
 }
 
-/* ── Function tags ── */
-.func-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-.func-tag {
-  padding: 3px 9px;
-  background: #00c8ff10;
-  border: 1px solid var(--accent2);
+/* ── Asset tags ── */
+.snw-asset-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.snw-asset-tag {
+  padding: 3px 8px;
+  background: var(--snw-accent-bg);
+  border: 1px solid var(--snw-border2);
   border-radius: 3px;
-  font-family: var(--mono);
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: var(--accent);
+  color: var(--snw-text-dim);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
 }
-
-/* ── Fitness sparkline (simple SVG) ── */
-.fitness-chart { width: 100%; overflow: hidden; }
-
-/* ── Empty state ── */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-  font-family: var(--mono);
+.snw-asset-tag:hover { border-color: var(--snw-red); color: var(--snw-red); }
+.snw-asset-dropdown {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border2);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--snw-shadow);
+}
+.snw-asset-opt {
+  padding: 7px 10px;
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  text-align: center;
-  gap: 10px;
+  color: var(--snw-text-dim);
+  cursor: pointer;
+  transition: background .1s;
 }
-.empty-icon { font-size: 36px; opacity: .3; }
+.snw-asset-opt:hover { background: var(--snw-bg); color: var(--snw-text); }
 
-/* ── Toast ── */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--card);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 12px;
-  padding: 12px 18px;
-  border-radius: 4px;
-  z-index: 9999;
-  box-shadow: 0 4px 20px #000a;
-  animation: slideup .2s ease;
-}
-.toast.ok    { border-left: 3px solid var(--green); }
-.toast.error { border-left: 3px solid var(--red);   }
-@keyframes slideup { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
-
-/* ── Create model form overlay ── */
-.overlay-backdrop {
+/* ── Overlay ── */
+.snw-overlay-backdrop {
   position: fixed; inset: 0;
-  background: #000c;
-  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(5px);
   z-index: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
 }
-.overlay-panel {
-  background: var(--card);
-  border: 1px solid var(--border2);
+.snw-overlay-panel {
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border2);
   border-radius: 8px;
   width: 100%;
-  max-width: 780px;
+  max-width: 820px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px #000b;
+  box-shadow: var(--snw-shadow);
 }
-.overlay-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
+.snw-overlay-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--snw-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky; top: 0;
+  background: var(--snw-card);
+  z-index: 2;
 }
-.overlay-title {
-  font-family: var(--mono);
+.snw-overlay-title {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: .15em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--snw-accent);
 }
-.overlay-close {
+.snw-overlay-close {
   background: none; border: none;
-  color: var(--text-dim); font-size: 18px;
-  cursor: pointer; line-height: 1;
+  color: var(--snw-text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color .15s;
 }
-.overlay-body { padding: 24px; }
-.section-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .15em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-}
-.section-gap { margin-bottom: 22px; }
+.snw-overlay-close:hover { color: var(--snw-text); }
+.snw-overlay-body { padding: 22px; }
 
-/* ── Asset multi-select ── */
-.asset-search-wrap { position: relative; }
-.asset-dropdown {
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
-  background: var(--card);
-  border: 1px solid var(--border2);
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-.asset-option {
-  padding: 7px 10px;
-  font-family: var(--mono);
+/* ── Dup warning ── */
+.snw-dup-warn {
+  font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: background .1s;
+  color: var(--snw-yellow);
+  background: color-mix(in srgb, var(--snw-yellow) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--snw-yellow) 30%, transparent);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
 }
-.asset-option:hover { background: var(--surface); color: var(--text); }
-.asset-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.asset-tag {
-  padding: 3px 8px;
-  background: #00c8ff0d;
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: flex; align-items: center; gap: 4px;
+
+/* ── Empty state ── */
+.snw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--snw-text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  text-align: center;
+  gap: 10px;
 }
-.asset-tag:hover { border-color: var(--red); color: var(--red); }
+.snw-empty-icon { font-size: 34px; opacity: .3; }
+
+/* ── Toast ── */
+.snw-toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--snw-card);
+  border: 1px solid var(--snw-border2);
+  color: var(--snw-text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 11px 16px;
+  border-radius: 4px;
+  z-index: 9999;
+  box-shadow: var(--snw-shadow);
+  animation: snw-slideup .2s ease;
+}
+.snw-toast.snw-ok    { border-left: 3px solid var(--snw-green); }
+.snw-toast.snw-error { border-left: 3px solid var(--snw-red); }
+@keyframes snw-slideup {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* ── Sparkline ── */
+.snw-spark { width: 100%; overflow: hidden; }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.snw-wrap ::-webkit-scrollbar { width: 4px; height: 4px; }
+.snw-wrap ::-webkit-scrollbar-track { background: transparent; }
+.snw-wrap ::-webkit-scrollbar-thumb { background: var(--snw-border2); border-radius: 2px; }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
-  .lab-body { grid-template-columns: 1fr; }
-  .lab-sidebar { height: auto; border-right: none; border-bottom: 1px solid var(--border); overflow: visible; }
-  .lab-main { padding: 16px; }
+@media (max-width: 860px) {
+  .snw-body { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .snw-sidebar { height: auto; border-right: none; border-bottom: 1px solid var(--snw-border); }
+  .snw-main { padding: 14px; }
 }
 `;
 
 const BASE_URL = 'https://backend-production-c0ab.up.railway.app';
 
-const ALL_FUNCTIONS = [
-  'is_uptrend','is_downtrend','is_ranging_market',
-  'is_bullish_market_retracement','is_bearish_market_retracement',
-  'is_resistance_level','is_support_level',
-  'buy_hold','sell_hold','is_stable_market',
-  'is_choppy_market','is_volatile_market',
-  'is_bullish_bias','is_bearish_bias',
-  'is_high_volume','is_low_volume',
-  'is_bullish_engulfing','is_bearish_engulfing',
-  'is_hammer','is_shooting_star',
-  'snow_alpha_buy','snow_alpha_short',
-  'ice_beta_buy','ice_beta_short',
-  'is_high_r_squared',
+/* ── Full function list grouped by category ── */
+const FUNCTION_CATEGORIES = [
+  {
+    label: 'Trend',
+    fns: [
+      'is_uptrend','is_downtrend','is_ranging_market',
+      'is_bullish_market_retracement','is_bearish_market_retracement',
+      'is_bullish_bias','is_bearish_bias','is_high_r_squared',
+    ],
+  },
+  {
+    label: 'Support / Resistance',
+    fns: [
+      'is_support_level','is_resistance_level','is_fibonacci_level',
+      'is_ote_buy','is_ote_sell',
+      'is_bullish_orderblock','is_bearish_orderblock',
+    ],
+  },
+  {
+    label: 'Market Regime',
+    fns: [
+      'is_stable_market','is_choppy_market','is_volatile_market',
+      'is_high_volume','is_low_volume',
+      'buy_hold','sell_hold','buy_hold_regime',
+    ],
+  },
+  {
+    label: 'Candlestick Patterns',
+    fns: [
+      'is_bullish_candle','is_bearish_candle',
+      'is_bullish_engulfing','is_bearish_engulfing',
+      'is_morning_star','is_evening_star',
+      'is_three_white_soldiers','is_three_black_crows',
+      'is_morning_doji_star','is_evening_doji_star',
+      'is_rising_three_methods','is_falling_three_methods',
+      'is_hammer','is_hanging_man','is_inverted_hammer','is_shooting_star',
+      'is_bullish_kicker','is_bearish_kicker',
+      'is_bullish_harami','is_bearish_harami',
+      'is_bullish_three_line_strike','is_bearish_three_line_strike',
+    ],
+  },
+  {
+    label: 'Session',
+    fns: [
+      'new_york_session','london_session','asian_session',
+      'is_asian_range_buy','is_asian_range_sell',
+      'is_bullish_weekly_profile','is_bearish_weekly_profile',
+    ],
+  },
+  {
+    label: 'SnowAI Proprietary',
+    fns: [
+      'snow_alpha_buy','snow_alpha_short',
+      'ice_beta_buy','ice_beta_short',
+      'frost_gamma_buy','frost_gamma_short',
+      'glacier_x_buy','glacier_x_short',
+      'avalanche_z_buy','avalanche_z_short',
+      'polar_prime_buy','polar_prime_short',
+      'blizzard_omega_buy','blizzard_omega_short',
+      'tundra_sigma_buy','tundra_sigma_short',
+      'arctic_delta_buy','arctic_delta_short',
+      'permafrost_theta_buy','permafrost_theta_short',
+    ],
+  },
+  {
+    label: 'Statistical / Quantitative',
+    fns: [
+      'is_monte_carlo_bullish_prediction','is_monte_carlo_bearish_prediction',
+      'average_retracement',
+    ],
+  },
 ];
 
+const ALL_FUNCTIONS = FUNCTION_CATEGORIES.flatMap(c => c.fns);
+
 const STATUS_DOTS = {
-  pending: 'dot-pending', running: 'dot-running',
-  completed: 'dot-completed', failed: 'dot-failed', paused: 'dot-paused',
+  pending: 'snw-dot-pending', running: 'snw-dot-running',
+  completed: 'snw-dot-completed', failed: 'snw-dot-failed', paused: 'snw-dot-paused',
 };
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
@@ -607,7 +801,11 @@ function fmtPct(v) { return v == null ? '—' : `${parseFloat(v).toFixed(2)}%`; 
 function fmtNum(v, d=2) { return v == null ? '—' : parseFloat(v).toFixed(d); }
 
 function Sparkline({ data = [] }) {
-  if (data.length < 2) return <div style={{height:36,color:'var(--text-muted)',fontFamily:'var(--mono)',fontSize:10}}>No history yet</div>;
+  if (data.length < 2) return (
+    <div style={{height:36,color:'var(--snw-text-muted)',fontFamily:'IBM Plex Mono, monospace',fontSize:10}}>
+      No history yet
+    </div>
+  );
   const vals = data.map(d => d.best_fitness ?? d);
   const mn = Math.min(...vals), mx = Math.max(...vals);
   const w = 260, h = 40;
@@ -618,9 +816,9 @@ function Sparkline({ data = [] }) {
   }).join(' ');
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:44,overflow:'visible'}}>
-      <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="1.5" opacity=".8"/>
+      <polyline points={pts} fill="none" stroke="var(--snw-accent)" strokeWidth="1.5" opacity=".8"/>
       <circle cx={pts.split(' ').at(-1).split(',')[0]} cy={pts.split(' ').at(-1).split(',')[1]}
-              r="3" fill="var(--accent)"/>
+              r="3" fill="var(--snw-accent)"/>
     </svg>
   );
 }
@@ -629,94 +827,81 @@ function Sparkline({ data = [] }) {
 function TVChart({ modelId, asset, chartStyle, chartType }) {
   const containerRef = useRef(null);
   const chartRef     = useRef(null);
-  const seriesRef    = useRef(null);
 
   const themes = {
     dark:  { bg: '#080c10', grid: '#1e2a36', text: '#5a7080', border: '#1e2a36' },
-    light: { bg: '#f4f6f8', grid: '#e0e6ec', text: '#4a6070', border: '#cdd6e0' },
+    light: { bg: '#f0f5fa', grid: '#d0dce8', text: '#6080a0', border: '#d0dce8' },
     hud:   { bg: '#000a06', grid: '#00300a', text: '#00e590', border: '#003a10' },
   };
 
   useEffect(() => {
     if (!containerRef.current || !window.LightweightCharts) return;
-
     const th = themes[chartStyle] || themes.dark;
     const lc = window.LightweightCharts;
-
-    if (chartRef.current) {
-      chartRef.current.remove();
-      chartRef.current = null;
-    }
+    if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
 
     const chart = lc.createChart(containerRef.current, {
       width:  containerRef.current.clientWidth,
       height: 400,
-      layout:      { background: { color: th.bg }, textColor: th.text },
-      grid:        { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
-      crosshair:   { mode: lc.CrosshairMode.Normal },
+      layout:          { background: { color: th.bg }, textColor: th.text },
+      grid:            { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
+      crosshair:       { mode: lc.CrosshairMode.Normal },
       rightPriceScale: { borderColor: th.border },
-      timeScale:   { borderColor: th.border, timeVisible: true, secondsVisible: false },
+      timeScale:       { borderColor: th.border, timeVisible: true, secondsVisible: false },
     });
     chartRef.current = chart;
 
-    // Series
     let series;
     if (chartType === 'candlestick') {
       series = chart.addCandlestickSeries({
-        upColor: '#00e5a0', downColor: '#ff4d6a',
-        borderUpColor: '#00e5a0', borderDownColor: '#ff4d6a',
-        wickUpColor: '#00e5a0', wickDownColor: '#ff4d6a',
+        upColor: '#00c896', downColor: '#e03060',
+        borderUpColor: '#00c896', borderDownColor: '#e03060',
+        wickUpColor: '#00c896', wickDownColor: '#e03060',
       });
     } else if (chartType === 'area') {
       series = chart.addAreaSeries({
-        lineColor: '#00c8ff', topColor: '#00c8ff30', bottomColor: '#00c8ff00',
+        lineColor: '#0090c8', topColor: '#0090c830', bottomColor: '#0090c800',
       });
     } else {
-      series = chart.addLineSeries({ color: '#00c8ff', lineWidth: 1.5 });
+      series = chart.addLineSeries({ color: '#0090c8', lineWidth: 1.5 });
     }
-    seriesRef.current = series;
 
-    // Fetch data
     if (modelId && asset) {
       fetch(`${BASE_URL}/api/snowai/models/${modelId}/chart/${asset}/`)
         .then(r => r.json())
         .then(({ bars = [], trades = [] }) => {
           const sortedBars = [...bars].sort((a, b) => a.time - b.time);
-
           if (chartType === 'candlestick') {
             series.setData(sortedBars);
           } else {
             series.setData(sortedBars.map(b => ({ time: b.time, value: b.close })));
           }
-
-          // Trade markers
           if (trades.length > 0) {
-            const markers = trades.map(t => ({
+            series.setMarkers(trades.map(t => ({
               time:     t.time,
               position: t.type === 'BUY' ? 'belowBar' : 'aboveBar',
-              color:    t.hit_tp ? '#00e5a0' : '#ff4d6a',
+              color:    t.hit_tp ? '#00c896' : '#e03060',
               shape:    t.type === 'BUY' ? 'arrowUp' : 'arrowDown',
               text:     `${t.pnl >= 0 ? '+' : ''}${t.pnl.toFixed(2)}`,
-            }));
-            series.setMarkers(markers);
+            })));
           }
-
           chart.timeScale().fitContent();
         })
         .catch(console.error);
     }
 
     const ro = new ResizeObserver(() => {
-      if (containerRef.current && chartRef.current) {
+      if (containerRef.current && chartRef.current)
         chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
-      }
     });
     ro.observe(containerRef.current);
-
-    return () => { ro.disconnect(); if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; } };
+    return () => {
+      ro.disconnect();
+      if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
+    };
   }, [modelId, asset, chartStyle, chartType]);
 
-  return <div ref={containerRef} className="chart-tv" />;
+  return <div ref={containerRef} className="snw-chart-tv" />;
 }
 
 /* ─── Create Model Overlay ───────────────────────────────────────────────── */
@@ -729,19 +914,103 @@ function CreateModelOverlay({ onClose, onCreate }) {
     elite_fraction: 0.3, rl_enabled: true, rl_learning_rate: 0.01,
     allowed_functions: [],
   });
-  const [assetSearch, setAssetSearch] = useState('');
+  const [assetSearch,   setAssetSearch]   = useState('');
   const [assetDropdown, setAssetDropdown] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [dupWarning, setDupWarning] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [dupWarning,    setDupWarning]    = useState('');
+  const [submitting,    setSubmitting]    = useState(false);
 
   const ALL_ASSETS = [
-    'AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','AMD','INTC','ORCL',
-    'JPM','BAC','V','MA','GS','MS','PYPL','JNJ','PFE','ABBV','MRK','AMGN',
-    'XOM','CVX','COP','BA','HON','CAT','GE','RTX','HD','MCD','NKE','SBUX',
-    'WMT','PG','KO','PEP','NFLX','DIS','TMUS','NEE','AMT','PLD','LIN',
-    'BABA','NIO','BTC-USD','ETH-USD','SOL-USD','EURUSD=X','GBPUSD=X','GC=F','CL=F',
-    '^GSPC','^DJI','^IXIC','^N225',
+    // Forex
+    'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X',
+    'NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
+    // Tech Giants & Semiconductors
+    'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC',
+    'ORCL','CSCO','ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC',
+    'SNPS','CDNS','MRVL','NXPI','MU','ADI','MPWR','SWKS','QRVO','ON',
+    'IBM','AAOI','ACLS','ACN','ADSK','AKAM','ANSS','APH','ANET','ASML',
+    'AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX','PAYC','PTC',
+    'ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','XLNX','ZBRA',
+    // Software & Cloud
+    'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR',
+    'TEAM','FTNT','OKTA','S','CYBR',
+    // Fintech & Payments
+    'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER',
+    'LYFT','DASH','PINS','SNAP','SPOT','ROKU','Z','ZG','AFRM','COIN',
+    'HOOD','SOFI','RBLX','ASTS',
+    // Banks & Financial Services
+    'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME',
+    'ICE','MCO','BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG',
+    'AMP','BEN','CBOE','CINF','DFS','ERIE','FITB','FRC','GL','HBAN',
+    'HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS','NDAQ','PFG','RF',
+    'RJF','SIVB','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN',
+    'EWBC','WAL','WBS','ALLY',
+    // Insurance
+    'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
+    // Healthcare & Pharma
+    'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN',
+    'GILD','CVS','CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA',
+    'BNTX','SGEN','ALNY','BGNE','MCK','CAH','COR','IDXX','A','WAT',
+    'ALGN','ATRC','BAX','BDX','BIO','BSX','CERN','DXCM','EW','EXAS',
+    'HOLX','HSIC','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PKI',
+    'PODD','RMD','STE','SYK','TFX','UHS','WST','XRAY','ZBH','ZTS',
+    'TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
+    // Consumer Discretionary
+    'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM',
+    'ABNB','SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR',
+    'AAL','DAL','UAL','LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID',
+    'AZO','BBY','BURL','CPRT','DHI','DRI','EXPE','GPC','GRMN','HAS',
+    'HLT','KMX','LEN','LVS','MGM','MHK','NVR','ORLY','PHM','POOL',
+    'RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA','DG',
+    'DLTR','DDS','FIVE','FL','FOXA','FOX','GPS','GT','HBI','LAD',
+    'LKQ','M','NCLH','NWL','PVH',
+    // Consumer Staples
+    'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS',
+    'KHC','STZ','ADM','BF-B','CAG','CHD','CLX','CPB','EL','HSY','K',
+    'KDP','KR','KVUE','MKC','MNST','SJM','SYY','TAP','TSN','WBA',
+    'BGS','BG','COKE','FLO','HRL','LANC','POST',
+    // Energy
+    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN',
+    'HES','BKR','APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE',
+    'TRGP','WMB','EQT','AR','CLR','CNX','CQP','EXE','FTI','HP','MTDR',
+    'NBL','OVV','PBF','PR','RIG','SM','VAL','XEC',
+    // Industrials
+    'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC',
+    'FDX','CSX','HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI',
+    'DOV','EMR','ETN','EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW',
+    'J','JBHT','JCI','LDOS','MAS','NSC','ODFL','OTIS','PCAR','PH','PWR',
+    'ROK','ROL','RSG','SNA','SWK','TT','URI','VRSK','WAB','WM','XYL',
+    'ALK','JBLU','SAVE',
+    // Communication Services & Media
+    'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA',
+    'NWS','OMC','PARA','WBD','IPG','DISH',
+    // Real Estate & REITs
+    'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE',
+    'DLR','EQR','ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC',
+    'SLG','UDR','VTR','WELL','WY','INVH','PEAK','VNO',
+    // Materials & Chemicals
+    'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB',
+    'EMN','SQM','AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS',
+    'NUE','PKG','PPG','SEE','STLD','SW','VMC','AVY','AA','MP','RS',
+    // Utilities
+    'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS',
+    'CNP','DTE','ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG',
+    'PCG','PEG','PNW','PPL','VST','WEC','XEL','CEG',
+    // Chinese ADRs
+    'BABA','JD','PDD','BIDU','NIO','XPEV','LI',
+    // Indices
+    '^GSPC','^DJI','^IXIC','^RUT','^VIX','^FTSE','^GDAXI','^FCHI',
+    '^IBEX','^AEX','^SSMI','^OMXS30','^BFX','^N225','^HSI','000001.SS',
+    '^STI','^BSESN','^NSEI','^KS11','^TWII','^JKSE','^AXJO','^GSPTSE',
+    '^MXX','^BVSP','^MERV',
+    // Commodities
+    'GC=F','SI=F','PL=F','PA=F','CL=F','BZ=F','NG=F','RB=F','HO=F',
+    'HG=F','ALI=F','ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F','LBS=F',
+    // Bonds
+    '^TNX','^TYX','^FVX','^IRX','ZN=F','ZB=F','ZT=F','ZF=F',
+    // Crypto
+    'BTC-USD','ETH-USD','BNB-USD','SOL-USD','ADA-USD','XRP-USD',
+    'DOGE-USD','AVAX-USD','DOT-USD','MATIC-USD','LINK-USD','UNI-USD',
+    'LTC-USD','BCH-USD','ATOM-USD',
   ];
 
   const filtered = ALL_ASSETS.filter(a =>
@@ -767,7 +1036,6 @@ function CreateModelOverlay({ onClose, onCreate }) {
 
   const checkDuplicate = async () => {
     if (form.assets.length === 0 || form.allowed_functions.length === 0) return;
-    setChecking(true);
     try {
       const params = new URLSearchParams({
         functions: form.allowed_functions.join(','),
@@ -778,7 +1046,6 @@ function CreateModelOverlay({ onClose, onCreate }) {
       const d = await r.json();
       setDupWarning(d.exists ? '⚠ An identical model already exists.' : '');
     } catch (_) {}
-    setChecking(false);
   };
 
   useEffect(() => { checkDuplicate(); }, [form.assets, form.allowed_functions, form.timeframe]);
@@ -799,76 +1066,113 @@ function CreateModelOverlay({ onClose, onCreate }) {
     setSubmitting(false);
   };
 
-  const f = (key, val) => setForm(p => ({ ...p, [key]: val }));
+  const fld = (key, val) => setForm(p => ({ ...p, [key]: val }));
+  const toggleFunc = (fn) => setForm(f => ({
+    ...f,
+    allowed_functions: f.allowed_functions.includes(fn)
+      ? f.allowed_functions.filter(x => x !== fn)
+      : [...f.allowed_functions, fn],
+  }));
+  const addAsset = (a) => { setForm(f => ({ ...f, assets: [...f.assets, a] })); setAssetSearch(''); setAssetDropdown(false); };
+  const removeAsset = (a) => setForm(f => ({ ...f, assets: f.assets.filter(x => x !== a) }));
+
+  const ALL_ASSETS_FULL = [
+    'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X','NZDUSD=X','EURGBP=X','EURJPY=X','GBPJPY=X','AUDJPY=X','EURCHF=X',
+    'AAPL','MSFT','GOOGL','GOOG','AMZN','NVDA','TSLA','META','AMD','INTC','ORCL','CSCO','ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC','SNPS','CDNS','MRVL','NXPI','MU','ADI','MPWR','SWKS','QRVO','ON','IBM','AAOI','ACLS','ACN','ADSK','AKAM','ANSS','APH','ANET','ASML','AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX','PAYC','PTC','ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','XLNX','ZBRA',
+    'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR','TEAM','FTNT','OKTA','S','CYBR',
+    'V','MA','PYPL','ADP','FISV','FIS','ZM','DOCU','TWLO','SQ','UBER','LYFT','DASH','PINS','SNAP','SPOT','ROKU','Z','ZG','AFRM','COIN','HOOD','SOFI','RBLX','ASTS',
+    'JPM','BAC','WFC','C','GS','MS','BLK','SCHW','AXP','SPGI','CME','ICE','MCO','BK','USB','PNC','TFC','COF','AFL','AMG','AON','AJG','AMP','BEN','CBOE','CINF','DFS','ERIE','FITB','FRC','GL','HBAN','HIG','IVZ','JKHY','KEY','L','LNC','MTB','NTRS','NDAQ','PFG','RF','RJF','SIVB','STT','SYF','TROW','WRB','ZION','CFG','CMA','FHN','EWBC','WAL','WBS','ALLY',
+    'BRK-B','PGR','ALL','TRV','AIG','MET','PRU',
+    'JNJ','LLY','UNH','PFE','ABBV','MRK','TMO','ABT','DHR','BMY','AMGN','GILD','CVS','CI','ELV','HUM','VRTX','REGN','ISRG','BIIB','MRNA','BNTX','SGEN','ALNY','BGNE','MCK','CAH','COR','IDXX','A','WAT','ALGN','ATRC','BAX','BDX','BIO','BSX','CERN','DXCM','EW','EXAS','HOLX','HSIC','ILMN','INCY','IQV','LH','MDT','MOH','NBIX','PKI','PODD','RMD','STE','SYK','TFX','UHS','WST','XRAY','ZBH','ZTS','TDOC','DOCS','VEEV','HALO','NVAX','IONS','UTHR',
+    'HD','MCD','NKE','SBUX','TJX','LOW','BKNG','MAR','CMG','F','GM','ABNB','SHOP','MELI','EBAY','ETSY','TGT','ROST','YUM','DPZ','QSR','AAL','DAL','UAL','LUV','CCL','RCL','EA','TTWO','U','RIVN','LCID','AZO','BBY','BURL','CPRT','DHI','DRI','EXPE','GPC','GRMN','HAS','HLT','KMX','LEN','LVS','MGM','MHK','NVR','ORLY','PHM','POOL','RL','TSCO','TPR','ULTA','VFC','WHR','WYNN','APTV','BWA','DG','DLTR','DDS','FIVE','FL','FOXA','FOX','GPS','GT','HBI','LAD','LKQ','M','NCLH','NWL','PVH',
+    'WMT','PG','KO','PEP','COST','PM','MO','MDLZ','CL','KMB','GIS','KHC','STZ','ADM','BF-B','CAG','CHD','CLX','CPB','EL','HSY','K','KDP','KR','KVUE','MKC','MNST','SJM','SYY','TAP','TSN','WBA','BGS','BG','COKE','FLO','HRL','LANC','POST',
+    'XOM','CVX','COP','EOG','SLB','MPC','PSX','VLO','OXY','HAL','DVN','HES','BKR','APA','CTRA','FANG','KMI','LNG','MRO','NOV','OKE','TRGP','WMB','EQT','AR','CLR','CNX','CQP','EXE','FTI','HP','MTDR','NBL','OVV','PBF','PR','RIG','SM','VAL','XEC',
+    'BA','HON','UNP','CAT','GE','RTX','LMT','UPS','DE','MMM','GD','NOC','FDX','CSX','HWM','TDG','HEI','LHX','TXT','AOS','CARR','CHRW','CMI','DOV','EMR','ETN','EXPD','FAST','FTV','GNRC','GWW','IEX','IR','ITW','J','JBHT','JCI','LDOS','MAS','NSC','ODFL','OTIS','PCAR','PH','PWR','ROK','ROL','RSG','SNA','SWK','TT','URI','VRSK','WAB','WM','XYL','ALK','JBLU','SAVE',
+    'T','VZ','CMCSA','NFLX','DIS','TMUS','CHTR','LYV','MTCH','NWSA','NWS','OMC','PARA','WBD','IPG','DISH',
+    'AMT','PLD','CCI','EQIX','PSA','SPG','O','AVB','ARE','BXP','CBRE','DLR','EQR','ESS','EXR','FRT','HST','IRM','KIM','MAA','REG','SBAC','SLG','UDR','VTR','WELL','WY','INVH','PEAK','VNO',
+    'LIN','APD','SHW','ECL','DD','NEM','FCX','DOW','LYB','CE','ALB','EMN','SQM','AMCR','BALL','CF','CLF','CTVA','FMC','IP','MLM','MOS','NUE','PKG','PPG','SEE','STLD','SW','VMC','AVY','AA','MP','RS',
+    'NEE','DUK','SO','D','AEP','EXC','SRE','AEE','AES','AWK','CMS','CNP','DTE','ED','EIX','ES','ETR','EVRG','FE','LNT','NI','NRG','PCG','PEG','PNW','PPL','VST','WEC','XEL','CEG',
+    'BABA','JD','PDD','BIDU','NIO','XPEV','LI',
+    '^GSPC','^DJI','^IXIC','^RUT','^VIX','^FTSE','^GDAXI','^FCHI','^IBEX','^AEX','^SSMI','^OMXS30','^BFX','^N225','^HSI','000001.SS','^STI','^BSESN','^NSEI','^KS11','^TWII','^JKSE','^AXJO','^GSPTSE','^MXX','^BVSP','^MERV',
+    'GC=F','SI=F','PL=F','PA=F','CL=F','BZ=F','NG=F','RB=F','HO=F','HG=F','ALI=F','ZC=F','ZW=F','ZS=F','KC=F','SB=F','CT=F','CC=F','LBS=F',
+    '^TNX','^TYX','^FVX','^IRX','ZN=F','ZB=F','ZT=F','ZF=F',
+    'BTC-USD','ETH-USD','BNB-USD','SOL-USD','ADA-USD','XRP-USD','DOGE-USD','AVAX-USD','DOT-USD','MATIC-USD','LINK-USD','UNI-USD','LTC-USD','BCH-USD','ATOM-USD',
+  ];
+
+  const filtered = ALL_ASSETS_FULL.filter(a =>
+    a.toLowerCase().includes(assetSearch.toLowerCase()) && !form.assets.includes(a)
+  );
 
   return (
-    <div className="overlay-backdrop" onClick={onClose}>
-      <div className="overlay-panel" onClick={e => e.stopPropagation()}>
-        <div className="overlay-header">
-          <span className="overlay-title">New GA Model</span>
-          <button className="overlay-close" onClick={onClose}>×</button>
+    <div className="snw-overlay-backdrop" onClick={onClose}>
+      <div className="snw-overlay-panel" onClick={e => e.stopPropagation()}>
+        <div className="snw-overlay-header">
+          <span className="snw-overlay-title">New GA Model</span>
+          <button className="snw-overlay-close" onClick={onClose}>×</button>
         </div>
-        <div className="overlay-body">
+        <div className="snw-overlay-body">
 
-          {/* Basic */}
-          <div className="section-gap">
-            <div className="section-label">Identification</div>
-            <div className="field-grid">
-              <div className="field-group" style={{gridColumn:'1/-1'}}>
-                <label className="field-label">Model name</label>
-                <input className="field-input" value={form.name}
-                  onChange={e => f('name', e.target.value)} placeholder="e.g. Uptrend Retracement Alpha" />
-              </div>
+          {/* Name */}
+          <div className="snw-section-gap">
+            <div className="snw-section-label">Identification</div>
+            <div className="snw-field" style={{gridColumn:'1/-1'}}>
+              <label className="snw-label">Model name</label>
+              <input className="snw-input" value={form.name}
+                onChange={e => fld('name', e.target.value)}
+                placeholder="e.g. Uptrend Retracement Alpha" />
             </div>
           </div>
 
           {/* Assets */}
-          <div className="section-gap">
-            <div className="section-label">Assets</div>
-            <div className="asset-search-wrap">
-              <input className="field-input" style={{width:'100%'}}
-                placeholder="Search tickers…"
+          <div className="snw-section-gap">
+            <div className="snw-section-label">Assets</div>
+            <div style={{position:'relative'}}>
+              <input className="snw-input" placeholder="Search tickers…"
                 value={assetSearch}
                 onChange={e => { setAssetSearch(e.target.value); setAssetDropdown(true); }}
                 onFocus={() => setAssetDropdown(true)}
               />
               {assetDropdown && filtered.length > 0 && (
-                <div className="asset-dropdown">
-                  {filtered.slice(0, 20).map(a => (
-                    <div key={a} className="asset-option" onClick={() => addAsset(a)}>{a}</div>
+                <div className="snw-asset-dropdown">
+                  {filtered.slice(0, 25).map(a => (
+                    <div key={a} className="snw-asset-opt" onClick={() => addAsset(a)}>{a}</div>
                   ))}
                 </div>
               )}
             </div>
-            <div className="asset-tags">
+            <div className="snw-asset-tags">
               {form.assets.map(a => (
-                <span key={a} className="asset-tag" onClick={() => removeAsset(a)}>{a} ×</span>
+                <span key={a} className="snw-asset-tag" onClick={() => removeAsset(a)}>{a} ×</span>
               ))}
-              {form.assets.length === 0 && <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text-muted)'}}>No assets selected</span>}
+              {form.assets.length === 0 &&
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-muted)'}}>
+                  No assets selected
+                </span>
+              }
             </div>
           </div>
 
-          {/* Params */}
-          <div className="section-gap">
-            <div className="section-label">Parameters</div>
-            <div className="field-grid">
+          {/* Parameters */}
+          <div className="snw-section-gap">
+            <div className="snw-section-label">Parameters</div>
+            <div className="snw-field-grid">
               {[
-                {key:'timeframe', label:'Timeframe', type:'select', opts:['1m','5m','15m','1h','4h','1d','1wk']},
-                {key:'start_year', label:'Start year', type:'number'},
-                {key:'end_year', label:'End year', type:'number'},
-                {key:'initial_capital', label:'Capital ($)', type:'number'},
-                {key:'take_profit', label:'Take profit (%)', type:'number', step:0.1},
-                {key:'stop_loss', label:'Stop loss (%)', type:'number', step:0.1},
+                {key:'timeframe',       label:'Timeframe',       type:'select', opts:['1m','5m','15m','1h','4h','1d','1wk']},
+                {key:'start_year',      label:'Start year',      type:'number'},
+                {key:'end_year',        label:'End year',        type:'number'},
+                {key:'initial_capital', label:'Capital ($)',     type:'number'},
+                {key:'take_profit',     label:'Take profit (%)', type:'number', step:0.1},
+                {key:'stop_loss',       label:'Stop loss (%)',   type:'number', step:0.1},
               ].map(({key, label, type, opts, step}) => (
-                <div key={key} className="field-group">
-                  <label className="field-label">{label}</label>
+                <div key={key} className="snw-field">
+                  <label className="snw-label">{label}</label>
                   {type === 'select' ? (
-                    <select className="field-select" value={form[key]} onChange={e => f(key, e.target.value)}>
+                    <select className="snw-select" value={form[key]} onChange={e => fld(key, e.target.value)}>
                       {opts.map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
-                    <input className="field-input" type="number" step={step||1}
-                      value={form[key]} onChange={e => f(key, parseFloat(e.target.value)||0)} />
+                    <input className="snw-input" type="number" step={step||1}
+                      value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
                   )}
                 </div>
               ))}
@@ -876,26 +1180,26 @@ function CreateModelOverlay({ onClose, onCreate }) {
           </div>
 
           {/* GA / RL */}
-          <div className="section-gap">
-            <div className="section-label">GA / RL Hyper-parameters</div>
-            <div className="field-grid">
+          <div className="snw-section-gap">
+            <div className="snw-section-label">GA / RL Hyper-parameters</div>
+            <div className="snw-field-grid">
               {[
                 {key:'population_size', label:'Population'},
                 {key:'max_generations', label:'Generations'},
-                {key:'mutation_rate', label:'Mutation rate', step:0.01},
-                {key:'elite_fraction', label:'Elite fraction', step:0.05},
-                {key:'rl_learning_rate', label:'RL LR', step:0.001},
+                {key:'mutation_rate',   label:'Mutation rate', step:0.01},
+                {key:'elite_fraction',  label:'Elite fraction', step:0.05},
+                {key:'rl_learning_rate',label:'RL learning rate', step:0.001},
               ].map(({key, label, step}) => (
-                <div key={key} className="field-group">
-                  <label className="field-label">{label}</label>
-                  <input className="field-input" type="number" step={step||1}
-                    value={form[key]} onChange={e => f(key, parseFloat(e.target.value)||0)} />
+                <div key={key} className="snw-field">
+                  <label className="snw-label">{label}</label>
+                  <input className="snw-input" type="number" step={step||1}
+                    value={form[key]} onChange={e => fld(key, parseFloat(e.target.value)||0)} />
                 </div>
               ))}
-              <div className="field-group">
-                <label className="field-label">RL enabled</label>
-                <select className="field-select" value={form.rl_enabled ? 'yes' : 'no'}
-                  onChange={e => f('rl_enabled', e.target.value === 'yes')}>
+              <div className="snw-field">
+                <label className="snw-label">RL enabled</label>
+                <select className="snw-select" value={form.rl_enabled ? 'yes' : 'no'}
+                  onChange={e => fld('rl_enabled', e.target.value === 'yes')}>
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
                 </select>
@@ -903,30 +1207,43 @@ function CreateModelOverlay({ onClose, onCreate }) {
             </div>
           </div>
 
-          {/* Functions */}
-          <div className="section-gap">
-            <div className="section-label">Function pool ({form.allowed_functions.length} selected)</div>
-            <div className="func-grid">
-              {ALL_FUNCTIONS.map(fn => (
-                <div key={fn} className={`func-chip ${form.allowed_functions.includes(fn)?'selected':''}`}
-                  onClick={() => toggleFunc(fn)}>
-                  <span className="func-chip-dot"/>
-                  {fn}
-                </div>
-              ))}
+          {/* Functions — grouped by category */}
+          <div className="snw-section-gap">
+            <div className="snw-section-label">
+              Function pool — {form.allowed_functions.length} selected
+              <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                style={{marginLeft:12}}
+                onClick={() => setForm(f => ({...f, allowed_functions: ALL_FUNCTIONS}))}>
+                Select all
+              </button>
+              <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                style={{marginLeft:6}}
+                onClick={() => setForm(f => ({...f, allowed_functions: []}))}>
+                Clear
+              </button>
             </div>
+            {FUNCTION_CATEGORIES.map(cat => (
+              <div key={cat.label} className="snw-func-category">
+                <div className="snw-func-category-label">{cat.label}</div>
+                <div className="snw-func-grid">
+                  {cat.fns.map(fn => (
+                    <div key={fn}
+                      className={`snw-func-chip ${form.allowed_functions.includes(fn) ? 'snw-func-on' : ''}`}
+                      onClick={() => toggleFunc(fn)}>
+                      <span className="snw-func-dot"/>
+                      {fn}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
 
-          {dupWarning && (
-            <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--yellow)',
-              background:'#f5c84212',border:'1px solid #f5c84230',borderRadius:4,padding:'8px 12px',marginBottom:12}}>
-              {dupWarning}
-            </div>
-          )}
+          {dupWarning && <div className="snw-dup-warn">{dupWarning}</div>}
 
           <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
-            <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary"
+            <button className="snw-btn snw-btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="snw-btn snw-btn-primary"
               disabled={submitting || !form.name || form.assets.length===0 || form.allowed_functions.length===0 || !!dupWarning}
               onClick={submit}>
               {submitting ? 'Creating…' : 'Create Model'}
@@ -940,13 +1257,13 @@ function CreateModelOverlay({ onClose, onCreate }) {
 
 /* ─── Model Detail Panel ─────────────────────────────────────────────────── */
 function ModelDetail({ model: initialModel, onDelete }) {
-  const [model, setModel] = useState(initialModel);
-  const [tab, setTab]     = useState('overview');
-  const [logs, setLogs]   = useState([]);
-  const [logOffset, setLogOffset] = useState(0);
-  const [chartStyle, setChartStyle] = useState('dark');
-  const [chartType,  setChartType]  = useState('candlestick');
-  const [chartAsset, setChartAsset] = useState(initialModel.assets?.[0] || '');
+  const [model,       setModel]       = useState(initialModel);
+  const [tab,         setTab]         = useState('overview');
+  const [logs,        setLogs]        = useState([]);
+  const [logOffset,   setLogOffset]   = useState(0);
+  const [chartStyle,  setChartStyle]  = useState('dark');
+  const [chartType,   setChartType]   = useState('candlestick');
+  const [chartAsset,  setChartAsset]  = useState(initialModel.assets?.[0] || '');
   const [chromosomes, setChromosomes] = useState([]);
   const logsEndRef = useRef(null);
   const pollRef    = useRef(null);
@@ -962,27 +1279,26 @@ function ModelDetail({ model: initialModel, onDelete }) {
 
   const startPolling = (id) => {
     clearInterval(pollRef.current);
+    let offset = 0;
     pollRef.current = setInterval(async () => {
       try {
-        const r  = await fetch(`${BASE_URL}/api/snowai/models/${id}/status/?last_log=${logOffset}`);
-        const d  = await r.json();
+        const r = await fetch(`${BASE_URL}/api/snowai/models/${id}/status/?last_log=${offset}`);
+        const d = await r.json();
         setModel(m => ({ ...m, status: d.status, progress: d.progress, current_generation: d.generation }));
         if (d.logs?.length) {
           setLogs(l => [...l, ...d.logs]);
-          setLogOffset(o => o + d.logs.length);
+          offset += d.logs.length;
+          setLogOffset(offset);
         }
         if (d.status === 'completed' || d.status === 'failed') {
           clearInterval(pollRef.current);
-          // Refresh full model
           fetch(`${BASE_URL}/api/snowai/models/${id}/`).then(r=>r.json()).then(d=>setModel(d.model));
         }
       } catch (_) {}
     }, 1500);
   };
 
-  useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
   const loadChromosomes = async () => {
     try {
@@ -992,29 +1308,24 @@ function ModelDetail({ model: initialModel, onDelete }) {
     } catch (_) {}
   };
 
-  useEffect(() => {
-    if (tab === 'chromosomes') loadChromosomes();
-  }, [tab]);
+  useEffect(() => { if (tab === 'chromosomes') loadChromosomes(); }, [tab]);
 
   const handleStart = async () => {
     await fetch(`${BASE_URL}/api/snowai/models/${model.id}/start/`, { method: 'POST' });
-    setModel(m => ({ ...m, status: 'running' }));
+    setModel(m => ({ ...m, status: 'running', progress: 0 }));
     setLogs([]);
     startPolling(model.id);
   };
-
   const handlePause = async () => {
     await fetch(`${BASE_URL}/api/snowai/models/${model.id}/pause/`, { method: 'POST' });
     setModel(m => ({ ...m, status: 'paused' }));
     clearInterval(pollRef.current);
   };
-
   const handleResume = async () => {
     await fetch(`${BASE_URL}/api/snowai/models/${model.id}/resume/`, { method: 'POST' });
     setModel(m => ({ ...m, status: 'running' }));
     startPolling(model.id);
   };
-
   const handleDelete = async () => {
     if (!window.confirm('Delete this model and all its data?')) return;
     await fetch(`${BASE_URL}/api/snowai/models/${model.id}/`, { method: 'DELETE' });
@@ -1024,139 +1335,124 @@ function ModelDetail({ model: initialModel, onDelete }) {
   const bc = model.best_chromosome;
   const fh = model.fitness_history || [];
 
-  const logClass = (l) => {
-    if (l.startsWith('🏆') || l.startsWith('✓') || l.startsWith('🎉') || l.startsWith('✅')) return 'good';
-    if (l.startsWith('❌') || l.startsWith('✗')) return 'bad';
-    if (l.startsWith('🔬') || l.startsWith('🧬') || l.startsWith('📡')) return 'head';
-    return 'info';
+  const logCls = (l) => {
+    if (l.startsWith('🏆') || l.startsWith('✓') || l.startsWith('🎉') || l.startsWith('✅')) return 'snw-log-good';
+    if (l.startsWith('❌') || l.startsWith('✗')) return 'snw-log-bad';
+    if (l.startsWith('🔬') || l.startsWith('🧬') || l.startsWith('📡')) return 'snw-log-head';
+    return 'snw-log-plain';
   };
 
   return (
     <div>
-      {/* Header */}
-      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20,gap:12,flexWrap:'wrap'}}>
+      {/* Model header */}
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:18,gap:12,flexWrap:'wrap'}}>
         <div>
-          <div style={{fontFamily:'var(--mono)',fontSize:18,fontWeight:500,color:'var(--text)',marginBottom:4}}>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:17,fontWeight:500,color:'var(--snw-text)',marginBottom:5}}>
             {model.name}
           </div>
-          <div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--text-dim)',display:'flex',gap:12,flexWrap:'wrap'}}>
-            <span><span className={`status-dot ${STATUS_DOTS[model.status]||'dot-pending'}`}/>
-              {model.status}</span>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:11,color:'var(--snw-text-dim)',display:'flex',gap:12,flexWrap:'wrap'}}>
+            <span>
+              <span className={`snw-dot ${STATUS_DOTS[model.status]||'snw-dot-pending'}`}/>
+              {model.status}
+            </span>
             <span>{model.timeframe}</span>
             <span>{model.start_year}–{model.end_year}</span>
             <span>gen {model.current_generation}/{model.max_generations}</span>
           </div>
         </div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
           {(model.status==='pending'||model.status==='failed'||model.status==='completed') && (
-            <button className="btn btn-primary btn-sm" onClick={handleStart}>▶ Run</button>
+            <button className="snw-btn snw-btn-primary snw-btn-sm" onClick={handleStart}>▶ Run</button>
           )}
           {model.status==='running' && (
-            <button className="btn btn-ghost btn-sm" onClick={handlePause}>⏸ Pause</button>
+            <button className="snw-btn snw-btn-ghost snw-btn-sm" onClick={handlePause}>⏸ Pause</button>
           )}
           {model.status==='paused' && (
-            <button className="btn btn-ghost btn-sm" onClick={handleResume}>▶ Resume</button>
+            <button className="snw-btn snw-btn-primary snw-btn-sm" onClick={handleResume}>▶ Resume</button>
           )}
-          <button className="btn btn-danger btn-sm" onClick={handleDelete}>Delete</button>
+          <button className="snw-btn snw-btn-danger snw-btn-sm" onClick={handleDelete}>Delete</button>
         </div>
       </div>
 
       {/* Progress */}
       {(model.status==='running'||model.status==='paused') && (
-        <div style={{marginBottom:18}}>
-          <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text-dim)',marginBottom:4}}>
-            {model.progress}% — generation {model.current_generation}/{model.max_generations}
+        <div style={{marginBottom:16}}>
+          <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-dim)',marginBottom:4}}>
+            {model.progress}% · generation {model.current_generation}/{model.max_generations}
           </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{width:`${model.progress}%`}}/>
+          <div className="snw-progress-bar">
+            <div className="snw-progress-fill" style={{width:`${model.progress}%`}}/>
           </div>
         </div>
       )}
 
-      {/* Tab nav */}
-      <div className="tab-row" style={{padding:0,marginBottom:20}}>
+      {/* Tabs */}
+      <div className="snw-tabs">
         {['overview','chart','chromosomes','logs'].map(t => (
-          <button key={t} className={`tab-btn ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
-            {t}
-          </button>
+          <button key={t} className={`snw-tab ${tab===t?'snw-tab-active':''}`} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
 
-      {/* ── Overview ─────────────────────────────────────────── */}
+      {/* ── Overview ── */}
       {tab==='overview' && (
         <>
-          {/* Config */}
-          <div className="panel">
-            <div className="panel-header"><span className="panel-title">Configuration</span></div>
-            <div className="panel-body">
-              <div className="metrics-grid">
+          <div className="snw-panel">
+            <div className="snw-panel-header"><span className="snw-panel-title">Configuration</span></div>
+            <div className="snw-panel-body">
+              <div className="snw-metrics">
                 {[
-                  {l:'Assets', v: model.assets?.join(', ')},
-                  {l:'Timeframe', v:model.timeframe},
-                  {l:'Period', v:`${model.start_year}–${model.end_year}`},
-                  {l:'Capital', v:`$${model.initial_capital?.toLocaleString()}`},
-                  {l:'Take profit', v:`${model.take_profit}%`},
-                  {l:'Stop loss', v:`${model.stop_loss}%`},
-                  {l:'Population', v:model.population_size},
-                  {l:'Generations', v:model.max_generations},
-                  {l:'Mutation', v:model.mutation_rate},
-                  {l:'RL', v:model.rl_enabled?'enabled':'off'},
+                  {l:'Assets',     v: model.assets?.slice(0,4).join(', ') + (model.assets?.length>4?` +${model.assets.length-4}`:'')},
+                  {l:'Timeframe',  v: model.timeframe},
+                  {l:'Period',     v: `${model.start_year}–${model.end_year}`},
+                  {l:'Capital',    v: `$${model.initial_capital?.toLocaleString()}`},
+                  {l:'TP / SL',    v: `${model.take_profit}% / ${model.stop_loss}%`},
+                  {l:'Population', v: model.population_size},
+                  {l:'Generations',v: model.max_generations},
+                  {l:'Mutation',   v: model.mutation_rate},
+                  {l:'RL',         v: model.rl_enabled?'enabled':'off'},
                 ].map(({l,v}) => (
-                  <div key={l} className="metric-cell">
-                    <div className="metric-cell-label">{l}</div>
-                    <div className="metric-cell-value val-plain" style={{fontSize:12}}>{v??'—'}</div>
+                  <div key={l} className="snw-metric">
+                    <div className="snw-metric-label">{l}</div>
+                    <div className="snw-metric-val snw-val-plain" style={{fontSize:12,wordBreak:'break-word'}}>{v??'—'}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Best chromosome */}
           {bc ? (
-            <div className="panel">
-              <div className="panel-header"><span className="panel-title">Best Strategy Found</span>
-                <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text-dim)'}}>gen {bc.generation}</span>
+            <div className="snw-panel">
+              <div className="snw-panel-header">
+                <span className="snw-panel-title">Best Strategy Found</span>
+                <span style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-dim)'}}>gen {bc.generation}</span>
               </div>
-              <div className="panel-body">
-                <div className="func-tags" style={{marginBottom:14}}>
-                  {bc.functions?.map(fn => <span key={fn} className="func-tag">{fn}</span>)}
+              <div className="snw-panel-body">
+                <div className="snw-tags" style={{marginBottom:14}}>
+                  {bc.functions?.map(fn => <span key={fn} className="snw-tag">{fn}</span>)}
                 </div>
-                <div className="metrics-grid">
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">Fitness</div>
-                    <div className="metric-cell-value val-blue">{fmtNum(bc.fitness)}</div>
-                  </div>
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">Win rate</div>
-                    <div className={`metric-cell-value ${bc.win_rate>=50?'val-green':'val-red'}`}>{fmtPct(bc.win_rate)}</div>
-                  </div>
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">Trades</div>
-                    <div className="metric-cell-value val-plain">{bc.total_trades}</div>
-                  </div>
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">PnL</div>
-                    <div className={`metric-cell-value ${bc.total_pnl>=0?'val-green':'val-red'}`}>${fmtNum(bc.total_pnl)}</div>
-                  </div>
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">Sharpe</div>
-                    <div className="metric-cell-value val-plain">{fmtNum(bc.sharpe_ratio)}</div>
-                  </div>
-                  <div className="metric-cell">
-                    <div className="metric-cell-label">Max DD</div>
-                    <div className="metric-cell-value val-red">{fmtPct(bc.max_drawdown)}</div>
-                  </div>
+                <div className="snw-metrics">
+                  {[
+                    {l:'Fitness',    v:fmtNum(bc.fitness),                    cls:'snw-val-blue'},
+                    {l:'Win rate',   v:fmtPct(bc.win_rate),                   cls:bc.win_rate>=50?'snw-val-green':'snw-val-red'},
+                    {l:'Trades',     v:bc.total_trades,                       cls:'snw-val-plain'},
+                    {l:'PnL',        v:`$${fmtNum(bc.total_pnl)}`,            cls:bc.total_pnl>=0?'snw-val-green':'snw-val-red'},
+                    {l:'Sharpe',     v:fmtNum(bc.sharpe_ratio),               cls:'snw-val-plain'},
+                    {l:'Max DD',     v:fmtPct(bc.max_drawdown),               cls:'snw-val-red'},
+                  ].map(({l,v,cls}) => (
+                    <div key={l} className="snw-metric">
+                      <div className="snw-metric-label">{l}</div>
+                      <div className={`snw-metric-val ${cls}`}>{v}</div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Market snapshot */}
                 {bc.market_snapshot && (
-                  <div style={{marginTop:18}}>
-                    <div className="section-label" style={{marginBottom:8}}>Market Condition Snapshot</div>
-                    <img className="snapshot-img" src={`data:image/png;base64,${bc.market_snapshot}`}
-                      alt="market snapshot" />
-                    <div className="snapshot-label">
-                      Regime heatmap at time of evaluation — {bc.market_snapshot_meta?.is_uptrend?'uptrend':'non-uptrend'} |
-                      ATR {bc.market_snapshot_meta?.atr?.toFixed?.(5)} |
+                  <div style={{marginTop:16}}>
+                    <div className="snw-section-label" style={{marginBottom:8}}>Market Condition Snapshot</div>
+                    <img className="snw-snapshot" src={`data:image/png;base64,${bc.market_snapshot}`} alt="market snapshot"/>
+                    <div className="snw-snapshot-cap">
+                      Regime heatmap at evaluation ·
+                      {bc.market_snapshot_meta?.is_uptrend ? ' uptrend' : ' non-uptrend'} ·
+                      ATR {bc.market_snapshot_meta?.atr?.toFixed?.(5)} ·
                       RSI {bc.market_snapshot_meta?.rsi?.toFixed?.(1)}
                     </div>
                   </div>
@@ -1164,24 +1460,23 @@ function ModelDetail({ model: initialModel, onDelete }) {
               </div>
             </div>
           ) : (
-            <div className="panel">
-              <div className="panel-body">
-                <div className="empty-state">
-                  <span className="empty-icon">⬡</span>
+            <div className="snw-panel">
+              <div className="snw-panel-body">
+                <div className="snw-empty">
+                  <span className="snw-empty-icon">⬡</span>
                   <span>No strategy evolved yet. Run the model to start.</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Fitness history sparkline */}
           {fh.length > 1 && (
-            <div className="panel">
-              <div className="panel-header"><span className="panel-title">Fitness History</span></div>
-              <div className="panel-body">
-                <Sparkline data={fh} />
-                <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text-muted)',marginTop:6}}>
-                  best per generation · {fh.length} generations recorded
+            <div className="snw-panel">
+              <div className="snw-panel-header"><span className="snw-panel-title">Fitness History</span></div>
+              <div className="snw-panel-body">
+                <Sparkline data={fh}/>
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-muted)',marginTop:6}}>
+                  best fitness per generation · {fh.length} recorded
                 </div>
               </div>
             </div>
@@ -1189,84 +1484,77 @@ function ModelDetail({ model: initialModel, onDelete }) {
         </>
       )}
 
-      {/* ── Chart ───────────────────────────────────────────── */}
+      {/* ── Chart ── */}
       {tab==='chart' && (
-        <div className="chart-container">
-          <div className="chart-controls">
-            <select className="chart-asset-select" value={chartAsset}
+        <div className="snw-chart-wrap">
+          <div className="snw-chart-controls">
+            <select className="snw-chart-asset-sel" value={chartAsset}
               onChange={e => setChartAsset(e.target.value)}>
               {(model.assets||[]).map(a => <option key={a} value={a}>{a}</option>)}
             </select>
             <div style={{display:'flex',gap:4}}>
               {['candlestick','line','area'].map(t => (
-                <button key={t} className={`chart-style-btn ${chartType===t?'active':''}`}
-                  onClick={()=>setChartType(t)}>{t}</button>
+                <button key={t} className={`snw-chart-btn ${chartType===t?'snw-chart-btn-active':''}`}
+                  onClick={() => setChartType(t)}>{t}</button>
               ))}
             </div>
             <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
               {['dark','light','hud'].map(s => (
-                <button key={s} className={`chart-style-btn ${chartStyle===s?'active':''}`}
-                  onClick={()=>setChartStyle(s)}>{s}</button>
+                <button key={s} className={`snw-chart-btn ${chartStyle===s?'snw-chart-btn-active':''}`}
+                  onClick={() => setChartStyle(s)}>{s}</button>
               ))}
             </div>
           </div>
           {window.LightweightCharts ? (
-            <TVChart modelId={model.id} asset={chartAsset}
-              chartStyle={chartStyle} chartType={chartType} />
+            <TVChart modelId={model.id} asset={chartAsset} chartStyle={chartStyle} chartType={chartType}/>
           ) : (
-            <div className="empty-state" style={{height:400}}>
-              <span className="empty-icon">📈</span>
+            <div className="snw-empty" style={{height:400}}>
+              <span className="snw-empty-icon">📈</span>
               <span>TradingView Lightweight Charts not loaded.</span>
-              <span style={{fontSize:10,color:'var(--text-muted)'}}>
-                Add: &lt;script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"&gt;&lt;/script&gt;
-              </span>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Chromosomes ─────────────────────────────────────── */}
+      {/* ── Chromosomes ── */}
       {tab==='chromosomes' && (
         <div>
           {chromosomes.length === 0 ? (
-            <div className="panel">
-              <div className="panel-body">
-                <div className="empty-state">
-                  <span className="empty-icon">⬡</span>
-                  <span>No chromosomes recorded yet.</span>
-                </div>
+            <div className="snw-panel">
+              <div className="snw-panel-body">
+                <div className="snw-empty"><span className="snw-empty-icon">⬡</span><span>No chromosomes yet.</span></div>
               </div>
             </div>
           ) : chromosomes.map(c => (
-            <div key={c.id} className="panel" style={{marginBottom:12}}>
-              <div className="panel-header">
-                <div className="func-tags">
-                  {c.functions?.map(fn => <span key={fn} className="func-tag">{fn}</span>)}
+            <div key={c.id} className="snw-panel" style={{marginBottom:10}}>
+              <div className="snw-panel-header">
+                <div className="snw-tags">
+                  {c.functions?.map(fn => <span key={fn} className="snw-tag">{fn}</span>)}
                 </div>
-                <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text-dim)',display:'flex',gap:12}}>
-                  {c.is_elite && <span style={{color:'var(--yellow)'}}>★ elite</span>}
+                <div style={{fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-dim)',display:'flex',gap:10}}>
+                  {c.is_elite && <span style={{color:'var(--snw-yellow)'}}>★ elite</span>}
                   <span>gen {c.generation}</span>
                 </div>
               </div>
-              <div className="panel-body" style={{display:'grid',gridTemplateColumns:'1fr auto',gap:18,alignItems:'start'}}>
-                <div className="metrics-grid">
+              <div className="snw-panel-body" style={{display:'grid',gridTemplateColumns:'1fr auto',gap:16,alignItems:'start'}}>
+                <div className="snw-metrics">
                   {[
-                    {l:'Fitness',  v:fmtNum(c.fitness),   cls:'val-blue'},
-                    {l:'Win rate', v:fmtPct(c.win_rate),  cls:c.win_rate>=50?'val-green':'val-red'},
-                    {l:'Trades',   v:c.total_trades,      cls:'val-plain'},
-                    {l:'PnL',      v:`$${fmtNum(c.total_pnl)}`, cls:c.total_pnl>=0?'val-green':'val-red'},
-                    {l:'Sharpe',   v:fmtNum(c.sharpe_ratio), cls:'val-plain'},
-                    {l:'Max DD',   v:fmtPct(c.max_drawdown),  cls:'val-red'},
-                  ].map(({l,v,cls})=>(
-                    <div key={l} className="metric-cell">
-                      <div className="metric-cell-label">{l}</div>
-                      <div className={`metric-cell-value ${cls}`} style={{fontSize:14}}>{v}</div>
+                    {l:'Fitness',  v:fmtNum(c.fitness),              cls:'snw-val-blue'},
+                    {l:'Win rate', v:fmtPct(c.win_rate),             cls:c.win_rate>=50?'snw-val-green':'snw-val-red'},
+                    {l:'Trades',   v:c.total_trades,                 cls:'snw-val-plain'},
+                    {l:'PnL',      v:`$${fmtNum(c.total_pnl)}`,      cls:c.total_pnl>=0?'snw-val-green':'snw-val-red'},
+                    {l:'Sharpe',   v:fmtNum(c.sharpe_ratio),         cls:'snw-val-plain'},
+                    {l:'Max DD',   v:fmtPct(c.max_drawdown),         cls:'snw-val-red'},
+                  ].map(({l,v,cls}) => (
+                    <div key={l} className="snw-metric">
+                      <div className="snw-metric-label">{l}</div>
+                      <div className={`snw-metric-val ${cls}`} style={{fontSize:14}}>{v}</div>
                     </div>
                   ))}
                 </div>
                 {c.market_snapshot && (
-                  <div style={{width:180,flexShrink:0}}>
-                    <img className="snapshot-img" src={`data:image/png;base64,${c.market_snapshot}`} alt="snapshot"/>
+                  <div style={{width:160,flexShrink:0}}>
+                    <img className="snw-snapshot" src={`data:image/png;base64,${c.market_snapshot}`} alt="snapshot"/>
                   </div>
                 )}
               </div>
@@ -1275,20 +1563,20 @@ function ModelDetail({ model: initialModel, onDelete }) {
         </div>
       )}
 
-      {/* ── Logs ────────────────────────────────────────────── */}
+      {/* ── Logs ── */}
       {tab==='logs' && (
         <div>
-          <div className="log-terminal">
+          <div className="snw-terminal">
             {logs.length === 0
-              ? <span className="log-line info">No logs yet. Start the model to see output.</span>
+              ? <span className="snw-log-plain">No logs yet. Start the model to see output.</span>
               : logs.map((l, i) => (
-                  <div key={i} className={`log-line ${logClass(l)}`}>{l}</div>
+                  <div key={i} className={logCls(l)}>{l}</div>
                 ))
             }
             <div ref={logsEndRef}/>
           </div>
-          <div style={{marginTop:10,fontFamily:'var(--mono)',fontSize:10,color:'var(--text-muted)'}}>
-            {logs.length} log lines · auto-scrolling
+          <div style={{marginTop:8,fontFamily:'IBM Plex Mono,monospace',fontSize:10,color:'var(--snw-text-muted)'}}>
+            {logs.length} lines · auto-scrolling
           </div>
         </div>
       )}
@@ -1298,13 +1586,16 @@ function ModelDetail({ model: initialModel, onDelete }) {
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 export default function SnowAISandbox() {
-  const [models,      setModels]      = useState([]);
-  const [selected,    setSelected]    = useState(null);
-  const [showCreate,  setShowCreate]  = useState(false);
-  const [search,      setSearch]      = useState('');
+  const [models,       setModels]       = useState([]);
+  const [selected,     setSelected]     = useState(null);
+  const [showCreate,   setShowCreate]   = useState(false);
+  const [search,       setSearch]       = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterTf,    setFilterTf]    = useState('');
-  const [toast,       setToast]       = useState(null);
+  const [filterTf,     setFilterTf]     = useState('');
+  const [toast,        setToast]        = useState(null);
+  const [darkMode,     setDarkMode]     = useState(true);
+
+  const theme = darkMode ? 'dark' : 'light';
 
   const showToast = (msg, type='ok') => {
     setToast({msg, type});
@@ -1314,9 +1605,9 @@ export default function SnowAISandbox() {
   const loadModels = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (search)       params.set('q',         search);
-      if (filterStatus) params.set('status',     filterStatus);
-      if (filterTf)     params.set('timeframe',  filterTf);
+      if (search)       params.set('q',        search);
+      if (filterStatus) params.set('status',   filterStatus);
+      if (filterTf)     params.set('timeframe',filterTf);
       const r = await fetch(`${BASE_URL}/api/snowai/models/?${params}`);
       const d = await r.json();
       setModels(d.models || []);
@@ -1325,7 +1616,6 @@ export default function SnowAISandbox() {
 
   useEffect(() => { loadModels(); }, [loadModels]);
 
-  // Poll running models every 10s for sidebar refresh
   useEffect(() => {
     const id = setInterval(() => {
       if (models.some(m => m.status === 'running')) loadModels();
@@ -1342,48 +1632,49 @@ export default function SnowAISandbox() {
   const handleDelete = (id) => {
     setModels(ms => ms.filter(m => m.id !== id));
     setSelected(null);
-    showToast('Model deleted.', 'ok');
+    showToast('Model deleted.');
   };
 
-  // When a model is selected, fetch full detail
   const selectModel = async (m) => {
     try {
       const r = await fetch(`${BASE_URL}/api/snowai/models/${m.id}/`);
       const d = await r.json();
       setSelected(d.model || m);
-    } catch (_) {
-      setSelected(m);
-    }
+    } catch (_) { setSelected(m); }
   };
 
   return (
     <div>
       <style>{styles}</style>
-      {/* Inject TradingView Lightweight Charts */}
-      <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js" />
+      <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"/>
 
       <Header />
       <div className="main-page-body">
         <SideNavs />
         <div className="main-body-info">
-          <div className="lab-wrapper">
+          <div className="snw-wrap" data-snw-theme={theme}>
 
-            {/* Top bar */}
-            <div className="lab-topbar">
-              <span className="lab-title">
-                SnowAI Sandbox
-                <span>· GA / RL Strategy Discovery</span>
-              </span>
+            {/* Topbar */}
+            <div className="snw-topbar">
+              <div className="snw-topbar-left">
+                <span className="snw-logo-mark">❄ SnowAI Sandbox</span>
+                <span className="snw-logo-sub">GA · RL · Strategy Discovery</span>
+              </div>
+              {/* Theme toggle */}
+              <div className="snw-theme-toggle" onClick={() => setDarkMode(d => !d)}>
+                <span className={`snw-theme-pill ${darkMode?'on':''}`}/>
+                {darkMode ? '🌙 Dark' : '☀ Light'}
+              </div>
             </div>
 
             {/* Body */}
-            <div className="lab-body">
+            <div className="snw-body">
 
-              {/* ── Sidebar ── */}
-              <div className="lab-sidebar">
-                <div className="sidebar-search">
+              {/* Sidebar */}
+              <div className="snw-sidebar">
+                <div className="snw-sidebar-search">
                   <input placeholder="Search models…"
-                    value={search} onChange={e => setSearch(e.target.value)} />
+                    value={search} onChange={e => setSearch(e.target.value)}/>
                   <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                     <option value="">All statuses</option>
                     <option value="pending">Pending</option>
@@ -1400,54 +1691,56 @@ export default function SnowAISandbox() {
                   </select>
                 </div>
 
-                <button className="new-model-btn" onClick={() => setShowCreate(true)}>
+                <button className="snw-new-btn" onClick={() => setShowCreate(true)}>
                   + New Model
                 </button>
 
                 {models.length === 0 ? (
-                  <div className="empty-state" style={{padding:'40px 16px'}}>
-                    <span className="empty-icon">⬡</span>
+                  <div className="snw-empty" style={{padding:'40px 16px'}}>
+                    <span className="snw-empty-icon">⬡</span>
                     <span>No models found.</span>
-                    <span style={{color:'var(--text-muted)',fontSize:10}}>Create one to get started.</span>
+                    <span style={{color:'var(--snw-text-muted)',fontSize:10}}>Create one to get started.</span>
                   </div>
                 ) : models.map(m => (
                   <div key={m.id}
-                    className={`model-item ${selected?.id===m.id?'selected':''}`}
+                    className={`snw-model-item ${selected?.id===m.id?'snw-selected':''}`}
                     onClick={() => selectModel(m)}>
-                    <div className="model-item-name">
-                      <span className={`status-dot ${STATUS_DOTS[m.status]||'dot-pending'}`}/>
+                    <div className="snw-model-name">
+                      <span className={`snw-dot ${STATUS_DOTS[m.status]||'snw-dot-pending'}`}/>
                       {m.name}
                     </div>
-                    <div className="model-item-meta">
+                    <div className="snw-model-meta">
                       <span>{m.assets?.slice(0,3).join(',')} {m.assets?.length>3?`+${m.assets.length-3}`:''}</span>
                       <span>{m.timeframe}</span>
-                      {m.status==='running' && <span style={{color:'var(--accent)'}}>gen {m.current_generation}</span>}
+                      {m.status==='running' && (
+                        <span style={{color:'var(--snw-accent)'}}>gen {m.current_generation}</span>
+                      )}
                       {m.best_chromosome && (
-                        <span style={{color: m.best_chromosome.win_rate>=50?'var(--green)':'var(--red)'}}>
+                        <span style={{color: m.best_chromosome.win_rate>=50?'var(--snw-green)':'var(--snw-red)'}}>
                           wr {fmtPct(m.best_chromosome.win_rate)}
                         </span>
                       )}
                     </div>
                     {m.status==='running' && (
-                      <div className="progress-bar" style={{marginTop:6}}>
-                        <div className="progress-fill" style={{width:`${m.progress||0}%`}}/>
+                      <div className="snw-progress-bar" style={{marginTop:6}}>
+                        <div className="snw-progress-fill" style={{width:`${m.progress||0}%`}}/>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* ── Main detail area ── */}
-              <div className="lab-main">
+              {/* Main */}
+              <div className="snw-main">
                 {selected ? (
-                  <ModelDetail key={selected.id} model={selected} onDelete={handleDelete} />
+                  <ModelDetail key={selected.id} model={selected} onDelete={handleDelete}/>
                 ) : (
-                  <div className="empty-state" style={{height:'100%',minHeight:400}}>
-                    <span className="empty-icon">⬡</span>
+                  <div className="snw-empty" style={{height:'100%',minHeight:400}}>
+                    <span className="snw-empty-icon">⬡</span>
                     <span>Select a model from the sidebar</span>
-                    <span style={{color:'var(--text-muted)',fontSize:10}}>or create a new one to begin.</span>
-                    <button className="btn btn-primary" style={{marginTop:12}}
-                      onClick={()=>setShowCreate(true)}>+ New Model</button>
+                    <span style={{color:'var(--snw-text-muted)',fontSize:10}}>or create a new one to begin.</span>
+                    <button className="snw-btn snw-btn-primary" style={{marginTop:14}}
+                      onClick={() => setShowCreate(true)}>+ New Model</button>
                   </div>
                 )}
               </div>
@@ -1457,12 +1750,12 @@ export default function SnowAISandbox() {
             {showCreate && (
               <CreateModelOverlay
                 onClose={() => setShowCreate(false)}
-                onCreate={handleCreate} />
+                onCreate={handleCreate}/>
             )}
 
             {/* Toast */}
             {toast && (
-              <div className={`toast ${toast.type}`}>{toast.msg}</div>
+              <div className={`snw-toast snw-${toast.type}`}>{toast.msg}</div>
             )}
           </div>
         </div>
