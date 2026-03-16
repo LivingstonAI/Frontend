@@ -840,8 +840,63 @@ const styles = `
 }
 .snw-ap-sel-tag:hover { border-color: var(--snw-red); color: var(--snw-red); }
 
-/* ── Scrollbar ── */
-.snw-wrap ::-webkit-scrollbar { width: 4px; height: 4px; }
+/* ── Edit config inline panel ── */
+.snw-edit-panel {
+  background: var(--snw-bg);
+  border: 1px solid var(--snw-accent2);
+  border-radius: 6px;
+  padding: 18px;
+  margin-bottom: 18px;
+  animation: snw-fadedown .15s ease;
+}
+@keyframes snw-fadedown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.snw-edit-section {
+  margin-bottom: 16px;
+}
+.snw-edit-section-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: .15em; text-transform: uppercase;
+  color: var(--snw-text-muted);
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--snw-border);
+}
+.snw-edit-assets-wrap {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;
+}
+.snw-edit-save-row {
+  display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px;
+}
+
+/* ── Read-only config table ── */
+.snw-config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+.snw-config-table tr {
+  border-bottom: 1px solid var(--snw-border);
+}
+.snw-config-table tr:last-child { border-bottom: none; }
+.snw-config-table td {
+  padding: 7px 10px;
+  vertical-align: top;
+}
+.snw-config-table td:first-child {
+  color: var(--snw-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-size: 10px;
+  width: 140px;
+  white-space: nowrap;
+}
+.snw-config-table td:last-child {
+  color: var(--snw-text);
+}
 .snw-wrap ::-webkit-scrollbar-track { background: transparent; }
 .snw-wrap ::-webkit-scrollbar-thumb { background: var(--snw-border2); border-radius: 2px; }
 
@@ -1668,8 +1723,68 @@ function ModelDetail({ model: initialModel, onDelete }) {
     onDelete(model.id);
   };
 
-  const bc = model.best_chromosome;
-  const fh = model.fitness_history || [];
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [showEditAssetPicker, setShowEditAssetPicker] = useState(false);
+
+  const startEdit = () => {
+    setEditForm({
+      name:            model.name,
+      assets:          model.assets || [],
+      timeframe:       model.timeframe,
+      initial_capital: model.initial_capital,
+      take_profit:     model.take_profit,
+      stop_loss:       model.stop_loss,
+      population_size: model.population_size,
+      max_generations: model.max_generations,
+      mutation_rate:   model.mutation_rate,
+      elite_fraction:  model.elite_fraction,
+      rl_enabled:      model.rl_enabled,
+      rl_learning_rate:model.rl_learning_rate,
+      allowed_functions: model.allowed_functions || [],
+    });
+    setEditing(true);
+  };
+
+  const cancelEdit = () => { setEditing(false); setEditForm(null); };
+
+  const efld = (key, val) => setEditForm(f => ({ ...f, [key]: val }));
+  const toggleEditFunc = (fn) => setEditForm(f => ({
+    ...f,
+    allowed_functions: f.allowed_functions.includes(fn)
+      ? f.allowed_functions.filter(x => x !== fn)
+      : [...f.allowed_functions, fn],
+  }));
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...editForm,
+        allowed_functions: editForm.allowed_functions,
+      };
+      const r    = await fetch(`${BASE_URL}/api/snowai/models/${model.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await r.text();
+      let d;
+      try { d = JSON.parse(text); } catch (_) {
+        alert(`Server returned non-JSON (${r.status}):\n${text.slice(0, 300)}`);
+        setSaving(false); return;
+      }
+      if (r.ok) {
+        setModel(d.model);
+        setEditing(false);
+        setEditForm(null);
+      } else {
+        alert(`Error ${r.status}: ${d.error || JSON.stringify(d)}`);
+      }
+    } catch (e) { alert(`Network error: ${e.message}`); }
+    setSaving(false);
+  };
 
   const logCls = (l) => {
     if (l.startsWith('🏆') || l.startsWith('✓') || l.startsWith('🎉') || l.startsWith('✅')) return 'snw-log-good';
@@ -1705,6 +1820,9 @@ function ModelDetail({ model: initialModel, onDelete }) {
           {model.status==='paused' && (
             <button className="snw-btn snw-btn-primary snw-btn-sm" onClick={handleResume}>▶ Resume</button>
           )}
+          {!editing && (
+            <button className="snw-btn snw-btn-ghost snw-btn-sm" onClick={startEdit}>✏ Edit</button>
+          )}
           <button className="snw-btn snw-btn-danger snw-btn-sm" onClick={handleDelete}>Delete</button>
         </div>
       </div>
@@ -1731,27 +1849,186 @@ function ModelDetail({ model: initialModel, onDelete }) {
       {/* ── Overview ── */}
       {tab==='overview' && (
         <>
+          {/* ── Edit asset picker sub-modal ── */}
+          {showEditAssetPicker && editForm && (
+            <AssetPickerModal
+              selected={editForm.assets}
+              onChange={assets => efld('assets', assets)}
+              onClose={() => setShowEditAssetPicker(false)}
+            />
+          )}
+
+          {/* ── Config panel — view or edit ── */}
           <div className="snw-panel">
-            <div className="snw-panel-header"><span className="snw-panel-title">Configuration</span></div>
-            <div className="snw-panel-body">
-              <div className="snw-metrics">
-                {[
-                  {l:'Assets',     v: model.assets?.slice(0,4).join(', ') + (model.assets?.length>4?` +${model.assets.length-4}`:'')},
-                  {l:'Timeframe',  v: model.timeframe},
-                  {l:'Period',     v: 'Auto-detected'},
-                  {l:'Capital',    v: `$${model.initial_capital?.toLocaleString()}`},
-                  {l:'TP / SL',    v: `${model.take_profit}% / ${model.stop_loss}%`},
-                  {l:'Population', v: model.population_size},
-                  {l:'Generations',v: model.max_generations},
-                  {l:'Mutation',   v: model.mutation_rate},
-                  {l:'RL',         v: model.rl_enabled?'enabled':'off'},
-                ].map(({l,v}) => (
-                  <div key={l} className="snw-metric">
-                    <div className="snw-metric-label">{l}</div>
-                    <div className="snw-metric-val snw-val-plain" style={{fontSize:12,wordBreak:'break-word'}}>{v??'—'}</div>
+            <div className="snw-panel-header">
+              <span className="snw-panel-title">Configuration</span>
+              {!editing
+                ? <button className="snw-btn snw-btn-ghost snw-btn-sm" onClick={startEdit}>✏ Edit config</button>
+                : <div style={{display:'flex',gap:6}}>
+                    <button className="snw-btn snw-btn-ghost snw-btn-sm" onClick={cancelEdit}>Cancel</button>
+                    <button className="snw-btn snw-btn-primary snw-btn-sm" onClick={saveEdit} disabled={saving}>
+                      {saving ? 'Saving…' : 'Save changes'}
+                    </button>
                   </div>
-                ))}
-              </div>
+              }
+            </div>
+            <div className="snw-panel-body">
+              {!editing ? (
+                /* ── Read-only view ── */
+                <table className="snw-config-table">
+                  <tbody>
+                    {[
+                      ['Name',        model.name],
+                      ['Assets',      (model.assets||[]).join(', ') || '—'],
+                      ['Timeframe',   model.timeframe],
+                      ['Data range',  'Auto-detected from yfinance'],
+                      ['Capital',     `$${model.initial_capital?.toLocaleString()}`],
+                      ['Take profit', `${model.take_profit}%`],
+                      ['Stop loss',   `${model.stop_loss}%`],
+                      ['Population',  model.population_size],
+                      ['Generations', model.max_generations],
+                      ['Mutation rate', model.mutation_rate],
+                      ['Elite fraction', model.elite_fraction],
+                      ['RL',          model.rl_enabled ? `enabled  (lr ${model.rl_learning_rate})` : 'off'],
+                      ['Functions',   null],
+                    ].map(([label, val]) => (
+                      <tr key={label}>
+                        <td>{label}</td>
+                        <td>
+                          {label === 'Functions' ? (
+                            <div className="snw-tags" style={{gap:4}}>
+                              {(model.allowed_functions||[]).map(fn => (
+                                <span key={fn} className="snw-tag" style={{fontSize:9}}>{fn}</span>
+                              ))}
+                            </div>
+                          ) : val}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                /* ── Edit form ── */
+                <div className="snw-edit-panel">
+
+                  {/* Name */}
+                  <div className="snw-edit-section">
+                    <div className="snw-edit-section-label">Name</div>
+                    <input className="snw-input" value={editForm.name}
+                      onChange={e => efld('name', e.target.value)} style={{width:'100%'}}/>
+                  </div>
+
+                  {/* Assets */}
+                  <div className="snw-edit-section">
+                    <div className="snw-edit-section-label">
+                      Assets — {editForm.assets.length} selected
+                    </div>
+                    <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                      style={{marginBottom:8}}
+                      onClick={() => setShowEditAssetPicker(true)}>
+                      🗂 Browse catalogue
+                    </button>
+                    <div className="snw-edit-assets-wrap">
+                      {editForm.assets.map(a => (
+                        <span key={a} className="snw-asset-tag"
+                          onClick={() => efld('assets', editForm.assets.filter(x => x !== a))}>
+                          {a} ×
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Params */}
+                  <div className="snw-edit-section">
+                    <div className="snw-edit-section-label">Parameters</div>
+                    <div className="snw-field-grid">
+                      <div className="snw-field">
+                        <label className="snw-label">Timeframe</label>
+                        <select className="snw-select" value={editForm.timeframe}
+                          onChange={e => efld('timeframe', e.target.value)}>
+                          {['1m','5m','15m','30m','1h','4h','1d','1wk','1mo'].map(o => (
+                            <option key={o} value={o}>{o}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {[
+                        {key:'initial_capital', label:'Capital ($)'},
+                        {key:'take_profit',     label:'Take profit (%)', step:0.1},
+                        {key:'stop_loss',       label:'Stop loss (%)',   step:0.1},
+                        {key:'population_size', label:'Population'},
+                        {key:'max_generations', label:'Generations'},
+                        {key:'mutation_rate',   label:'Mutation rate',   step:0.01},
+                        {key:'elite_fraction',  label:'Elite fraction',  step:0.05},
+                        {key:'rl_learning_rate',label:'RL learning rate',step:0.001},
+                      ].map(({key, label, step}) => (
+                        <div key={key} className="snw-field">
+                          <label className="snw-label">{label}</label>
+                          <input className="snw-input" type="number" step={step||1}
+                            value={editForm[key]}
+                            onChange={e => efld(key, parseFloat(e.target.value)||0)}/>
+                        </div>
+                      ))}
+                      <div className="snw-field">
+                        <label className="snw-label">RL enabled</label>
+                        <select className="snw-select"
+                          value={editForm.rl_enabled ? 'yes' : 'no'}
+                          onChange={e => efld('rl_enabled', e.target.value === 'yes')}>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Functions */}
+                  <div className="snw-edit-section">
+                    <div className="snw-edit-section-label"
+                      style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span>Functions — {editForm.allowed_functions.length} selected</span>
+                      <div style={{display:'flex',gap:5}}>
+                        <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                          onClick={() => efld('allowed_functions', ALL_FUNCTIONS)}>All</button>
+                        <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                          onClick={() => efld('allowed_functions', [])}>None</button>
+                      </div>
+                    </div>
+                    {FUNCTION_CATEGORIES.map(cat => (
+                      <div key={cat.label} className="snw-func-category">
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:5}}>
+                          <div className="snw-func-category-label">{cat.label}</div>
+                          <div style={{display:'flex',gap:4}}>
+                            <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                              onClick={() => efld('allowed_functions',[
+                                ...editForm.allowed_functions,
+                                ...cat.fns.filter(f => !editForm.allowed_functions.includes(f))
+                              ])}>All</button>
+                            <button className="snw-btn snw-btn-ghost snw-btn-sm"
+                              onClick={() => efld('allowed_functions',
+                                editForm.allowed_functions.filter(f => !cat.fns.includes(f)))}>None</button>
+                          </div>
+                        </div>
+                        <div className="snw-func-grid">
+                          {cat.fns.map(fn => (
+                            <div key={fn}
+                              className={`snw-func-chip ${editForm.allowed_functions.includes(fn)?'snw-func-on':''}`}
+                              onClick={() => toggleEditFunc(fn)}>
+                              <span className="snw-func-dot"/>
+                              {fn}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="snw-edit-save-row">
+                    <button className="snw-btn snw-btn-ghost" onClick={cancelEdit}>Cancel</button>
+                    <button className="snw-btn snw-btn-primary" onClick={saveEdit} disabled={saving}>
+                      {saving ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
