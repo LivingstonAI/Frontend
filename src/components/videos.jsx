@@ -245,7 +245,127 @@ const InstaEmbed = ({url, loop=false}) => {
   );
 };
 
-const TranscriptPanel = ({active, onClose}) => {
+// ─── TRANSCRIPT SAVE MODAL ───────────────────────────────────────────────────
+const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose, onSaved}) => {
+  const BASE = 'https://backend-production-c0ab.up.railway.app';
+  const [form, setForm] = useState({
+    title:        defaultTitle || '',
+    speaker_name: defaultHandle ? defaultHandle.replace('@','') : '',
+    category:     source === 'youtube' ? 'youtube' : 'instagram',
+    transcript:   text || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [err,    setErr]    = useState('');
+  const [saved,  setSaved]  = useState(false);
+
+  const save = async () => {
+    if (!form.transcript.trim()) return setErr('No transcript text to save.');
+    if (!form.title.trim())      return setErr('Please add a title.');
+    setSaving(true); setErr('');
+    try {
+      // Build minimal payload matching SnowAIVideoTranscriptRecord
+      const payload = {
+        transcript_uuid:      crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        youtube_video_id:     source === 'youtube' ? (defaultTitle || '').slice(0,50) : null,
+        youtube_url:          null,
+        video_title:          form.title.slice(0,300),
+        full_transcript_text: form.transcript,
+        primary_speaker_name: form.speaker_name.slice(0,200) || null,
+        content_category:     form.category.slice(0,100),
+        transcription_method: 'web_speech_api',
+        transcript_language:  'en',
+        processing_status:    'completed',
+      };
+      const r = await fetch(`${BASE}/api/snowai-save-transcript/`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(()=>({}));
+        throw new Error(d.error || `HTTP ${r.status}`);
+      }
+      setSaved(true);
+      setTimeout(() => { onSaved?.(); onClose(); }, 1200);
+    } catch(e) {
+      setErr(e.message || 'Save failed. Check backend.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = (label, key, opts={}) => (
+    <div style={{marginBottom:12}}>
+      <label style={{display:'block',fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.5)',letterSpacing:'.05em',marginBottom:5}}>{label}</label>
+      {opts.textarea
+        ? <textarea value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} rows={opts.rows||5}
+            style={{width:'100%',padding:'9px 11px',background:'#1a1a1a',border:'1.5px solid rgba(255,255,255,.12)',borderRadius:T.rs,color:'#fff',fontFamily:T.body,fontSize:12,resize:'vertical',outline:'none',lineHeight:1.6,boxSizing:'border-box'}}/>
+        : <input value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={opts.placeholder||''}
+            style={{width:'100%',padding:'9px 11px',background:'#1a1a1a',border:'1.5px solid rgba(255,255,255,.12)',borderRadius:T.rs,color:'#fff',fontFamily:T.body,fontSize:13,outline:'none',boxSizing:'border-box'}}/>
+      }
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:1200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up"
+        style={{width:'100%',maxWidth:480,borderRadius:18,overflow:'hidden',background:'#111',boxShadow:'0 24px 80px rgba(0,0,0,.8)',border:'1px solid rgba(255,255,255,.1)'}}>
+
+        {/* Header */}
+        <div style={{height:3,background:source==='youtube'?YTG:IG}}/>
+        <div style={{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <div style={{background:source==='youtube'?YTG:IG,borderRadius:8,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
+              <span style={{fontSize:12}}>❄️</span>
+              <span style={{fontFamily:T.font,fontWeight:800,fontSize:10,color:'#fff',whiteSpace:'nowrap'}}>Save Transcript</span>
+            </div>
+            <span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)'}}>
+              {source==='youtube'?'YouTube':'Instagram'} · Web Speech API · {form.transcript.split(/\s+/).filter(Boolean).length} words
+            </span>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.4)',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
+        </div>
+
+        {/* Form */}
+        <div style={{padding:'16px 18px',maxHeight:'70vh',overflowY:'auto'}} className="sas-scroll">
+          {saved
+            ? <div style={{textAlign:'center',padding:'24px 0'}}>
+                <div style={{fontSize:36,marginBottom:10}}>✅</div>
+                <div style={{fontFamily:T.font,fontWeight:700,fontSize:15,color:'#86efac'}}>Saved!</div>
+              </div>
+            : <>
+                {err && <div style={{background:'rgba(239,68,68,.15)',border:'1px solid rgba(239,68,68,.3)',borderRadius:T.rs,padding:'8px 11px',color:'#f87171',fontFamily:T.body,fontSize:12,marginBottom:12}}>{err}</div>}
+                {field('TITLE', 'title', {placeholder:`e.g. ${source==='youtube'?'Interview with...':'@handle reel — topic'}`})}
+                {field('SPEAKER / CREATOR', 'speaker_name', {placeholder:'e.g. John Smith or @username'})}
+                <div style={{marginBottom:12}}>
+                  <label style={{display:'block',fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.5)',letterSpacing:'.05em',marginBottom:5}}>CATEGORY</label>
+                  <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}
+                    style={{width:'100%',padding:'9px 11px',background:'#1a1a1a',border:'1.5px solid rgba(255,255,255,.12)',borderRadius:T.rs,color:'#fff',fontFamily:T.body,fontSize:13,outline:'none'}}>
+                    <option value="youtube">YouTube</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="interview">Interview</option>
+                    <option value="lecture">Lecture / Talk</option>
+                    <option value="podcast">Podcast</option>
+                    <option value="central_bank">Central Bank</option>
+                    <option value="government">Government</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                {field('TRANSCRIPT', 'transcript', {textarea:true, rows:6})}
+                <button onClick={save} disabled={saving}
+                  style={{width:'100%',padding:'11px 0',background:source==='youtube'?YTG:IG,border:'none',color:'#fff',borderRadius:T.rs,cursor:saving?'not-allowed':'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,opacity:saving?.7:1}}>
+                  {saving ? 'Saving…' : '💾 Save Transcript'}
+                </button>
+              </>
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TranscriptPanel = ({active, onClose, onSave}) => {
   const [lines,   setLines]   = useState([]);
   const [running, setRunning] = useState(false);
   const [error,   setError]   = useState('');
@@ -333,10 +453,16 @@ const TranscriptPanel = ({active, onClose}) => {
           {running && <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>🎙 listening…</span>}
         </div>
         <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          {lines.length > 0 && (
+          {lines.filter(l=>l.final).length > 0 && (
             <button onClick={()=>{ navigator.clipboard.writeText(lines.filter(l=>l.final).map(l=>l.text).join(' ')).catch(()=>{}); }}
               style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.5)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>
               Copy
+            </button>
+          )}
+          {onSave && lines.filter(l=>l.final).length > 0 && (
+            <button onClick={()=>onSave(lines.filter(l=>l.final).map(l=>l.text).join(' '))}
+              style={{background:'rgba(34,197,94,.2)',border:'1px solid rgba(34,197,94,.4)',color:'#86efac',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+              💾 Save
             </button>
           )}
           {lines.length > 0 && (
@@ -392,6 +518,7 @@ const TranscriptPanel = ({active, onClose}) => {
 const InlineReelPlayer = ({post, onOpenModal, onClose}) => {
   const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   return (
     <div style={{background:'#0a0a0a',borderRadius:T.r,overflow:'hidden',border:'1px solid rgba(255,255,255,.08)',marginBottom:12}} className="sas-in">
       <div style={{height:2,background:IG}}/>
@@ -421,8 +548,9 @@ const InlineReelPlayer = ({post, onOpenModal, onClose}) => {
           </button>
         </div>
       </div>
+      {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
       <InstaEmbed url={post.post_url} loop={loop}/>
-      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
+      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
     </div>
   );
 };
@@ -433,6 +561,7 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   const isReelPost = isReel(post.post_url);
   const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   const [meta, setMeta] = useState(null);
 
   useEffect(()=>{
@@ -510,7 +639,8 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
         )}
 
         {/* Transcript — collapsible, sits below embed */}
-        {showTranscript&&<TranscriptPanel active={true} onClose={()=>setShowTranscript(false)}/>}
+        {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
+        {showTranscript&&<TranscriptPanel active={true} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>}
 
         {/* Nav */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
@@ -765,6 +895,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,width:'100%',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
@@ -852,7 +983,8 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
           </div>
         )}
         {/* ── TRANSCRIPT (floating overlay, doesn't affect modal layout) ── */}
-        <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
+        {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={video.video_title} source="youtube" onClose={()=>setSaveTranscript(null)}/>}
+        <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
       </div>
     </div>
   );
