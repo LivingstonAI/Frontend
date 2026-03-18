@@ -251,19 +251,19 @@ const TranscriptPanel = ({active, onClose}) => {
   const [error,   setError]   = useState('');
   const recogRef  = useRef(null);
   const scrollRef = useRef(null);
-  const runRef    = useRef(false); // ref so onend closure sees latest value
+  const runRef    = useRef(false);
 
-  // Auto-scroll whenever lines change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [lines]);
 
   const stop = useCallback(() => {
+    // Set flag FIRST so onend doesn't restart
     runRef.current = false;
     setRunning(false);
     try { recogRef.current?.abort(); } catch {}
+    try { recogRef.current?.stop(); } catch {}
+    recogRef.current = null;
   }, []);
 
   const start = useCallback(() => {
@@ -273,15 +273,9 @@ const TranscriptPanel = ({active, onClose}) => {
 
     const makeRecog = () => {
       const r = new SR();
-      r.continuous      = true;
-      r.interimResults  = true;
-      r.maxAlternatives = 1;
-      r.lang            = 'en-US';
-
+      r.continuous = true; r.interimResults = true; r.maxAlternatives = 1; r.lang = 'en-US';
       r.onresult = e => {
-        // Only append newly finalised results to avoid duplicates
-        let finalText = '';
-        let interimText = '';
+        let finalText = '', interimText = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalText  += e.results[i][0].transcript + ' ';
           else                      interimText += e.results[i][0].transcript;
@@ -292,20 +286,16 @@ const TranscriptPanel = ({active, onClose}) => {
           return interimText ? [...parts, {text: interimText, final: false}] : parts;
         });
       };
-
       r.onerror = e => {
-        // 'no-speech' and 'aborted' are normal — don't show error, just restart
         if (e.error === 'no-speech' || e.error === 'aborted') return;
         if (e.error === 'not-allowed') { setError('Microphone access denied.'); stop(); }
         else setError(`Error: ${e.error}`);
       };
-
-      // Key fix: immediately restart on end so we never pause
+      // Only restart if we're still supposed to be running
       r.onend = () => {
         if (!runRef.current) return;
-        try { makeRecog().start(); } catch {}
+        try { const next = makeRecog(); recogRef.current = next; next.start(); } catch {}
       };
-
       return r;
     };
 
@@ -316,48 +306,78 @@ const TranscriptPanel = ({active, onClose}) => {
     r.start();
   }, [stop]);
 
+  // Stop when panel closes or unmounts
+  useEffect(() => { if (!active) stop(); }, [active, stop]);
   useEffect(() => () => stop(), [stop]);
 
   if (!active) return null;
 
+  // Floating overlay — fixed position relative to viewport so it never
+  // pushes the embed or grows the modal height
   return (
-    <div style={{background:'#0d0d0d',borderTop:'1px solid rgba(255,255,255,.08)',padding:'11px 14px'}}>
-      {/* Header row */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,flexWrap:'wrap',gap:6}}>
+    <div style={{
+      position:'fixed', bottom:0, left:0, right:0, zIndex:1100,
+      background:'rgba(10,10,10,.97)', borderTop:'2px solid rgba(255,255,255,.1)',
+      padding:'12px 16px', boxShadow:'0 -8px 32px rgba(0,0,0,.6)'
+    }}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,gap:8}}>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
-          <div style={{width:7,height:7,borderRadius:'50%',background:running?'#22c55e':'rgba(255,255,255,.25)',boxShadow:running?'0 0 8px #22c55e':'none',transition:'all .3s'}}/>
-          <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.7)',letterSpacing:'.06em'}}>TRANSCRIPT</span>
-          {running && <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>listening via mic…</span>}
+          <div style={{width:8,height:8,borderRadius:'50%',
+            background:running?'#22c55e':'rgba(255,255,255,.2)',
+            boxShadow:running?'0 0 8px #22c55e':'none',transition:'all .3s'
+          }}/>
+          <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.7)',letterSpacing:'.06em'}}>
+            TRANSCRIPT
+          </span>
+          {running && <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>🎙 listening…</span>}
         </div>
-        <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-          {lines.length>0 && (
-            <button onClick={()=>{ const t=lines.filter(l=>l.final).map(l=>l.text).join(' '); navigator.clipboard.writeText(t).catch(()=>{}); }}
-              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.55)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>Copy</button>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          {lines.length > 0 && (
+            <button onClick={()=>{ navigator.clipboard.writeText(lines.filter(l=>l.final).map(l=>l.text).join(' ')).catch(()=>{}); }}
+              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.5)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>
+              Copy
+            </button>
           )}
-          {lines.length>0 && (
+          {lines.length > 0 && (
             <button onClick={()=>setLines([])}
-              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.55)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>Clear</button>
+              style={{background:'rgba(255,255,255,.07)',border:'none',color:'rgba(255,255,255,.5)',padding:'3px 8px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10}}>
+              Clear
+            </button>
           )}
           {running
-            ? <button onClick={stop}  style={{background:'rgba(239,68,68,.2)',border:'1px solid rgba(239,68,68,.4)',color:'#f87171',padding:'3px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>■ Stop</button>
-            : <button onClick={start} style={{background:IG,border:'none',color:'#fff',padding:'3px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>▶ Start</button>
+            ? <button onClick={stop}
+                style={{background:'rgba(239,68,68,.25)',border:'1px solid rgba(239,68,68,.5)',color:'#f87171',padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+                ■ Stop
+              </button>
+            : <button onClick={start}
+                style={{background:IG,border:'none',color:'#fff',padding:'4px 10px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+                ▶ Start
+              </button>
           }
-          <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.3)',cursor:'pointer',fontSize:14,padding:'2px 4px',lineHeight:1}}>×</button>
+          <button onClick={onClose}
+            style={{background:'none',border:'none',color:'rgba(255,255,255,.35)',cursor:'pointer',fontSize:16,padding:'2px 5px',lineHeight:1}}>
+            ×
+          </button>
         </div>
       </div>
 
-      {error && <div style={{color:'#f87171',fontFamily:T.body,fontSize:11,marginBottom:7,padding:'5px 9px',background:'rgba(239,68,68,.1)',borderRadius:T.rs}}>{error}</div>}
+      {error && (
+        <div style={{color:'#f87171',fontFamily:T.body,fontSize:11,marginBottom:7,padding:'5px 9px',background:'rgba(239,68,68,.1)',borderRadius:T.rs}}>
+          {error}
+        </div>
+      )}
 
-      {/* Transcript output — auto-scrolls */}
+      {/* Text output — fixed height, never grows */}
       <div ref={scrollRef}
-        style={{minHeight:56,maxHeight:150,overflowY:'auto',fontFamily:T.body,fontSize:13,color:'rgba(255,255,255,.75)',lineHeight:1.75,scrollBehavior:'smooth'}}
+        style={{height:80,overflowY:'auto',fontFamily:T.body,fontSize:13,color:'rgba(255,255,255,.75)',lineHeight:1.75,scrollBehavior:'smooth'}}
         className="sas-scroll">
         {lines.length === 0
-          ? <span style={{color:'rgba(255,255,255,.22)',fontSize:12}}>
-              {running ? '🎙 Listening — make sure audio is audible…' : 'Press Start, then play the reel.'}
+          ? <span style={{color:'rgba(255,255,255,.2)',fontSize:12}}>
+              {running ? 'Listening — audio must be audible to your mic…' : 'Press Start then play the video.'}
             </span>
           : lines.map((l,i) => (
-              <span key={i} style={{color:l.final?'rgba(255,255,255,.85)':'rgba(255,255,255,.38)',transition:'color .3s'}}>
+              <span key={i} style={{color:l.final?'rgba(255,255,255,.85)':'rgba(255,255,255,.35)',transition:'color .3s'}}>
                 {l.text}{' '}
               </span>
             ))
@@ -744,6 +764,7 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
 const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJump, onPlLoop, loopPl, plIdx}) => {
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
+  const [showTranscript, setShowTranscript] = useState(false);
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,width:'100%',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
@@ -768,10 +789,16 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
                 </div>
               </div>
             </div>
-            <button onClick={onClose}
-              style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
-              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.2)'}
-              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
+            <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
+              <button onClick={()=>setShowTranscript(t=>!t)}
+                style={{background:showTranscript?YTG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+                📝
+              </button>
+              <button onClick={onClose}
+                style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.2)'}
+                onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
+            </div>
           </div>
         </div>
 
@@ -824,6 +851,8 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
             <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
           </div>
         )}
+        {/* ── TRANSCRIPT (floating overlay, doesn't affect modal layout) ── */}
+        <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)}/>
       </div>
     </div>
   );
