@@ -1372,12 +1372,15 @@ function CreateModelOverlay({ onClose, onCreate }) {
   const checkDuplicate = async () => {
     if (form.assets.length === 0 || form.allowed_functions.length === 0) return;
     try {
-      const params = new URLSearchParams({
-        functions: form.allowed_functions.join(','),
-        assets:    form.assets.join(','),
-        timeframe: form.timeframe,
+      const r = await fetch(`${BASE_URL}/api/snowai/check-combo/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          functions: form.allowed_functions,
+          assets:    form.assets,
+          timeframe: form.timeframe,
+        }),
       });
-      const r = await fetch(`${BASE_URL}/api/snowai/check-combo/?${params}`);
       const d = await r.json();
       setDupWarning(d.exists ? '⚠ An identical model already exists.' : '');
     } catch (_) {}
