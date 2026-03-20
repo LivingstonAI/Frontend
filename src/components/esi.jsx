@@ -590,8 +590,33 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
 }
 
 // ─── MARKET PULSE ────────────────────────────────────────────────────────────
+// SnowAI color palette: icy blues + white
+// Tabs: Overview | All Sectors | Sectors | Indices | Commodities
 
-const MP_TIMEFRAMES = [
+const MP_SNOW = {
+  primary:   '#38bdf8',   // sky-400
+  bright:    '#0ea5e9',   // sky-500
+  deep:      '#0284c7',   // sky-600
+  navy:      '#0c4a6e',   // sky-950 (text on white)
+  ice:       '#e0f2fe',   // sky-100
+  frost:     '#f0f9ff',   // sky-50
+  white:     '#ffffff',
+  border:    '#bae6fd',   // sky-200
+  sub:       '#0369a1',   // sky-700
+  muted:     '#7dd3fc',   // sky-300
+  chartBg:   '#040d14',
+  chartGrid: '#0c2233',
+};
+
+const SNOW_REGIME_COLORS = {
+  'Bull Trend':  '#22d3ee',
+  'Bear Trend':  '#f87171',
+  'Ranging':     '#fbbf24',
+  'Volatile':    '#fb923c',
+  'Insufficient Data': '#64748b',
+};
+
+const MP_TF_LIST = [
   { label:'1m',  interval:'1m',   period:'1d'  },
   { label:'5m',  interval:'5m',   period:'5d'  },
   { label:'15m', interval:'15m',  period:'5d'  },
@@ -608,490 +633,644 @@ const MP_TIMEFRAMES = [
 ];
 
 const MP_COMMODITY_GROUPS = {
-  'Energy':     ['CL=F','BZ=F','NG=F','RB=F','HO=F'],
-  'Metals':     ['GC=F','SI=F','HG=F','PL=F','PA=F'],
-  'Agriculture':['ZC=F','ZW=F','ZS=F','KC=F','CT=F'],
+  'Energy':     { symbols:['CL=F','BZ=F','NG=F','RB=F','HO=F'],  names:['Crude WTI','Brent','Nat Gas','Gasoline','Heating Oil'], color:'#ef4444' },
+  'Metals':     { symbols:['GC=F','SI=F','HG=F','PL=F','PA=F'],  names:['Gold','Silver','Copper','Platinum','Palladium'],       color:'#fbbf24' },
+  'Agriculture':{ symbols:['ZC=F','ZW=F','ZS=F','KC=F','CT=F'],  names:['Corn','Wheat','Soybean','Coffee','Cotton'],            color:'#84cc16' },
 };
-const MP_COMMODITY_COLORS = { 'Energy':'#ef4444', 'Metals':'#fbbf24', 'Agriculture':'#84cc16' };
 
 const MP_INDICES = [
-  { symbol:'^GSPC', name:'S&P 500',     color:'#dc2626' },
-  { symbol:'^DJI',  name:'Dow Jones',   color:'#2563eb' },
-  { symbol:'^IXIC', name:'NASDAQ',      color:'#16a34a' },
-  { symbol:'^RUT',  name:'Russell 2000',color:'#ea580c' },
-  { symbol:'^VIX',  name:'VIX',         color:'#8b5cf6' },
+  { symbol:'^GSPC', name:'S&P 500',      color:'#dc2626' },
+  { symbol:'^DJI',  name:'Dow Jones',    color:'#2563eb' },
+  { symbol:'^IXIC', name:'NASDAQ',       color:'#16a34a' },
+  { symbol:'^RUT',  name:'Russell 2000', color:'#ea580c' },
+  { symbol:'^FTSE', name:'FTSE 100',     color:'#7c3aed' },
+  { symbol:'^GDAXI',name:'DAX',          color:'#0891b2' },
+  { symbol:'^FCHI', name:'CAC 40',       color:'#be123c' },
+  { symbol:'^N225', name:'Nikkei 225',   color:'#059669' },
+  { symbol:'^HSI',  name:'Hang Seng',    color:'#f59e0b' },
+  { symbol:'^AXJO', name:'ASX 200',      color:'#8b5cf6' },
 ];
 
-// Market cap weights (approximate, updated periodically — good enough for viz)
-// Live market cap cache — populated from backend, persists for the session
+// ── Live market cap cache ──
 const _mpCapCache = {};
-const mpMarketCap = (sym) => _mpCapCache[sym] || 50e9; // fallback: $50B
+const mpMarketCap = (sym) => _mpCapCache[sym] || 50e9;
 
 const mpFetchMarketCaps = async (tickers, baseUrl) => {
   const missing = tickers.filter(t => !_mpCapCache[t]);
   if (!missing.length) return;
   try {
     const res = await fetch(`${baseUrl}/api/esi_market_caps_v1/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ tickers: missing }),
     });
     if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data) {
-        Object.entries(json.data).forEach(([t, cap]) => { if (cap) _mpCapCache[t] = cap; });
-      }
+      const j = await res.json();
+      if (j.success && j.data) Object.entries(j.data).forEach(([t,cap]) => { if (cap) _mpCapCache[t] = cap; });
     }
-  } catch (e) { console.warn('[mpFetchMarketCaps] failed, using fallback weights', e); }
+  } catch(e) { console.warn('[mpFetchMarketCaps]', e); }
 };
 
-// ── Normalize price series to 100 base ──
-const mpNormalize = (arr) => {
-  const base = arr.find(v => v != null);
-  if (!base) return arr;
-  return arr.map(v => v == null ? null : (v / base) * 100);
-};
-
-// ── Market regime detection ──
-const mpRegime = (prices) => {
-  if (!prices || prices.length < 20) return { label:'Insufficient Data', color:'#94a3b8', emoji:'⬜' };
-  const valid = prices.filter(p => p != null);
-  if (valid.length < 10) return { label:'Insufficient Data', color:'#94a3b8', emoji:'⬜' };
-  const last    = valid[valid.length - 1];
-  const sma20   = valid.slice(-20).reduce((a,b) => a+b, 0) / Math.min(20, valid.length);
-  const sma50   = valid.length >= 50 ? valid.slice(-50).reduce((a,b) => a+b, 0) / 50 : sma20;
-  const returns = valid.slice(-20).map((v,i,a) => i === 0 ? 0 : (v - a[i-1]) / a[i-1]);
-  const vol     = Math.sqrt(returns.reduce((a,r) => a + r*r, 0) / returns.length) * 100;
-  const totalReturn = ((last - valid[0]) / valid[0]) * 100;
-  if (vol > 3.5)              return { label:'Volatile',   color:'#f97316', emoji:'🟠' };
-  if (last > sma20 && last > sma50 && totalReturn > 2)
-                              return { label:'Bull Trend',  color:'#16a34a', emoji:'🟢' };
-  if (last < sma20 && last < sma50 && totalReturn < -2)
-                              return { label:'Bear Trend',  color:'#dc2626', emoji:'🔴' };
-  return                             { label:'Ranging',     color:'#eab308', emoji:'🟡' };
-};
-
-// ── Pearson correlation (pure JS, no TF needed here) ──
-const mpPearson = (a, b) => {
-  const pairs = a.map((v,i) => [v, b[i]]).filter(([x,y]) => x!=null && y!=null);
-  if (pairs.length < 5) return null;
-  const n  = pairs.length;
-  const mx = pairs.reduce((s,[x]) => s+x, 0) / n;
-  const my = pairs.reduce((s,[,y]) => s+y, 0) / n;
-  const num = pairs.reduce((s,[x,y]) => s + (x-mx)*(y-my), 0);
-  const dx  = Math.sqrt(pairs.reduce((s,[x]) => s + (x-mx)**2, 0));
-  const dy  = Math.sqrt(pairs.reduce((s,[,y]) => s + (y-my)**2, 0));
-  return (dx*dy) === 0 ? 0 : num / (dx*dy);
-};
-
-// ── Classify a stock vs its sector index ──
-const mpClassify = (stockPrices, sectorPrices) => {
-  const corr = mpPearson(stockPrices, sectorPrices);
-  if (corr === null) return { label:'Unknown', color:'#94a3b8', emoji:'❓' };
-  if (corr > 0.65)   return { label:'Following', color:'#16a34a', emoji:'✅' };
-  if (corr < 0.25)   return { label:'Diverging',  color:'#dc2626', emoji:'⚠️' };
-  return                    { label:'Neutral',    color:'#eab308', emoji:'〰️' };
-};
-
-// ── Batch fetch OHLCV — one request for many tickers ──
+// ── Batch OHLCV ──
 const mpBatchFetch = async (tickers, interval, period, baseUrl) => {
-  // Returns { AAPL: [{time, close}, ...], MSFT: [...], ... }
   try {
     const res = await fetch(`${baseUrl}/api/esi_batch_ohlcv_v1/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ tickers, interval, period }),
     });
-    if (res.ok) {
-      const j = await res.json();
-      if (j.success && j.data) return j.data;
-    }
-  } catch (_) {}
-  // Fallback: fetch individually via CORS proxy (slow but works)
+    if (res.ok) { const j = await res.json(); if (j.success && j.data) return j.data; }
+  } catch(_) {}
+  // CORS fallback
   const out = {};
   await Promise.all(tickers.map(async ticker => {
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${period}&includePrePost=false`;
-      const r   = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
       if (!r.ok) return;
-      const d   = await r.json();
+      const d = await r.json();
       const result = d?.chart?.result?.[0];
       if (!result) return;
       const ts = result.timestamp || [];
       const q  = result.indicators?.quote?.[0] || {};
       out[ticker] = ts.map((t,i) => ({ time:t, close:q.close?.[i] })).filter(x => x.close != null);
-    } catch (_) {}
+    } catch(_) {}
   }));
   return out;
 };
 
-// ── Single ticker fetch (still used by ChartPanel) ──
 const mpFetch = async (ticker, interval, period, baseUrl) => {
-  const batch = await mpBatchFetch([ticker], interval, period, baseUrl);
-  return batch[ticker] || [];
+  const b = await mpBatchFetch([ticker], interval, period, baseUrl);
+  return b[ticker] || [];
 };
 
-// ── Align multiple series to a common time grid ──
+// ── MSS fetch ──
+const mpFetchMSS = async (symbols, baseUrl, periodDays = 60) => {
+  try {
+    const res = await fetch(`${baseUrl}/api/mss/calculate/`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ symbols, period: periodDays }),
+    });
+    if (res.ok) {
+      const j = await res.json();
+      if (j.success && j.data) {
+        const map = {};
+        j.data.forEach(d => { map[d.symbol] = d; });
+        return map;
+      }
+    }
+  } catch(e) { console.warn('[mpFetchMSS]', e); }
+  return {};
+};
+
+// ── Pure JS helpers ──
+const mpNormalize = (arr) => {
+  const base = (arr || []).find(v => v != null);
+  if (!base) return arr;
+  return arr.map(v => v == null ? null : (v / base) * 100);
+};
+
+const mpRegime = (prices) => {
+  const valid = (prices || []).filter(p => p != null);
+  if (valid.length < 10) return { label:'Insufficient Data', color:SNOW_REGIME_COLORS['Insufficient Data'], emoji:'⬜' };
+  const last  = valid[valid.length - 1];
+  const sma20 = valid.slice(-20).reduce((a,b) => a+b, 0) / Math.min(20, valid.length);
+  const sma50 = valid.length >= 50 ? valid.slice(-50).reduce((a,b) => a+b, 0) / 50 : sma20;
+  const rets  = valid.slice(-20).map((v,i,a) => i === 0 ? 0 : (v - a[i-1]) / a[i-1]);
+  const vol   = Math.sqrt(rets.reduce((a,r) => a + r*r, 0) / rets.length) * 100;
+  const ret   = ((last - valid[0]) / valid[0]) * 100;
+  if (vol > 3.5) return { label:'Volatile',  color:SNOW_REGIME_COLORS['Volatile'],   emoji:'🟠' };
+  if (last > sma20 && last > sma50 && ret > 2)  return { label:'Bull Trend', color:SNOW_REGIME_COLORS['Bull Trend'], emoji:'🟢' };
+  if (last < sma20 && last < sma50 && ret < -2) return { label:'Bear Trend', color:SNOW_REGIME_COLORS['Bear Trend'], emoji:'🔴' };
+  return { label:'Ranging', color:SNOW_REGIME_COLORS['Ranging'], emoji:'🟡' };
+};
+
+const mpPearson = (a, b) => {
+  const pairs = (a||[]).map((v,i) => [v,(b||[])[i]]).filter(([x,y]) => x!=null && y!=null);
+  if (pairs.length < 5) return null;
+  const n=pairs.length, mx=pairs.reduce((s,[x])=>s+x,0)/n, my=pairs.reduce((s,[,y])=>s+y,0)/n;
+  const num=pairs.reduce((s,[x,y])=>s+(x-mx)*(y-my),0);
+  const dx=Math.sqrt(pairs.reduce((s,[x])=>s+(x-mx)**2,0)), dy=Math.sqrt(pairs.reduce((s,[,y])=>s+(y-my)**2,0));
+  return (dx*dy)===0?0:num/(dx*dy);
+};
+
+const mpClassify = (stockPrices, sectorPrices) => {
+  const corr = mpPearson(stockPrices, sectorPrices);
+  if (corr===null) return { label:'Unknown',   color:'#94a3b8', emoji:'❓' };
+  if (corr > 0.65) return { label:'Following', color:'#22d3ee', emoji:'✅' };
+  if (corr < 0.25) return { label:'Diverging', color:'#f87171', emoji:'⚠️' };
+  return              { label:'Neutral',    color:'#fbbf24', emoji:'〰️' };
+};
+
 const mpAlign = (seriesMap) => {
   const allTimes = [...new Set(Object.values(seriesMap).flat().map(p => p.time))].sort((a,b)=>a-b);
-  const result   = {};
+  const result = {};
   for (const [key, pts] of Object.entries(seriesMap)) {
     const byTime = Object.fromEntries(pts.map(p => [p.time, p.close]));
-    result[key]  = allTimes.map(t => byTime[t] ?? null);
+    result[key] = allTimes.map(t => byTime[t] ?? null);
   }
   result.__times = allTimes;
   return result;
 };
 
-// ── Build market-cap weighted sector index ──
 const mpSectorIndex = (aligned, tickers) => {
-  const valid = tickers.filter(t => aligned[t] && aligned[t].some(v => v != null));
+  const valid = tickers.filter(t => aligned[t]?.some(v => v != null));
   if (!valid.length) return null;
   const totalCap = valid.reduce((s,t) => s + mpMarketCap(t), 0);
-  return (aligned.__times || []).map((_, i) => {
-    let weighted = 0, weight = 0;
+  return (aligned.__times || []).map((_,i) => {
+    let weighted=0, weight=0;
     for (const t of valid) {
       const v = aligned[t][i];
-      if (v != null) { const w = mpMarketCap(t) / totalCap; weighted += v * w; weight += w; }
+      if (v != null) { const w = mpMarketCap(t)/totalCap; weighted += v*w; weight += w; }
     }
-    return weight > 0 ? weighted / weight : null;
+    return weight > 0 ? weighted/weight : null;
   });
 };
 
-// ─── HEATMAP CELL ─────────────────────────────────────────────────────────────
-function HeatCell({ a, b, score, onClick }) {
-  if (a === b) return <div style={{ background:'#1e293b', borderRadius:3 }} />;
-  const s   = score ?? 0;
-  const abs = Math.abs(s);
-  const bg  = s > 0
-    ? `rgba(22,163,74,${0.15 + abs*0.7})`
-    : `rgba(220,38,38,${0.15 + abs*0.7})`;
+// ── LWC chart builder (shared) ──
+const buildMpChart = async (container, seriesList, opts = {}) => {
+  const LWC = await new Promise((res, rej) => {
+    if (window.LightweightCharts) { res(window.LightweightCharts); return; }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+    s.onload = () => res(window.LightweightCharts); s.onerror = rej;
+    document.head.appendChild(s);
+  });
+
+  const chart = LWC.createChart(container, {
+    width:  container.clientWidth,
+    height: opts.height || 360,
+    layout: { background:{ type:'solid', color: MP_SNOW.chartBg }, textColor: MP_SNOW.muted, fontFamily:"'IBM Plex Mono',monospace" },
+    grid:   { vertLines:{ color: MP_SNOW.chartGrid }, horzLines:{ color: MP_SNOW.chartGrid } },
+    crosshair: { mode:1, vertLine:{ color: MP_SNOW.primary+'88', style:2 }, horzLine:{ color: MP_SNOW.primary+'88', style:2 } },
+    rightPriceScale: { borderColor: MP_SNOW.chartGrid, textColor: MP_SNOW.muted },
+    timeScale: { borderColor: MP_SNOW.chartGrid, textColor: MP_SNOW.muted, timeVisible:true },
+    handleScroll:true, handleScale:true,
+  });
+
+  for (const s of seriesList) {
+    const series = s.area
+      ? chart.addAreaSeries({ lineColor:s.color, topColor:s.color+'44', bottomColor:s.color+'05', lineWidth:s.width||2, title:s.name||'', priceLineVisible:false, lastValueVisible:s.label!==false })
+      : chart.addLineSeries({ color:s.color, lineWidth:s.width||1, title:s.name||'', priceLineVisible:false, lastValueVisible:s.label!==false });
+    const seen = new Set();
+    const pts  = (s.data||[]).filter(p => p.value != null && isFinite(p.value))
+      .sort((a,b) => a.time - b.time)
+      .filter(p => { if (seen.has(p.time)) return false; seen.add(p.time); return true; });
+    if (pts.length) series.setData(pts);
+  }
+
+  chart.timeScale().fitContent();
+
+  const ro = new ResizeObserver(() => {
+    if (container && chart) chart.applyOptions({ width: container.clientWidth });
+  });
+  ro.observe(container);
+
+  return chart;
+};
+
+// ── Regime badge ──
+const RegimeBadge = ({ regime }) => (
+  <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:999, whiteSpace:'nowrap',
+    background: regime.color+'22', color: regime.color, border:`1px solid ${regime.color}44` }}>
+    {regime.emoji} {regime.label}
+  </span>
+);
+
+// ── MSS badge ──
+const MssBadge = ({ mss }) => {
+  if (mss == null) return <span style={{ fontSize:10, color:'#94a3b8' }}>—</span>;
+  const col = mss >= 47 ? '#22d3ee' : mss >= 30 ? '#fbbf24' : '#f87171';
   return (
-    <div
-      onClick={onClick}
-      title={`${a} ↔ ${b}: ${s.toFixed(3)}`}
-      style={{ background:bg, borderRadius:3, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, color:'#fff', transition:'transform 0.1s' }}
-      onMouseEnter={e => e.currentTarget.style.transform='scale(1.15)'}
-      onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
-    >
-      {abs > 0.5 ? s.toFixed(1) : ''}
+    <span style={{ fontSize:10, fontWeight:800, fontFamily:'monospace', padding:'2px 8px', borderRadius:6,
+      background: col+'22', color: col, border:`1px solid ${col}44` }}>
+      MSS {mss}
+    </span>
+  );
+};
+
+// ── R² badge ──
+const R2Badge = ({ r2 }) => {
+  if (r2 == null) return null;
+  return (
+    <span style={{ fontSize:10, fontWeight:700, fontFamily:'monospace', padding:'2px 7px', borderRadius:6,
+      background: MP_SNOW.ice, color: MP_SNOW.deep, border:`1px solid ${MP_SNOW.border}` }}>
+      R² {r2.toFixed(3)}
+    </span>
+  );
+};
+
+// ─── DRILL-DOWN CHART SECTION ─────────────────────────────────────────────────
+// Reusable for Sectors / Indices / Commodities
+function DrillChart({ containerRef }) {
+  return (
+    <div style={{ background: MP_SNOW.chartBg, borderRadius:12, overflow:'hidden', marginBottom:14 }}>
+      <div ref={containerRef} style={{ width:'100%', height:340 }} />
     </div>
   );
 }
 
-// ─── MARKET PULSE MAIN COMPONENT ─────────────────────────────────────────────
+// ─── MARKET PULSE MAIN ───────────────────────────────────────────────────────
 function MarketPulse({ baseUrl, allStocks, sectorColors }) {
-  const [open, setOpen]             = useState(false);
-  const [activeTab, setActiveTab]   = useState('overview'); // overview | sector
-  const [tf, setTf]                 = useState('1D');
-  const [activeSector, setActiveSector] = useState(null);
+  const [open, setOpen]           = useState(false);
+  const [tab, setTab]             = useState('overview');
+  const [tf, setTf]               = useState('1D');
 
-  // Data caches
-  const [overviewData,  setOverviewData]  = useState(null);
-  const [overviewLoad,  setOverviewLoad]  = useState(false);
-  const [sectorData,    setSectorData]    = useState({});   // { [sector]: { aligned, index, regime, stocks } }
-  const [sectorLoading, setSectorLoading] = useState({});
+  // Active drill items
+  const [activeSector,    setActiveSector]    = useState(null);
+  const [activeIndex,     setActiveIndex]     = useState(null);
+  const [activeCmdGroup,  setActiveCmdGroup]  = useState(null);
 
-  // Sector correlation state
-  const [corrData,     setCorrData]     = useState({});    // { [sector]: matrix }
+  // Data stores (all keyed by `${id}-${tf}`)
+  const [overviewData,    setOverviewData]    = useState(null);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [allSectorsData,  setAllSectorsData]  = useState(null);
+  const [allSectorsLoad,  setAllSectorsLoad]  = useState(false);
+  const [sectorCache,     setSectorCache]     = useState({});
+  const [indexCache,      setIndexCache]      = useState({});
+  const [cmdCache,        setCmdCache]        = useState({});
+  const [loadingKeys,     setLoadingKeys]     = useState({});
+
+  // MSS cache: { [symbol]: mssObj }
+  const [mssCache,        setMssCache]        = useState({});
+  const [mssLoading,      setMssLoading]      = useState({});
+
+  // Correlation
+  const [corrCache,    setCorrCache]    = useState({});
   const [corrLoading,  setCorrLoading]  = useState({});
-  const [corrOpen,     setCorrOpen]     = useState({});    // which sectors have corr panel open
+  const [corrOpen,     setCorrOpen]     = useState(false);
   const [corrSearch,   setCorrSearch]   = useState('');
   const [corrFilter,   setCorrFilter]   = useState('all');
-  const [corrExpanded, setCorrExpanded] = useState({});    // expanded cards
+  const [corrExpanded, setCorrExpanded] = useState({});
 
-  const tfObj = MP_TIMEFRAMES.find(t => t.label === tf) || MP_TIMEFRAMES[6];
+  // Filters
+  const [mssFilter,    setMssFilter]    = useState('all');
+  const [r2Filter,     setR2Filter]     = useState('all');
+  const [clsFilter,    setClsFilter]    = useState('all');
+
+  const tfObj   = MP_TF_LIST.find(t => t.label === tf) || MP_TF_LIST[6];
   const sectors = useMemo(() => [...new Set(allStocks.map(s => s.sector))].sort(), [allStocks]);
 
-  // ── FETCH OVERVIEW ──────────────────────────────────────────────────────────
+  // Chart container refs
+  const overviewRef    = useRef(null);
+  const overviewChart  = useRef(null);
+  const allSecRef      = useRef(null);
+  const allSecChart    = useRef(null);
+  const drillRef       = useRef(null);
+  const drillChart     = useRef(null);
+
+  // ── helpers ──
+  const setLoading = (key, val) => setLoadingKeys(p => ({ ...p, [key]: val }));
+  const isLoading  = (key) => loadingKeys[key] || false;
+
+  const tfPeriodDays = useMemo(() => {
+    const map = { '1m':1,'5m':5,'15m':5,'30m':30,'1H':30,'4H':90,'1D':365,'1W':730,'1M':1825,'3M':1825,'6M':1825,'1Y':1825,'2Y':1825 };
+    return map[tf] || 365;
+  }, [tf]);
+
+  // ── MSS lazy fetch for visible symbols ──
+  const fetchMSSForSymbols = useCallback(async (symbols) => {
+    const needed = symbols.filter(s => !mssCache[s] && !mssLoading[s]);
+    if (!needed.length) return;
+    setMssLoading(p => { const n={...p}; needed.forEach(s => n[s]=true); return n; });
+    const result = await mpFetchMSS(needed, baseUrl, tfPeriodDays);
+    setMssCache(p => ({ ...p, ...result }));
+    setMssLoading(p => { const n={...p}; needed.forEach(s => delete n[s]); return n; });
+  }, [mssCache, mssLoading, baseUrl, tfPeriodDays]);
+
+  // ── FETCH OVERVIEW ──
   const fetchOverview = useCallback(async () => {
-    setOverviewLoad(true);
+    setOverviewLoading(true);
     try {
       const { interval, period } = tfObj;
-
-      // 1. Fetch indices + first commodity per group in one batch
-      const idxTickers = MP_INDICES.map(i => i.symbol);
-      const cmdTickers = Object.values(MP_COMMODITY_GROUPS).map(syms => syms[0]);
-      // Sample up to 8 stocks per sector for the overview
+      const idxTickers  = MP_INDICES.map(i => i.symbol);
+      const cmdTickers  = Object.values(MP_COMMODITY_GROUPS).flatMap(g => [g.symbols[0]]);
       const sectorSamples = {};
-      const allSectorTickers = [];
-      for (const sector of sectors) {
-        const tickers = allStocks.filter(s => s.sector === sector).map(s => s.symbol).slice(0, 8);
-        sectorSamples[sector] = tickers;
-        allSectorTickers.push(...tickers);
+      const allSectorT    = [];
+      for (const sec of sectors) {
+        const t = allStocks.filter(s => s.sector === sec).map(s => s.symbol).slice(0, 8);
+        sectorSamples[sec] = t;
+        allSectorT.push(...t);
       }
+      await mpFetchMarketCaps(allSectorT, baseUrl);
+      const all   = [...new Set([...idxTickers, ...cmdTickers, ...allSectorT])];
+      const batch = await mpBatchFetch(all, interval, period, baseUrl);
 
-      // 2. Fetch market caps for all sector sample stocks (one request, cached)
-      await mpFetchMarketCaps(allSectorTickers, baseUrl);
+      const indices = {};
+      MP_INDICES.forEach(idx => { indices[idx.symbol] = batch[idx.symbol] || []; });
 
-      // 3. Single batch OHLCV call for everything
-      const allTickers = [...new Set([...idxTickers, ...cmdTickers, ...allSectorTickers])];
-      const batchData  = await mpBatchFetch(allTickers, interval, period, baseUrl);
-
-      // 4. Assemble indices
-      const idxData = {};
-      MP_INDICES.forEach(idx => { idxData[idx.symbol] = batchData[idx.symbol] || []; });
-
-      // 5. Assemble commodities
-      const cmdData = {};
-      Object.entries(MP_COMMODITY_GROUPS).forEach(([grp, syms]) => {
-        cmdData[grp] = batchData[syms[0]] || [];
+      const commodities = {};
+      Object.entries(MP_COMMODITY_GROUPS).forEach(([grp, g]) => {
+        commodities[grp] = batch[g.symbols[0]] || [];
       });
 
-      // 6. Build market-cap-weighted sector lines
       const sectorLines = {};
-      for (const sector of sectors) {
-        const tickers = sectorSamples[sector];
-        const fetched = {};
-        tickers.forEach(t => { fetched[t] = batchData[t] || []; });
-        const aligned = mpAlign(fetched);
-        const idx     = mpSectorIndex(aligned, tickers);
-        sectorLines[sector] = { prices: idx, times: aligned.__times || [] };
+      for (const sec of sectors) {
+        const tickers = sectorSamples[sec];
+        const fetched = {}; tickers.forEach(t => { fetched[t] = batch[t] || []; });
+        const aligned  = mpAlign(fetched);
+        const idx      = mpSectorIndex(aligned, tickers);
+        sectorLines[sec] = { prices: idx, times: aligned.__times || [], regime: mpRegime(idx) };
       }
+      setOverviewData({ indices, commodities, sectorLines });
+    } catch(e) { console.error(e); }
+    setOverviewLoading(false);
+  }, [tf, baseUrl, sectors, allStocks]);
 
-      setOverviewData({ indices: idxData, commodities: cmdData, sectors: sectorLines });
-    } catch (e) { console.error('MarketPulse overview error', e); }
-    setOverviewLoad(false);
-  }, [tf, baseUrl]);
+  // ── FETCH ALL SECTORS CHART ──
+  const fetchAllSectors = useCallback(async () => {
+    setAllSectorsLoad(true);
+    try {
+      const { interval, period } = tfObj;
+      const allT = [];
+      const sampleMap = {};
+      for (const sec of sectors) {
+        const t = allStocks.filter(s => s.sector === sec).map(s => s.symbol).slice(0, 10);
+        sampleMap[sec] = t; allT.push(...t);
+      }
+      await mpFetchMarketCaps(allT, baseUrl);
+      const batch = await mpBatchFetch([...new Set(allT)], interval, period, baseUrl);
+      const lines = {};
+      for (const sec of sectors) {
+        const fetched = {}; sampleMap[sec].forEach(t => { fetched[t] = batch[t] || []; });
+        const aligned = mpAlign(fetched);
+        const idx     = mpSectorIndex(aligned, sampleMap[sec]);
+        const norm    = mpNormalize(idx);
+        lines[sec] = { norm, times: aligned.__times || [], regime: mpRegime(idx) };
+      }
+      setAllSectorsData(lines);
+    } catch(e) { console.error(e); }
+    setAllSectorsLoad(false);
+  }, [tf, baseUrl, sectors, allStocks]);
 
-  // ── FETCH SECTOR DETAIL ──────────────────────────────────────────────────────
+  // ── FETCH SECTOR DRILL ──
   const fetchSector = useCallback(async (sector) => {
-    if (sectorData[`${sector}-${tf}`]) return; // cached
-    setSectorLoading(p => ({ ...p, [sector]: true }));
+    const key = `${sector}-${tf}`;
+    if (sectorCache[key]) return;
+    setLoading(key, true);
     try {
       const { interval, period } = tfObj;
       const tickers = allStocks.filter(s => s.sector === sector).map(s => s.symbol);
-
-      // 1. Fetch live market caps (one request, 6hr cache on backend)
       await mpFetchMarketCaps(tickers, baseUrl);
-
-      // 2. Fetch all OHLCV in one batch request
-      const batchData = await mpBatchFetch(tickers, interval, period, baseUrl);
-      const fetched   = {};
-      tickers.forEach(t => { fetched[t] = batchData[t] || []; });
-
+      const batch   = await mpBatchFetch(tickers, interval, period, baseUrl);
+      const fetched = {}; tickers.forEach(t => { fetched[t] = batch[t] || []; });
       const aligned   = mpAlign(fetched);
-      const sectorIdx = mpSectorIndex(aligned, tickers);  // now uses live caps
+      const sectorIdx = mpSectorIndex(aligned, tickers);
       const normIdx   = mpNormalize(sectorIdx);
       const regime    = mpRegime(sectorIdx);
       const times     = aligned.__times || [];
-
-      // Classify each stock vs the weighted sector index
       const stocks = tickers.map(t => {
         const raw  = aligned[t];
         const norm = mpNormalize(raw);
         const cls  = mpClassify(raw, sectorIdx);
-        const vals = (raw || []).filter(v => v != null);
-        const ret  = vals.length > 1 ? ((vals[vals.length-1] - vals[0]) / vals[0] * 100) : 0;
-        return { symbol:t, norm, raw, cls, ret: ret.toFixed(2), regime: mpRegime(raw) };
-      }).sort((a,b) => parseFloat(b.ret) - parseFloat(a.ret));
-
-      setSectorData(p => ({ ...p, [`${sector}-${tf}`]: { aligned, sectorIdx, normIdx, regime, times, stocks } }));
-    } catch(e) { console.error('Sector fetch error', e); }
-    setSectorLoading(p => ({ ...p, [sector]: false }));
+        const vals = (raw||[]).filter(v => v!=null);
+        const ret  = vals.length>1 ? ((vals[vals.length-1]-vals[0])/vals[0]*100) : 0;
+        return { symbol:t, norm, raw, cls, ret:ret.toFixed(2), regime:mpRegime(raw) };
+      }).sort((a,b) => parseFloat(b.ret)-parseFloat(a.ret));
+      setSectorCache(p => ({ ...p, [key]: { aligned, sectorIdx, normIdx, regime, times, stocks } }));
+    } catch(e) { console.error(e); }
+    setLoading(key, false);
   }, [tf, allStocks, baseUrl]);
 
-  // ── FETCH SECTOR CORRELATIONS ────────────────────────────────────────────────
-  const fetchSectorCorr = useCallback(async (sector) => {
-    const key = `${sector}-${tf}`;
-    if (corrData[key]) { setCorrOpen(p => ({ ...p, [sector]: !p[sector] })); return; }
-    setCorrLoading(p => ({ ...p, [sector]: true }));
-    setCorrOpen(p => ({ ...p, [sector]: true }));
+  // ── FETCH INDEX DRILL ──
+  const fetchIndexDrill = useCallback(async () => {
+    const key = `indices-${tf}`;
+    if (indexCache[key]) return;
+    setLoading(key, true);
     try {
-      const sd = sectorData[key];
+      const { interval, period } = tfObj;
+      const batch = await mpBatchFetch(MP_INDICES.map(i => i.symbol), interval, period, baseUrl);
+      const entries = MP_INDICES.map(idx => {
+        const pts  = batch[idx.symbol] || [];
+        const vals = pts.map(p => p.close);
+        const norm = mpNormalize(vals);
+        const ret  = vals.length>1 ? ((vals[vals.length-1]-vals[0])/vals[0]*100) : 0;
+        return { ...idx, pts, vals, norm, times: pts.map(p=>p.time), regime: mpRegime(vals), ret: ret.toFixed(2) };
+      });
+      setIndexCache(p => ({ ...p, [key]: entries }));
+    } catch(e) { console.error(e); }
+    setLoading(key, false);
+  }, [tf, baseUrl]);
+
+  // ── FETCH COMMODITY DRILL ──
+  const fetchCmdDrill = useCallback(async (group) => {
+    const key = `cmd-${group}-${tf}`;
+    if (cmdCache[key]) return;
+    setLoading(key, true);
+    try {
+      const { interval, period } = tfObj;
+      const g     = MP_COMMODITY_GROUPS[group];
+      const batch = await mpBatchFetch(g.symbols, interval, period, baseUrl);
+      const entries = g.symbols.map((sym, i) => {
+        const pts  = batch[sym] || [];
+        const vals = pts.map(p => p.close);
+        const ret  = vals.length>1 ? ((vals[vals.length-1]-vals[0])/vals[0]*100) : 0;
+        return { symbol:sym, name:g.names[i], pts, vals, norm:mpNormalize(vals), times:pts.map(p=>p.time), regime:mpRegime(vals), ret:ret.toFixed(2) };
+      });
+      setCmdCache(p => ({ ...p, [key]: { entries, group, color: g.color } }));
+    } catch(e) { console.error(e); }
+    setLoading(key, false);
+  }, [tf, baseUrl]);
+
+  // ── FETCH SECTOR CORRELATIONS ──
+  const fetchCorr = useCallback(async (sector) => {
+    const key = `${sector}-${tf}`;
+    if (corrCache[key]) { setCorrOpen(o => !o); return; }
+    setCorrLoading(p => ({ ...p, [key]: true }));
+    setCorrOpen(true);
+    try {
+      const sd = sectorCache[key];
       if (!sd) return;
-      const { aligned, stocks } = sd;
-      const tickers = stocks.map(s => s.symbol);
-      const matrix  = [];
-      let totalCorr = 0, count = 0;
-      for (let i = 0; i < tickers.length; i++) {
-        for (let j = i+1; j < tickers.length; j++) {
-          const s = mpPearson(aligned[tickers[i]], aligned[tickers[j]]);
-          if (s !== null) { matrix.push({ a:tickers[i], b:tickers[j], score:s }); totalCorr += s; count++; }
+      const tickers = sd.stocks.map(s => s.symbol);
+      const matrix = [];
+      let total=0, count=0;
+      for (let i=0; i<tickers.length; i++) {
+        for (let j=i+1; j<tickers.length; j++) {
+          const s = mpPearson(sd.aligned[tickers[i]], sd.aligned[tickers[j]]);
+          if (s!==null) { matrix.push({ a:tickers[i], b:tickers[j], score:s }); total+=s; count++; }
         }
       }
-      matrix.sort((a,b) => Math.abs(b.score) - Math.abs(a.score));
-      const avgCorr = count > 0 ? totalCorr / count : 0;
-      setCorrData(p => ({ ...p, [key]: { matrix, avgCorr, tickers } }));
-    } catch(e) { console.error('Corr error', e); }
-    setCorrLoading(p => ({ ...p, [sector]: false }));
-  }, [tf, sectorData]);
+      matrix.sort((a,b) => Math.abs(b.score)-Math.abs(a.score));
+      setCorrCache(p => ({ ...p, [key]: { matrix, avgCorr: count>0?total/count:0, tickers } }));
+    } catch(e) { console.error(e); }
+    setCorrLoading(p => ({ ...p, [`${sector}-${tf}`]: false }));
+  }, [tf, sectorCache]);
 
-  // auto-fetch when tab/tf changes
+  // ── Auto-triggers ──
+  useEffect(() => { if (open && tab==='overview')    fetchOverview(); },    [open, tab, tf]);
+  useEffect(() => { if (open && tab==='allsectors')  fetchAllSectors(); },  [open, tab, tf]);
+  useEffect(() => { if (open && tab==='indices')     fetchIndexDrill(); },  [open, tab, tf]);
+  useEffect(() => { if (open && tab==='sector' && activeSector)   fetchSector(activeSector); },   [open, tab, activeSector, tf]);
+  useEffect(() => { if (open && tab==='commodities' && activeCmdGroup) fetchCmdDrill(activeCmdGroup); }, [open, tab, activeCmdGroup, tf]);
+
+  // ── Chart: Overview ──
   useEffect(() => {
-    if (open && activeTab === 'overview') fetchOverview();
-  }, [open, activeTab, tf]);
+    if (!overviewData || !overviewRef.current || tab!=='overview') return;
+    if (overviewChart.current) { try { overviewChart.current.remove(); } catch(_){} }
+    const series = [];
+    MP_INDICES.forEach(idx => {
+      const pts = overviewData.indices[idx.symbol] || [];
+      let base=null;
+      series.push({ color:idx.color, width:2, name:idx.name, label:true, area:false, data: pts.map(p => { if(base==null)base=p.close; return { time:p.time, value:(p.close/base)*100 }; }) });
+    });
+    Object.entries(overviewData.sectorLines).forEach(([sec,{ prices,times }]) => {
+      const norm = mpNormalize(prices);
+      series.push({ color:sectorColors[sec]||'#6b7280', width:1.5, name:sec, label:false, area:false, data: times.map((t,i) => ({ time:t, value:norm[i] })).filter(p=>p.value!=null) });
+    });
+    Object.entries(overviewData.commodities).forEach(([grp, pts]) => {
+      let base=null;
+      series.push({ color:MP_COMMODITY_GROUPS[grp]?.color||'#94a3b8', width:1.5, name:grp, label:false, area:false, data: pts.map(p => { if(base==null)base=p.close; return { time:p.time, value:(p.close/base)*100 }; }) });
+    });
+    buildMpChart(overviewRef.current, series, { height:380 }).then(c => { overviewChart.current = c; });
+  }, [overviewData, tab]);
 
+  // ── Chart: All Sectors ──
   useEffect(() => {
-    if (open && activeTab === 'sector' && activeSector) fetchSector(activeSector);
-  }, [open, activeTab, activeSector, tf]);
+    if (!allSectorsData || !allSecRef.current || tab!=='allsectors') return;
+    if (allSecChart.current) { try { allSecChart.current.remove(); } catch(_){} }
+    const series = Object.entries(allSectorsData).map(([sec,{ norm, times }]) => ({
+      color: sectorColors[sec]||'#6b7280', width:2, name:sec, area:false, label:true,
+      data: times.map((t,i) => ({ time:t, value:norm[i] })).filter(p=>p.value!=null),
+    }));
+    buildMpChart(allSecRef.current, series, { height:420 }).then(c => { allSecChart.current = c; });
+  }, [allSectorsData, tab]);
 
-  // ── OVERVIEW CHART (LWC) ────────────────────────────────────────────────────
-  const overviewChartRef    = useRef(null);
-  const overviewContainerRef = useRef(null);
-  useEffect(() => {
-    if (!overviewData || !overviewContainerRef.current || activeTab !== 'overview') return;
-    const init = async () => {
-      const LWC = await new Promise((res, rej) => {
-        if (window.LightweightCharts) { res(window.LightweightCharts); return; }
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
-        s.onload = () => res(window.LightweightCharts); s.onerror = rej;
-        document.head.appendChild(s);
-      });
-      if (overviewChartRef.current) { try { overviewChartRef.current.remove(); } catch(_){} }
-      const chart = LWC.createChart(overviewContainerRef.current, {
-        width:  overviewContainerRef.current.clientWidth,
-        height: 380,
-        layout: { background:{ type:'solid', color:'#0f172a' }, textColor:'#94a3b8', fontFamily:"'IBM Plex Mono',monospace" },
-        grid:   { vertLines:{ color:'#1e293b' }, horzLines:{ color:'#1e293b' } },
-        crosshair: { mode:1 },
-        rightPriceScale:{ borderColor:'#334155', textColor:'#64748b', scaleMargins:{ top:0.05, bottom:0.05 } },
-        timeScale: { borderColor:'#334155', textColor:'#64748b', timeVisible:true },
-      });
-
-      const seen = new Set();
-      const addLine = (pts, color, name, normBase) => {
-        if (!pts || !pts.length) return;
-        const series = chart.addLineSeries({ color, lineWidth:2, title:name, priceLineVisible:false, lastValueVisible:true });
-        const norm   = normBase != null;
-        let base     = null;
-        const fmtd   = pts.filter(p => p.close != null)
-          .map(p => { if (base == null) base = p.close; return { time:p.time, value: norm ? (p.close/base)*100 : p.close }; })
-          .filter(p => { if (seen.has(p.time+name)) return false; seen.add(p.time+name); return true; })
-          .sort((a,b) => a.time - b.time);
-        if (fmtd.length) series.setData(fmtd);
-      };
-
-      // Indices (normalized)
-      MP_INDICES.forEach(idx => {
-        const pts = overviewData.indices[idx.symbol];
-        if (pts?.length) addLine(pts, idx.color, idx.name, true);
-      });
-      // Sector lines (normalized)
-      Object.entries(overviewData.sectors).forEach(([sec, { prices, times }]) => {
-        if (!prices) return;
-        const pts = times.map((t,i) => ({ time:t, close:prices[i] })).filter(p => p.close!=null);
-        addLine(pts, sectorColors[sec]||'#6b7280', sec, true);
-      });
-      // Commodities (normalized)
-      Object.entries(overviewData.commodities).forEach(([grp, pts]) => {
-        addLine(pts, MP_COMMODITY_COLORS[grp]||'#94a3b8', grp, true);
-      });
-
-      chart.timeScale().fitContent();
-      overviewChartRef.current = chart;
-      new ResizeObserver(() => {
-        if (overviewContainerRef.current && overviewChartRef.current)
-          overviewChartRef.current.applyOptions({ width: overviewContainerRef.current.clientWidth });
-      }).observe(overviewContainerRef.current);
-    };
-    init();
-  }, [overviewData, activeTab]);
-
-  // ── SECTOR CHART (LWC) ──────────────────────────────────────────────────────
-  const sectorChartRef     = useRef(null);
-  const sectorContainerRef = useRef(null);
+  // ── Chart: Sector drill ──
   useEffect(() => {
     const key = `${activeSector}-${tf}`;
-    const sd  = sectorData[key];
-    if (!sd || !sectorContainerRef.current || activeTab !== 'sector') return;
-    const init = async () => {
-      const LWC = await new Promise((res, rej) => {
-        if (window.LightweightCharts) { res(window.LightweightCharts); return; }
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
-        s.onload = () => res(window.LightweightCharts); s.onerror = rej;
-        document.head.appendChild(s);
+    const sd  = sectorCache[key];
+    if (!sd || !drillRef.current || tab!=='sector') return;
+    if (drillChart.current) { try { drillChart.current.remove(); } catch(_){} }
+    const col  = sectorColors[activeSector]||'#38bdf8';
+    const series = [
+      { color:col, width:3, name:`${activeSector} Index`, area:true, label:true,
+        data: sd.times.map((t,i) => ({ time:t, value:sd.normIdx[i] })).filter(p=>p.value!=null) },
+      ...sd.stocks.slice(0,25).map(stock => ({
+        color: stock.cls.label==='Diverging'?'#f8717188': stock.cls.label==='Following'?'#22d3ee55':'#94a3b833',
+        width:1, name:stock.symbol, area:false, label:false,
+        data: sd.times.map((t,i) => ({ time:t, value:stock.norm[i] })).filter(p=>p.value!=null),
+      })),
+    ];
+    buildMpChart(drillRef.current, series, { height:340 }).then(c => { drillChart.current = c; });
+  }, [sectorCache, activeSector, tf, tab]);
+
+  // ── Chart: Index drill ──
+  const idxDrillRef   = useRef(null);
+  const idxDrillChart = useRef(null);
+  useEffect(() => {
+    const key = `indices-${tf}`;
+    const d   = indexCache[key];
+    if (!d || !idxDrillRef.current || tab!=='indices') return;
+    if (idxDrillChart.current) { try { idxDrillChart.current.remove(); } catch(_){} }
+    const series = d.map(idx => ({
+      color:idx.color, width:2, name:idx.name, area:false, label:true,
+      data: idx.times.map((t,i) => ({ time:t, value:idx.norm[i] })).filter(p=>p.value!=null),
+    }));
+    buildMpChart(idxDrillRef.current, series, { height:340 }).then(c => { idxDrillChart.current = c; });
+    // Lazy MSS fetch for all indices
+    fetchMSSForSymbols(MP_INDICES.map(i => i.symbol));
+  }, [indexCache, tf, tab]);
+
+  // ── Chart: Commodity drill ──
+  const cmdDrillRef   = useRef(null);
+  const cmdDrillChart = useRef(null);
+  useEffect(() => {
+    const key = `cmd-${activeCmdGroup}-${tf}`;
+    const d   = cmdCache[key];
+    if (!d || !cmdDrillRef.current || tab!=='commodities') return;
+    if (cmdDrillChart.current) { try { cmdDrillChart.current.remove(); } catch(_){} }
+    const series = d.entries.map(e => ({
+      color:d.color, width:2, name:e.name, area:false, label:true,
+      data: e.times.map((t,i) => ({ time:t, value:e.norm[i] })).filter(p=>p.value!=null),
+    }));
+    buildMpChart(cmdDrillRef.current, series, { height:320 }).then(c => { cmdDrillChart.current = c; });
+    fetchMSSForSymbols(MP_COMMODITY_GROUPS[activeCmdGroup]?.symbols || []);
+  }, [cmdCache, activeCmdGroup, tf, tab]);
+
+  // ── Filtered sector stocks ──
+  const filteredStocks = useMemo(() => {
+    const key = `${activeSector}-${tf}`;
+    const sd  = sectorCache[key];
+    if (!sd) return [];
+    let list = sd.stocks;
+    if (clsFilter !== 'all') list = list.filter(s => s.cls.label === clsFilter);
+    if (mssFilter !== 'all') {
+      list = list.filter(s => {
+        const m = mssCache[s.symbol]?.mss;
+        if (m==null) return true;
+        if (mssFilter==='stable')   return m >= 47;
+        if (mssFilter==='choppy')   return m >= 30 && m < 47;
+        if (mssFilter==='volatile') return m < 30;
+        return true;
       });
-      if (sectorChartRef.current) { try { sectorChartRef.current.remove(); } catch(_){} }
-      const chart = LWC.createChart(sectorContainerRef.current, {
-        width:  sectorContainerRef.current.clientWidth,
-        height: 340,
-        layout: { background:{ type:'solid', color:'#0f172a' }, textColor:'#94a3b8', fontFamily:"'IBM Plex Mono',monospace" },
-        grid:   { vertLines:{ color:'#1e293b' }, horzLines:{ color:'#1e293b' } },
-        crosshair: { mode:1 },
-        rightPriceScale:{ borderColor:'#334155', textColor:'#64748b' },
-        timeScale: { borderColor:'#334155', textColor:'#64748b', timeVisible:true },
+    }
+    if (r2Filter !== 'all') {
+      list = list.filter(s => {
+        const r = mssCache[s.symbol]?.r_squared;
+        if (r==null) return true;
+        if (r2Filter==='high')   return r >= 0.7;
+        if (r2Filter==='medium') return r >= 0.4 && r < 0.7;
+        if (r2Filter==='low')    return r < 0.4;
+        return true;
       });
+    }
+    return list;
+  }, [sectorCache, activeSector, tf, clsFilter, mssFilter, r2Filter, mssCache]);
 
-      const sectorColor = sectorColors[activeSector] || '#6366f1';
+  // Trigger lazy MSS fetch when filtered stocks change
+  useEffect(() => {
+    if (filteredStocks.length) fetchMSSForSymbols(filteredStocks.map(s => s.symbol));
+  }, [filteredStocks]);
 
-      // Sector index — thick
-      const idxSeries = chart.addAreaSeries({ lineColor:sectorColor, topColor:sectorColor+'44', bottomColor:sectorColor+'05', lineWidth:3, title:`${activeSector} Index`, priceLineVisible:false });
-      const idxPts = sd.times.map((t,i) => ({ time:t, value:sd.normIdx[i] })).filter(p => p.value!=null);
-      const dedup = new Set();
-      idxSeries.setData(idxPts.filter(p => { if(dedup.has(p.time)) return false; dedup.add(p.time); return true; }).sort((a,b)=>a.time-b.time));
-
-      // Individual stocks — thin
-      sd.stocks.slice(0, 20).forEach(stock => {
-        const col  = stock.cls.label === 'Diverging' ? '#ef4444' : stock.cls.label === 'Following' ? '#22c55e55' : '#94a3b844';
-        const line = chart.addLineSeries({ color:col, lineWidth:1, title:stock.symbol, priceLineVisible:false, lastValueVisible:false });
-        const pts  = sd.times.map((t,i) => ({ time:t, value:stock.norm[i] })).filter(p => p.value!=null);
-        const d2   = new Set();
-        line.setData(pts.filter(p => { if(d2.has(p.time)) return false; d2.add(p.time); return true; }).sort((a,b)=>a.time-b.time));
-      });
-
-      chart.timeScale().fitContent();
-      sectorChartRef.current = chart;
-      new ResizeObserver(() => {
-        if (sectorContainerRef.current && sectorChartRef.current)
-          sectorChartRef.current.applyOptions({ width: sectorContainerRef.current.clientWidth });
-      }).observe(sectorContainerRef.current);
-    };
-    init();
-  }, [sectorData, activeSector, tf, activeTab]);
-
-  // ── FILTERED CORR CARDS ──────────────────────────────────────────────────────
+  // ── Filtered corr cards ──
   const filteredCorr = useMemo(() => {
     const key = `${activeSector}-${tf}`;
-    const cd  = corrData[key];
+    const cd  = corrCache[key];
     if (!cd) return [];
     let list = cd.matrix;
-    if (corrSearch.trim()) {
-      const q = corrSearch.toLowerCase();
-      list = list.filter(c => c.a.toLowerCase().includes(q) || c.b.toLowerCase().includes(q));
-    }
-    if (corrFilter === 'strong_pos') list = list.filter(c => c.score > 0.8);
-    else if (corrFilter === 'strong_neg') list = list.filter(c => c.score < -0.8);
-    else if (corrFilter === 'positive')   list = list.filter(c => c.score > 0.5);
-    else if (corrFilter === 'negative')   list = list.filter(c => c.score < -0.5);
-    else if (corrFilter === 'weak')       list = list.filter(c => Math.abs(c.score) <= 0.3);
+    if (corrSearch.trim()) { const q=corrSearch.toLowerCase(); list=list.filter(c=>c.a.toLowerCase().includes(q)||c.b.toLowerCase().includes(q)); }
+    if (corrFilter==='strong_pos') list=list.filter(c=>c.score>0.8);
+    else if (corrFilter==='strong_neg') list=list.filter(c=>c.score<-0.8);
+    else if (corrFilter==='positive')   list=list.filter(c=>c.score>0.5);
+    else if (corrFilter==='negative')   list=list.filter(c=>c.score<-0.5);
+    else if (corrFilter==='weak')       list=list.filter(c=>Math.abs(c.score)<=0.3);
     return list;
-  }, [corrData, activeSector, tf, corrSearch, corrFilter]);
+  }, [corrCache, activeSector, tf, corrSearch, corrFilter]);
 
-  if (!open) {
-    return (
-      <button className="mp-open-btn" onClick={() => { setOpen(true); }}>
-        <span>📊</span> Market Pulse
-        <span className="mp-open-badge">NEW</span>
-      </button>
-    );
-  }
+  if (!open) return (
+    <button className="mp-open-btn" onClick={() => setOpen(true)}>
+      <span>❄️</span> Market Pulse <span className="mp-open-badge">LIVE</span>
+    </button>
+  );
 
-  const curSectorKey  = `${activeSector}-${tf}`;
-  const curSectorData = sectorData[curSectorKey];
-  const curCorrData   = corrData[curSectorKey];
-  const isLoadingSector = sectorLoading[activeSector];
-  const isLoadingCorr   = corrLoading[activeSector];
+  const TABS = [
+    { id:'overview',    label:'🌐 Overview' },
+    { id:'allsectors',  label:'📊 All Sectors' },
+    { id:'sector',      label:'🏭 Sector Drill' },
+    { id:'indices',     label:'📈 Indices' },
+    { id:'commodities', label:'🛢️ Commodities' },
+  ];
+
+  const curSectorKey = `${activeSector}-${tf}`;
+  const curSectorData = sectorCache[curSectorKey];
+  const curIdxData    = indexCache[`indices-${tf}`];
+  const curCmdData    = cmdCache[`cmd-${activeCmdGroup}-${tf}`];
+  const curCorrData   = corrCache[curSectorKey];
 
   return (
-    <div className="mp-container">
+    <div className="mp-wrap">
       {/* ── TOP BAR ── */}
       <div className="mp-topbar">
         <div className="mp-topbar-left">
-          <span style={{ fontSize:18 }}>📊</span>
+          <span style={{ fontSize:20 }}>❄️</span>
           <span className="mp-title">Market Pulse</span>
           <div className="mp-tabs">
-            {[['overview','🌐 Overview'],['sector','🏭 Sectors']].map(([id,label]) => (
-              <button key={id} className={`mp-tab ${activeTab===id?'active':''}`} onClick={() => setActiveTab(id)}>{label}</button>
+            {TABS.map(t => (
+              <button key={t.id} className={`mp-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
             ))}
           </div>
         </div>
         <div className="mp-topbar-right">
-          {/* Timeframe strip */}
           <div className="mp-tf-strip">
-            {MP_TIMEFRAMES.map(t => (
+            {MP_TF_LIST.map(t => (
               <button key={t.label} className={`mp-tf-btn ${tf===t.label?'active':''}`} onClick={() => setTf(t.label)}>{t.label}</button>
             ))}
           </div>
@@ -1099,259 +1278,398 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
         </div>
       </div>
 
-      {/* ── OVERVIEW TAB ── */}
-      {activeTab === 'overview' && (
-        <div className="mp-body">
-          {overviewLoad && (
-            <div className="mp-loading">
-              <div className="mp-spinner" />
-              <span>Fetching market data for {tf}…</span>
-            </div>
-          )}
-          {!overviewLoad && !overviewData && (
-            <div className="mp-empty">
-              <button className="mp-fetch-btn" onClick={fetchOverview}>⚡ Load Market Overview</button>
-              <p>Fetches indices, sector indices (market-cap weighted) and commodity groups</p>
-            </div>
-          )}
-          {overviewData && !overviewLoad && (
-            <>
-              {/* Chart */}
-              <div className="mp-chart-wrap">
-                <div ref={overviewContainerRef} style={{ width:'100%', height:380 }} />
+      {/* ── BODY ── */}
+      <div className="mp-body">
+
+        {/* ══ OVERVIEW ══ */}
+        {tab==='overview' && (
+          <>
+            {overviewLoading && <div className="mp-loading"><div className="mp-spinner"/><span>Fetching market data…</span></div>}
+            {!overviewLoading && !overviewData && (
+              <div className="mp-empty">
+                <button className="mp-fetch-btn" onClick={fetchOverview}>❄️ Load Market Overview</button>
+                <p>Indices · Sector indices (market-cap weighted) · Commodity groups</p>
               </div>
-
-              {/* Legend + Regime grid */}
-              <div className="mp-legend-grid">
-                {/* Indices */}
-                <div className="mp-legend-group">
-                  <div className="mp-legend-title">Indices</div>
-                  {MP_INDICES.map(idx => {
-                    const pts = overviewData.indices[idx.symbol]?.map(p => p.close).filter(Boolean) || [];
-                    const reg = mpRegime(pts);
-                    return (
-                      <div key={idx.symbol} className="mp-legend-row">
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:idx.color, display:'inline-block', flexShrink:0 }} />
-                        <span className="mp-legend-name">{idx.name}</span>
-                        <span className="mp-regime-badge" style={{ background:reg.color+'22', color:reg.color, border:`1px solid ${reg.color}44` }}>{reg.emoji} {reg.label}</span>
-                      </div>
-                    );
-                  })}
+            )}
+            {overviewData && !overviewLoading && (
+              <>
+                <div className="mp-chart-box">
+                  <div ref={overviewRef} style={{ width:'100%', height:380 }} />
+                  <div className="mp-chart-sub">All series normalized to 100 · {tf}</div>
                 </div>
-                {/* Sectors */}
-                <div className="mp-legend-group">
-                  <div className="mp-legend-title">Sectors (mkt-cap weighted)</div>
-                  {sectors.map(sec => {
-                    const sd2 = overviewData.sectors[sec];
-                    const reg = sd2 ? mpRegime(sd2.prices) : null;
-                    const col = sectorColors[sec] || '#6b7280';
-                    return (
-                      <div key={sec} className="mp-legend-row">
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:col, display:'inline-block', flexShrink:0 }} />
-                        <span className="mp-legend-name">{sec}</span>
-                        {reg && <span className="mp-regime-badge" style={{ background:reg.color+'22', color:reg.color, border:`1px solid ${reg.color}44` }}>{reg.emoji} {reg.label}</span>}
-                        <button className="mp-drill-btn" onClick={() => { setActiveTab('sector'); setActiveSector(sec); fetchSector(sec); }}>Drill →</button>
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Commodities */}
-                <div className="mp-legend-group">
-                  <div className="mp-legend-title">Commodity Groups</div>
-                  {Object.entries(overviewData.commodities).map(([grp, pts]) => {
-                    const reg = mpRegime(pts.map(p => p.close));
-                    const col = MP_COMMODITY_COLORS[grp] || '#94a3b8';
-                    return (
-                      <div key={grp} className="mp-legend-row">
-                        <span style={{ width:10, height:10, borderRadius:'50%', background:col, display:'inline-block', flexShrink:0 }} />
-                        <span className="mp-legend-name">{grp}</span>
-                        <span className="mp-regime-badge" style={{ background:reg.color+'22', color:reg.color, border:`1px solid ${reg.color}44` }}>{reg.emoji} {reg.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── SECTOR TAB ── */}
-      {activeTab === 'sector' && (
-        <div className="mp-body">
-          {/* Sector selector */}
-          <div className="mp-sector-strip">
-            {sectors.map(sec => (
-              <button key={sec} className={`mp-sector-pill ${activeSector===sec?'active':''}`}
-                style={{ '--sc': sectorColors[sec]||'#6b7280' }}
-                onClick={() => { setActiveSector(sec); fetchSector(sec); }}>
-                {sec}
-              </button>
-            ))}
-          </div>
-
-          {!activeSector && <div className="mp-empty"><p>👆 Select a sector above</p></div>}
-
-          {activeSector && isLoadingSector && (
-            <div className="mp-loading"><div className="mp-spinner" /><span>Loading {activeSector} stocks…</span></div>
-          )}
-
-          {activeSector && curSectorData && !isLoadingSector && (
-            <>
-              {/* Sector header */}
-              <div className="mp-sector-header">
-                <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
-                  <span style={{ width:14, height:14, borderRadius:'50%', background:sectorColors[activeSector]||'#6366f1', display:'inline-block' }} />
-                  <span style={{ fontWeight:800, fontSize:16, color:'#0f172a' }}>{activeSector}</span>
-                  <span className="mp-regime-badge" style={{ fontSize:13, padding:'4px 12px', background:curSectorData.regime.color+'22', color:curSectorData.regime.color, border:`1px solid ${curSectorData.regime.color}44` }}>
-                    {curSectorData.regime.emoji} {curSectorData.regime.label}
-                  </span>
-                  <span style={{ fontSize:12, color:'#64748b' }}>{curSectorData.stocks.length} stocks · {tf}</span>
-                </div>
-                <button
-                  className="mp-corr-btn"
-                  onClick={() => fetchSectorCorr(activeSector)}
-                  disabled={isLoadingCorr}
-                >
-                  {isLoadingCorr ? <><div className="mp-spinner-sm"/>Computing…</> : '🔗 Correlate All Stocks'}
-                </button>
-              </div>
-
-              {/* Sector chart */}
-              <div className="mp-chart-wrap">
-                <div ref={sectorContainerRef} style={{ width:'100%', height:340 }} />
-                <div className="mp-chart-legend">
-                  <span style={{ color:sectorColors[activeSector]||'#6366f1' }}>━━</span> Sector Index (mkt-cap weighted)
-                  &nbsp;&nbsp;<span style={{ color:'#22c55e' }}>─</span> Following
-                  &nbsp;&nbsp;<span style={{ color:'#ef4444' }}>─</span> Diverging
-                  &nbsp;&nbsp;<span style={{ color:'#94a3b8' }}>─</span> Neutral
-                </div>
-              </div>
-
-              {/* Stock behaviour table */}
-              <div className="mp-stock-table-wrap">
-                <div className="mp-stock-table-header">
-                  <span>Stock</span><span>Return ({tf})</span><span>Behaviour</span><span>Market Regime</span>
-                </div>
-                {curSectorData.stocks.map(stock => (
-                  <div key={stock.symbol} className="mp-stock-row" style={{ '--cls-color': stock.cls.color }}>
-                    <span className="mp-stock-sym">{stock.symbol}</span>
-                    <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color: parseFloat(stock.ret)>=0?'#16a34a':'#dc2626' }}>
-                      {parseFloat(stock.ret)>=0?'+':''}{stock.ret}%
-                    </span>
-                    <span className="mp-cls-badge" style={{ background:stock.cls.color+'22', color:stock.cls.color, border:`1px solid ${stock.cls.color}44` }}>
-                      {stock.cls.emoji} {stock.cls.label}
-                    </span>
-                    <span className="mp-regime-badge" style={{ background:stock.regime.color+'22', color:stock.regime.color, border:`1px solid ${stock.regime.color}44` }}>
-                      {stock.regime.emoji} {stock.regime.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* ── CORRELATION SECTION ── */}
-              {corrOpen[activeSector] && (
-                <div className="mp-corr-section">
-                  <div className="mp-corr-header">
-                    <span style={{ fontWeight:800, fontSize:14, color:'#1e3a8a' }}>🔗 {activeSector} Correlations</span>
-                    {curCorrData && (
-                      <span className="mp-avg-corr" style={{ background: curCorrData.avgCorr > 0.5 ? '#dcfce7' : curCorrData.avgCorr < 0 ? '#fee2e2' : '#fef9c3', color: curCorrData.avgCorr > 0.5 ? '#15803d' : curCorrData.avgCorr < 0 ? '#b91c1c' : '#854d0e', border:`1px solid ${curCorrData.avgCorr > 0.5 ? '#bbf7d0' : curCorrData.avgCorr < 0 ? '#fecaca' : '#fde047'}` }}>
-                        Avg ρ = {curCorrData.avgCorr > 0 ? '+' : ''}{curCorrData.avgCorr.toFixed(3)}
-                      </span>
-                    )}
-                    <button onClick={() => setCorrOpen(p => ({ ...p, [activeSector]: false }))} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:16 }}>✕</button>
-                  </div>
-
-                  {isLoadingCorr && <div className="mp-loading"><div className="mp-spinner" /><span>Computing correlations…</span></div>}
-
-                  {curCorrData && !isLoadingCorr && (
-                    <>
-                      {/* Heatmap */}
-                      <div className="mp-heatmap-wrap">
-                        <div className="mp-heatmap-title">Correlation Heatmap</div>
-                        <div className="mp-heatmap" style={{ gridTemplateColumns:`repeat(${curCorrData.tickers.length + 1}, minmax(22px, 1fr))` }}>
-                          {/* Header row */}
-                          <div />
-                          {curCorrData.tickers.map(t => (
-                            <div key={t} style={{ fontSize:8, fontWeight:700, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', padding:'2px 0' }}>{t}</div>
-                          ))}
-                          {/* Data rows */}
-                          {curCorrData.tickers.map((rowT, ri) => (
-                            <React.Fragment key={rowT}>
-                              <div style={{ fontSize:8, fontWeight:700, color:'#64748b', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:4 }}>{rowT}</div>
-                              {curCorrData.tickers.map((colT, ci) => {
-                                const entry = curCorrData.matrix.find(m => (m.a===rowT&&m.b===colT)||(m.a===colT&&m.b===rowT));
-                                return (
-                                  <HeatCell key={colT} a={rowT} b={colT} score={entry?.score ?? (rowT===colT?1:null)}
-                                    onClick={() => {
-                                      if (rowT !== colT && entry) {
-                                        const id = `${rowT}__${colT}`;
-                                        setCorrExpanded(p => ({ ...p, [id]: !p[id] }));
-                                      }
-                                    }}
-                                  />
-                                );
-                              })}
-                            </React.Fragment>
-                          ))}
+                <div className="mp-legend-grid">
+                  {/* Indices */}
+                  <div className="mp-legend-group">
+                    <div className="mp-legend-title">📈 Indices</div>
+                    {MP_INDICES.map(idx => {
+                      const pts = overviewData.indices[idx.symbol]?.map(p=>p.close).filter(Boolean)||[];
+                      const reg = mpRegime(pts);
+                      return (
+                        <div key={idx.symbol} className="mp-legend-row">
+                          <span className="mp-dot" style={{ background:idx.color }}/>
+                          <span className="mp-legend-name">{idx.name}</span>
+                          <RegimeBadge regime={reg}/>
+                          <button className="mp-drill-btn" onClick={() => { setTab('indices'); fetchIndexDrill(); }}>Drill →</button>
                         </div>
-                      </div>
-
-                      {/* Filters */}
-                      <div className="mp-corr-controls">
-                        <input placeholder="🔍 Search ticker…" value={corrSearch} onChange={e => setCorrSearch(e.target.value)} className="mp-corr-search" />
-                        <select value={corrFilter} onChange={e => setCorrFilter(e.target.value)} className="mp-corr-filter">
-                          <option value="all">All</option>
-                          <option value="strong_pos">Strong Positive (&gt;0.8)</option>
-                          <option value="strong_neg">Strong Negative (&lt;-0.8)</option>
-                          <option value="positive">Positive (&gt;0.5)</option>
-                          <option value="negative">Negative (&lt;-0.5)</option>
-                          <option value="weak">Weak (±0.3)</option>
-                        </select>
-                        <span className="mp-corr-count">{filteredCorr.length} pairs</span>
-                      </div>
-
-                      {/* Correlation cards */}
-                      <div className="mp-corr-cards">
-                        {filteredCorr.slice(0, 200).map(c => {
-                          const id    = `${c.a}__${c.b}`;
-                          const isExp = corrExpanded[id];
-                          const s     = c.score;
-                          const col2  = s > 0.5 ? '#16a34a' : s < -0.5 ? '#dc2626' : '#94a3b8';
-                          return (
-                            <div key={id} className="mp-corr-card" style={{ borderLeft:`3px solid ${col2}` }} onClick={() => setCorrExpanded(p => ({ ...p, [id]: !p[id] }))}>
-                              <div className="mp-corr-card-header">
-                                <span style={{ fontWeight:800, fontSize:12, color:'#1e293b' }}>{c.a}</span>
-                                <span style={{ fontSize:10, color:'#94a3b8' }}>↔</span>
-                                <span style={{ fontWeight:700, fontSize:12, color:'#475569' }}>{c.b}</span>
-                                <span style={{ marginLeft:'auto', fontFamily:'monospace', fontSize:12, fontWeight:800, color:col2, background:col2+'18', padding:'2px 8px', borderRadius:6 }}>
-                                  {s>0?'+':''}{s.toFixed(3)}
-                                </span>
-                                <span style={{ fontSize:9, color:'#cbd5e1' }}>{isExp?'▼':'▶'}</span>
-                              </div>
-                              {isExp && (
-                                <div style={{ padding:'8px 0 2px' }}>
-                                  <div style={{ width:'100%', height:6, background:'#f1f5f9', borderRadius:3, position:'relative', overflow:'hidden' }}>
-                                    <div style={{ position:'absolute', left:'50%', top:0, width:1.5, height:'100%', background:'#e2e8f0' }} />
-                                    <div style={{ position:'absolute', height:'100%', borderRadius:3, background:col2, width:`${Math.abs(s)*50}%`, left: s>=0?'50%':`${50-Math.abs(s)*50}%` }} />
-                                  </div>
-                                  <div style={{ fontSize:10, color:'#64748b', marginTop:5 }}>
-                                    {s > 0.8 ? 'Strong Positive' : s > 0.5 ? 'Positive Trend' : s > 0.3 ? 'Weak Positive' : s < -0.8 ? 'Strong Inverse' : s < -0.5 ? 'Inverse Trend' : s < -0.3 ? 'Weak Inverse' : 'No Relationship'}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
+                      );
+                    })}
+                  </div>
+                  {/* Sectors */}
+                  <div className="mp-legend-group">
+                    <div className="mp-legend-title">🏭 Sectors (mkt-cap weighted)</div>
+                    {sectors.map(sec => {
+                      const sd2 = overviewData.sectorLines[sec];
+                      const col = sectorColors[sec]||'#6b7280';
+                      return (
+                        <div key={sec} className="mp-legend-row">
+                          <span className="mp-dot" style={{ background:col }}/>
+                          <span className="mp-legend-name">{sec}</span>
+                          {sd2?.regime && <RegimeBadge regime={sd2.regime}/>}
+                          <button className="mp-drill-btn" onClick={() => { setTab('sector'); setActiveSector(sec); fetchSector(sec); }}>Drill →</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Commodities */}
+                  <div className="mp-legend-group">
+                    <div className="mp-legend-title">🛢️ Commodity Groups</div>
+                    {Object.entries(overviewData.commodities).map(([grp, pts]) => {
+                      const reg = mpRegime(pts.map(p=>p.close));
+                      const col = MP_COMMODITY_GROUPS[grp]?.color||'#94a3b8';
+                      return (
+                        <div key={grp} className="mp-legend-row">
+                          <span className="mp-dot" style={{ background:col }}/>
+                          <span className="mp-legend-name">{grp}</span>
+                          <RegimeBadge regime={reg}/>
+                          <button className="mp-drill-btn" onClick={() => { setTab('commodities'); setActiveCmdGroup(grp); fetchCmdDrill(grp); }}>Drill →</button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ ALL SECTORS ══ */}
+        {tab==='allsectors' && (
+          <>
+            {allSectorsLoad && <div className="mp-loading"><div className="mp-spinner"/><span>Loading all sector indices…</span></div>}
+            {!allSectorsLoad && !allSectorsData && (
+              <div className="mp-empty">
+                <button className="mp-fetch-btn" onClick={fetchAllSectors}>❄️ Load All Sector Charts</button>
+                <p>All {sectors.length} sectors normalized to 100 · market-cap weighted</p>
+              </div>
+            )}
+            {allSectorsData && !allSectorsLoad && (
+              <>
+                <div className="mp-chart-box">
+                  <div ref={allSecRef} style={{ width:'100%', height:420 }} />
+                  <div className="mp-chart-sub">All sectors normalized to 100 · market-cap weighted · {tf}</div>
+                </div>
+                <div className="mp-legend-group" style={{ marginTop:8 }}>
+                  <div className="mp-legend-title">Sector Regimes</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px,1fr))', gap:6 }}>
+                    {Object.entries(allSectorsData).map(([sec,{ regime }]) => {
+                      const col = sectorColors[sec]||'#6b7280';
+                      const lastNorm = (() => { const sd2=allSectorsData[sec]; if(!sd2?.norm) return null; const v=sd2.norm.filter(x=>x!=null); return v.length ? v[v.length-1]-100 : null; })();
+                      return (
+                        <div key={sec} className="mp-legend-row">
+                          <span className="mp-dot" style={{ background:col }}/>
+                          <span className="mp-legend-name">{sec}</span>
+                          <span style={{ fontFamily:'monospace', fontSize:11, fontWeight:700, color:lastNorm>=0?'#22d3ee':'#f87171' }}>
+                            {lastNorm!=null ? (lastNorm>=0?'+':'')+lastNorm.toFixed(1)+'%' : ''}
+                          </span>
+                          <RegimeBadge regime={regime}/>
+                          <button className="mp-drill-btn" onClick={() => { setTab('sector'); setActiveSector(sec); fetchSector(sec); }}>Drill →</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ SECTOR DRILL ══ */}
+        {tab==='sector' && (
+          <>
+            <div className="mp-pill-strip">
+              {sectors.map(sec => (
+                <button key={sec} className={`mp-sector-pill ${activeSector===sec?'active':''}`}
+                  style={{ '--sc': sectorColors[sec]||'#38bdf8' }}
+                  onClick={() => { setActiveSector(sec); fetchSector(sec); setCorrOpen(false); }}>
+                  {sec}
+                </button>
+              ))}
+            </div>
+            {!activeSector && <div className="mp-empty"><p>👆 Select a sector above</p></div>}
+            {activeSector && isLoading(curSectorKey) && <div className="mp-loading"><div className="mp-spinner"/><span>Loading {activeSector}…</span></div>}
+            {activeSector && curSectorData && !isLoading(curSectorKey) && (
+              <>
+                {/* Header */}
+                <div className="mp-drill-header">
+                  <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                    <span className="mp-dot" style={{ width:14, height:14, background:sectorColors[activeSector]||'#38bdf8' }}/>
+                    <span style={{ fontWeight:800, fontSize:16, color: MP_SNOW.navy }}>{activeSector}</span>
+                    <RegimeBadge regime={curSectorData.regime}/>
+                    <span style={{ fontSize:11, color:'#64748b' }}>{curSectorData.stocks.length} stocks · {tf}</span>
+                  </div>
+                  <button className="mp-corr-btn" onClick={() => fetchCorr(activeSector)} disabled={corrLoading[curSectorKey]}>
+                    {corrLoading[curSectorKey] ? <><div className="mp-spinner-sm"/>Computing…</> : '🔗 Correlate All'}
+                  </button>
+                </div>
+
+                {/* Chart */}
+                <div className="mp-chart-box">
+                  <div ref={drillRef} style={{ width:'100%', height:340 }} />
+                  <div className="mp-chart-sub">
+                    <span style={{ color:sectorColors[activeSector]||'#38bdf8' }}>━━</span> Sector index &nbsp;
+                    <span style={{ color:'#22d3ee' }}>─</span> Following &nbsp;
+                    <span style={{ color:'#f87171' }}>─</span> Diverging &nbsp;
+                    <span style={{ color:'#475569' }}>─</span> Neutral
+                  </div>
+                </div>
+
+                {/* Filters */}
+                <div className="mp-filter-bar">
+                  <select className="mp-sel" value={clsFilter} onChange={e => setClsFilter(e.target.value)}>
+                    <option value="all">All Behaviour</option>
+                    <option value="Following">✅ Following</option>
+                    <option value="Diverging">⚠️ Diverging</option>
+                    <option value="Neutral">〰️ Neutral</option>
+                  </select>
+                  <select className="mp-sel" value={mssFilter} onChange={e => setMssFilter(e.target.value)}>
+                    <option value="all">All MSS</option>
+                    <option value="stable">🟢 Stable (≥47)</option>
+                    <option value="choppy">🟡 Choppy (30–47)</option>
+                    <option value="volatile">🔴 Volatile (&lt;30)</option>
+                  </select>
+                  <select className="mp-sel" value={r2Filter} onChange={e => setR2Filter(e.target.value)}>
+                    <option value="all">All R²</option>
+                    <option value="high">High R² (≥0.7)</option>
+                    <option value="medium">Medium R² (0.4–0.7)</option>
+                    <option value="low">Low R² (&lt;0.4)</option>
+                  </select>
+                  <span className="mp-count">{filteredStocks.length} / {curSectorData.stocks.length}</span>
+                </div>
+
+                {/* Stock table */}
+                <div className="mp-table">
+                  <div className="mp-table-head">
+                    <span>Ticker</span><span>Return</span><span>Behaviour</span><span>Regime</span><span>MSS</span><span>R²</span>
+                  </div>
+                  {filteredStocks.map(stock => {
+                    const mss = mssCache[stock.symbol];
+                    return (
+                      <div key={stock.symbol} className="mp-table-row">
+                        <span className="mp-sym">{stock.symbol}</span>
+                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(stock.ret)>=0?'#22d3ee':'#f87171' }}>
+                          {parseFloat(stock.ret)>=0?'+':''}{stock.ret}%
+                        </span>
+                        <span className="mp-cls-badge" style={{ background:stock.cls.color+'22', color:stock.cls.color, border:`1px solid ${stock.cls.color}44` }}>
+                          {stock.cls.emoji} {stock.cls.label}
+                        </span>
+                        <RegimeBadge regime={stock.regime}/>
+                        {mssLoading[stock.symbol]
+                          ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span>
+                          : <MssBadge mss={mss?.mss}/>
+                        }
+                        <R2Badge r2={mss?.r_squared}/>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Correlation section */}
+                {corrOpen && (
+                  <div className="mp-corr-section">
+                    <div className="mp-corr-head">
+                      <span style={{ fontWeight:800, fontSize:13, color: MP_SNOW.navy }}>🔗 {activeSector} Correlations</span>
+                      {curCorrData && (
+                        <span className="mp-avg-badge" style={{ background: curCorrData.avgCorr>0.5?'#dcfce7':curCorrData.avgCorr<0?'#fee2e2':'#fef9c3', color:curCorrData.avgCorr>0.5?'#15803d':curCorrData.avgCorr<0?'#b91c1c':'#854d0e' }}>
+                          Avg ρ = {curCorrData.avgCorr>=0?'+':''}{curCorrData.avgCorr.toFixed(3)}
+                        </span>
+                      )}
+                      <button onClick={() => setCorrOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:16 }}>✕</button>
+                    </div>
+                    {corrLoading[curSectorKey] && <div className="mp-loading"><div className="mp-spinner"/><span>Computing…</span></div>}
+                    {curCorrData && !corrLoading[curSectorKey] && (
+                      <>
+                        {/* Heatmap */}
+                        <div style={{ overflowX:'auto', marginBottom:12 }}>
+                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Correlation Heatmap</div>
+                          <div style={{ display:'grid', gap:2, gridTemplateColumns:`repeat(${curCorrData.tickers.length+1}, minmax(20px,1fr))`, minWidth:300 }}>
+                            <div/>
+                            {curCorrData.tickers.map(t => <div key={t} style={{ fontSize:7, fontWeight:700, color:'#64748b', textAlign:'center', overflow:'hidden' }}>{t}</div>)}
+                            {curCorrData.tickers.map(rowT => (
+                              <React.Fragment key={rowT}>
+                                <div style={{ fontSize:7, fontWeight:700, color:'#64748b', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:3 }}>{rowT}</div>
+                                {curCorrData.tickers.map(colT => {
+                                  if (rowT===colT) return <div key={colT} style={{ background:'#1e293b', borderRadius:2, height:20 }}/>;
+                                  const e = curCorrData.matrix.find(m=>(m.a===rowT&&m.b===colT)||(m.a===colT&&m.b===rowT));
+                                  const s = e?.score ?? 0;
+                                  const abs = Math.abs(s);
+                                  const bg  = s>0?`rgba(34,211,238,${0.15+abs*0.7})`:`rgba(248,113,113,${0.15+abs*0.7})`;
+                                  return (
+                                    <div key={colT} onClick={() => setCorrExpanded(p=>({...p,[`${rowT}__${colT}`]:!p[`${rowT}__${colT}`]}))}
+                                      title={`${rowT} ↔ ${colT}: ${s.toFixed(3)}`}
+                                      style={{ background:bg, borderRadius:2, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, color:'#fff' }}
+                                      onMouseEnter={e2=>e2.currentTarget.style.transform='scale(1.15)'}
+                                      onMouseLeave={e2=>e2.currentTarget.style.transform='scale(1)'}
+                                    >{abs>0.5?s.toFixed(1):''}</div>
+                                  );
+                                })}
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Filters + cards */}
+                        <div className="mp-corr-filters">
+                          <input placeholder="🔍 Search ticker…" value={corrSearch} onChange={e=>setCorrSearch(e.target.value)} className="mp-corr-search"/>
+                          <select value={corrFilter} onChange={e=>setCorrFilter(e.target.value)} className="mp-sel">
+                            <option value="all">All</option>
+                            <option value="strong_pos">Strong Positive (&gt;0.8)</option>
+                            <option value="strong_neg">Strong Negative (&lt;-0.8)</option>
+                            <option value="positive">Positive (&gt;0.5)</option>
+                            <option value="negative">Negative (&lt;-0.5)</option>
+                            <option value="weak">Weak (±0.3)</option>
+                          </select>
+                          <span className="mp-count">{filteredCorr.length} pairs</span>
+                        </div>
+                        <div className="mp-corr-cards">
+                          {filteredCorr.slice(0,200).map(c => {
+                            const id=`${c.a}__${c.b}`, s=c.score, col2=s>0.5?'#22d3ee':s<-0.5?'#f87171':'#94a3b8';
+                            return (
+                              <div key={id} className="mp-corr-card" style={{ borderLeft:`3px solid ${col2}` }} onClick={()=>setCorrExpanded(p=>({...p,[id]:!p[id]}))}>
+                                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                                  <span style={{ fontWeight:800, fontSize:11, color: MP_SNOW.navy }}>{c.a}</span>
+                                  <span style={{ fontSize:9, color:'#94a3b8' }}>↔</span>
+                                  <span style={{ fontWeight:700, fontSize:11, color:'#475569' }}>{c.b}</span>
+                                  <span style={{ marginLeft:'auto', fontFamily:'monospace', fontSize:11, fontWeight:800, color:col2, background:col2+'18', padding:'2px 7px', borderRadius:5 }}>{s>=0?'+':''}{s.toFixed(3)}</span>
+                                  <span style={{ fontSize:9, color:'#cbd5e1' }}>{corrExpanded[id]?'▼':'▶'}</span>
+                                </div>
+                                {corrExpanded[id] && (
+                                  <div style={{ paddingTop:8 }}>
+                                    <div style={{ width:'100%', height:5, background:'#f1f5f9', borderRadius:3, position:'relative', overflow:'hidden' }}>
+                                      <div style={{ position:'absolute', left:'50%', top:0, width:1.5, height:'100%', background:'#e2e8f0' }}/>
+                                      <div style={{ position:'absolute', height:'100%', borderRadius:3, background:col2, width:`${Math.abs(s)*50}%`, left:s>=0?'50%':`${50-Math.abs(s)*50}%` }}/>
+                                    </div>
+                                    <div style={{ fontSize:9, color:'#64748b', marginTop:4 }}>
+                                      {s>0.8?'Strong Positive':s>0.5?'Positive':s>0.3?'Weak Positive':s<-0.8?'Strong Inverse':s<-0.5?'Inverse':s<-0.3?'Weak Inverse':'No Relationship'}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ INDICES DRILL ══ */}
+        {tab==='indices' && (
+          <>
+            {isLoading(`indices-${tf}`) && <div className="mp-loading"><div className="mp-spinner"/><span>Loading indices…</span></div>}
+            {!isLoading(`indices-${tf}`) && !curIdxData && (
+              <div className="mp-empty"><button className="mp-fetch-btn" onClick={fetchIndexDrill}>❄️ Load Indices</button></div>
+            )}
+            {curIdxData && !isLoading(`indices-${tf}`) && (
+              <>
+                <div className="mp-chart-box">
+                  <div ref={idxDrillRef} style={{ width:'100%', height:340 }} />
+                  <div className="mp-chart-sub">All indices normalized to 100 · {tf}</div>
+                </div>
+                <div className="mp-table">
+                  <div className="mp-table-head">
+                    <span>Index</span><span>Return ({tf})</span><span>Regime</span><span>MSS</span><span>R²</span>
+                  </div>
+                  {curIdxData.map(idx => {
+                    const mss = mssCache[idx.symbol];
+                    return (
+                      <div key={idx.symbol} className="mp-table-row">
+                        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                          <span className="mp-dot" style={{ background:idx.color, width:8, height:8 }}/>
+                          <span className="mp-sym">{idx.name}</span>
+                        </div>
+                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(idx.ret)>=0?'#22d3ee':'#f87171' }}>
+                          {parseFloat(idx.ret)>=0?'+':''}{idx.ret}%
+                        </span>
+                        <RegimeBadge regime={idx.regime}/>
+                        {mssLoading[idx.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
+                        <R2Badge r2={mss?.r_squared}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ══ COMMODITIES DRILL ══ */}
+        {tab==='commodities' && (
+          <>
+            <div className="mp-pill-strip">
+              {Object.entries(MP_COMMODITY_GROUPS).map(([grp,g]) => (
+                <button key={grp} className={`mp-sector-pill ${activeCmdGroup===grp?'active':''}`}
+                  style={{ '--sc': g.color }}
+                  onClick={() => { setActiveCmdGroup(grp); fetchCmdDrill(grp); }}>
+                  {grp}
+                </button>
+              ))}
+            </div>
+            {!activeCmdGroup && <div className="mp-empty"><p>👆 Select a commodity group above</p></div>}
+            {activeCmdGroup && isLoading(`cmd-${activeCmdGroup}-${tf}`) && <div className="mp-loading"><div className="mp-spinner"/><span>Loading {activeCmdGroup}…</span></div>}
+            {activeCmdGroup && curCmdData && !isLoading(`cmd-${activeCmdGroup}-${tf}`) && (
+              <>
+                <div className="mp-drill-header">
+                  <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                    <span className="mp-dot" style={{ width:14, height:14, background:curCmdData.color }}/>
+                    <span style={{ fontWeight:800, fontSize:16, color: MP_SNOW.navy }}>{activeCmdGroup}</span>
+                    <span style={{ fontSize:11, color:'#64748b' }}>{curCmdData.entries.length} instruments · {tf}</span>
+                  </div>
+                </div>
+                <div className="mp-chart-box">
+                  <div ref={cmdDrillRef} style={{ width:'100%', height:320 }} />
+                  <div className="mp-chart-sub">Normalized to 100 · {tf}</div>
+                </div>
+                <div className="mp-table">
+                  <div className="mp-table-head">
+                    <span>Instrument</span><span>Return ({tf})</span><span>Regime</span><span>MSS</span><span>R²</span>
+                  </div>
+                  {curCmdData.entries.map(e => {
+                    const mss = mssCache[e.symbol];
+                    return (
+                      <div key={e.symbol} className="mp-table-row">
+                        <div>
+                          <span className="mp-sym">{e.name}</span>
+                          <span style={{ fontSize:9, color:'#94a3b8', marginLeft:5 }}>{e.symbol}</span>
+                        </div>
+                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(e.ret)>=0?'#22d3ee':'#f87171' }}>
+                          {parseFloat(e.ret)>=0?'+':''}{e.ret}%
+                        </span>
+                        <RegimeBadge regime={e.regime}/>
+                        {mssLoading[e.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
+                        <R2Badge r2={mss?.r_squared}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+      </div>{/* mp-body */}
     </div>
   );
 }
@@ -1856,6 +2174,13 @@ export default function EconomicStrengthIndex() {
             )}
           </div>
 
+          {/* ── MARKET PULSE ── */}
+          <MarketPulse
+            baseUrl={baseUrl}
+            allStocks={allStocks}
+            sectorColors={SECTOR_COLORS}
+          />
+
           {/* ── ASSET CONFIG MODAL ── */}
           {modalOpen && (
             <div className="modal-overlay" onClick={(e) => { if (e.target.classList.contains('modal-overlay')) setModalOpen(false); }}>
@@ -2228,12 +2553,7 @@ export default function EconomicStrengthIndex() {
             <p>The ESI aggregates economic events weighted by impact. Overlays show real market data. Correlations are computed via TensorFlow.js Pearson correlation in your browser.</p>
           </div>
 
-          {/* ── MARKET PULSE ── */}
-          <MarketPulse
-            baseUrl={baseUrl}
-            allStocks={allStocks}
-            sectorColors={SECTOR_COLORS}
-          />
+
         </div>
       </div>
 
@@ -2459,114 +2779,135 @@ export default function EconomicStrengthIndex() {
         }
 
         /* ════════════════════════════════════════
-           MARKET PULSE
+           MARKET PULSE — SnowAI (ice blue + white)
         ════════════════════════════════════════ */
+
+        /* Open button */
         .mp-open-btn {
           display: inline-flex; align-items: center; gap: 8px;
           padding: 11px 22px; margin: 16px 0;
-          background: linear-gradient(135deg, #0f172a, #1e293b);
+          background: linear-gradient(135deg, #0ea5e9, #38bdf8);
           color: white; border: none; border-radius: 10px;
           font-size: 14px; font-weight: 700; cursor: pointer;
+          box-shadow: 0 4px 18px rgba(14,165,233,0.35);
           transition: all 0.2s;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.2);
         }
-        .mp-open-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-        .mp-open-badge { background: #6366f1; color: white; font-size: 10px; padding: 2px 7px; border-radius: 999px; font-weight: 800; }
+        .mp-open-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(14,165,233,0.45); }
+        .mp-open-badge { background: rgba(255,255,255,0.3); color: white; font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 800; }
 
-        .mp-container {
-          background: #fff; border: 1.5px solid #e2e8f0; border-radius: 16px;
-          margin: 16px 0; overflow: hidden;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        /* Container */
+        .mp-wrap {
+          background: #ffffff; border: 1.5px solid #bae6fd;
+          border-radius: 16px; margin: 0 0 20px; overflow: hidden;
+          box-shadow: 0 4px 28px rgba(14,165,233,0.1);
         }
 
         /* Top bar */
         .mp-topbar {
           display: flex; align-items: center; justify-content: space-between;
           flex-wrap: wrap; gap: 8px;
-          padding: 12px 16px; background: #0f172a; border-bottom: 1px solid #1e293b;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, #0c4a6e, #0369a1);
+          border-bottom: 1px solid #0284c7;
         }
-        .mp-topbar-left  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .mp-topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .mp-title { font-weight: 800; font-size: 15px; color: #f1f5f9; font-family: 'IBM Plex Mono', monospace; }
-        .mp-tabs { display: flex; gap: 3px; background: #1e293b; border-radius: 8px; padding: 3px; }
-        .mp-tab { padding: 5px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #64748b; background: transparent; transition: all 0.14s; white-space: nowrap; }
-        .mp-tab.active { background: #6366f1; color: white; }
-        .mp-close-btn { background: #1e293b; border: 1px solid #334155; border-radius: 7px; color: #94a3b8; cursor: pointer; padding: 5px 10px; font-size: 15px; transition: all 0.14s; }
-        .mp-close-btn:hover { background: #334155; color: #f1f5f9; }
+        .mp-topbar-left  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+        .mp-topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+        .mp-title { font-weight: 800; font-size: 15px; color: #e0f2fe; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
 
-        /* Timeframe strip */
-        .mp-tf-strip { display: flex; gap: 2px; background: #1e293b; border-radius: 8px; padding: 3px; flex-wrap: wrap; }
-        .mp-tf-btn { padding: 4px 8px; border: none; border-radius: 5px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; background: transparent; color: #64748b; transition: all 0.12s; white-space: nowrap; }
-        .mp-tf-btn.active { background: #6366f1; color: white; }
+        /* Tabs */
+        .mp-tabs { display: flex; gap: 3px; background: rgba(0,0,0,0.2); border-radius: 9px; padding: 3px; flex-wrap: wrap; }
+        .mp-tab { padding: 5px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #7dd3fc; background: transparent; transition: all 0.14s; white-space: nowrap; }
+        .mp-tab:hover { background: rgba(255,255,255,0.1); color: #e0f2fe; }
+        .mp-tab.active { background: #38bdf8; color: #0c4a6e; }
+
+        /* Timeframes */
+        .mp-tf-strip { display: flex; gap: 2px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 3px; flex-wrap: wrap; }
+        .mp-tf-btn { padding: 4px 8px; border: none; border-radius: 5px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; background: transparent; color: #7dd3fc; transition: all 0.12s; white-space: nowrap; }
+        .mp-tf-btn.active { background: #38bdf8; color: #0c4a6e; }
+        .mp-tf-btn:hover:not(.active) { background: rgba(255,255,255,0.1); color: #e0f2fe; }
+
+        .mp-close-btn { background: rgba(0,0,0,0.2); border: 1px solid #0284c7; border-radius: 7px; color: #7dd3fc; cursor: pointer; padding: 5px 11px; font-size: 15px; transition: all 0.14s; }
+        .mp-close-btn:hover { background: rgba(255,255,255,0.1); color: #e0f2fe; }
 
         /* Body */
-        .mp-body { padding: 16px; }
-        .mp-loading { display: flex; align-items: center; gap: 10px; padding: 40px; justify-content: center; color: #64748b; font-size: 13px; }
-        .mp-spinner { width: 22px; height: 22px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: esi-spin 0.7s linear infinite; flex-shrink: 0; }
-        .mp-spinner-sm { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: esi-spin 0.7s linear infinite; }
-        .mp-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 50px; color: #94a3b8; font-size: 13px; }
-        .mp-fetch-btn { padding: 12px 28px; background: linear-gradient(135deg,#4f46e5,#6366f1); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-        .mp-fetch-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+        .mp-body { padding: 16px; background: #f0f9ff; }
+        .mp-loading { display: flex; align-items: center; gap: 10px; padding: 40px; justify-content: center; color: #0369a1; font-size: 13px; }
+        .mp-spinner { width: 22px; height: 22px; border: 3px solid #bae6fd; border-top-color: #0ea5e9; border-radius: 50%; animation: esi-spin 0.7s linear infinite; flex-shrink: 0; }
+        .mp-spinner-sm { width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: esi-spin 0.7s linear infinite; }
+        .mp-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 50px; color: #0369a1; font-size: 13px; }
+        .mp-empty p { margin: 0; }
+        .mp-fetch-btn { padding: 12px 28px; background: linear-gradient(135deg,#0ea5e9,#38bdf8); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 16px rgba(14,165,233,0.3); }
+        .mp-fetch-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,165,233,0.4); }
 
-        /* Chart */
-        .mp-chart-wrap { background: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-        .mp-chart-legend { padding: 8px 14px; font-size: 11px; color: #64748b; display: flex; gap: 14px; flex-wrap: wrap; background: #0f172a; }
+        /* Chart box */
+        .mp-chart-box { background: #040d14; border-radius: 12px; overflow: hidden; margin-bottom: 14px; border: 1px solid #0c2233; }
+        .mp-chart-sub { padding: 6px 14px 8px; font-size: 10px; color: #0369a1; display: flex; gap: 12px; flex-wrap: wrap; background: #040d14; border-top: 1px solid #0c2233; }
 
-        /* Legend grid */
-        .mp-legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-        .mp-legend-group { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }
-        .mp-legend-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 8px; }
-        .mp-legend-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; flex-wrap: wrap; }
-        .mp-legend-name { font-size: 12px; font-weight: 600; color: #1e293b; flex: 1; min-width: 80px; }
-        .mp-regime-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-        .mp-drill-btn { font-size: 11px; color: #6366f1; background: #ede9fe; border: none; border-radius: 5px; padding: 2px 8px; cursor: pointer; font-weight: 700; margin-left: auto; transition: all 0.12s; white-space: nowrap; }
-        .mp-drill-btn:hover { background: #6366f1; color: white; }
+        /* Legend */
+        .mp-legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 12px; }
+        .mp-legend-group { background: #ffffff; border: 1.5px solid #bae6fd; border-radius: 10px; padding: 12px 14px; }
+        .mp-legend-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #0369a1; margin-bottom: 8px; }
+        .mp-legend-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; flex-wrap: wrap; min-height: 28px; }
+        .mp-legend-name { font-size: 12px; font-weight: 600; color: #0c4a6e; flex: 1; min-width: 80px; }
+        .mp-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .mp-drill-btn { font-size: 11px; color: #0ea5e9; background: #e0f2fe; border: none; border-radius: 5px; padding: 3px 9px; cursor: pointer; font-weight: 700; margin-left: auto; transition: all 0.12s; white-space: nowrap; flex-shrink: 0; }
+        .mp-drill-btn:hover { background: #0ea5e9; color: white; }
 
-        /* Sector tab */
-        .mp-sector-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        /* Pill strips */
+        .mp-pill-strip { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
         .mp-sector-pill { padding: 6px 13px; border: 2px solid var(--sc); border-radius: 999px; background: transparent; color: var(--sc); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.14s; white-space: nowrap; }
         .mp-sector-pill:hover, .mp-sector-pill.active { background: var(--sc); color: white; }
-        .mp-sector-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-        .mp-corr-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; background: linear-gradient(135deg,#1d4ed8,#3b82f6); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.16s; white-space: nowrap; }
-        .mp-corr-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+
+        /* Drill header */
+        .mp-drill-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .mp-corr-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; background: linear-gradient(135deg,#0ea5e9,#38bdf8); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.16s; white-space: nowrap; box-shadow: 0 3px 10px rgba(14,165,233,0.3); }
+        .mp-corr-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(14,165,233,0.4); }
         .mp-corr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Stock table */
-        .mp-stock-table-wrap { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-        .mp-stock-table-header { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 8px; padding: 8px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
-        .mp-stock-row { display: grid; grid-template-columns: 80px 1fr 1fr 1fr; gap: 8px; padding: 7px 14px; border-bottom: 1px solid #f1f5f9; align-items: center; transition: background 0.1s; }
-        .mp-stock-row:last-child { border-bottom: none; }
-        .mp-stock-row:hover { background: #f8fafc; }
-        .mp-stock-sym { font-family: 'IBM Plex Mono', monospace; font-weight: 800; font-size: 12px; color: #1e293b; }
+        /* Filter bar */
+        .mp-filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; padding: 10px 12px; background: white; border: 1.5px solid #bae6fd; border-radius: 10px; }
+        .mp-sel { padding: 6px 10px; border: 1.5px solid #bae6fd; border-radius: 7px; font-size: 12px; background: white; color: #0c4a6e; cursor: pointer; outline: none; }
+        .mp-sel:focus { border-color: #0ea5e9; }
+        .mp-count { font-size: 11px; color: #0ea5e9; background: #e0f2fe; padding: 3px 10px; border-radius: 20px; font-weight: 700; border: 1px solid #bae6fd; white-space: nowrap; }
+
+        /* Table */
+        .mp-table { border: 1.5px solid #bae6fd; border-radius: 10px; overflow: hidden; margin-bottom: 16px; background: white; }
+        .mp-table-head { display: grid; grid-template-columns: 80px 90px 1fr 1fr 80px 70px; gap: 8px; padding: 8px 14px; background: linear-gradient(135deg,#e0f2fe,#f0f9ff); border-bottom: 1.5px solid #bae6fd; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #0369a1; }
+        .mp-table-row { display: grid; grid-template-columns: 80px 90px 1fr 1fr 80px 70px; gap: 8px; padding: 8px 14px; border-bottom: 1px solid #e0f2fe; align-items: center; transition: background 0.1s; }
+        .mp-table-row:last-child { border-bottom: none; }
+        .mp-table-row:hover { background: #f0f9ff; }
+        .mp-sym { font-family: 'IBM Plex Mono', monospace; font-weight: 800; font-size: 12px; color: #0c4a6e; }
         .mp-cls-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; width: fit-content; }
 
         /* Correlation section */
-        .mp-corr-section { background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 12px; padding: 16px; }
-        .mp-corr-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-        .mp-avg-corr { font-family: monospace; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 8px; }
-        .mp-heatmap-wrap { margin-bottom: 14px; overflow-x: auto; }
-        .mp-heatmap-title { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 6px; }
-        .mp-heatmap { display: grid; gap: 2px; min-width: 300px; }
-        .mp-heatmap > div { height: 22px; }
-        .mp-corr-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-        .mp-corr-search { flex: 1; min-width: 140px; padding: 6px 10px; border: 1.5px solid #dbeafe; border-radius: 7px; font-size: 12px; outline: none; }
-        .mp-corr-search:focus { border-color: #2563eb; }
-        .mp-corr-filter { padding: 6px 10px; border: 1.5px solid #dbeafe; border-radius: 7px; font-size: 12px; background: white; outline: none; }
-        .mp-corr-count { font-size: 11px; color: #2563eb; background: #eff6ff; padding: 3px 10px; border-radius: 20px; font-weight: 700; border: 1px solid #bfdbfe; white-space: nowrap; }
-        .mp-corr-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 7px; max-height: 420px; overflow-y: auto; }
-        .mp-corr-card { background: white; border-radius: 8px; border: 1.5px solid #e2e8f0; padding: 9px 11px; cursor: pointer; transition: box-shadow 0.14s; }
-        .mp-corr-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
-        .mp-corr-card-header { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+        .mp-corr-section { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 16px; margin-top: 12px; }
+        .mp-corr-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+        .mp-avg-badge { font-family: monospace; font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 8px; }
+        .mp-corr-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .mp-corr-search { flex: 1; min-width: 140px; padding: 6px 10px; border: 1.5px solid #bae6fd; border-radius: 7px; font-size: 12px; outline: none; background: white; }
+        .mp-corr-search:focus { border-color: #0ea5e9; }
+        .mp-corr-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 7px; max-height: 400px; overflow-y: auto; }
+        .mp-corr-card { background: white; border-radius: 8px; border: 1.5px solid #e0f2fe; padding: 9px 11px; cursor: pointer; transition: box-shadow 0.14s; }
+        .mp-corr-card:hover { box-shadow: 0 3px 12px rgba(14,165,233,0.12); }
 
         /* Responsive */
         @media (max-width: 768px) {
           .mp-topbar { flex-direction: column; align-items: flex-start; }
-          .mp-tf-strip { gap: 1px; }
+          .mp-topbar-right { width: 100%; }
+          .mp-tf-strip { gap: 1px; width: 100%; overflow-x: auto; flex-wrap: nowrap; }
           .mp-tf-btn { padding: 3px 6px; font-size: 10px; }
           .mp-legend-grid { grid-template-columns: 1fr; }
-          .mp-stock-table-header, .mp-stock-row { grid-template-columns: 70px 1fr 1fr; }
-          .mp-stock-table-header span:last-child, .mp-stock-row span:last-child { display: none; }
+          .mp-table-head, .mp-table-row { grid-template-columns: 70px 70px 1fr 1fr; }
+          .mp-table-head span:nth-child(5), .mp-table-head span:nth-child(6),
+          .mp-table-row span:nth-child(5), .mp-table-row div:nth-child(5),
+          .mp-table-row span:nth-child(6), .mp-table-row div:nth-child(6) { display: none; }
           .mp-corr-cards { grid-template-columns: 1fr; }
+          .mp-tabs { overflow-x: auto; flex-wrap: nowrap; width: 100%; }
+        }
+        @media (max-width: 480px) {
+          .mp-table-head, .mp-table-row { grid-template-columns: 65px 65px 1fr; }
+          .mp-table-head span:nth-child(4), .mp-table-row span:nth-child(4),
+          .mp-table-row div:nth-child(4) { display: none; }
         }
       `}</style>
     </div>
