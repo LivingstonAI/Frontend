@@ -729,12 +729,15 @@ const mpNormalize = (arr) => {
 };
 
 const mpRegime = (prices) => {
-  const valid = (prices || []).filter(p => p != null);
-  if (valid.length < 10) return { label:'Insufficient Data', color:SNOW_REGIME_COLORS['Insufficient Data'], emoji:'⬜' };
+  const valid = (prices || []).filter(p => p != null && isFinite(p));
+  if (valid.length < 5) return { label:'Insufficient Data', color:SNOW_REGIME_COLORS['Insufficient Data'], emoji:'⬜' };
   const last  = valid[valid.length - 1];
-  const sma20 = valid.slice(-20).reduce((a,b) => a+b, 0) / Math.min(20, valid.length);
-  const sma50 = valid.length >= 50 ? valid.slice(-50).reduce((a,b) => a+b, 0) / 50 : sma20;
-  const rets  = valid.slice(-20).map((v,i,a) => i === 0 ? 0 : (v - a[i-1]) / a[i-1]);
+  const n20   = Math.min(20, valid.length);
+  const n50   = Math.min(50, valid.length);
+  const sma20 = valid.slice(-n20).reduce((a,b) => a+b, 0) / n20;
+  const sma50 = valid.slice(-n50).reduce((a,b) => a+b, 0) / n50;
+  const recentN = Math.min(20, valid.length);
+  const rets  = valid.slice(-recentN).map((v,i,a) => i === 0 ? 0 : (v - a[i-1]) / a[i-1]);
   const vol   = Math.sqrt(rets.reduce((a,r) => a + r*r, 0) / rets.length) * 100;
   const ret   = ((last - valid[0]) / valid[0]) * 100;
   if (vol > 3.5) return { label:'Volatile',  color:SNOW_REGIME_COLORS['Volatile'],   emoji:'🟠' };
@@ -761,13 +764,37 @@ const mpClassify = (stockPrices, sectorPrices) => {
 };
 
 const mpAlign = (seriesMap) => {
-  const allTimes = [...new Set(Object.values(seriesMap).flat().map(p => p.time))].sort((a,b)=>a-b);
-  const result = {};
-  for (const [key, pts] of Object.entries(seriesMap)) {
-    const byTime = Object.fromEntries(pts.map(p => [p.time, p.close]));
-    result[key] = allTimes.map(t => byTime[t] ?? null);
+  // Use INTERSECTION-biased approach: only keep timestamps where at least
+  // half the tickers have data, then forward-fill gaps within each series.
+  const keys = Object.keys(seriesMap).filter(k => k !== '__times');
+  if (!keys.length) return { __times: [] };
+
+  // Build union of all times
+  const allTimes = [...new Set(keys.flatMap(k => (seriesMap[k]||[]).map(p => p.time)))].sort((a,b)=>a-b);
+
+  // For each ticker, map time → close
+  const byTimeMaps = {};
+  for (const key of keys) {
+    byTimeMaps[key] = Object.fromEntries((seriesMap[key]||[]).map(p => [p.time, p.close]));
   }
-  result.__times = allTimes;
+
+  // Only keep timestamps where at least ceil(n/2) tickers have a real value
+  const threshold = Math.ceil(keys.length / 2);
+  const filteredTimes = allTimes.filter(t =>
+    keys.filter(k => byTimeMaps[k][t] != null).length >= threshold
+  );
+
+  // Build aligned arrays with forward-fill for missing values
+  const result = {};
+  for (const key of keys) {
+    let last = null;
+    result[key] = filteredTimes.map(t => {
+      const v = byTimeMaps[key][t];
+      if (v != null) { last = v; return v; }
+      return last; // forward-fill
+    });
+  }
+  result.__times = filteredTimes;
   return result;
 };
 
