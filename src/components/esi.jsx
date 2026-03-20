@@ -62,13 +62,18 @@ const resolveYFinanceTicker = (name, cls) => {
 };
 
 const CHART_TIMEFRAMES = [
+  { label:'1m',  interval:'1m',   range:'1d'  },
+  { label:'2m',  interval:'2m',   range:'5d'  },
   { label:'5m',  interval:'5m',   range:'5d'  },
   { label:'15m', interval:'15m',  range:'5d'  },
+  { label:'30m', interval:'30m',  range:'1mo' },
   { label:'1H',  interval:'60m',  range:'1mo' },
-  { label:'4H',  interval:'1d',   range:'3mo' }, // yfinance doesn't support 4h natively, use 1d
+  { label:'90m', interval:'90m',  range:'1mo' },
   { label:'1D',  interval:'1d',   range:'1y'  },
+  { label:'5D',  interval:'5d',   range:'2y'  },
   { label:'1W',  interval:'1wk',  range:'2y'  },
-  { label:'1M',  interval:'1mo',  range:'5y'  },
+  { label:'1M',  interval:'1mo',  range:'max' },
+  { label:'3M',  interval:'3mo',  range:'max' },
 ];
 
 const CHART_THEMES = {
@@ -492,14 +497,14 @@ function CorrelationChartModal({ insight, onClose, baseUrl }) {
           </div>
 
           {/* Timeframe pills */}
-          <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:8, padding:3, border:`1px solid ${t.border}`, flexWrap:'nowrap' }}>
+          <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:8, padding:3, border:`1px solid ${t.border}`, overflowX:'auto', maxWidth: isMobile ? '100%' : 420, flexShrink:1 }}>
             {CHART_TIMEFRAMES.map(tf => (
               <button key={tf.label} onClick={() => setTimeframe(tf.label)} style={{
                 padding:'4px 9px', borderRadius:6, border:'none', cursor:'pointer',
                 fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:700,
                 background: timeframe===tf.label ? LINE_COLORS.a[theme] : 'transparent',
                 color: timeframe===tf.label ? '#fff' : t.sub,
-                transition:'all 0.12s', whiteSpace:'nowrap',
+                transition:'all 0.12s', whiteSpace:'nowrap', flexShrink:0,
               }}>{tf.label}</button>
             ))}
           </div>
@@ -615,6 +620,8 @@ export default function EconomicStrengthIndex() {
   const [corrFilter, setCorrFilter] = useState('all');
   const [collapsedInsights, setCollapsedInsights] = useState({});
   const [corrClassFilter, setCorrClassFilter] = useState('all');
+  const [corrSort, setCorrSort]             = useState('abs_desc');   // abs_desc | abs_asc | pos_first | neg_first
+  const [corrMinScore, setCorrMinScore]     = useState(0);            // 0–0.9 threshold
 
   // ── Chart Modal State ──
   const [chartInsight, setChartInsight] = useState(null);
@@ -940,22 +947,41 @@ export default function EconomicStrengthIndex() {
   // ── Filtered Correlations ──
   const filteredInsights = useMemo(() => {
     let list = aiInsights;
+    // search
     if (corrSearch.trim()) {
       const q = corrSearch.toLowerCase();
       list = list.filter(i => i.nameA.toLowerCase().includes(q) || i.nameB.toLowerCase().includes(q));
     }
+    // strength filter
     if (corrFilter !== 'all') {
-      if (corrFilter === 'strong_pos') list = list.filter(i => i.scoreNum > 0.8);
+      if      (corrFilter === 'strong_pos') list = list.filter(i => i.scoreNum > 0.8);
       else if (corrFilter === 'strong_neg') list = list.filter(i => i.scoreNum < -0.8);
-      else if (corrFilter === 'positive') list = list.filter(i => i.scoreNum > 0.5);
-      else if (corrFilter === 'negative') list = list.filter(i => i.scoreNum < -0.5);
-      else if (corrFilter === 'weak') list = list.filter(i => Math.abs(i.scoreNum) <= 0.3);
+      else if (corrFilter === 'positive')   list = list.filter(i => i.scoreNum > 0.5);
+      else if (corrFilter === 'negative')   list = list.filter(i => i.scoreNum < -0.5);
+      else if (corrFilter === 'weak')       list = list.filter(i => Math.abs(i.scoreNum) <= 0.3);
     }
+    // class filter
     if (corrClassFilter !== 'all') {
       list = list.filter(i => i.classA === corrClassFilter || i.classB === corrClassFilter);
     }
+    // minimum absolute score threshold
+    if (corrMinScore > 0) {
+      list = list.filter(i => Math.abs(i.scoreNum) >= corrMinScore);
+    }
+    // sort
+    if      (corrSort === 'abs_desc')  list = [...list].sort((a,b) => Math.abs(b.scoreNum) - Math.abs(a.scoreNum));
+    else if (corrSort === 'abs_asc')   list = [...list].sort((a,b) => Math.abs(a.scoreNum) - Math.abs(b.scoreNum));
+    else if (corrSort === 'pos_first') list = [...list].sort((a,b) => b.scoreNum - a.scoreNum);
+    else if (corrSort === 'neg_first') list = [...list].sort((a,b) => a.scoreNum - b.scoreNum);
     return list;
-  }, [aiInsights, corrSearch, corrFilter, corrClassFilter]);
+  }, [aiInsights, corrSearch, corrFilter, corrClassFilter, corrSort, corrMinScore]);
+
+  // Average correlation score for the current filtered set
+  const avgCorrScore = useMemo(() => {
+    if (!filteredInsights.length) return null;
+    const avg = filteredInsights.reduce((s, i) => s + i.scoreNum, 0) / filteredInsights.length;
+    return avg;
+  }, [filteredInsights]);
 
   // ── Modal filtered assets ──
   const modalFilteredStocks = useMemo(() => {
@@ -1257,33 +1283,63 @@ export default function EconomicStrengthIndex() {
             {/* ── RESULTS ── */}
             {aiInsights.length > 0 && (
               <>
+                {/* ── CORRELATION CONTROLS ── */}
                 <div className="corr-controls">
-                  <input type="text" placeholder="🔍 Search by asset name…" value={corrSearch} onChange={e => setCorrSearch(e.target.value)} className="corr-search" />
-                  <select value={corrFilter} onChange={e => setCorrFilter(e.target.value)} className="corr-filter">
-                    <option value="all">All relationships</option>
-                    <option value="strong_pos">Strong Positive (&gt;0.8)</option>
-                    <option value="strong_neg">Strong Negative (&lt;-0.8)</option>
-                    <option value="positive">Positive (&gt;0.5)</option>
-                    <option value="negative">Negative (&lt;-0.5)</option>
-                    <option value="weak">Weak (±0.3)</option>
-                  </select>
-                  <select value={corrClassFilter} onChange={e => setCorrClassFilter(e.target.value)} className="corr-filter">
-                    <option value="all">All classes</option>
-                    <optgroup label="Macro">
-                      {['ESI','Forex','Index','Commodity'].map(cls => <option key={cls} value={cls}>{cls}</option>)}
-                    </optgroup>
-                    <optgroup label="US Stock Sectors">
-                      {ALL_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-                    </optgroup>
-                  </select>
-                  <span className="corr-count">{filteredInsights.length.toLocaleString()} / {aiInsights.length.toLocaleString()}</span>
-                  <button className="corr-collapse-all" onClick={() => {
-                    const allCollapsed = Object.keys(collapsedInsights).length >= filteredInsights.length;
-                    if (!allCollapsed) { const all = {}; filteredInsights.forEach(i => { all[i.id] = true; }); setCollapsedInsights(all); }
-                    else setCollapsedInsights({});
-                  }}>
-                    {Object.keys(collapsedInsights).length >= filteredInsights.length ? '▶ Expand All' : '▼ Collapse All'}
-                  </button>
+                  {/* Row 1: search + counts + avg score */}
+                  <div className="corr-controls-row">
+                    <input type="text" placeholder="🔍 Search ticker or name…" value={corrSearch} onChange={e => setCorrSearch(e.target.value)} className="corr-search" />
+                    <span className="corr-count">{filteredInsights.length.toLocaleString()} / {aiInsights.length.toLocaleString()}</span>
+                    {avgCorrScore != null && (
+                      <span className="corr-avg-score" style={{ background: avgCorrScore > 0.5 ? '#dcfce7' : avgCorrScore < -0.5 ? '#fee2e2' : '#f1f5f9', color: avgCorrScore > 0.5 ? '#15803d' : avgCorrScore < -0.5 ? '#b91c1c' : '#64748b', border: `1px solid ${avgCorrScore > 0.5 ? '#bbf7d0' : avgCorrScore < -0.5 ? '#fecaca' : '#e2e8f0'}` }}>
+                        avg ρ {avgCorrScore >= 0 ? '+' : ''}{avgCorrScore.toFixed(3)}
+                      </span>
+                    )}
+                    <button className="corr-collapse-all" onClick={() => {
+                      const allCollapsed = Object.keys(collapsedInsights).length >= filteredInsights.length;
+                      if (!allCollapsed) { const all = {}; filteredInsights.forEach(i => { all[i.id] = true; }); setCollapsedInsights(all); }
+                      else setCollapsedInsights({});
+                    }}>
+                      {Object.keys(collapsedInsights).length >= filteredInsights.length ? '▶ Expand' : '▼ Collapse'}
+                    </button>
+                  </div>
+                  {/* Row 2: filters */}
+                  <div className="corr-controls-row">
+                    <select value={corrFilter} onChange={e => setCorrFilter(e.target.value)} className="corr-filter">
+                      <option value="all">All strengths</option>
+                      <option value="strong_pos">Strong Positive (&gt;0.8)</option>
+                      <option value="strong_neg">Strong Negative (&lt;-0.8)</option>
+                      <option value="positive">Positive (&gt;0.5)</option>
+                      <option value="negative">Negative (&lt;-0.5)</option>
+                      <option value="weak">Weak (±0.3)</option>
+                    </select>
+                    <select value={corrClassFilter} onChange={e => setCorrClassFilter(e.target.value)} className="corr-filter">
+                      <option value="all">All classes</option>
+                      <optgroup label="Macro">
+                        {['ESI','Forex','Index','Commodity'].map(cls => <option key={cls} value={cls}>{cls}</option>)}
+                      </optgroup>
+                      <optgroup label="US Stock Sectors">
+                        {ALL_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </optgroup>
+                    </select>
+                    <select value={corrSort} onChange={e => setCorrSort(e.target.value)} className="corr-filter">
+                      <option value="abs_desc">↓ Strongest first</option>
+                      <option value="abs_asc">↑ Weakest first</option>
+                      <option value="pos_first">↓ Most positive</option>
+                      <option value="neg_first">↓ Most negative</option>
+                    </select>
+                    <label className="corr-threshold-label">
+                      min |ρ|
+                      <input type="range" min="0" max="0.9" step="0.05" value={corrMinScore}
+                        onChange={e => setCorrMinScore(parseFloat(e.target.value))}
+                        className="corr-threshold-slider" />
+                      <span className="corr-threshold-val">{corrMinScore.toFixed(2)}</span>
+                    </label>
+                    {(corrSearch || corrFilter !== 'all' || corrClassFilter !== 'all' || corrMinScore > 0) && (
+                      <button className="corr-clear-btn" onClick={() => { setCorrSearch(''); setCorrFilter('all'); setCorrClassFilter('all'); setCorrMinScore(0); }}>
+                        ✕ Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="ai-results-grid">
@@ -1510,7 +1566,14 @@ export default function EconomicStrengthIndex() {
         .ai-hint { text-align: center; color: #94a3b8; font-size: 13px; padding: 24px 0 6px; font-style: italic; }
 
         /* ── CORRELATION CONTROLS ── */
-        .corr-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; padding: 12px 14px; background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px; }
+        .corr-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; padding: 12px 14px; background: #f8fbff; border: 1.5px solid #dbeafe; border-radius: 10px; }
+        .corr-controls-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .corr-avg-score { font-size: 12px; padding: 4px 11px; border-radius: 20px; font-weight: 800; font-family: 'Courier New', monospace; white-space: nowrap; }
+        .corr-threshold-label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #64748b; font-weight: 600; white-space: nowrap; }
+        .corr-threshold-slider { width: 80px; accent-color: #2563eb; cursor: pointer; }
+        .corr-threshold-val { font-family: monospace; font-size: 12px; color: #2563eb; font-weight: 700; min-width: 28px; }
+        .corr-clear-btn { padding: 5px 12px; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.14s; }
+        .corr-clear-btn:hover { background: #fecaca; }
         .corr-search { flex: 1; min-width: 160px; padding: 7px 12px; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; outline: none; background: white; }
         .corr-search:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
         .corr-filter { padding: 7px 10px; border: 1.5px solid #dbeafe; border-radius: 8px; font-size: 13px; background: white; color: #1e293b; cursor: pointer; outline: none; }
