@@ -885,12 +885,350 @@ const R2Badge = ({ r2 }) => {
   );
 };
 
-// ─── DRILL-DOWN CHART SECTION ─────────────────────────────────────────────────
-// Reusable for Sectors / Indices / Commodities
-function DrillChart({ containerRef }) {
+// ─── ASSET DETAIL PANEL ──────────────────────────────────────────────────────
+// Per-row expandable panel: LWC price chart + stock info + MSS lookback control
+
+const ADP_THEMES = {
+  light: { bg:'#ffffff', panel:'#f8fafc', border:'#e2e8f0', text:'#0f172a', sub:'#64748b', grid:'#f1f5f9', cross:'#94a3b8', chartBg:'#ffffff' },
+  dark:  { bg:'#0f172a', panel:'#1e293b', border:'#334155', text:'#f1f5f9', sub:'#94a3b8', grid:'#1e293b',  cross:'#475569', chartBg:'#0f172a' },
+  hud:   { bg:'#000814', panel:'#0a1628', border:'#00d4ff33', text:'#00d4ff', sub:'#0099bb', grid:'#00d4ff0d', cross:'#00d4ff', chartBg:'#000814' },
+};
+const ADP_CHART_COLOR = { light:'#0ea5e9', dark:'#38bdf8', hud:'#00d4ff' };
+
+function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
+  const [open,        setOpen]        = useState(false);
+  const [chartTheme,  setChartTheme]  = useState('dark');
+  const [chartType,   setChartType]   = useState('area');   // area | line | candle
+  const [lookback,    setLookback]    = useState(defaultLookback);
+  const [lookbackInput, setLookbackInput] = useState(String(defaultLookback));
+  const [chartTf,     setChartTf]     = useState('1D');
+  const [chartStatus, setChartStatus] = useState('idle');
+  const [priceInfo,   setPriceInfo]   = useState(null);
+
+  // Stock info state
+  const [infoOpen,    setInfoOpen]    = useState(false);
+  const [infoData,    setInfoData]    = useState(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoError,   setInfoError]   = useState('');
+
+  // MSS state
+  const [mssData,     setMssData]     = useState(null);
+  const [mssLoading2, setMssLoading2] = useState(false);
+
+  const containerRef  = useRef(null);
+  const chartRef      = useRef(null);
+  const roRef         = useRef(null);
+
+  const t   = ADP_THEMES[chartTheme];
+  const col = ADP_CHART_COLOR[chartTheme];
+
+  // ── LWC chart ──
+  const buildChart = useCallback(async () => {
+    if (!containerRef.current || !symbol) return;
+    setChartStatus('loading');
+    try {
+      const LWC = await new Promise((res, rej) => {
+        if (window.LightweightCharts) { res(window.LightweightCharts); return; }
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        s.onload = () => res(window.LightweightCharts); s.onerror = rej;
+        document.head.appendChild(s);
+      });
+
+      if (chartRef.current) { try { chartRef.current.remove(); } catch(_){} chartRef.current = null; }
+      if (roRef.current) { roRef.current.disconnect(); roRef.current = null; }
+
+      const tfObj2 = MP_TF_LIST.find(x => x.label === chartTf) || MP_TF_LIST[6];
+
+      // Fetch data
+      let rawData = [];
+      try {
+        const res = await fetch(`${baseUrl}/api/esi_ohlcv_feed_v1/`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ ticker:symbol, interval:tfObj2.interval, range:tfObj2.period }),
+        });
+        if (res.ok) { const j = await res.json(); if (j.data?.length) rawData = j.data; }
+      } catch(_) {}
+      if (!rawData.length) {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${tfObj2.interval}&range=${tfObj2.period}&includePrePost=false`;
+        try {
+          const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+          if (r.ok) {
+            const d = await r.json();
+            const result = d?.chart?.result?.[0];
+            if (result) {
+              const ts = result.timestamp||[], q = result.indicators?.quote?.[0]||{};
+              rawData = ts.map((tm,i) => ({ time:tm, open:q.open?.[i], high:q.high?.[i], low:q.low?.[i], close:q.close?.[i] })).filter(x=>x.close!=null);
+            }
+          }
+        } catch(_) {}
+      }
+
+      if (!rawData.length) { setChartStatus('error'); return; }
+
+      const chart = LWC.createChart(containerRef.current, {
+        width: containerRef.current.clientWidth, height: 220,
+        layout: { background:{ type:'solid', color:t.chartBg }, textColor:t.text, fontFamily:"'IBM Plex Mono',monospace" },
+        grid:   { vertLines:{ color:t.grid }, horzLines:{ color:t.grid } },
+        crosshair: { mode:1, vertLine:{ color:t.cross, style:2 }, horzLine:{ color:t.cross, style:2 } },
+        rightPriceScale: { borderColor:t.border, textColor:t.sub },
+        timeScale: { borderColor:t.border, textColor:t.sub, timeVisible:true, secondsVisible:false },
+        handleScroll:true, handleScale:true,
+      });
+
+      const seen = new Set();
+      const fmt  = (d) => typeof d.time==='number' ? d.time : Math.floor(new Date(d.time).getTime()/1000);
+
+      let series;
+      if (chartType === 'candle') {
+        series = chart.addCandlestickSeries({
+          upColor:'#22d3ee', downColor:'#f87171',
+          borderUpColor:'#22d3ee', borderDownColor:'#f87171',
+          wickUpColor:'#22d3ee', wickDownColor:'#f87171',
+        });
+        const pts = rawData
+          .map(d => ({ time:fmt(d), open:d.open??d.close, high:d.high??d.close, low:d.low??d.close, close:d.close }))
+          .filter(d => d.close!=null && isFinite(d.close))
+          .sort((a,b)=>a.time-b.time)
+          .filter(d => { if(seen.has(d.time)) return false; seen.add(d.time); return true; });
+        series.setData(pts);
+      } else if (chartType === 'line') {
+        series = chart.addLineSeries({ color:col, lineWidth:2, priceLineVisible:true, priceLineColor:col, crosshairMarkerVisible:true, crosshairMarkerRadius:5 });
+        const pts = rawData.map(d => ({ time:fmt(d), value:d.close })).filter(d=>d.value!=null&&isFinite(d.value)).sort((a,b)=>a.time-b.time).filter(d=>{if(seen.has(d.time))return false;seen.add(d.time);return true;});
+        series.setData(pts);
+      } else {
+        series = chart.addAreaSeries({ lineColor:col, topColor:col+'44', bottomColor:col+'05', lineWidth:2, priceLineVisible:true, priceLineColor:col, crosshairMarkerVisible:true, crosshairMarkerRadius:5, crosshairMarkerBorderColor:col, crosshairMarkerBackgroundColor:t.chartBg });
+        const pts = rawData.map(d => ({ time:fmt(d), value:d.close })).filter(d=>d.value!=null&&isFinite(d.value)).sort((a,b)=>a.time-b.time).filter(d=>{if(seen.has(d.time))return false;seen.add(d.time);return true;});
+        series.setData(pts);
+        if (pts.length > 1) setPriceInfo({ price: pts[pts.length-1].value, change: ((pts[pts.length-1].value - pts[0].value)/pts[0].value*100) });
+      }
+
+      chart.subscribeCrosshairMove(param => {
+        if (param.seriesData?.has(series)) {
+          const v = param.seriesData.get(series);
+          if (v) setPriceInfo(p => ({ ...p, hover: v.value ?? v.close }));
+        }
+      });
+
+      chart.timeScale().fitContent();
+      chartRef.current = chart;
+      const ro = new ResizeObserver(() => { if(containerRef.current&&chartRef.current) chartRef.current.applyOptions({ width:containerRef.current.clientWidth }); });
+      ro.observe(containerRef.current); roRef.current = ro;
+      setChartStatus('ok');
+    } catch(e) { console.error(e); setChartStatus('error'); }
+  }, [symbol, chartTf, chartType, chartTheme, baseUrl]);
+
+  useEffect(() => { if (open) buildChart(); return () => { if(chartRef.current){try{chartRef.current.remove();}catch(_){}} if(roRef.current)roRef.current.disconnect(); }; }, [open, buildChart]);
+
+  // Live theme update
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      layout: { background:{ color:t.chartBg }, textColor:t.text },
+      grid:   { vertLines:{ color:t.grid }, horzLines:{ color:t.grid } },
+      crosshair: { vertLine:{ color:t.cross }, horzLine:{ color:t.cross } },
+      rightPriceScale:{ borderColor:t.border, textColor:t.sub },
+      timeScale:{ borderColor:t.border, textColor:t.sub },
+    });
+  }, [chartTheme]);
+
+  // ── Stock info ──
+  const fetchInfo = async () => {
+    if (infoData) { setInfoOpen(o => !o); return; }
+    setInfoOpen(true); setInfoLoading(true); setInfoError('');
+    try {
+      const res = await fetch(`${baseUrl}/api/esi_stock_fundamentals_v1/`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ tickers:[symbol] }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const j = await res.json();
+      setInfoData(j.data?.[symbol] || null);
+    } catch(e) { setInfoError(e.message); }
+    setInfoLoading(false);
+  };
+
+  // ── MSS fetch ──
+  const fetchMss = async () => {
+    const lb = parseInt(lookbackInput) || defaultLookback;
+    setLookback(lb);
+    setMssLoading2(true);
+    try {
+      const res = await fetch(`${baseUrl}/api/mss/calculate/`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ symbols:[symbol], period:lb }),
+      });
+      if (res.ok) { const j = await res.json(); if(j.success&&j.data?.[0]) setMssData(j.data[0]); }
+    } catch(_) {}
+    setMssLoading2(false);
+  };
+
+  const fmtPrice = v => { if(!v) return '—'; if(v>=1e4) return v.toLocaleString(undefined,{maximumFractionDigits:0}); if(v<0.01) return v.toFixed(5); if(v<10) return v.toFixed(4); return v.toFixed(2); };
+  const fmtBig   = v => { if(!v) return '—'; if(v>=1e12) return (v/1e12).toFixed(2)+'T'; if(v>=1e9) return (v/1e9).toFixed(2)+'B'; if(v>=1e6) return (v/1e6).toFixed(2)+'M'; return v.toLocaleString(); };
+
+  const displayPrice = priceInfo?.hover ?? priceInfo?.price;
+
+  if (!open) return (
+    <button onClick={e=>{e.stopPropagation();setOpen(true);}} className="adp-open-btn" title={`View ${symbol} details`}>
+      📊
+    </button>
+  );
+
   return (
-    <div style={{ background: MP_SNOW.chartBg, borderRadius:12, overflow:'hidden', marginBottom:14 }}>
-      <div ref={containerRef} style={{ width:'100%', height:340 }} />
+    <div className="adp-panel" onClick={e=>e.stopPropagation()}>
+      {/* ── Panel top bar ── */}
+      <div className="adp-topbar">
+        <span className="adp-sym">{symbol}</span>
+        {displayPrice && <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:13, color:col }}>{fmtPrice(displayPrice)}</span>}
+        {priceInfo?.change != null && (
+          <span style={{ fontSize:11, fontWeight:700, color:priceInfo.change>=0?'#22d3ee':'#f87171', background:priceInfo.change>=0?'#22d3ee18':'#f8717118', padding:'2px 7px', borderRadius:5 }}>
+            {priceInfo.change>=0?'▲':'▼'} {Math.abs(priceInfo.change).toFixed(2)}%
+          </span>
+        )}
+        <div className="adp-controls">
+          {/* Chart type */}
+          {['area','line','candle'].map(ct => (
+            <button key={ct} className={`adp-pill ${chartType===ct?'active':''}`} onClick={()=>setChartType(ct)} title={ct}>
+              {ct==='area'?'▲':ct==='line'?'╱':'🕯'}
+            </button>
+          ))}
+          <div className="adp-divider"/>
+          {/* Theme */}
+          {[['light','☀️'],['dark','🌙'],['hud','⬡']].map(([th,ic])=>(
+            <button key={th} className={`adp-pill ${chartTheme===th?'active':''}`} onClick={()=>setChartTheme(th)}>{ic}</button>
+          ))}
+          <div className="adp-divider"/>
+          {/* Timeframe */}
+          {['5m','1H','1D','1W','1M'].map(tfl=>(
+            <button key={tfl} className={`adp-pill ${chartTf===tfl?'active':''}`} onClick={()=>setChartTf(tfl)}>{tfl}</button>
+          ))}
+          <div className="adp-divider"/>
+          {/* Stock info button */}
+          <button className="adp-pill" onClick={fetchInfo} title="Stock info">ℹ️</button>
+          {/* Close */}
+          <button className="adp-close" onClick={()=>setOpen(false)}>✕</button>
+        </div>
+      </div>
+
+      {/* ── Chart ── */}
+      <div style={{ background:t.chartBg, position:'relative', minHeight:220 }}>
+        {chartStatus==='loading' && (
+          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:10 }}>
+            <div style={{ width:20, height:20, border:`3px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
+            <span style={{ color:t.sub, fontSize:12, fontFamily:'monospace' }}>Loading {symbol}…</span>
+          </div>
+        )}
+        {chartStatus==='error' && (
+          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:8 }}>
+            <span style={{ fontSize:20 }}>⚠️</span>
+            <span style={{ color:t.sub, fontSize:11 }}>No data for {symbol}</span>
+            <button onClick={buildChart} style={{ padding:'5px 14px', background:col, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
+          </div>
+        )}
+        <div ref={containerRef} style={{ width:'100%', height:220 }}/>
+      </div>
+
+      {/* ── MSS lookback control ── */}
+      <div className="adp-mss-bar" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
+        <span style={{ fontSize:11, fontWeight:700, color:t.sub }}>MSS Lookback:</span>
+        <input
+          type="number" min="5" max="730" value={lookbackInput}
+          onChange={e=>setLookbackInput(e.target.value)}
+          onKeyDown={e=>{ if(e.key==='Enter') fetchMss(); }}
+          className="adp-lb-input"
+          style={{ background:t.bg, border:`1px solid ${t.border}`, color:t.text }}
+          placeholder="days"
+        />
+        <span style={{ fontSize:10, color:t.sub }}>days</span>
+        <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
+          {mssLoading2 ? '…' : 'Calc'}
+        </button>
+        {mssData && (
+          <div className="adp-mss-results">
+            <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>
+              MSS {mssData.mss}
+            </span>
+            <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>
+              R² {mssData.r_squared?.toFixed(3)}
+            </span>
+            <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>
+              σ {mssData.volatility?.toFixed(4)}
+            </span>
+            <span style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700 }}>{mssData.status}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Stock info panel ── */}
+      {infoOpen && (
+        <div className="adp-info-panel" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+            <span style={{ fontWeight:800, fontSize:13, color:t.text }}>Stock Info</span>
+            <button onClick={()=>setInfoOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:15 }}>✕</button>
+          </div>
+          {infoLoading && <div style={{ display:'flex', gap:8, alignItems:'center', color:t.sub, fontSize:12 }}><div style={{ width:14, height:14, border:`2px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/> Loading…</div>}
+          {infoError && <div style={{ color:'#f87171', fontSize:11 }}>⚠️ {infoError}</div>}
+          {infoData && !infoLoading && (
+            <div>
+              {/* Header */}
+              <div style={{ display:'flex', gap:10, marginBottom:12, alignItems:'flex-start' }}>
+                {infoData.logo_url && <img src={infoData.logo_url} alt="" style={{ width:32, height:32, borderRadius:6, objectFit:'contain', background:'white', border:`1px solid ${t.border}`, flexShrink:0 }} onError={e=>e.target.style.display='none'}/>}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:800, fontSize:13, color:t.text, lineHeight:1.2 }}>{infoData.name||symbol}</div>
+                  <div style={{ fontSize:11, color:t.sub }}>{infoData.sector} · {infoData.industry}</div>
+                  <div style={{ fontSize:11, color:t.sub }}>{infoData.exchange} · {infoData.country}</div>
+                </div>
+                <div style={{ textAlign:'right', flexShrink:0 }}>
+                  <div style={{ fontFamily:'monospace', fontWeight:800, fontSize:14, color:infoData.change_pct>=0?'#22d3ee':'#f87171' }}>${fmtPrice(infoData.price)}</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:infoData.change_pct>=0?'#22d3ee':'#f87171', background:(infoData.change_pct>=0?'#22d3ee':'#f87171')+'18', padding:'1px 6px', borderRadius:4, marginTop:2 }}>
+                    {infoData.change_pct>=0?'▲':'▼'} {Math.abs(infoData.change_pct||0).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              {/* Summary */}
+              {infoData.summary && <p style={{ fontSize:11, color:t.sub, lineHeight:1.5, margin:'0 0 10px', padding:'8px 10px', background:t.bg, borderRadius:6, border:`1px solid ${t.border}`, fontStyle:'italic' }}>{infoData.summary.slice(0,260)}…</p>}
+              {/* Metrics grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(85px,1fr))', gap:'7px 12px', marginBottom:10 }}>
+                {[
+                  ['Mkt Cap', fmtBig(infoData.market_cap)],
+                  ['P/E', infoData.pe_ratio?.toFixed(1)||'—'],
+                  ['P/B', infoData.pb_ratio?.toFixed(2)||'—'],
+                  ['EPS', infoData.eps?'$'+infoData.eps.toFixed(2):'—'],
+                  ['Revenue', fmtBig(infoData.revenue)],
+                  ['Gross Mgn', infoData.gross_margin?(infoData.gross_margin*100).toFixed(1)+'%':'—'],
+                  ['Net Mgn', infoData.profit_margin?(infoData.profit_margin*100).toFixed(1)+'%':'—'],
+                  ['ROE', infoData.roe?(infoData.roe*100).toFixed(1)+'%':'—'],
+                  ['D/E', infoData.debt_equity?.toFixed(2)||'—'],
+                  ['Beta', infoData.beta?.toFixed(2)||'—'],
+                  ['52W Hi', infoData.week52_high?'$'+infoData.week52_high.toFixed(2):'—'],
+                  ['52W Lo', infoData.week52_low?'$'+infoData.week52_low.toFixed(2):'—'],
+                  ['Div Yield', infoData.dividend_yield?(infoData.dividend_yield*100).toFixed(2)+'%':'None'],
+                  ['Employees', fmtBig(infoData.employees)],
+                  ['Avg Vol', fmtBig(infoData.avg_volume)],
+                ].map(([label,val]) => (
+                  <div key={label}>
+                    <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.07em', color:t.sub, fontWeight:700 }}>{label}</div>
+                    <div style={{ fontSize:11, fontWeight:700, color:t.text, fontFamily:'monospace' }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Analyst targets */}
+              {(infoData.target_mean || infoData.recommendation) && (
+                <div style={{ background:`${col}0d`, border:`1px solid ${col}33`, borderRadius:8, padding:'8px 12px' }}>
+                  <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:col, marginBottom:6 }}>Analyst Targets</div>
+                  <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                    {infoData.target_low  && <div><div style={{ fontSize:9, color:t.sub }}>Low</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_low.toFixed(2)}</div></div>}
+                    {infoData.target_mean && <div><div style={{ fontSize:9, color:t.sub }}>Mean</div><div style={{ fontSize:12, fontWeight:800, color:col, fontFamily:'monospace' }}>${infoData.target_mean.toFixed(2)}</div></div>}
+                    {infoData.target_high && <div><div style={{ fontSize:9, color:t.sub }}>High</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_high.toFixed(2)}</div></div>}
+                    {infoData.recommendation && <div><div style={{ fontSize:9, color:t.sub }}>Consensus</div><div style={{ fontSize:12, fontWeight:800, color:col }}>{infoData.recommendation.toUpperCase()}</div></div>}
+                    {infoData.analyst_count && <div><div style={{ fontSize:9, color:t.sub }}>Analysts</div><div style={{ fontSize:12, fontWeight:700, color:t.text }}>{infoData.analyst_count}</div></div>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -933,6 +1271,10 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [r2Filter,     setR2Filter]     = useState('all');
   const [clsFilter,    setClsFilter]    = useState('all');
 
+  // MSS lookback (days) — shared across all assets in the current view
+  const [mssLookback,  setMssLookback]  = useState(60);
+  const [lbInput,      setLbInput]      = useState('60');
+
   const tfObj   = MP_TF_LIST.find(t => t.label === tf) || MP_TF_LIST[6];
   const sectors = useMemo(() => [...new Set(allStocks.map(s => s.sector))].sort(), [allStocks]);
 
@@ -958,10 +1300,10 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
     const needed = symbols.filter(s => !mssCache[s] && !mssLoading[s]);
     if (!needed.length) return;
     setMssLoading(p => { const n={...p}; needed.forEach(s => n[s]=true); return n; });
-    const result = await mpFetchMSS(needed, baseUrl, tfPeriodDays);
+    const result = await mpFetchMSS(needed, baseUrl, mssLookback);
     setMssCache(p => ({ ...p, ...result }));
     setMssLoading(p => { const n={...p}; needed.forEach(s => delete n[s]); return n; });
-  }, [mssCache, mssLoading, baseUrl, tfPeriodDays]);
+  }, [mssCache, mssLoading, baseUrl, mssLookback]);
 
   // ── FETCH OVERVIEW ──
   const fetchOverview = useCallback(async () => {
@@ -1460,7 +1802,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   </div>
                 </div>
 
-                {/* Filters */}
+                {/* Filters + global MSS lookback */}
                 <div className="mp-filter-bar">
                   <select className="mp-sel" value={clsFilter} onChange={e => setClsFilter(e.target.value)}>
                     <option value="all">All Behaviour</option>
@@ -1480,6 +1822,13 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                     <option value="medium">Medium R² (0.4–0.7)</option>
                     <option value="low">Low R² (&lt;0.4)</option>
                   </select>
+                  <div className="mp-lb-wrap">
+                    <span style={{ fontSize:11, color:'#0369a1', fontWeight:700, whiteSpace:'nowrap' }}>MSS Lookback:</span>
+                    <input type="number" min="5" max="730" value={lbInput} onChange={e=>setLbInput(e.target.value)}
+                      onKeyDown={e=>{ if(e.key==='Enter'){ const v=parseInt(lbInput)||60; setMssLookback(v); setMssCache({}); } }}
+                      className="mp-lb-input" placeholder="days"/>
+                    <button className="mp-lb-apply" onClick={()=>{ const v=parseInt(lbInput)||60; setMssLookback(v); setMssCache({}); }}>Apply</button>
+                  </div>
                   <span className="mp-count">{filteredStocks.length} / {curSectorData.stocks.length}</span>
                 </div>
 
@@ -1491,21 +1840,26 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   {filteredStocks.map(stock => {
                     const mss = mssCache[stock.symbol];
                     return (
-                      <div key={stock.symbol} className="mp-table-row">
-                        <span className="mp-sym">{stock.symbol}</span>
-                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(stock.ret)>=0?'#22d3ee':'#f87171' }}>
-                          {parseFloat(stock.ret)>=0?'+':''}{stock.ret}%
-                        </span>
-                        <span className="mp-cls-badge" style={{ background:stock.cls.color+'22', color:stock.cls.color, border:`1px solid ${stock.cls.color}44` }}>
-                          {stock.cls.emoji} {stock.cls.label}
-                        </span>
-                        <RegimeBadge regime={stock.regime}/>
-                        {mssLoading[stock.symbol]
-                          ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span>
-                          : <MssBadge mss={mss?.mss}/>
-                        }
-                        <R2Badge r2={mss?.r_squared}/>
-                      </div>
+                      <React.Fragment key={stock.symbol}>
+                        <div className="mp-table-row">
+                          <span className="mp-sym">{stock.symbol}</span>
+                          <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(stock.ret)>=0?'#22d3ee':'#f87171' }}>
+                            {parseFloat(stock.ret)>=0?'+':''}{stock.ret}%
+                          </span>
+                          <span className="mp-cls-badge" style={{ background:stock.cls.color+'22', color:stock.cls.color, border:`1px solid ${stock.cls.color}44` }}>
+                            {stock.cls.emoji} {stock.cls.label}
+                          </span>
+                          <RegimeBadge regime={stock.regime}/>
+                          {mssLoading[stock.symbol]
+                            ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span>
+                            : <MssBadge mss={mss?.mss}/>
+                          }
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <R2Badge r2={mss?.r_squared}/>
+                            <AssetDetailPanel symbol={stock.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                          </div>
+                        </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -1622,18 +1976,23 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   {curIdxData.map(idx => {
                     const mss = mssCache[idx.symbol];
                     return (
-                      <div key={idx.symbol} className="mp-table-row">
-                        <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                          <span className="mp-dot" style={{ background:idx.color, width:8, height:8 }}/>
-                          <span className="mp-sym">{idx.name}</span>
+                      <React.Fragment key={idx.symbol}>
+                        <div className="mp-table-row">
+                          <div style={{ display:'flex', alignItems:'center', gap:7 }}>
+                            <span className="mp-dot" style={{ background:idx.color, width:8, height:8 }}/>
+                            <span className="mp-sym">{idx.name}</span>
+                          </div>
+                          <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(idx.ret)>=0?'#22d3ee':'#f87171' }}>
+                            {parseFloat(idx.ret)>=0?'+':''}{idx.ret}%
+                          </span>
+                          <RegimeBadge regime={idx.regime}/>
+                          {mssLoading[idx.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <R2Badge r2={mss?.r_squared}/>
+                            <AssetDetailPanel symbol={idx.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                          </div>
                         </div>
-                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(idx.ret)>=0?'#22d3ee':'#f87171' }}>
-                          {parseFloat(idx.ret)>=0?'+':''}{idx.ret}%
-                        </span>
-                        <RegimeBadge regime={idx.regime}/>
-                        {mssLoading[idx.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
-                        <R2Badge r2={mss?.r_squared}/>
-                      </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -1676,18 +2035,23 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   {curCmdData.entries.map(e => {
                     const mss = mssCache[e.symbol];
                     return (
-                      <div key={e.symbol} className="mp-table-row">
-                        <div>
-                          <span className="mp-sym">{e.name}</span>
-                          <span style={{ fontSize:9, color:'#94a3b8', marginLeft:5 }}>{e.symbol}</span>
+                      <React.Fragment key={e.symbol}>
+                        <div className="mp-table-row">
+                          <div>
+                            <span className="mp-sym">{e.name}</span>
+                            <span style={{ fontSize:9, color:'#94a3b8', marginLeft:5 }}>{e.symbol}</span>
+                          </div>
+                          <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(e.ret)>=0?'#22d3ee':'#f87171' }}>
+                            {parseFloat(e.ret)>=0?'+':''}{e.ret}%
+                          </span>
+                          <RegimeBadge regime={e.regime}/>
+                          {mssLoading[e.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <R2Badge r2={mss?.r_squared}/>
+                            <AssetDetailPanel symbol={e.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                          </div>
                         </div>
-                        <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(e.ret)>=0?'#22d3ee':'#f87171' }}>
-                          {parseFloat(e.ret)>=0?'+':''}{e.ret}%
-                        </span>
-                        <RegimeBadge regime={e.regime}/>
-                        {mssLoading[e.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
-                        <R2Badge r2={mss?.r_squared}/>
-                      </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
@@ -2916,6 +3280,53 @@ export default function EconomicStrengthIndex() {
         .mp-corr-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 7px; max-height: 400px; overflow-y: auto; }
         .mp-corr-card { background: white; border-radius: 8px; border: 1.5px solid #e0f2fe; padding: 9px 11px; cursor: pointer; transition: box-shadow 0.14s; }
         .mp-corr-card:hover { box-shadow: 0 3px 12px rgba(14,165,233,0.12); }
+
+        /* ── ASSET DETAIL PANEL ── */
+        .adp-open-btn {
+          background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 6px;
+          padding: 3px 7px; cursor: pointer; font-size: 13px; line-height: 1;
+          transition: all 0.14s; flex-shrink: 0; color: #0369a1;
+        }
+        .adp-open-btn:hover { background: #0ea5e9; color: white; transform: scale(1.08); box-shadow: 0 3px 10px rgba(14,165,233,0.3); }
+        .adp-panel {
+          grid-column: 1 / -1;
+          border-radius: 10px; overflow: hidden;
+          border: 1.5px solid #bae6fd;
+          margin: 4px 0 8px;
+          box-shadow: 0 4px 20px rgba(14,165,233,0.1);
+        }
+        .adp-topbar {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          padding: 8px 12px;
+          background: linear-gradient(135deg,#0c4a6e,#0369a1);
+        }
+        .adp-sym { font-family: 'IBM Plex Mono',monospace; font-weight: 800; font-size: 14px; color: #e0f2fe; }
+        .adp-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+        .adp-pill {
+          padding: 4px 9px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+          background: transparent; color: #7dd3fc; cursor: pointer; font-size: 12px;
+          font-weight: 700; transition: all 0.12s; white-space: nowrap;
+        }
+        .adp-pill:hover { background: rgba(255,255,255,0.1); color: #e0f2fe; }
+        .adp-pill.active { background: #38bdf8; color: #0c4a6e; border-color: #38bdf8; }
+        .adp-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); margin: 0 2px; }
+        .adp-close { padding: 4px 9px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; background: rgba(248,113,113,0.2); color: #fca5a5; cursor: pointer; font-size: 13px; font-weight: 700; transition: all 0.12s; }
+        .adp-close:hover { background: #f87171; color: white; }
+        .adp-mss-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; }
+        .adp-lb-input { width: 60px; padding: 4px 8px; border-radius: 6px; font-size: 12px; outline: none; font-family: monospace; }
+        .adp-lb-btn { padding: 4px 12px; border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.12s; }
+        .adp-lb-btn:hover { filter: brightness(1.15); }
+        .adp-lb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .adp-mss-results { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .adp-mss-pill { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-family: monospace; }
+        .adp-info-panel { padding: 14px 16px; }
+
+        /* ── FILTER BAR LOOKBACK ── */
+        .mp-lb-wrap { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+        .mp-lb-input { width: 58px; padding: 5px 8px; border: 1.5px solid #bae6fd; border-radius: 7px; font-size: 12px; outline: none; font-family: monospace; background: white; color: #0c4a6e; }
+        .mp-lb-input:focus { border-color: #0ea5e9; }
+        .mp-lb-apply { padding: 5px 12px; background: linear-gradient(135deg,#0ea5e9,#38bdf8); color: white; border: none; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+        .mp-lb-apply:hover { filter: brightness(1.1); }
 
         /* Responsive */
         @media (max-width: 768px) {
