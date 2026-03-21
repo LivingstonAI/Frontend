@@ -967,7 +967,7 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
       if (!rawData.length) { setChartStatus('error'); return; }
 
       const chart = LWC.createChart(containerRef.current, {
-        width: containerRef.current.clientWidth, height: 220,
+        width: containerRef.current.clientWidth, height: containerRef.current.clientHeight || 280,
         layout: { background:{ type:'solid', color:t.chartBg }, textColor:t.text, fontFamily:"'IBM Plex Mono',monospace" },
         grid:   { vertLines:{ color:t.grid }, horzLines:{ color:t.grid } },
         crosshair: { mode:1, vertLine:{ color:t.cross, style:2 }, horzLine:{ color:t.cross, style:2 } },
@@ -1012,7 +1012,7 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
 
       chart.timeScale().fitContent();
       chartRef.current = chart;
-      const ro = new ResizeObserver(() => { if(containerRef.current&&chartRef.current) chartRef.current.applyOptions({ width:containerRef.current.clientWidth }); });
+      const ro = new ResizeObserver(() => { if(containerRef.current&&chartRef.current) chartRef.current.applyOptions({ width:containerRef.current.clientWidth, height:containerRef.current.clientHeight||280 }); });
       ro.observe(containerRef.current); roRef.current = ro;
       setChartStatus('ok');
     } catch(e) { console.error(e); setChartStatus('error'); }
@@ -1086,80 +1086,95 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
           </span>
         )}
         <div className="adp-controls">
-          {/* Chart type */}
           {['area','line','candle'].map(ct => (
             <button key={ct} className={`adp-pill ${chartType===ct?'active':''}`} onClick={()=>setChartType(ct)} title={ct}>
               {ct==='area'?'▲':ct==='line'?'╱':'🕯'}
             </button>
           ))}
           <div className="adp-divider"/>
-          {/* Theme */}
           {[['light','☀️'],['dark','🌙'],['hud','⬡']].map(([th,ic])=>(
             <button key={th} className={`adp-pill ${chartTheme===th?'active':''}`} onClick={()=>setChartTheme(th)}>{ic}</button>
           ))}
           <div className="adp-divider"/>
-          {/* Timeframe */}
           {['5m','1H','1D','1W','1M'].map(tfl=>(
             <button key={tfl} className={`adp-pill ${chartTf===tfl?'active':''}`} onClick={()=>setChartTf(tfl)}>{tfl}</button>
           ))}
           <div className="adp-divider"/>
-          {/* Stock info button */}
           <button className="adp-pill" onClick={fetchInfo} title="Stock info">ℹ️</button>
-          {/* Close */}
           <button className="adp-close" onClick={()=>setOpen(false)}>✕</button>
         </div>
       </div>
 
-      {/* ── Chart ── */}
-      <div style={{ background:t.chartBg, position:'relative', minHeight:220 }}>
-        {chartStatus==='loading' && (
-          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:10 }}>
-            <div style={{ width:20, height:20, border:`3px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
-            <span style={{ color:t.sub, fontSize:12, fontFamily:'monospace' }}>Loading {symbol}…</span>
+      {/* ── Side-by-side: chart left, controls+info right ── */}
+      <div className="adp-body">
+
+        {/* Left: full-width chart */}
+        <div className="adp-chart-col" style={{ background:t.chartBg }}>
+          {chartStatus==='loading' && (
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:10 }}>
+              <div style={{ width:20, height:20, border:`3px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
+              <span style={{ color:t.sub, fontSize:12, fontFamily:'monospace' }}>Loading {symbol}…</span>
+            </div>
+          )}
+          {chartStatus==='error' && (
+            <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:8 }}>
+              <span style={{ fontSize:20 }}>⚠️</span>
+              <span style={{ color:t.sub, fontSize:11 }}>No data for {symbol}</span>
+              <button onClick={buildChart} style={{ padding:'5px 14px', background:col, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
+            </div>
+          )}
+          <div ref={containerRef} style={{ width:'100%', height:'100%', minHeight:260 }}/>
+        </div>
+
+        {/* Right: MSS controls + stock info */}
+        <div className="adp-side-col" style={{ background:t.panel, borderLeft:`1px solid ${t.border}` }}>
+          {/* MSS lookback */}
+          <div className="adp-mss-bar" style={{ borderBottom:`1px solid ${t.border}` }}>
+            <span style={{ fontSize:11, fontWeight:700, color:t.sub, whiteSpace:'nowrap' }}>MSS Lookback</span>
+            <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+              <input
+                type="number" min="5" max="730" value={lookbackInput}
+                onChange={e=>setLookbackInput(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter') fetchMss(); }}
+                className="adp-lb-input"
+                style={{ background:t.bg, border:`1px solid ${t.border}`, color:t.text }}
+                placeholder="days"
+              />
+              <span style={{ fontSize:10, color:t.sub }}>days</span>
+              <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
+                {mssLoading2 ? '…' : 'Calc'}
+              </button>
+            </div>
+            {mssData && (
+              <div className="adp-mss-results" style={{ marginTop:8 }}>
+                <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>
+                  MSS {mssData.mss}
+                </span>
+                <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>
+                  R² {mssData.r_squared?.toFixed(3)}
+                </span>
+                <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>
+                  σ {mssData.volatility?.toFixed(4)}
+                </span>
+                <div style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700, marginTop:3 }}>{mssData.status}</div>
+              </div>
+            )}
           </div>
-        )}
-        {chartStatus==='error' && (
-          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:8 }}>
-            <span style={{ fontSize:20 }}>⚠️</span>
-            <span style={{ color:t.sub, fontSize:11 }}>No data for {symbol}</span>
-            <button onClick={buildChart} style={{ padding:'5px 14px', background:col, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
-          </div>
-        )}
-        <div ref={containerRef} style={{ width:'100%', height:220 }}/>
+
+          {/* Stock info toggle lives here too */}
+          {!infoOpen && (
+            <div style={{ padding:'10px 12px' }}>
+              <button onClick={fetchInfo} style={{ width:'100%', padding:'8px 0', background:MP_SNOW.ice, border:`1.5px solid ${MP_SNOW.border}`, borderRadius:8, color:MP_SNOW.deep, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all 0.14s' }}
+                onMouseEnter={e=>{ e.currentTarget.style.background=MP_SNOW.bright; e.currentTarget.style.color='white'; }}
+                onMouseLeave={e=>{ e.currentTarget.style.background=MP_SNOW.ice; e.currentTarget.style.color=MP_SNOW.deep; }}>
+                ℹ️ Stock Info & Analyst Data
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── MSS lookback control ── */}
-      <div className="adp-mss-bar" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
-        <span style={{ fontSize:11, fontWeight:700, color:t.sub }}>MSS Lookback:</span>
-        <input
-          type="number" min="5" max="730" value={lookbackInput}
-          onChange={e=>setLookbackInput(e.target.value)}
-          onKeyDown={e=>{ if(e.key==='Enter') fetchMss(); }}
-          className="adp-lb-input"
-          style={{ background:t.bg, border:`1px solid ${t.border}`, color:t.text }}
-          placeholder="days"
-        />
-        <span style={{ fontSize:10, color:t.sub }}>days</span>
-        <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
-          {mssLoading2 ? '…' : 'Calc'}
-        </button>
-        {mssData && (
-          <div className="adp-mss-results">
-            <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>
-              MSS {mssData.mss}
-            </span>
-            <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>
-              R² {mssData.r_squared?.toFixed(3)}
-            </span>
-            <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>
-              σ {mssData.volatility?.toFixed(4)}
-            </span>
-            <span style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700 }}>{mssData.status}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ── Stock info panel ── */}
+      {/* ── Stock info panel — full width below ── */}
       {infoOpen && (
         <div className="adp-info-panel" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
@@ -1296,14 +1311,20 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   }, [tf]);
 
   // ── MSS lazy fetch for visible symbols ──
-  const fetchMSSForSymbols = useCallback(async (symbols) => {
-    const needed = symbols.filter(s => !mssCache[s] && !mssLoading[s]);
+  // force=true bypasses the cache (used after lookback changes)
+  const fetchMSSForSymbols = useCallback(async (symbols, force = false) => {
+    const needed = force
+      ? symbols.filter(s => !mssLoading[s])
+      : symbols.filter(s => !mssCache[s] && !mssLoading[s]);
     if (!needed.length) return;
     setMssLoading(p => { const n={...p}; needed.forEach(s => n[s]=true); return n; });
     const result = await mpFetchMSS(needed, baseUrl, mssLookback);
-    setMssCache(p => ({ ...p, ...result }));
+    setMssCache(p => {
+      const next = force ? {} : { ...p };
+      return { ...next, ...result };
+    });
     setMssLoading(p => { const n={...p}; needed.forEach(s => delete n[s]); return n; });
-  }, [mssCache, mssLoading, baseUrl, mssLookback]);
+  }, [mssLoading, baseUrl, mssLookback]);
 
   // ── FETCH OVERVIEW ──
   const fetchOverview = useCallback(async () => {
@@ -1825,9 +1846,19 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   <div className="mp-lb-wrap">
                     <span style={{ fontSize:11, color:'#0369a1', fontWeight:700, whiteSpace:'nowrap' }}>MSS Lookback:</span>
                     <input type="number" min="5" max="730" value={lbInput} onChange={e=>setLbInput(e.target.value)}
-                      onKeyDown={e=>{ if(e.key==='Enter'){ const v=parseInt(lbInput)||60; setMssLookback(v); setMssCache({}); } }}
+                      onKeyDown={e=>{ if(e.key==='Enter'){
+                        const v=parseInt(lbInput)||60;
+                        setMssLookback(v);
+                        const syms = filteredStocks.map(s=>s.symbol);
+                        if(syms.length) fetchMSSForSymbols(syms, true);
+                      }}}
                       className="mp-lb-input" placeholder="days"/>
-                    <button className="mp-lb-apply" onClick={()=>{ const v=parseInt(lbInput)||60; setMssLookback(v); setMssCache({}); }}>Apply</button>
+                    <button className="mp-lb-apply" onClick={()=>{
+                      const v=parseInt(lbInput)||60;
+                      setMssLookback(v);
+                      const syms = filteredStocks.map(s=>s.symbol);
+                      if(syms.length) fetchMSSForSymbols(syms, true);
+                    }}>Apply</button>
                   </div>
                   <span className="mp-count">{filteredStocks.length} / {curSectorData.stocks.length}</span>
                 </div>
@@ -3289,14 +3320,24 @@ export default function EconomicStrengthIndex() {
         .adp-divider { width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 1px; flex-shrink: 0; }
         .adp-close { padding: 3px 9px; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(248,113,113,0.2); color: #fca5a5; cursor: pointer; font-size: 12px; font-weight: 700; transition: all 0.12s; flex-shrink: 0; }
         .adp-close:hover { background: #f87171; color: white; }
-        .adp-mss-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 8px 12px; box-sizing: border-box; width: 100%; }
+        /* Side-by-side body */
+        .adp-body { display: flex; align-items: stretch; min-height: 280px; }
+        .adp-chart-col { flex: 1 1 60%; min-width: 0; position: relative; }
+        .adp-side-col { flex: 0 0 260px; min-width: 200px; max-width: 300px; display: flex; flex-direction: column; overflow-y: auto; }
+        .adp-mss-bar { display: flex; flex-direction: column; gap: 7px; padding: 12px; box-sizing: border-box; width: 100%; }
         .adp-lb-input { width: 55px; padding: 4px 7px; border-radius: 6px; font-size: 12px; outline: none; font-family: monospace; min-width: 0; }
         .adp-lb-btn { padding: 4px 11px; border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.12s; flex-shrink: 0; }
         .adp-lb-btn:hover { filter: brightness(1.15); }
         .adp-lb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .adp-mss-results { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-        .adp-mss-pill { font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 6px; font-family: monospace; }
+        .adp-mss-results { display: flex; flex-direction: column; gap: 5px; }
+        .adp-mss-pill { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; font-family: monospace; display: inline-block; width: fit-content; }
         .adp-info-panel { padding: 12px 14px; }
+        /* Mobile: stack vertically */
+        @media (max-width: 640px) {
+          .adp-body { flex-direction: column; }
+          .adp-chart-col { flex: 0 0 220px; min-height: 220px; }
+          .adp-side-col { flex: 0 0 auto; max-width: 100%; border-left: none !important; border-top: 1px solid #bae6fd; }
+        }
         /* ── LOOKBACK IN FILTER BAR ── */
         .mp-lb-wrap { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
         .mp-lb-input { width: 52px; padding: 5px 7px; border: 1.5px solid #bae6fd; border-radius: 7px; font-size: 12px; outline: none; font-family: monospace; background: white; color: #0c4a6e; min-width: 0; }
