@@ -1165,18 +1165,31 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
       });
       if (!newsRes.ok) throw new Error('News API error ' + newsRes.status);
       const newsJson = await newsRes.json();
-      const articles = newsJson.message || [];
-      const econEvents = newsJson.economic_events?.[0]?.economic_events || [];
 
-      // 3. Build prompt — use string concatenation everywhere, no template literals with embedded newlines
+      // Extract arrays — force Array.from so strings/objects never reach .map()
       const NL = '\n';
 
-      const newsBlock = articles.length
-        ? articles.map((a, i) => '[' + (i+1) + '] ' + (a.title||'') + ' | ' + (a.description||'') + ' | Highlights: ' + (a.highlights||'')).join(NL)
-        : 'No recent news available.';
+      const rawMsg   = newsJson.message;
+      const articles = Array.isArray(rawMsg) ? rawMsg : [];
 
-      const econBlock = econEvents.length
-        ? econEvents.slice(0, 10).map(e => '• ' + (e.event || e.name || e.title || JSON.stringify(e))).join(NL)
+      // econEvents: backend returns { economic_events: [...] } per asset
+      const econRaw    = newsJson.economic_events;
+      const econFirst  = Array.isArray(econRaw) ? econRaw[0] : null;
+      const econInner  = econFirst ? econFirst.economic_events : null;
+      const econEvents = Array.isArray(econInner) ? econInner : [];
+
+      const newsBlock = articles.length > 0
+        ? articles.slice(0, 3).map(function(a, i) {
+            if (!a || typeof a !== 'object') return '';
+            return '[' + (i+1) + '] ' + String(a.title||'no title') + ' | ' + String(a.description||'') + ' | Highlights: ' + String(a.highlights||'');
+          }).filter(Boolean).join(NL)
+        : 'No recent news found.';
+
+      const econBlock = econEvents.length > 0
+        ? econEvents.slice(0, 8).map(function(e) {
+            if (!e || typeof e !== 'object') return '';
+            return '• ' + String(e.event || e.name || e.title || JSON.stringify(e)).slice(0, 120);
+          }).filter(Boolean).join(NL)
         : 'No upcoming economic events.';
 
       const mssBlock = mssData
