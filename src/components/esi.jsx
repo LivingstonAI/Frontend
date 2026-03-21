@@ -901,8 +901,9 @@ const ADP_THEMES = {
 };
 const ADP_CHART_COLOR = { light:'#0ea5e9', dark:'#38bdf8', hud:'#00d4ff' };
 
-function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
-  const [open,        setOpen]        = useState(false);
+function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = null, embedded = false }) {
+  // When embedded=true the panel is always "open" — controlled by parent via onClose
+  const [open,        setOpen]        = useState(embedded);
   const [chartTheme,  setChartTheme]  = useState('dark');
   const [chartType,   setChartType]   = useState('area');   // area | line | candle
   const [lookback,    setLookback]    = useState(defaultLookback);
@@ -1093,7 +1094,8 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
 
   return (
     <div className="adp-panel" onClick={e=>e.stopPropagation()}>
-      {/* ── Panel top bar ── */}
+
+      {/* ── Top bar ── */}
       <div className="adp-topbar">
         <span className="adp-sym">{symbol}</span>
         {displayPrice && <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:13, color:col }}>{fmtPrice(displayPrice)}</span>}
@@ -1118,15 +1120,15 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
           ))}
           <div className="adp-divider"/>
           <button className="adp-pill" onClick={fetchInfo} title="Stock info">ℹ️</button>
-          <button className="adp-close" onClick={()=>setOpen(false)}>✕</button>
+          <button className="adp-close" onClick={()=>{ if(embedded && onClose) onClose(); else setOpen(false); }}>✕</button>
         </div>
       </div>
 
-      {/* ── Side-by-side: chart left, controls+info right ── */}
-      <div className="adp-body">
+      {/* ── Body row: chart left | stock info right ── */}
+      <div className="adp-body-row">
 
-        {/* Left: full-width chart */}
-        <div className="adp-chart-col" style={{ background:t.chartBg }}>
+        {/* Left: chart column */}
+        <div className="adp-chart-area" style={{ background:t.chartBg }}>
           {chartStatus==='loading' && (
             <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:t.chartBg, zIndex:5, gap:10 }}>
               <div style={{ width:20, height:20, border:`3px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
@@ -1141,129 +1143,124 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
             </div>
           )}
           <div ref={containerRef} style={{ width:'100%', height:320 }}/>
-        </div>
 
-        {/* Bottom: MSS controls + stock info, laid out in a row */}
-        <div className="adp-side-col" style={{ background:t.panel }}>
-          {/* MSS lookback */}
-          <div className="adp-mss-bar" style={{ borderBottom:`1px solid ${t.border}` }}>
+          {/* MSS bar below chart */}
+          <div className="adp-mss-bar" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
             <span style={{ fontSize:11, fontWeight:700, color:t.sub, whiteSpace:'nowrap' }}>MSS Lookback</span>
-            <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
-              <input
-                type="number" min="5" max="730" value={lookbackInput}
-                onChange={e=>setLookbackInput(e.target.value)}
-                onKeyDown={e=>{ if(e.key==='Enter') fetchMss(); }}
-                className="adp-lb-input"
-                style={{ background:t.bg, border:`1px solid ${t.border}`, color:t.text }}
-                placeholder="days"
-              />
-              <span style={{ fontSize:10, color:t.sub }}>days</span>
-              <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
-                {mssLoading2 ? '…' : 'Calc'}
-              </button>
-            </div>
+            <input
+              type="number" min="5" max="730" value={lookbackInput}
+              onChange={e=>setLookbackInput(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') fetchMss(); }}
+              className="adp-lb-input"
+              style={{ background:t.bg, border:`1px solid ${t.border}`, color:t.text }}
+              placeholder="days"
+            />
+            <span style={{ fontSize:10, color:t.sub }}>days</span>
+            <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
+              {mssLoading2 ? '…' : 'Calc'}
+            </button>
             {mssData && (
               <div className="adp-mss-results">
-                <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>
-                  MSS {mssData.mss}
-                </span>
-                <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>
-                  R² {mssData.r_squared?.toFixed(3)}
-                </span>
-                <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>
-                  σ {mssData.volatility?.toFixed(4)}
-                </span>
-                <div style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700, marginTop:3 }}>{mssData.status}</div>
+                <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>MSS {mssData.mss}</span>
+                <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>R² {mssData.r_squared?.toFixed(3)}</span>
+                <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>σ {mssData.volatility?.toFixed(4)}</span>
+                <span style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700 }}>{mssData.status}</span>
               </div>
             )}
           </div>
 
-          {/* Stock info toggle lives here too */}
+          {/* Show info button if panel not open */}
           {!infoOpen && (
-            <div style={{ padding:'10px 12px' }}>
-              <button onClick={fetchInfo} style={{ width:'100%', padding:'8px 0', background:MP_SNOW.ice, border:`1.5px solid ${MP_SNOW.border}`, borderRadius:8, color:MP_SNOW.deep, fontWeight:700, fontSize:12, cursor:'pointer', transition:'all 0.14s' }}
-                onMouseEnter={e=>{ e.currentTarget.style.background=MP_SNOW.bright; e.currentTarget.style.color='white'; }}
-                onMouseLeave={e=>{ e.currentTarget.style.background=MP_SNOW.ice; e.currentTarget.style.color=MP_SNOW.deep; }}>
-                ℹ️ Stock Info & Analyst Data
-              </button>
-            </div>
+            <button onClick={fetchInfo}
+              style={{ width:'100%', padding:'9px 0', background:MP_SNOW.ice, border:'none', borderTop:`1px solid ${MP_SNOW.border}`, color:MP_SNOW.deep, fontWeight:700, fontSize:12, cursor:'pointer', transition:'background 0.14s, color 0.14s' }}
+              onMouseEnter={e=>{ e.currentTarget.style.background=MP_SNOW.bright; e.currentTarget.style.color='white'; }}
+              onMouseLeave={e=>{ e.currentTarget.style.background=MP_SNOW.ice; e.currentTarget.style.color=MP_SNOW.deep; }}>
+              ℹ️ Show Stock Info &amp; Analyst Data
+            </button>
           )}
         </div>
-      </div>
 
-      {/* ── Stock info panel — full width below ── */}
-      {infoOpen && (
-        <div className="adp-info-panel" style={{ background:t.panel, borderTop:`1px solid ${t.border}` }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-            <span style={{ fontWeight:800, fontSize:13, color:t.text }}>Stock Info</span>
-            <button onClick={()=>setInfoOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:15 }}>✕</button>
-          </div>
-          {infoLoading && <div style={{ display:'flex', gap:8, alignItems:'center', color:t.sub, fontSize:12 }}><div style={{ width:14, height:14, border:`2px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/> Loading…</div>}
-          {infoError && <div style={{ color:'#f87171', fontSize:11 }}>⚠️ {infoError}</div>}
-          {infoData && !infoLoading && (
-            <div>
-              {/* Header */}
-              <div style={{ display:'flex', gap:10, marginBottom:12, alignItems:'flex-start' }}>
-                {infoData.logo_url && <img src={infoData.logo_url} alt="" style={{ width:32, height:32, borderRadius:6, objectFit:'contain', background:'white', border:`1px solid ${t.border}`, flexShrink:0 }} onError={e=>e.target.style.display='none'}/>}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:800, fontSize:13, color:t.text, lineHeight:1.2 }}>{infoData.name||symbol}</div>
-                  <div style={{ fontSize:11, color:t.sub }}>{infoData.sector} · {infoData.industry}</div>
-                  <div style={{ fontSize:11, color:t.sub }}>{infoData.exchange} · {infoData.country}</div>
+        {/* Right: stock info (appears when ℹ️ clicked) */}
+        {infoOpen && (
+          <div className="adp-info-area" style={{ background:t.panel, borderLeft:`1px solid ${t.border}` }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px 8px', borderBottom:`1px solid ${t.border}`, position:'sticky', top:0, background:t.panel, zIndex:2 }}>
+              <span style={{ fontWeight:800, fontSize:13, color:t.text }}>📋 {symbol}</span>
+              <button onClick={()=>setInfoOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1 }}>✕</button>
+            </div>
+            <div style={{ padding:'12px 14px', overflowY:'auto' }}>
+              {infoLoading && (
+                <div style={{ display:'flex', gap:8, alignItems:'center', color:t.sub, fontSize:12, padding:'20px 0' }}>
+                  <div style={{ width:14, height:14, border:`2px solid ${t.border}`, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/> Loading…
                 </div>
-                <div style={{ textAlign:'right', flexShrink:0 }}>
-                  <div style={{ fontFamily:'monospace', fontWeight:800, fontSize:14, color:infoData.change_pct>=0?'#22d3ee':'#f87171' }}>${fmtPrice(infoData.price)}</div>
-                  <div style={{ fontSize:11, fontWeight:700, color:infoData.change_pct>=0?'#22d3ee':'#f87171', background:(infoData.change_pct>=0?'#22d3ee':'#f87171')+'18', padding:'1px 6px', borderRadius:4, marginTop:2 }}>
-                    {infoData.change_pct>=0?'▲':'▼'} {Math.abs(infoData.change_pct||0).toFixed(2)}%
+              )}
+              {infoError && <div style={{ color:'#f87171', fontSize:11 }}>⚠️ {infoError}</div>}
+              {infoData && !infoLoading && (
+                <div>
+                  {/* Company header */}
+                  <div style={{ display:'flex', gap:10, marginBottom:12, alignItems:'flex-start' }}>
+                    {infoData.logo_url && <img src={infoData.logo_url} alt="" style={{ width:32, height:32, borderRadius:6, objectFit:'contain', background:'white', border:`1px solid ${t.border}`, flexShrink:0 }} onError={e=>e.target.style.display='none'}/>}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:800, fontSize:13, color:t.text, lineHeight:1.2 }}>{infoData.name||symbol}</div>
+                      <div style={{ fontSize:11, color:t.sub }}>{infoData.sector} · {infoData.industry}</div>
+                      <div style={{ fontSize:11, color:t.sub }}>{infoData.exchange} · {infoData.country}</div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink:0 }}>
+                      <div style={{ fontFamily:'monospace', fontWeight:800, fontSize:14, color:infoData.change_pct>=0?'#22d3ee':'#f87171' }}>${fmtPrice(infoData.price)}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:infoData.change_pct>=0?'#22d3ee':'#f87171', background:(infoData.change_pct>=0?'#22d3ee':'#f87171')+'18', padding:'1px 6px', borderRadius:4, marginTop:2 }}>
+                        {infoData.change_pct>=0?'▲':'▼'} {Math.abs(infoData.change_pct||0).toFixed(2)}%
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              {/* Summary */}
-              {infoData.summary && <p style={{ fontSize:11, color:t.sub, lineHeight:1.5, margin:'0 0 10px', padding:'8px 10px', background:t.bg, borderRadius:6, border:`1px solid ${t.border}`, fontStyle:'italic' }}>{infoData.summary.slice(0,260)}…</p>}
-              {/* Metrics grid */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(85px,1fr))', gap:'7px 12px', marginBottom:10 }}>
-                {[
-                  ['Mkt Cap', fmtBig(infoData.market_cap)],
-                  ['P/E', infoData.pe_ratio?.toFixed(1)||'—'],
-                  ['P/B', infoData.pb_ratio?.toFixed(2)||'—'],
-                  ['EPS', infoData.eps?'$'+infoData.eps.toFixed(2):'—'],
-                  ['Revenue', fmtBig(infoData.revenue)],
-                  ['Gross Mgn', infoData.gross_margin?(infoData.gross_margin*100).toFixed(1)+'%':'—'],
-                  ['Net Mgn', infoData.profit_margin?(infoData.profit_margin*100).toFixed(1)+'%':'—'],
-                  ['ROE', infoData.roe?(infoData.roe*100).toFixed(1)+'%':'—'],
-                  ['D/E', infoData.debt_equity?.toFixed(2)||'—'],
-                  ['Beta', infoData.beta?.toFixed(2)||'—'],
-                  ['52W Hi', infoData.week52_high?'$'+infoData.week52_high.toFixed(2):'—'],
-                  ['52W Lo', infoData.week52_low?'$'+infoData.week52_low.toFixed(2):'—'],
-                  ['Div Yield', infoData.dividend_yield?(infoData.dividend_yield*100).toFixed(2)+'%':'None'],
-                  ['Employees', fmtBig(infoData.employees)],
-                  ['Avg Vol', fmtBig(infoData.avg_volume)],
-                ].map(([label,val]) => (
-                  <div key={label}>
-                    <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.07em', color:t.sub, fontWeight:700 }}>{label}</div>
-                    <div style={{ fontSize:11, fontWeight:700, color:t.text, fontFamily:'monospace' }}>{val}</div>
+                  {infoData.summary && <p style={{ fontSize:11, color:t.sub, lineHeight:1.5, margin:'0 0 10px', padding:'8px 10px', background:t.bg, borderRadius:6, border:`1px solid ${t.border}`, fontStyle:'italic' }}>{infoData.summary.slice(0,300)}…</p>}
+                  {/* Metrics */}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'7px 10px', marginBottom:10 }}>
+                    {[
+                      ['Mkt Cap', fmtBig(infoData.market_cap)],
+                      ['P/E',     infoData.pe_ratio?.toFixed(1)||'—'],
+                      ['P/B',     infoData.pb_ratio?.toFixed(2)||'—'],
+                      ['EPS',     infoData.eps?'$'+infoData.eps.toFixed(2):'—'],
+                      ['Revenue', fmtBig(infoData.revenue)],
+                      ['Gross Mgn', infoData.gross_margin?(infoData.gross_margin*100).toFixed(1)+'%':'—'],
+                      ['Net Mgn',  infoData.profit_margin?(infoData.profit_margin*100).toFixed(1)+'%':'—'],
+                      ['ROE',     infoData.roe?(infoData.roe*100).toFixed(1)+'%':'—'],
+                      ['D/E',     infoData.debt_equity?.toFixed(2)||'—'],
+                      ['Beta',    infoData.beta?.toFixed(2)||'—'],
+                      ['52W Hi',  infoData.week52_high?'$'+infoData.week52_high.toFixed(2):'—'],
+                      ['52W Lo',  infoData.week52_low?'$'+infoData.week52_low.toFixed(2):'—'],
+                      ['Div Yld', infoData.dividend_yield?(infoData.dividend_yield*100).toFixed(2)+'%':'None'],
+                      ['Employees', fmtBig(infoData.employees)],
+                      ['Avg Vol', fmtBig(infoData.avg_volume)],
+                    ].map(([label,val]) => (
+                      <div key={label} style={{ background:t.bg, borderRadius:6, padding:'5px 8px', border:`1px solid ${t.border}` }}>
+                        <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.07em', color:t.sub, fontWeight:700 }}>{label}</div>
+                        <div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>{val}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              {/* Analyst targets */}
-              {(infoData.target_mean || infoData.recommendation) && (
-                <div style={{ background:`${col}0d`, border:`1px solid ${col}33`, borderRadius:8, padding:'8px 12px' }}>
-                  <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:col, marginBottom:6 }}>Analyst Targets</div>
-                  <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
-                    {infoData.target_low  && <div><div style={{ fontSize:9, color:t.sub }}>Low</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_low.toFixed(2)}</div></div>}
-                    {infoData.target_mean && <div><div style={{ fontSize:9, color:t.sub }}>Mean</div><div style={{ fontSize:12, fontWeight:800, color:col, fontFamily:'monospace' }}>${infoData.target_mean.toFixed(2)}</div></div>}
-                    {infoData.target_high && <div><div style={{ fontSize:9, color:t.sub }}>High</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_high.toFixed(2)}</div></div>}
-                    {infoData.recommendation && <div><div style={{ fontSize:9, color:t.sub }}>Consensus</div><div style={{ fontSize:12, fontWeight:800, color:col }}>{infoData.recommendation.toUpperCase()}</div></div>}
-                    {infoData.analyst_count && <div><div style={{ fontSize:9, color:t.sub }}>Analysts</div><div style={{ fontSize:12, fontWeight:700, color:t.text }}>{infoData.analyst_count}</div></div>}
-                  </div>
+                  {/* Analyst targets */}
+                  {(infoData.target_mean || infoData.recommendation) && (
+                    <div style={{ background:`${col}0d`, border:`1px solid ${col}33`, borderRadius:8, padding:'8px 10px' }}>
+                      <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:col, marginBottom:6 }}>Analyst Targets</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(70px,1fr))', gap:6 }}>
+                        {infoData.target_low  && <div style={{ background:t.bg, borderRadius:5, padding:'4px 7px' }}><div style={{ fontSize:9, color:t.sub }}>Low</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_low.toFixed(2)}</div></div>}
+                        {infoData.target_mean && <div style={{ background:t.bg, borderRadius:5, padding:'4px 7px' }}><div style={{ fontSize:9, color:t.sub }}>Mean</div><div style={{ fontSize:12, fontWeight:800, color:col, fontFamily:'monospace' }}>${infoData.target_mean.toFixed(2)}</div></div>}
+                        {infoData.target_high && <div style={{ background:t.bg, borderRadius:5, padding:'4px 7px' }}><div style={{ fontSize:9, color:t.sub }}>High</div><div style={{ fontSize:12, fontWeight:700, color:t.text, fontFamily:'monospace' }}>${infoData.target_high.toFixed(2)}</div></div>}
+                        {infoData.recommendation && <div style={{ background:t.bg, borderRadius:5, padding:'4px 7px' }}><div style={{ fontSize:9, color:t.sub }}>Rating</div><div style={{ fontSize:12, fontWeight:800, color:col }}>{infoData.recommendation.toUpperCase()}</div></div>}
+                        {infoData.analyst_count && <div style={{ background:t.bg, borderRadius:5, padding:'4px 7px' }}><div style={{ fontSize:9, color:t.sub }}>Analysts</div><div style={{ fontSize:12, fontWeight:700, color:t.text }}>{infoData.analyst_count}</div></div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+
+      </div>{/* adp-body-row */}
     </div>
   );
 }
+
 
 // ─── MARKET PULSE MAIN ───────────────────────────────────────────────────────
 function MarketPulse({ baseUrl, allStocks, sectorColors }) {
@@ -1307,6 +1304,9 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   // MSS lookback (days) — shared across all assets in the current view
   const [mssLookback,  setMssLookback]  = useState(60);
   const [lbInput,      setLbInput]      = useState('60');
+
+  // Active expanded asset panel (symbol string or null)
+  const [openPanel,    setOpenPanel]    = useState(null);
 
   const tfObj   = MP_TF_LIST.find(t => t.label === tf) || MP_TF_LIST[6];
   const sectors = useMemo(() => [...new Set(allStocks.map(s => s.sector))].sort(), [allStocks]);
@@ -1982,7 +1982,11 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                           }
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <R2Badge r2={mss?.r_squared}/>
-                            <AssetDetailPanel symbol={stock.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                            <button
+                              className={`adp-open-btn ${openPanel===stock.symbol?'active':''}`}
+                              onClick={e=>{ e.stopPropagation(); setOpenPanel(p=>p===stock.symbol?null:stock.symbol); }}
+                              title="View chart & data"
+                            >📊</button>
                           </div>
                         </div>
                       </React.Fragment>
@@ -1990,6 +1994,18 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   })}
                 </div>
 
+
+                {/* ── Full-width asset detail panel (outside table) ── */}
+                {openPanel && (
+                  <AssetDetailPanel
+                    key={openPanel}
+                    symbol={openPanel}
+                    baseUrl={baseUrl}
+                    defaultLookback={mssLookback}
+                    onClose={() => setOpenPanel(null)}
+                    embedded
+                  />
+                )}
                 {/* Correlation section */}
                 {corrOpen && (
                   <div className="mp-corr-section">
@@ -2131,13 +2147,29 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                           {mssLoading[idx.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <R2Badge r2={mss?.r_squared}/>
-                            <AssetDetailPanel symbol={idx.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                            <button
+                              className={`adp-open-btn ${openPanel===idx.symbol?'active':''}`}
+                              onClick={e=>{ e.stopPropagation(); setOpenPanel(p=>p===idx.symbol?null:idx.symbol); }}
+                              title="View chart & data"
+                            >📊</button>
                           </div>
                         </div>
                       </React.Fragment>
                     );
                   })}
                 </div>
+
+                {/* ── Full-width asset detail panel (outside table) ── */}
+                {openPanel && (
+                  <AssetDetailPanel
+                    key={openPanel}
+                    symbol={openPanel}
+                    baseUrl={baseUrl}
+                    defaultLookback={mssLookback}
+                    onClose={() => setOpenPanel(null)}
+                    embedded
+                  />
+                )}
               </>
             )}
           </>
@@ -2205,13 +2237,29 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                           {mssLoading[e.symbol] ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span> : <MssBadge mss={mss?.mss}/>}
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <R2Badge r2={mss?.r_squared}/>
-                            <AssetDetailPanel symbol={e.symbol} baseUrl={baseUrl} defaultLookback={mssLookback}/>
+                            <button
+                              className={`adp-open-btn ${openPanel===e.symbol?'active':''}`}
+                              onClick={e2=>{ e2.stopPropagation(); setOpenPanel(p=>p===e.symbol?null:e.symbol); }}
+                              title="View chart & data"
+                            >📊</button>
                           </div>
                         </div>
                       </React.Fragment>
                     );
                   })}
                 </div>
+
+                {/* ── Full-width asset detail panel (outside table) ── */}
+                {openPanel && (
+                  <AssetDetailPanel
+                    key={openPanel}
+                    symbol={openPanel}
+                    baseUrl={baseUrl}
+                    defaultLookback={mssLookback}
+                    onClose={() => setOpenPanel(null)}
+                    embedded
+                  />
+                )}
               </>
             )}
           </>
@@ -3436,6 +3484,7 @@ export default function EconomicStrengthIndex() {
         /* ── ASSET DETAIL PANEL ── */
         .adp-open-btn { background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 6px; padding: 3px 7px; cursor: pointer; font-size: 12px; line-height: 1; transition: all 0.14s; flex-shrink: 0; color: #0369a1; }
         .adp-open-btn:hover { background: #0ea5e9; color: white; transform: scale(1.08); }
+        .adp-open-btn.active { background: #0ea5e9; color: white; border-color: #0369a1; box-shadow: 0 0 0 2px rgba(14,165,233,0.3); }
         .adp-panel { grid-column: 1 / -1; border-radius: 10px; overflow: hidden; border: 1.5px solid #bae6fd; margin: 4px 0 8px; box-shadow: 0 4px 20px rgba(14,165,233,0.1); width: 100%; box-sizing: border-box; }
         .adp-topbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 10px; background: linear-gradient(135deg,#0c4a6e,#0369a1); box-sizing: border-box; width: 100%; }
         .adp-sym { font-family: 'IBM Plex Mono',monospace; font-weight: 800; font-size: 13px; color: #e0f2fe; flex-shrink: 0; }
@@ -3447,10 +3496,12 @@ export default function EconomicStrengthIndex() {
         .adp-close { padding: 3px 9px; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(248,113,113,0.2); color: #fca5a5; cursor: pointer; font-size: 12px; font-weight: 700; transition: all 0.12s; flex-shrink: 0; }
         .adp-close:hover { background: #f87171; color: white; }
         /* Side-by-side body */
-        .adp-body { display: flex; flex-direction: column; }
-        .adp-chart-col { width: 100%; position: relative; min-height: 300px; }
-        .adp-side-col { width: 100%; display: flex; flex-direction: row; flex-wrap: wrap; gap: 0; border-top: 1px solid #bae6fd; border-left: none !important; }
-        .adp-mss-bar { display: flex; flex-direction: row; align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 10px 14px; box-sizing: border-box; flex: 1 1 auto; }
+        /* adp-body-row: chart left, info right */
+        .adp-body-row { display: flex; flex-direction: row; align-items: stretch; min-height: 360px; width: 100%; }
+        .adp-chart-area { flex: 1 1 50%; min-width: 0; position: relative; display: flex; flex-direction: column; }
+        .adp-info-area { flex: 0 0 340px; min-width: 260px; max-width: 380px; display: flex; flex-direction: column; overflow: hidden; }
+        .adp-info-area > div:last-child { flex: 1 1 auto; overflow-y: auto; }
+        .adp-mss-bar { display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; box-sizing: border-box; }
         .adp-lb-input { width: 55px; padding: 4px 7px; border-radius: 6px; font-size: 12px; outline: none; font-family: monospace; min-width: 0; }
         .adp-lb-btn { padding: 4px 11px; border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.12s; flex-shrink: 0; }
         .adp-lb-btn:hover { filter: brightness(1.15); }
@@ -3460,7 +3511,9 @@ export default function EconomicStrengthIndex() {
         .adp-info-panel { padding: 12px 14px; }
         /* Mobile: stack vertically */
         @media (max-width: 640px) {
-          .adp-chart-col { min-height: 220px; }
+          .adp-body-row { flex-direction: column; }
+          .adp-chart-area { min-height: 240px; }
+          .adp-info-area { flex: 0 0 auto; max-width: 100%; border-left: none !important; border-top: 1px solid #bae6fd; min-width: 0; }
         }
         /* ── DRILL SEARCH BAR ── */
         .mp-drill-search-wrap {
