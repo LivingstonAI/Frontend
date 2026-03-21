@@ -1113,11 +1113,7 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
 
       // 3. Build prompt
       const newsBlock = articles.length
-        ? articles.map((a, i) => `[${i+1}] ${a.title}
-${a.description}
-Highlights: ${a.highlights}`).join('
-
-')
+        ? articles.map((a, i) => ('[' + (i+1) + '] ' + a.title + ' | ' + a.description + ' | Highlights: ' + a.highlights)).join('\n')
         : 'No recent news available.';
 
       const econBlock = econEvents.length
