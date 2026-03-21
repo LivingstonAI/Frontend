@@ -1095,68 +1095,71 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
     setAiError('');
     try {
       // 1. Fetch OpenAI key
-      const keyRes = await fetch(`${baseUrl}/get_openai_key`);
+      const keyRes = await fetch(baseUrl + '/get_openai_key');
       if (!keyRes.ok) throw new Error('Could not fetch API key');
       const { OPENAI_API_KEY } = await keyRes.json();
       if (!OPENAI_API_KEY) throw new Error('No API key returned');
 
       // 2. Fetch news + economic events
-      const newsRes = await fetch(`${baseUrl}/fetch_news_data_api`, {
+      const newsRes = await fetch(baseUrl + '/fetch_news_data_api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assets: [symbol], user_email: 'internal@snowai' }),
       });
-      if (!newsRes.ok) throw new Error(`News API error ${newsRes.status}`);
+      if (!newsRes.ok) throw new Error('News API error ' + newsRes.status);
       const newsJson = await newsRes.json();
       const articles = newsJson.message || [];
       const econEvents = newsJson.economic_events?.[0]?.economic_events || [];
 
-      // 3. Build prompt
+      // 3. Build prompt — use string concatenation everywhere, no template literals with embedded newlines
+      const NL = '\n';
+
       const newsBlock = articles.length
-        ? articles.map((a, i) => ('[' + (i+1) + '] ' + a.title + ' | ' + a.description + ' | Highlights: ' + a.highlights)).join('\n')
+        ? articles.map((a, i) => '[' + (i+1) + '] ' + (a.title||'') + ' | ' + (a.description||'') + ' | Highlights: ' + (a.highlights||'')).join(NL)
         : 'No recent news available.';
 
       const econBlock = econEvents.length
-        ? econEvents.slice(0, 10).map(e => `• ${e.event || e.name || JSON.stringify(e)}`).join('
-')
+        ? econEvents.slice(0, 10).map(e => '• ' + (e.event || e.name || e.title || JSON.stringify(e))).join(NL)
         : 'No upcoming economic events.';
 
       const mssBlock = mssData
-        ? `MSS: ${mssData.mss} | R²: ${mssData.r_squared?.toFixed(3)} | Volatility: ${mssData.volatility?.toFixed(4)} | Status: ${mssData.status}`
+        ? 'MSS: ' + mssData.mss + ' | R2: ' + (mssData.r_squared ? mssData.r_squared.toFixed(3) : '—') + ' | Volatility: ' + (mssData.volatility ? mssData.volatility.toFixed(4) : '—') + ' | Status: ' + (mssData.status || '—')
         : 'MSS data not available.';
 
       const infoBlock = infoData
-        ? `Company: ${infoData.name} | Sector: ${infoData.sector} | Market Cap: ${infoData.market_cap ? (infoData.market_cap/1e9).toFixed(1)+'B' : '—'} | P/E: ${infoData.pe_ratio?.toFixed(1)||'—'} | Analyst: ${infoData.recommendation?.toUpperCase()||'—'}`
+        ? 'Company: ' + (infoData.name||symbol) + ' | Sector: ' + (infoData.sector||'—') + ' | Market Cap: ' + (infoData.market_cap ? (infoData.market_cap/1e9).toFixed(1)+'B' : '—') + ' | P/E: ' + (infoData.pe_ratio ? infoData.pe_ratio.toFixed(1) : '—') + ' | Analyst: ' + (infoData.recommendation ? infoData.recommendation.toUpperCase() : '—')
         : '';
 
-      const prompt = `You are a professional financial analyst. Analyse ${symbol} based on the following data and provide a concise, insightful report.
-
-FUNDAMENTALS:
-${infoBlock || 'Not available.'}
-
-MARKET STABILITY:
-${mssBlock}
-
-RECENT NEWS (last 3 articles):
-${newsBlock}
-
-UPCOMING ECONOMIC EVENTS:
-${econBlock}
-
-Provide your analysis in these sections:
-1. **Market Sentiment** — What does the news and market data suggest about current sentiment?
-2. **Technical Outlook** — Based on MSS score and R², is this asset trending cleanly or choppy?
-3. **Key Risks** — What are the main risks from news and economic events?
-4. **Analyst View** — Short summary of what to watch for.
-
-Keep each section to 2–3 sentences. Be direct and professional. No disclaimers.`;
+      const prompt = [
+        'You are a professional financial analyst. Analyse ' + symbol + ' and provide a concise insightful report based on the data below.',
+        '',
+        'FUNDAMENTALS:',
+        infoBlock || 'Not available.',
+        '',
+        'MARKET STABILITY:',
+        mssBlock,
+        '',
+        'RECENT NEWS (last 3 articles):',
+        newsBlock,
+        '',
+        'UPCOMING ECONOMIC EVENTS:',
+        econBlock,
+        '',
+        'Provide your analysis in exactly these 4 sections using this format:',
+        '1. **Market Sentiment** — what the news and data suggest about sentiment',
+        '2. **Technical Outlook** — based on MSS score and R2, trending cleanly or choppy?',
+        '3. **Key Risks** — main risks from news and economic events',
+        '4. **Analyst View** — short summary of what to watch for',
+        '',
+        'Keep each section to 2-3 sentences. Be direct and professional. No disclaimers.',
+      ].join(NL);
 
       // 4. Call GPT-4o-mini
       const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': 'Bearer ' + OPENAI_API_KEY,
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
@@ -1167,16 +1170,17 @@ Keep each section to 2–3 sentences. Be direct and professional. No disclaimers
       });
       if (!gptRes.ok) {
         const errBody = await gptRes.json().catch(() => ({}));
-        throw new Error(errBody?.error?.message || `OpenAI error ${gptRes.status}`);
+        throw new Error((errBody && errBody.error && errBody.error.message) || ('OpenAI error ' + gptRes.status));
       }
       const gptJson = await gptRes.json();
-      const rawText = gptJson.choices?.[0]?.message?.content || '';
+      const rawText = (gptJson.choices && gptJson.choices[0] && gptJson.choices[0].message && gptJson.choices[0].message.content) || '';
       setAiData({ text: rawText, fetchedAt: new Date().toLocaleTimeString() });
     } catch(e) {
-      setAiError(e.message);
+      setAiError(e.message || 'Unknown error');
     }
     setAiLoading(false);
   };
+
 
   const fmtPrice = v => { if(!v) return '—'; if(v>=1e4) return v.toLocaleString(undefined,{maximumFractionDigits:0}); if(v<0.01) return v.toFixed(5); if(v<10) return v.toFixed(4); return v.toFixed(2); };
   const fmtBig   = v => { if(!v) return '—'; if(v>=1e12) return (v/1e12).toFixed(2)+'T'; if(v>=1e9) return (v/1e9).toFixed(2)+'B'; if(v>=1e6) return (v/1e6).toFixed(2)+'M'; return v.toLocaleString(); };
@@ -1386,28 +1390,26 @@ Keep each section to 2–3 sentences. Be direct and professional. No disclaimers
           {/* Content */}
           {aiData && !aiLoading && (
             <div style={{ padding:'14px 18px' }}>
-              {/* Parse sections and render styled */}
-              {aiData.text.split(/
-(?=\d\.\s+\*\*)/).map((section, si) => {
-                // Extract heading and body
-                const headMatch = section.match(/^(\d\.\s+\*\*(.+?)\*\*)\s*([\s\S]*)$/);
-                if (!headMatch) return (
-                  <p key={si} style={{ fontSize:12, color:t.sub, lineHeight:1.6, margin:'0 0 8px' }}>{section.trim()}</p>
-                );
-                const [, , heading, body] = headMatch;
-                const sectionColors = ['#0ea5e9','#22d3ee','#f87171','#7c3aed'];
-                const sc = sectionColors[si] || '#64748b';
-                return (
-                  <div key={si} style={{ marginBottom:14, padding:'10px 14px', background:t.bg, borderRadius:8, borderLeft:`3px solid ${sc}`, border:`1px solid ${sc}22`, borderLeftWidth:3 }}>
-                    <div style={{ fontWeight:800, fontSize:12, color:sc, marginBottom:5, textTransform:'uppercase', letterSpacing:'0.06em' }}>
-                      {heading}
-                    </div>
-                    <p style={{ fontSize:12, color:t.text, lineHeight:1.65, margin:0 }}>
-                      {body.trim()}
-                    </p>
-                  </div>
-                );
-              })}
+              {(() => {
+                const SCOLS = ['#0ea5e9','#22d3ee','#f87171','#7c3aed'];
+                const txt = aiData.text || '';
+                // Split on numbered section lines like "1. **Heading**"
+                const parts = txt.split(/(?=\d+\.\s)/).filter(s => s.trim());
+                if (!parts.length) return <p style={{ fontSize:12, color:t.sub }}>{txt}</p>;
+                return parts.map((section, si) => {
+                  const sc = SCOLS[si] || '#64748b';
+                  const m  = section.match(/^\d+\.\s+\*\*([^*]+)\*\*\s*([\s\S]*)$/);
+                  if (m) {
+                    return (
+                      <div key={si} style={{ marginBottom:12, padding:'10px 14px', background:t.bg, borderRadius:8, borderLeft:'3px solid '+sc, border:'1px solid '+sc+'22', borderLeftWidth:3 }}>
+                        <div style={{ fontWeight:800, fontSize:11, color:sc, marginBottom:4, textTransform:'uppercase', letterSpacing:'0.07em' }}>{m[1].trim()}</div>
+                        <p style={{ fontSize:12, color:t.text, lineHeight:1.65, margin:0 }}>{m[2].trim()}</p>
+                      </div>
+                    );
+                  }
+                  return <p key={si} style={{ fontSize:12, color:t.sub, lineHeight:1.6, margin:'0 0 8px' }}>{section.trim()}</p>;
+                });
+              })()}
               <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
                 <button onClick={()=>{ setAiData(null); fetchAiAnalysis(); }}
                   style={{ padding:'5px 14px', background:'#7c3aed22', border:'1px solid #7c3aed44', borderRadius:7, color:'#7c3aed', fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.14s' }}
