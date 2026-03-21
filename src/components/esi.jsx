@@ -972,8 +972,13 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
 
       if (!rawData.length) { setChartStatus('error'); return; }
 
+      // Wait one frame so the DOM has fully painted and clientWidth is accurate
+      await new Promise(r => requestAnimationFrame(r));
+      const chartW = containerRef.current.clientWidth || containerRef.current.offsetWidth || 600;
+      const chartH = Math.max(containerRef.current.clientHeight || 0, 300);
+
       const chart = LWC.createChart(containerRef.current, {
-        width: containerRef.current.clientWidth, height: containerRef.current.clientHeight || 280,
+        width: chartW, height: chartH,
         layout: { background:{ type:'solid', color:t.chartBg }, textColor:t.text, fontFamily:"'IBM Plex Mono',monospace" },
         grid:   { vertLines:{ color:t.grid }, horzLines:{ color:t.grid } },
         crosshair: { mode:1, vertLine:{ color:t.cross, style:2 }, horzLine:{ color:t.cross, style:2 } },
@@ -1018,7 +1023,13 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
 
       chart.timeScale().fitContent();
       chartRef.current = chart;
-      const ro = new ResizeObserver(() => { if(containerRef.current&&chartRef.current) chartRef.current.applyOptions({ width:containerRef.current.clientWidth, height:containerRef.current.clientHeight||280 }); });
+      const ro = new ResizeObserver(() => {
+        if (containerRef.current && chartRef.current) {
+          const w = containerRef.current.clientWidth || containerRef.current.offsetWidth || 600;
+          const h = Math.max(containerRef.current.clientHeight || 0, 300);
+          chartRef.current.applyOptions({ width: w, height: h });
+        }
+      });
       ro.observe(containerRef.current); roRef.current = ro;
       setChartStatus('ok');
     } catch(e) { console.error(e); setChartStatus('error'); }
@@ -1129,11 +1140,11 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
               <button onClick={buildChart} style={{ padding:'5px 14px', background:col, color:'#fff', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
             </div>
           )}
-          <div ref={containerRef} style={{ width:'100%', height:'100%', minHeight:260 }}/>
+          <div ref={containerRef} style={{ width:'100%', height:320 }}/>
         </div>
 
-        {/* Right: MSS controls + stock info */}
-        <div className="adp-side-col" style={{ background:t.panel, borderLeft:`1px solid ${t.border}` }}>
+        {/* Bottom: MSS controls + stock info, laid out in a row */}
+        <div className="adp-side-col" style={{ background:t.panel }}>
           {/* MSS lookback */}
           <div className="adp-mss-bar" style={{ borderBottom:`1px solid ${t.border}` }}>
             <span style={{ fontSize:11, fontWeight:700, color:t.sub, whiteSpace:'nowrap' }}>MSS Lookback</span>
@@ -1152,7 +1163,7 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60 }) {
               </button>
             </div>
             {mssData && (
-              <div className="adp-mss-results" style={{ marginTop:8 }}>
+              <div className="adp-mss-results">
                 <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>
                   MSS {mssData.mss}
                 </span>
@@ -3436,22 +3447,20 @@ export default function EconomicStrengthIndex() {
         .adp-close { padding: 3px 9px; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; background: rgba(248,113,113,0.2); color: #fca5a5; cursor: pointer; font-size: 12px; font-weight: 700; transition: all 0.12s; flex-shrink: 0; }
         .adp-close:hover { background: #f87171; color: white; }
         /* Side-by-side body */
-        .adp-body { display: flex; align-items: stretch; min-height: 280px; }
-        .adp-chart-col { flex: 1 1 60%; min-width: 0; position: relative; }
-        .adp-side-col { flex: 0 0 260px; min-width: 200px; max-width: 300px; display: flex; flex-direction: column; overflow-y: auto; }
-        .adp-mss-bar { display: flex; flex-direction: column; gap: 7px; padding: 12px; box-sizing: border-box; width: 100%; }
+        .adp-body { display: flex; flex-direction: column; }
+        .adp-chart-col { width: 100%; position: relative; min-height: 300px; }
+        .adp-side-col { width: 100%; display: flex; flex-direction: row; flex-wrap: wrap; gap: 0; border-top: 1px solid #bae6fd; border-left: none !important; }
+        .adp-mss-bar { display: flex; flex-direction: row; align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 10px 14px; box-sizing: border-box; flex: 1 1 auto; }
         .adp-lb-input { width: 55px; padding: 4px 7px; border-radius: 6px; font-size: 12px; outline: none; font-family: monospace; min-width: 0; }
         .adp-lb-btn { padding: 4px 11px; border: none; border-radius: 6px; color: white; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.12s; flex-shrink: 0; }
         .adp-lb-btn:hover { filter: brightness(1.15); }
         .adp-lb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .adp-mss-results { display: flex; flex-direction: column; gap: 5px; }
+        .adp-mss-results { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; }
         .adp-mss-pill { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; font-family: monospace; display: inline-block; width: fit-content; }
         .adp-info-panel { padding: 12px 14px; }
         /* Mobile: stack vertically */
         @media (max-width: 640px) {
-          .adp-body { flex-direction: column; }
-          .adp-chart-col { flex: 0 0 220px; min-height: 220px; }
-          .adp-side-col { flex: 0 0 auto; max-width: 100%; border-left: none !important; border-top: 1px solid #bae6fd; }
+          .adp-chart-col { min-height: 220px; }
         }
         /* ── DRILL SEARCH BAR ── */
         .mp-drill-search-wrap {
