@@ -922,6 +922,12 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
   const [mssData,     setMssData]     = useState(null);
   const [mssLoading2, setMssLoading2] = useState(false);
 
+  // AI analysis state
+  const [aiOpen,      setAiOpen]      = useState(false);
+  const [aiData,      setAiData]      = useState(null);   // cached per symbol
+  const [aiLoading,   setAiLoading]   = useState(false);
+  const [aiError,     setAiError]     = useState('');
+
   const containerRef  = useRef(null);
   const chartRef      = useRef(null);
   const roRef         = useRef(null);
@@ -1081,6 +1087,101 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
     setMssLoading2(false);
   };
 
+  // ── AI Analysis ──
+  const fetchAiAnalysis = async () => {
+    if (aiData) { setAiOpen(o => !o); return; }  // cached — just toggle
+    setAiOpen(true);
+    setAiLoading(true);
+    setAiError('');
+    try {
+      // 1. Fetch OpenAI key
+      const keyRes = await fetch(`${baseUrl}/get_openai_key`);
+      if (!keyRes.ok) throw new Error('Could not fetch API key');
+      const { OPENAI_API_KEY } = await keyRes.json();
+      if (!OPENAI_API_KEY) throw new Error('No API key returned');
+
+      // 2. Fetch news + economic events
+      const newsRes = await fetch(`${baseUrl}/fetch_news_data_api`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assets: [symbol], user_email: 'internal@snowai' }),
+      });
+      if (!newsRes.ok) throw new Error(`News API error ${newsRes.status}`);
+      const newsJson = await newsRes.json();
+      const articles = newsJson.message || [];
+      const econEvents = newsJson.economic_events?.[0]?.economic_events || [];
+
+      // 3. Build prompt
+      const newsBlock = articles.length
+        ? articles.map((a, i) => `[${i+1}] ${a.title}
+${a.description}
+Highlights: ${a.highlights}`).join('
+
+')
+        : 'No recent news available.';
+
+      const econBlock = econEvents.length
+        ? econEvents.slice(0, 10).map(e => `• ${e.event || e.name || JSON.stringify(e)}`).join('
+')
+        : 'No upcoming economic events.';
+
+      const mssBlock = mssData
+        ? `MSS: ${mssData.mss} | R²: ${mssData.r_squared?.toFixed(3)} | Volatility: ${mssData.volatility?.toFixed(4)} | Status: ${mssData.status}`
+        : 'MSS data not available.';
+
+      const infoBlock = infoData
+        ? `Company: ${infoData.name} | Sector: ${infoData.sector} | Market Cap: ${infoData.market_cap ? (infoData.market_cap/1e9).toFixed(1)+'B' : '—'} | P/E: ${infoData.pe_ratio?.toFixed(1)||'—'} | Analyst: ${infoData.recommendation?.toUpperCase()||'—'}`
+        : '';
+
+      const prompt = `You are a professional financial analyst. Analyse ${symbol} based on the following data and provide a concise, insightful report.
+
+FUNDAMENTALS:
+${infoBlock || 'Not available.'}
+
+MARKET STABILITY:
+${mssBlock}
+
+RECENT NEWS (last 3 articles):
+${newsBlock}
+
+UPCOMING ECONOMIC EVENTS:
+${econBlock}
+
+Provide your analysis in these sections:
+1. **Market Sentiment** — What does the news and market data suggest about current sentiment?
+2. **Technical Outlook** — Based on MSS score and R², is this asset trending cleanly or choppy?
+3. **Key Risks** — What are the main risks from news and economic events?
+4. **Analyst View** — Short summary of what to watch for.
+
+Keep each section to 2–3 sentences. Be direct and professional. No disclaimers.`;
+
+      // 4. Call GPT-4o-mini
+      const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 600,
+          temperature: 0.7,
+        }),
+      });
+      if (!gptRes.ok) {
+        const errBody = await gptRes.json().catch(() => ({}));
+        throw new Error(errBody?.error?.message || `OpenAI error ${gptRes.status}`);
+      }
+      const gptJson = await gptRes.json();
+      const rawText = gptJson.choices?.[0]?.message?.content || '';
+      setAiData({ text: rawText, fetchedAt: new Date().toLocaleTimeString() });
+    } catch(e) {
+      setAiError(e.message);
+    }
+    setAiLoading(false);
+  };
+
   const fmtPrice = v => { if(!v) return '—'; if(v>=1e4) return v.toLocaleString(undefined,{maximumFractionDigits:0}); if(v<0.01) return v.toFixed(5); if(v<10) return v.toFixed(4); return v.toFixed(2); };
   const fmtBig   = v => { if(!v) return '—'; if(v>=1e12) return (v/1e12).toFixed(2)+'T'; if(v>=1e9) return (v/1e9).toFixed(2)+'B'; if(v>=1e6) return (v/1e6).toFixed(2)+'M'; return v.toLocaleString(); };
 
@@ -1120,6 +1221,7 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
           ))}
           <div className="adp-divider"/>
           <button className="adp-pill" onClick={fetchInfo} title="Stock info">ℹ️</button>
+          <button className={`adp-pill ${aiOpen?'active':''}`} onClick={fetchAiAnalysis} title="AI Analysis" style={{ background: aiOpen ? '#7c3aed' : undefined, borderColor: aiOpen ? '#7c3aed' : undefined }}>🤖 AI</button>
           <button className="adp-close" onClick={()=>{ if(embedded && onClose) onClose(); else setOpen(false); }}>✕</button>
         </div>
       </div>
@@ -1257,6 +1359,71 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
         )}
 
       </div>{/* adp-body-row */}
+
+      {/* ── AI Analysis Panel — full width below chart row ── */}
+      {aiOpen && (
+        <div className="adp-ai-panel" style={{ background:t.panel, borderTop:`2px solid #7c3aed` }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderBottom:`1px solid ${t.border}` }}>
+            <span style={{ fontSize:15 }}>🤖</span>
+            <span style={{ fontWeight:800, fontSize:13, color:'#7c3aed' }}>AI Analysis — {symbol}</span>
+            {aiData && <span style={{ fontSize:10, color:t.sub, marginLeft:'auto' }}>Generated {aiData.fetchedAt}</span>}
+            <button onClick={() => setAiOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1, marginLeft: aiData ? 0 : 'auto' }}>✕</button>
+          </div>
+
+          {/* Loading */}
+          {aiLoading && (
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'24px 20px', color:'#7c3aed' }}>
+              <div style={{ width:18, height:18, border:'2.5px solid #ede9fe', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'esi-spin 0.7s linear infinite', flexShrink:0 }}/>
+              <span style={{ fontSize:13, fontWeight:600 }}>Fetching news &amp; generating analysis with GPT-4o-mini…</span>
+            </div>
+          )}
+
+          {/* Error */}
+          {aiError && !aiLoading && (
+            <div style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ color:'#f87171', fontSize:12 }}>⚠️ {aiError}</span>
+              <button onClick={()=>{ setAiData(null); fetchAiAnalysis(); }} style={{ padding:'4px 12px', background:'#7c3aed', color:'white', border:'none', borderRadius:6, cursor:'pointer', fontSize:11, fontWeight:700 }}>Retry</button>
+            </div>
+          )}
+
+          {/* Content */}
+          {aiData && !aiLoading && (
+            <div style={{ padding:'14px 18px' }}>
+              {/* Parse sections and render styled */}
+              {aiData.text.split(/
+(?=\d\.\s+\*\*)/).map((section, si) => {
+                // Extract heading and body
+                const headMatch = section.match(/^(\d\.\s+\*\*(.+?)\*\*)\s*([\s\S]*)$/);
+                if (!headMatch) return (
+                  <p key={si} style={{ fontSize:12, color:t.sub, lineHeight:1.6, margin:'0 0 8px' }}>{section.trim()}</p>
+                );
+                const [, , heading, body] = headMatch;
+                const sectionColors = ['#0ea5e9','#22d3ee','#f87171','#7c3aed'];
+                const sc = sectionColors[si] || '#64748b';
+                return (
+                  <div key={si} style={{ marginBottom:14, padding:'10px 14px', background:t.bg, borderRadius:8, borderLeft:`3px solid ${sc}`, border:`1px solid ${sc}22`, borderLeftWidth:3 }}>
+                    <div style={{ fontWeight:800, fontSize:12, color:sc, marginBottom:5, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                      {heading}
+                    </div>
+                    <p style={{ fontSize:12, color:t.text, lineHeight:1.65, margin:0 }}>
+                      {body.trim()}
+                    </p>
+                  </div>
+                );
+              })}
+              <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
+                <button onClick={()=>{ setAiData(null); fetchAiAnalysis(); }}
+                  style={{ padding:'5px 14px', background:'#7c3aed22', border:'1px solid #7c3aed44', borderRadius:7, color:'#7c3aed', fontSize:11, fontWeight:700, cursor:'pointer', transition:'all 0.14s' }}
+                  onMouseEnter={e=>{ e.currentTarget.style.background='#7c3aed'; e.currentTarget.style.color='white'; }}
+                  onMouseLeave={e=>{ e.currentTarget.style.background='#7c3aed22'; e.currentTarget.style.color='#7c3aed'; }}>
+                  🔄 Regenerate
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -3508,6 +3675,15 @@ export default function EconomicStrengthIndex() {
         .adp-mss-results { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; }
         .adp-mss-pill { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; font-family: monospace; display: inline-block; width: fit-content; }
         .adp-info-panel { padding: 12px 14px; }
+        /* ── AI Analysis Panel ── */
+        .adp-ai-panel {
+          border-top: 2px solid #7c3aed;
+          animation: adp-slide-in 0.2s ease;
+        }
+        @keyframes adp-slide-in {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         /* Mobile: stack vertically */
         @media (max-width: 640px) {
           .adp-body-row { flex-direction: column; }
