@@ -1261,11 +1261,18 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
             <button onClick={fetchMss} disabled={mssLoading2} className="adp-lb-btn" style={{ background:col }}>
               {mssLoading2 ? '…' : 'Calc'}
             </button>
-            {mssData && (
+            {mssLoading2 && (
+              <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:t.sub }}>
+                <div style={{ width:12, height:12, border:'2px solid '+t.border, borderTopColor:col, borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
+                Computing {lookbackInput}d MSS + R²…
+              </div>
+            )}
+            {mssData && !mssLoading2 && (
               <div className="adp-mss-results">
+                <span style={{ fontSize:9, color:t.sub, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', alignSelf:'center' }}>{lookback}d →</span>
                 <span className="adp-mss-pill" style={{ color:mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171', background:(mssData.mss>=47?'#22d3ee':mssData.mss>=30?'#fbbf24':'#f87171')+'18' }}>MSS {mssData.mss}</span>
-                <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>R² {mssData.r_squared?.toFixed(3)}</span>
-                <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>σ {mssData.volatility?.toFixed(4)}</span>
+                <span className="adp-mss-pill" style={{ color:MP_SNOW.bright, background:MP_SNOW.ice }}>R² {mssData.r_squared != null ? mssData.r_squared.toFixed(3) : '—'}</span>
+                <span className="adp-mss-pill" style={{ color:'#94a3b8', background:'#f1f5f9' }}>σ {mssData.volatility != null ? mssData.volatility.toFixed(4) : '—'}</span>
                 <span style={{ fontSize:10, color:mssData.color||t.sub, fontWeight:700 }}>{mssData.status}</span>
               </div>
             )}
@@ -1392,22 +1399,44 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
             <div style={{ padding:'14px 18px' }}>
               {(() => {
                 const SCOLS = ['#0ea5e9','#22d3ee','#f87171','#7c3aed'];
-                const txt = aiData.text || '';
-                // Split on numbered section lines like "1. **Heading**"
-                const parts = txt.split(/(?=\d+\.\s)/).filter(s => s.trim());
-                if (!parts.length) return <p style={{ fontSize:12, color:t.sub }}>{txt}</p>;
-                return parts.map((section, si) => {
-                  const sc = SCOLS[si] || '#64748b';
-                  const m  = section.match(/^\d+\.\s+\*\*([^*]+)\*\*\s*([\s\S]*)$/);
-                  if (m) {
-                    return (
-                      <div key={si} style={{ marginBottom:12, padding:'10px 14px', background:t.bg, borderRadius:8, borderLeft:'3px solid '+sc, border:'1px solid '+sc+'22', borderLeftWidth:3 }}>
-                        <div style={{ fontWeight:800, fontSize:11, color:sc, marginBottom:4, textTransform:'uppercase', letterSpacing:'0.07em' }}>{m[1].trim()}</div>
-                        <p style={{ fontSize:12, color:t.text, lineHeight:1.65, margin:0 }}>{m[2].trim()}</p>
-                      </div>
-                    );
+                // Guard: ensure we have a plain string
+                const txt = (aiData && typeof aiData.text === 'string') ? aiData.text : String(aiData && aiData.text ? aiData.text : '');
+                if (!txt.trim()) return <p style={{ fontSize:12, color:t.sub }}>No analysis generated.</p>;
+
+                // Split into lines, then group by numbered header lines
+                const lines = txt.split('\n');
+                const sections = [];
+                let current = null;
+                lines.forEach(line => {
+                  const headerMatch = line.match(/^(\d+)\.\s+\*\*([^*]+)\*\*(.*)$/);
+                  if (headerMatch) {
+                    if (current) sections.push(current);
+                    current = { heading: headerMatch[2].trim(), body: headerMatch[3].trim(), idx: parseInt(headerMatch[1], 10) - 1 };
+                  } else if (current) {
+                    current.body = (current.body + ' ' + line).trim();
+                  } else {
+                    // preamble text before first section
+                    sections.push({ heading: null, body: line, idx: -1 });
                   }
-                  return <p key={si} style={{ fontSize:12, color:t.sub, lineHeight:1.6, margin:'0 0 8px' }}>{section.trim()}</p>;
+                });
+                if (current) sections.push(current);
+
+                if (!sections.length) {
+                  // Fallback: just render raw text
+                  return <p style={{ fontSize:12, color:t.text, lineHeight:1.65, whiteSpace:'pre-wrap' }}>{txt}</p>;
+                }
+
+                return sections.map((sec, si) => {
+                  if (!sec.heading) {
+                    return sec.body ? <p key={'pre-'+si} style={{ fontSize:12, color:t.sub, lineHeight:1.6, margin:'0 0 8px' }}>{sec.body}</p> : null;
+                  }
+                  const sc = SCOLS[sec.idx >= 0 ? sec.idx : si] || '#64748b';
+                  return (
+                    <div key={si} style={{ marginBottom:12, padding:'10px 14px', background:t.bg, borderRadius:8, borderLeft:'3px solid '+sc, outline:'1px solid '+sc+'22' }}>
+                      <div style={{ fontWeight:800, fontSize:11, color:sc, marginBottom:4, textTransform:'uppercase', letterSpacing:'0.07em' }}>{sec.heading}</div>
+                      <p style={{ fontSize:12, color:t.text, lineHeight:1.65, margin:0 }}>{sec.body}</p>
+                    </div>
+                  );
                 });
               })()}
               <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
