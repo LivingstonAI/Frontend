@@ -763,36 +763,42 @@ const mpClassify = (stockPrices, sectorPrices) => {
   return              { label:'Neutral',    color:'#fbbf24', emoji:'〰️' };
 };
 
+const MP_MIN_PTS = 5; // minimum data points for a ticker to be included
+
 const mpAlign = (seriesMap) => {
-  // Use INTERSECTION-biased approach: only keep timestamps where at least
-  // half the tickers have data, then forward-fill gaps within each series.
   const keys = Object.keys(seriesMap).filter(k => k !== '__times');
   if (!keys.length) return { __times: [] };
 
-  // Build union of all times
-  const allTimes = [...new Set(keys.flatMap(k => (seriesMap[k]||[]).map(p => p.time)))].sort((a,b)=>a-b);
+  // Pre-filter: drop any series with fewer than MP_MIN_PTS real points
+  const validKeys = keys.filter(k => (seriesMap[k]||[]).filter(p => p != null).length >= MP_MIN_PTS);
+  if (!validKeys.length) return { __times: [] };
 
-  // For each ticker, map time → close
+  // Build union of all times from valid series only
+  const allTimes = [...new Set(validKeys.flatMap(k => (seriesMap[k]||[]).map(p => p.time)))].sort((a,b)=>a-b);
+
+  // Map time → close for each valid series
   const byTimeMaps = {};
-  for (const key of keys) {
+  for (const key of validKeys) {
     byTimeMaps[key] = Object.fromEntries((seriesMap[key]||[]).map(p => [p.time, p.close]));
   }
 
-  // Only keep timestamps where at least ceil(n/2) tickers have a real value
-  const threshold = Math.ceil(keys.length / 2);
+  // Keep timestamps covered by at least 1 ticker (forward-fill handles gaps)
+  // Use a low threshold: just 1 ticker minimum — the forward-fill takes care of the rest
+  const threshold = Math.max(1, Math.ceil(validKeys.length * 0.2)); // 20% of valid tickers
   const filteredTimes = allTimes.filter(t =>
-    keys.filter(k => byTimeMaps[k][t] != null).length >= threshold
+    validKeys.filter(k => byTimeMaps[k][t] != null).length >= threshold
   );
 
-  // Build aligned arrays with forward-fill for missing values
+  // Build aligned arrays with forward-fill AND back-fill for missing values
   const result = {};
-  for (const key of keys) {
+  for (const key of validKeys) {
+    const raw = filteredTimes.map(t => byTimeMaps[key][t] ?? null);
+    // Forward fill
     let last = null;
-    result[key] = filteredTimes.map(t => {
-      const v = byTimeMaps[key][t];
-      if (v != null) { last = v; return v; }
-      return last; // forward-fill
-    });
+    const fwd = raw.map(v => { if (v != null) { last = v; return v; } return last; });
+    // Back fill (fill leading nulls with first known value)
+    let first = fwd.find(v => v != null) ?? null;
+    result[key] = fwd.map(v => v ?? first);
   }
   result.__times = filteredTimes;
   return result;
@@ -1285,6 +1291,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [mssFilter,    setMssFilter]    = useState('all');
   const [r2Filter,     setR2Filter]     = useState('all');
   const [clsFilter,    setClsFilter]    = useState('all');
+  const [drillSearch,  setDrillSearch]  = useState('');   // search across all drill views
 
   // MSS lookback (days) — shared across all assets in the current view
   const [mssLookback,  setMssLookback]  = useState(60);
@@ -1355,9 +1362,18 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       const sectorLines = {};
       for (const sec of sectors) {
         const tickers = sectorSamples[sec];
-        const fetched = {}; tickers.forEach(t => { fetched[t] = batch[t] || []; });
+        // Skip tickers with no/insufficient data before aligning
+        const fetched = {};
+        tickers.forEach(t => {
+          const pts = batch[t] || [];
+          if (pts.length >= MP_MIN_PTS) fetched[t] = pts;
+        });
+        if (!Object.keys(fetched).length) {
+          sectorLines[sec] = { prices: null, times: [], regime: mpRegime(null) };
+          continue;
+        }
         const aligned  = mpAlign(fetched);
-        const idx      = mpSectorIndex(aligned, tickers);
+        const idx      = mpSectorIndex(aligned, Object.keys(fetched));
         sectorLines[sec] = { prices: idx, times: aligned.__times || [], regime: mpRegime(idx) };
       }
       setOverviewData({ indices, commodities, sectorLines });
@@ -1380,9 +1396,17 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       const batch = await mpBatchFetch([...new Set(allT)], interval, period, baseUrl);
       const lines = {};
       for (const sec of sectors) {
-        const fetched = {}; sampleMap[sec].forEach(t => { fetched[t] = batch[t] || []; });
+        const fetched = {};
+        sampleMap[sec].forEach(t => {
+          const pts = batch[t] || [];
+          if (pts.length >= MP_MIN_PTS) fetched[t] = pts;
+        });
+        if (!Object.keys(fetched).length) {
+          lines[sec] = { norm: null, times: [], regime: mpRegime(null) };
+          continue;
+        }
         const aligned = mpAlign(fetched);
-        const idx     = mpSectorIndex(aligned, sampleMap[sec]);
+        const idx     = mpSectorIndex(aligned, Object.keys(fetched));
         const norm    = mpNormalize(idx);
         lines[sec] = { norm, times: aligned.__times || [], regime: mpRegime(idx) };
       }
@@ -1401,20 +1425,39 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       const tickers = allStocks.filter(s => s.sector === sector).map(s => s.symbol);
       await mpFetchMarketCaps(tickers, baseUrl);
       const batch   = await mpBatchFetch(tickers, interval, period, baseUrl);
-      const fetched = {}; tickers.forEach(t => { fetched[t] = batch[t] || []; });
+
+      // Skip tickers with insufficient data — use global MP_MIN_PTS threshold
+      const fetched = {};
+      const skipped = [];
+      tickers.forEach(t => {
+        const pts = batch[t] || [];
+        if (pts.length >= MP_MIN_PTS) fetched[t] = pts;
+        else skipped.push(t);
+      });
+      if (skipped.length) console.log(`[MarketPulse] Skipped ${skipped.length} tickers with <${MP_MIN_PTS} pts:`, skipped);
+
+      const activeTickers = Object.keys(fetched);
       const aligned   = mpAlign(fetched);
-      const sectorIdx = mpSectorIndex(aligned, tickers);
+      const sectorIdx = mpSectorIndex(aligned, activeTickers);
       const normIdx   = mpNormalize(sectorIdx);
       const regime    = mpRegime(sectorIdx);
       const times     = aligned.__times || [];
+
+      // Build stock entries — include ALL tickers (even skipped ones) so user sees them,
+      // but mark skipped ones as having no data
       const stocks = tickers.map(t => {
-        const raw  = aligned[t];
+        const raw  = aligned[t] || [];
         const norm = mpNormalize(raw);
-        const cls  = mpClassify(raw, sectorIdx);
+        const cls  = raw.length >= MP_MIN_PTS ? mpClassify(raw, sectorIdx) : { label:'No Data', color:'#94a3b8', emoji:'⬜' };
         const vals = (raw||[]).filter(v => v!=null);
         const ret  = vals.length>1 ? ((vals[vals.length-1]-vals[0])/vals[0]*100) : 0;
-        return { symbol:t, norm, raw, cls, ret:ret.toFixed(2), regime:mpRegime(raw) };
-      }).sort((a,b) => parseFloat(b.ret)-parseFloat(a.ret));
+        const noData = skipped.includes(t);
+        return { symbol:t, norm, raw, cls, ret:noData?'—':ret.toFixed(2), regime:noData?{ label:'No Data', color:'#94a3b8', emoji:'⬜' }:mpRegime(raw), noData };
+      }).sort((a,b) => {
+        if (a.noData && !b.noData) return 1;
+        if (!a.noData && b.noData) return -1;
+        return parseFloat(b.ret||0)-parseFloat(a.ret||0);
+      });
       setSectorCache(p => ({ ...p, [key]: { aligned, sectorIdx, normIdx, regime, times, stocks } }));
     } catch(e) { console.error(e); }
     setLoading(key, false);
@@ -1581,6 +1624,13 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
     const sd  = sectorCache[key];
     if (!sd) return [];
     let list = sd.stocks;
+    // Search
+    if (drillSearch.trim()) {
+      const q = drillSearch.toLowerCase();
+      list = list.filter(s => s.symbol.toLowerCase().includes(q));
+    }
+    // Hide no-data stocks unless specifically searching for them
+    if (!drillSearch.trim()) list = list.filter(s => !s.noData);
     if (clsFilter !== 'all') list = list.filter(s => s.cls.label === clsFilter);
     if (mssFilter !== 'all') {
       list = list.filter(s => {
@@ -1603,7 +1653,27 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       });
     }
     return list;
-  }, [sectorCache, activeSector, tf, clsFilter, mssFilter, r2Filter, mssCache]);
+  }, [sectorCache, activeSector, tf, clsFilter, mssFilter, r2Filter, mssCache, drillSearch]);
+
+  // Filtered indices (for search in index drill)
+  const filteredIndices = useMemo(() => {
+    const key = `indices-${tf}`;
+    const d   = indexCache[key];
+    if (!d) return [];
+    if (!drillSearch.trim()) return d;
+    const q = drillSearch.toLowerCase();
+    return d.filter(idx => idx.name.toLowerCase().includes(q) || idx.symbol.toLowerCase().includes(q));
+  }, [indexCache, tf, drillSearch]);
+
+  // Filtered commodities (for search in commodity drill)
+  const filteredCmdEntries = useMemo(() => {
+    const key = `cmd-${activeCmdGroup}-${tf}`;
+    const d   = cmdCache[key];
+    if (!d) return [];
+    if (!drillSearch.trim()) return d.entries;
+    const q = drillSearch.toLowerCase();
+    return d.entries.filter(e => e.name.toLowerCase().includes(q) || e.symbol.toLowerCase().includes(q));
+  }, [cmdCache, activeCmdGroup, tf, drillSearch]);
 
   // Trigger lazy MSS fetch when filtered stocks change
   useEffect(() => {
@@ -1654,7 +1724,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
           <span className="mp-title">Market Pulse</span>
           <div className="mp-tabs">
             {TABS.map(t => (
-              <button key={t.id} className={`mp-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+              <button key={t.id} className={`mp-tab ${tab===t.id?'active':''}`} onClick={() => { setTab(t.id); setDrillSearch(''); }}>{t.label}</button>
             ))}
           </div>
         </div>
@@ -1790,11 +1860,25 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
               {sectors.map(sec => (
                 <button key={sec} className={`mp-sector-pill ${activeSector===sec?'active':''}`}
                   style={{ '--sc': sectorColors[sec]||'#38bdf8' }}
-                  onClick={() => { setActiveSector(sec); fetchSector(sec); setCorrOpen(false); }}>
+                  onClick={() => { setActiveSector(sec); setDrillSearch(''); fetchSector(sec); setCorrOpen(false); }}>
                   {sec}
                 </button>
               ))}
             </div>
+              {/* ── Drill search bar ── */}
+              <div className="mp-drill-search-wrap">
+                <span className="mp-drill-search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="mp-drill-search"
+                  placeholder="Search…"
+                  value={drillSearch}
+                  onChange={e => setDrillSearch(e.target.value)}
+                />
+                {drillSearch && (
+                  <button className="mp-drill-search-clear" onClick={() => setDrillSearch('')}>✕</button>
+                )}
+              </div>
             {!activeSector && <div className="mp-empty"><p>👆 Select a sector above</p></div>}
             {activeSector && isLoading(curSectorKey) && <div className="mp-loading"><div className="mp-spinner"/><span>Loading {activeSector}…</span></div>}
             {activeSector && curSectorData && !isLoading(curSectorKey) && (
@@ -1860,7 +1944,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                       if(syms.length) fetchMSSForSymbols(syms, true);
                     }}>Apply</button>
                   </div>
-                  <span className="mp-count">{filteredStocks.length} / {curSectorData.stocks.length}</span>
+                  <span className="mp-count">{filteredStocks.length} / {curSectorData.stocks.filter(s=>!s.noData).length} ({curSectorData.stocks.length} total)</span>
                 </div>
 
                 {/* Stock table */}
@@ -1996,6 +2080,21 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
             )}
             {curIdxData && !isLoading(`indices-${tf}`) && (
               <>
+              {/* ── Drill search bar ── */}
+              <div className="mp-drill-search-wrap">
+                <span className="mp-drill-search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="mp-drill-search"
+                  placeholder="Search…"
+                  value={drillSearch}
+                  onChange={e => setDrillSearch(e.target.value)}
+                />
+                {drillSearch && (
+                  <button className="mp-drill-search-clear" onClick={() => setDrillSearch('')}>✕</button>
+                )}
+              </div>
+
                 <div className="mp-chart-box">
                   <div ref={idxDrillRef} style={{ width:'100%', height:340 }} />
                   <div className="mp-chart-sub">All indices normalized to 100 · {tf}</div>
@@ -2004,7 +2103,8 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   <div className="mp-table-head">
                     <span>Index</span><span>Return ({tf})</span><span>Regime</span><span>MSS</span><span>R²</span>
                   </div>
-                  {curIdxData.map(idx => {
+                  <div style={{ padding:'0 0 6px', fontSize:11, color:'#0369a1', fontWeight:600 }}>{filteredIndices.length} / {curIdxData.length} indices</div>
+                  {filteredIndices.map(idx => {
                     const mss = mssCache[idx.symbol];
                     return (
                       <React.Fragment key={idx.symbol}>
@@ -2039,11 +2139,25 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
               {Object.entries(MP_COMMODITY_GROUPS).map(([grp,g]) => (
                 <button key={grp} className={`mp-sector-pill ${activeCmdGroup===grp?'active':''}`}
                   style={{ '--sc': g.color }}
-                  onClick={() => { setActiveCmdGroup(grp); fetchCmdDrill(grp); }}>
+                  onClick={() => { setActiveCmdGroup(grp); setDrillSearch(''); fetchCmdDrill(grp); }}>
                   {grp}
                 </button>
               ))}
             </div>
+              {/* ── Drill search bar ── */}
+              <div className="mp-drill-search-wrap">
+                <span className="mp-drill-search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="mp-drill-search"
+                  placeholder="Search…"
+                  value={drillSearch}
+                  onChange={e => setDrillSearch(e.target.value)}
+                />
+                {drillSearch && (
+                  <button className="mp-drill-search-clear" onClick={() => setDrillSearch('')}>✕</button>
+                )}
+              </div>
             {!activeCmdGroup && <div className="mp-empty"><p>👆 Select a commodity group above</p></div>}
             {activeCmdGroup && isLoading(`cmd-${activeCmdGroup}-${tf}`) && <div className="mp-loading"><div className="mp-spinner"/><span>Loading {activeCmdGroup}…</span></div>}
             {activeCmdGroup && curCmdData && !isLoading(`cmd-${activeCmdGroup}-${tf}`) && (
@@ -2063,7 +2177,8 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                   <div className="mp-table-head">
                     <span>Instrument</span><span>Return ({tf})</span><span>Regime</span><span>MSS</span><span>R²</span>
                   </div>
-                  {curCmdData.entries.map(e => {
+                  <div style={{ padding:'0 0 6px', fontSize:11, color:'#0369a1', fontWeight:600 }}>{filteredCmdEntries.length} / {curCmdData.entries.length} instruments</div>
+                  {filteredCmdEntries.map(e => {
                     const mss = mssCache[e.symbol];
                     return (
                       <React.Fragment key={e.symbol}>
@@ -3338,6 +3453,28 @@ export default function EconomicStrengthIndex() {
           .adp-chart-col { flex: 0 0 220px; min-height: 220px; }
           .adp-side-col { flex: 0 0 auto; max-width: 100%; border-left: none !important; border-top: 1px solid #bae6fd; }
         }
+        /* ── DRILL SEARCH BAR ── */
+        .mp-drill-search-wrap {
+          display: flex; align-items: center; gap: 0;
+          background: white; border: 1.5px solid #bae6fd; border-radius: 9px;
+          padding: 0 4px 0 10px; margin-bottom: 10px; width: 100%; box-sizing: border-box;
+          transition: border-color 0.15s;
+        }
+        .mp-drill-search-wrap:focus-within { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+        .mp-drill-search-icon { font-size: 13px; flex-shrink: 0; }
+        .mp-drill-search {
+          flex: 1; border: none; outline: none; padding: 9px 8px;
+          font-size: 13px; color: #0c4a6e; background: transparent;
+          font-family: inherit;
+        }
+        .mp-drill-search::placeholder { color: #bae6fd; }
+        .mp-drill-search-clear {
+          background: none; border: none; cursor: pointer; color: #94a3b8;
+          font-size: 13px; padding: 4px 6px; border-radius: 5px; flex-shrink: 0;
+          transition: all 0.12s;
+        }
+        .mp-drill-search-clear:hover { background: #fee2e2; color: #f87171; }
+
         /* ── LOOKBACK IN FILTER BAR ── */
         .mp-lb-wrap { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
         .mp-lb-input { width: 52px; padding: 5px 7px; border: 1.5px solid #bae6fd; border-radius: 7px; font-size: 12px; outline: none; font-family: monospace; background: white; color: #0c4a6e; min-width: 0; }
