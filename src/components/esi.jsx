@@ -1010,28 +1010,38 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
 
       const tfObj2 = MP_TF_LIST.find(x => x.label === chartTf) || MP_TF_LIST[6];
 
-      // Fetch data
+      // Fetch data — always get full OHLC from Yahoo for candles; backend only has close
       let rawData = [];
-      try {
-        const res = await fetch(`${baseUrl}/api/esi_ohlcv_feed_v1/`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ ticker:symbol, interval:tfObj2.interval, range:tfObj2.period }),
-        });
-        if (res.ok) { const j = await res.json(); if (j.data?.length) rawData = j.data; }
-      } catch(_) {}
-      if (!rawData.length) {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${tfObj2.interval}&range=${tfObj2.period}&includePrePost=false`;
+      const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(symbol) + '?interval=' + tfObj2.interval + '&range=' + tfObj2.period + '&includePrePost=false';
+
+      const fetchYahooOHLC = async () => {
+        const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(yahooUrl));
+        if (!r.ok) return [];
+        const d = await r.json();
+        const result = d && d.chart && d.chart.result && d.chart.result[0];
+        if (!result) return [];
+        const ts = result.timestamp || [];
+        const q  = (result.indicators && result.indicators.quote && result.indicators.quote[0]) || {};
+        return ts.map(function(tm, i) {
+          return { time:tm, open:q.open&&q.open[i], high:q.high&&q.high[i], low:q.low&&q.low[i], close:q.close&&q.close[i] };
+        }).filter(function(x) { return x.close != null && isFinite(x.close); });
+      };
+
+      if (chartType === 'candle') {
+        // Always use Yahoo for candles — backend only returns close price
+        try { rawData = await fetchYahooOHLC(); } catch(_) {}
+      } else {
+        // Try backend first for close-only charts (faster)
         try {
-          const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-          if (r.ok) {
-            const d = await r.json();
-            const result = d?.chart?.result?.[0];
-            if (result) {
-              const ts = result.timestamp||[], q = result.indicators?.quote?.[0]||{};
-              rawData = ts.map((tm,i) => ({ time:tm, open:q.open?.[i], high:q.high?.[i], low:q.low?.[i], close:q.close?.[i] })).filter(x=>x.close!=null);
-            }
-          }
+          const res = await fetch(baseUrl + '/api/esi_ohlcv_feed_v1/', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ ticker:symbol, interval:tfObj2.interval, range:tfObj2.period }),
+          });
+          if (res.ok) { const j = await res.json(); if (j.data && j.data.length) rawData = j.data; }
         } catch(_) {}
+        if (!rawData.length) {
+          try { rawData = await fetchYahooOHLC(); } catch(_) {}
+        }
       }
 
       if (!rawData.length) { setChartStatus('error'); return; }
@@ -1485,6 +1495,89 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
 }
 
 
+// ─── MP COMPARE MODAL ────────────────────────────────────────────────────────
+function MpCompareModal({ symA, symB, score, baseUrl, onClose }) {
+  const [layout,   setLayout]   = useState('side'); // side | stack
+  const [tf,       setTf]       = useState('1D');
+  const [theme,    setTheme]    = useState('dark');
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 700;
+
+  const t   = ADP_THEMES[theme] || ADP_THEMES.dark;
+  const col = ADP_CHART_COLOR[theme] || '#38bdf8';
+  const sc  = score > 0.5 ? '#22d3ee' : score < -0.5 ? '#f87171' : '#94a3b8';
+
+  // Close on Escape
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = ''; }; }, []);
+
+  const TFS = ['5m','1H','1D','1W','1M'];
+  const isStack = isMobile || layout === 'stack';
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding: isMobile ? 0 : 16 }}
+    >
+      <div style={{ display:'flex', flexDirection:'column', width:'100%', maxWidth:1300, height: isMobile ? '100dvh' : '88vh', borderRadius: isMobile ? 0 : 14, overflow:'hidden', background:t.bg, border:'1.5px solid '+t.border, boxShadow:'0 40px 100px rgba(0,0,0,0.6)' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', padding:'10px 14px', background:t.panel, borderBottom:'1.5px solid '+t.border, flexShrink:0 }}>
+          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:800, fontSize:13, color:'#22d3ee' }}>{symA}</span>
+          <span style={{ color:t.sub, fontSize:12 }}>↔</span>
+          <span style={{ fontFamily:"'IBM Plex Mono',monospace", fontWeight:800, fontSize:13, color:'#f87171' }}>{symB}</span>
+          <span style={{ padding:'2px 9px', borderRadius:7, background:sc+'22', border:'1px solid '+sc+'44', color:sc, fontFamily:'monospace', fontSize:11, fontWeight:800 }}>
+            ρ {score >= 0 ? '+' : ''}{score.toFixed(3)}
+          </span>
+          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+            {/* Timeframe */}
+            <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:7, padding:2, border:'1px solid '+t.border }}>
+              {TFS.map(tfl => (
+                <button key={tfl} onClick={() => setTf(tfl)}
+                  style={{ padding:'3px 8px', border:'none', borderRadius:5, cursor:'pointer', fontFamily:"'IBM Plex Mono',monospace", fontSize:10, fontWeight:700, background: tf===tfl ? col : 'transparent', color: tf===tfl ? (theme==='dark'?'#0f172a':'white') : t.sub, transition:'all 0.12s' }}>
+                  {tfl}
+                </button>
+              ))}
+            </div>
+            {/* Theme */}
+            <div style={{ display:'flex', gap:2, background:t.bg, borderRadius:7, padding:2, border:'1px solid '+t.border }}>
+              {[['light','☀️'],['dark','🌙'],['hud','⬡']].map(([th,ic]) => (
+                <button key={th} onClick={() => setTheme(th)}
+                  style={{ padding:'3px 8px', border:'none', borderRadius:5, cursor:'pointer', fontSize:11, fontWeight:700, background: theme===th ? t.border : 'transparent', color:t.text, transition:'all 0.12s' }}>
+                  {ic}
+                </button>
+              ))}
+            </div>
+            {/* Layout toggle — desktop only */}
+            {!isMobile && (
+              <button onClick={() => setLayout(l => l==='side'?'stack':'side')}
+                style={{ padding:'4px 10px', border:'1px solid '+t.border, borderRadius:7, background:t.panel, color:t.sub, cursor:'pointer', fontSize:12, fontWeight:700 }}
+                title="Toggle layout">
+                {layout==='side' ? '⬒ Stack' : '⬓ Side'}
+              </button>
+            )}
+            <button onClick={onClose} style={{ padding:'4px 10px', border:'1px solid '+t.border, borderRadius:7, background:t.panel, color:t.sub, cursor:'pointer', fontSize:15, fontWeight:700, lineHeight:1 }}>✕</button>
+          </div>
+        </div>
+
+        {/* Charts */}
+        <div style={{ flex:1, minHeight:0, display:'flex', flexDirection: isStack ? 'column' : 'row', gap:0 }}>
+          <div style={{ flex:1, minHeight:0, borderRight: isStack ? 'none' : '1px solid '+t.border, borderBottom: isStack ? '1px solid '+t.border : 'none' }}>
+            <AssetDetailPanel key={symA+'-'+tf+'-'+theme} symbol={symA} baseUrl={baseUrl} defaultLookback={60} embedded onClose={()=>{}} />
+          </div>
+          <div style={{ flex:1, minHeight:0 }}>
+            <AssetDetailPanel key={symB+'-'+tf+'-'+theme} symbol={symB} baseUrl={baseUrl} defaultLookback={60} embedded onClose={()=>{}} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MARKET PULSE MAIN ───────────────────────────────────────────────────────
 function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [open, setOpen]           = useState(false);
@@ -1516,7 +1609,8 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [corrOpen,     setCorrOpen]     = useState(false);
   const [corrSearch,   setCorrSearch]   = useState('');
   const [corrFilter,   setCorrFilter]   = useState('all');
-  const [corrExpanded, setCorrExpanded] = useState({});
+  const [corrExpanded,  setCorrExpanded]  = useState({});
+  const [compareModal,  setCompareModal]  = useState(null); // { symA, symB, score }
 
   // Filters
   const [mssFilter,    setMssFilter]    = useState('all');
@@ -1578,7 +1672,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       const sectorSamples = {};
       const allSectorT    = [];
       for (const sec of sectors) {
-        const t = allStocks.filter(s => s.sector === sec).map(s => s.symbol).slice(0, 8);
+        const t = allStocks.filter(s => s.sector === sec).sort((a,b) => mpMarketCap(b.symbol)-mpMarketCap(a.symbol)).map(s => s.symbol).slice(0, 15);
         sectorSamples[sec] = t;
         allSectorT.push(...t);
       }
@@ -1624,7 +1718,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
       const allT = [];
       const sampleMap = {};
       for (const sec of sectors) {
-        const t = allStocks.filter(s => s.sector === sec).map(s => s.symbol).slice(0, 10);
+        const t = allStocks.filter(s => s.sector === sec).sort((a,b) => mpMarketCap(b.symbol)-mpMarketCap(a.symbol)).map(s => s.symbol).slice(0, 15);
         sampleMap[sec] = t; allT.push(...t);
       }
       await mpFetchMarketCaps(allT, baseUrl);
@@ -2259,10 +2353,11 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                                   const abs = Math.abs(s);
                                   const bg  = s>0?`rgba(34,211,238,${0.15+abs*0.7})`:`rgba(248,113,113,${0.15+abs*0.7})`;
                                   return (
-                                    <div key={colT} onClick={() => setCorrExpanded(p=>({...p,[`${rowT}__${colT}`]:!p[`${rowT}__${colT}`]}))}
-                                      title={`${rowT} ↔ ${colT}: ${s.toFixed(3)}`}
-                                      style={{ background:bg, borderRadius:2, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, color:'#fff' }}
-                                      onMouseEnter={e2=>e2.currentTarget.style.transform='scale(1.15)'}
+                                    <div key={colT}
+                                      onClick={() => { if(rowT!==colT && e) setCompareModal({ symA:rowT, symB:colT, score:s }); }}
+                                      title={rowT+'↔'+colT+': '+s.toFixed(3)+' — click to compare'}
+                                      style={{ background:bg, borderRadius:2, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, color:'#fff', transition:'transform 0.1s' }}
+                                      onMouseEnter={e2=>e2.currentTarget.style.transform='scale(1.2)'}
                                       onMouseLeave={e2=>e2.currentTarget.style.transform='scale(1)'}
                                     >{abs>0.5?s.toFixed(1):''}</div>
                                   );
@@ -2484,6 +2579,17 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
         )}
 
       </div>{/* mp-body */}
+
+      {/* ── Heatmap Comparison Modal ── */}
+      {compareModal && (
+        <MpCompareModal
+          symA={compareModal.symA}
+          symB={compareModal.symB}
+          score={compareModal.score}
+          baseUrl={baseUrl}
+          onClose={() => setCompareModal(null)}
+        />
+      )}
     </div>
   );
 }
