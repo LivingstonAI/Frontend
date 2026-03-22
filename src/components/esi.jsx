@@ -891,6 +891,114 @@ const R2Badge = ({ r2 }) => {
   );
 };
 
+// ─── VOICE READER ────────────────────────────────────────────────────────────
+// Shared voice state — module-level so it persists across all instances
+let _voiceList = [];
+let _selectedVoiceURI = typeof localStorage !== 'undefined' ? (localStorage.getItem('snowai_voice_uri') || '') : '';
+
+const getVoices = () => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return [];
+  const v = window.speechSynthesis.getVoices();
+  if (v.length) { _voiceList = v; return v; }
+  return _voiceList;
+};
+
+const speakText = (text) => {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  if (!text || !text.trim()) return;
+  // Strip markdown
+  const clean = text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/#+\s/g, '').replace(/`[^`]*`/g, '').trim();
+  const utt   = new SpeechSynthesisUtterance(clean);
+  const voices = getVoices();
+  if (_selectedVoiceURI) {
+    const found = voices.find(v => v.voiceURI === _selectedVoiceURI);
+    if (found) utt.voice = found;
+  }
+  utt.rate  = 1.0;
+  utt.pitch = 1.0;
+  window.speechSynthesis.speak(utt);
+};
+
+// Small hook for the voice selector panel
+function useVoices() {
+  const [voices, setVoices] = React.useState(getVoices());
+  const [selectedURI, setSelectedURI] = React.useState(_selectedVoiceURI);
+  React.useEffect(() => {
+    const load = () => { const v = getVoices(); if (v.length) setVoices([...v]); };
+    load();
+    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
+  const choose = (uri) => {
+    _selectedVoiceURI = uri;
+    setSelectedURI(uri);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('snowai_voice_uri', uri);
+  };
+  return { voices, selectedURI, choose };
+}
+
+// Speak button — place anywhere
+function SpeakBtn({ text, label = '🔊', style = {} }) {
+  const [speaking, setSpeaking] = React.useState(false);
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const toggle = () => {
+    if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
+    if (!text || !text.trim()) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1').replace(/#+\s/g, '').replace(/`[^`]*`/g, '').trim();
+    const utt   = new SpeechSynthesisUtterance(clean);
+    const voices = getVoices();
+    if (_selectedVoiceURI) { const f = voices.find(v => v.voiceURI === _selectedVoiceURI); if (f) utt.voice = f; }
+    utt.rate = 1.0; utt.pitch = 1.0;
+    utt.onend = () => setSpeaking(false);
+    utt.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utt);
+    setSpeaking(true);
+  };
+  return (
+    <button onClick={e => { e.stopPropagation(); toggle(); }}
+      title={speaking ? 'Stop reading' : 'Read aloud'}
+      style={{ background: speaking ? '#0ea5e9' : '#e0f2fe', border:'1.5px solid #bae6fd', borderRadius:6, padding:'2px 7px', cursor:'pointer', fontSize:12, color: speaking ? 'white' : '#0369a1', transition:'all 0.14s', flexShrink:0, lineHeight:1, ...style }}>
+      {speaking ? '⏹' : label}
+    </button>
+  );
+}
+
+// Voice selector panel — used in settings area
+function VoiceSelector({ theme }) {
+  const { voices, selectedURI, choose } = useVoices();
+  const t = ADP_THEMES[theme] || ADP_THEMES.light;
+  if (!voices.length) return <span style={{ fontSize:11, color:t.sub }}>No voices available</span>;
+  // Group by language
+  const langs = [...new Set(voices.map(v => v.lang.split('-')[0].toUpperCase()))].sort();
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+      <span style={{ fontSize:11, fontWeight:700, color:t.sub, whiteSpace:'nowrap' }}>🔊 Voice:</span>
+      <select
+        value={selectedURI}
+        onChange={e => choose(e.target.value)}
+        style={{ padding:'5px 8px', border:'1.5px solid #bae6fd', borderRadius:7, fontSize:12, background:t.bg||'white', color:t.text||'#0f172a', outline:'none', maxWidth:220, cursor:'pointer' }}
+      >
+        <option value="">— Browser Default —</option>
+        {langs.map(lang => (
+          <optgroup key={lang} label={lang}>
+            {voices.filter(v => v.lang.toUpperCase().startsWith(lang)).map(v => (
+              <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {selectedURI && (
+        <button onClick={() => speakText('Hello, this is a voice preview for SnowAI.')}
+          style={{ padding:'4px 10px', background:'#0ea5e9', color:'white', border:'none', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          Preview
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── AI SECTION RENDERER ─────────────────────────────────────────────────────
 // ─── ASSET DETAIL PANEL ──────────────────────────────────────────────────────
 // Per-row expandable panel: LWC price chart + stock info + MSS lookback control
@@ -1384,9 +1492,12 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
         {/* Right: stock info (appears when ℹ️ clicked) */}
         {infoOpen && (
           <div className="adp-info-area" style={{ background:t.panel, borderLeft:`1px solid ${t.border}` }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px 8px', borderBottom:`1px solid ${t.border}`, position:'sticky', top:0, background:t.panel, zIndex:2 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px 8px', borderBottom:`1px solid ${t.border}`, position:'sticky', top:0, background:t.panel, zIndex:2 }}>
               <span style={{ fontWeight:800, fontSize:13, color:t.text }}>📋 {symbol}</span>
-              <button onClick={()=>setInfoOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1 }}>✕</button>
+              <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6 }}>
+                {infoData && <SpeakBtn text={symbol+'. '+infoData.name+'. '+infoData.sector+'. Price: '+fmtPrice(infoData.price)+'. Change: '+(infoData.change_pct||0).toFixed(2)+' percent. Market cap: '+fmtBig(infoData.market_cap)+'. Analyst rating: '+(infoData.recommendation||'unknown')} label="🔊" style={{ fontSize:11 }}/>}
+                <button onClick={()=>setInfoOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1 }}>✕</button>
+              </div>
             </div>
             <div style={{ padding:'12px 14px', overflowY:'auto' }}>
               {infoLoading && (
@@ -1467,7 +1578,8 @@ function AssetDetailPanel({ symbol, baseUrl, defaultLookback = 60, onClose = nul
             <span style={{ fontSize:15 }}>🤖</span>
             <span style={{ fontWeight:800, fontSize:13, color:'#7c3aed' }}>AI Analysis — {symbol}</span>
             {aiData && <span style={{ fontSize:10, color:t.sub, marginLeft:'auto' }}>Generated {aiData.fetchedAt}</span>}
-            <button onClick={() => setAiOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1, marginLeft: aiData ? 0 : 'auto' }}>✕</button>
+            {aiData && <SpeakBtn text={aiData.text} label="🔊" style={{ background:'#7c3aed22', borderColor:'#7c3aed44', color:'#7c3aed' }}/>}
+            <button onClick={() => setAiOpen(false)} style={{ background:'none', border:'none', cursor:'pointer', color:t.sub, fontSize:16, lineHeight:1 }}>✕</button>
           </div>
 
           {/* Loading */}
@@ -1582,12 +1694,12 @@ function MpCompareModal({ symA, symB, score, baseUrl, onClose }) {
           </div>
         </div>
 
-        {/* Charts — side by side OR stacked */}
-        <div style={{ flex:1, minHeight:0, display:'flex', flexDirection: isStack ? 'column' : 'row', overflow:'auto' }}>
-          <div style={{ flex:1, minHeight: isStack ? 'auto' : 0, minWidth:0, borderRight: isStack ? 'none' : '1px solid '+t.border, borderBottom: isStack ? '1px solid '+t.border : 'none', overflow:'auto' }}>
+        {/* Charts — side by side OR stacked. Each column scrolls independently. */}
+        <div style={{ flex:1, minHeight:0, display:'flex', flexDirection: isStack ? 'column' : 'row' }}>
+          <div style={{ flex:1, minHeight:0, minWidth:0, overflowY:'auto', overflowX:'hidden', borderRight: isStack ? 'none' : '1px solid '+t.border, borderBottom: isStack ? '1px solid '+t.border : 'none' }}>
             <AssetDetailPanel key={'cmp-a-'+symA} symbol={symA} baseUrl={baseUrl} defaultLookback={60} embedded onClose={()=>{}} />
           </div>
-          <div style={{ flex:1, minHeight: isStack ? 'auto' : 0, minWidth:0, overflow:'auto' }}>
+          <div style={{ flex:1, minHeight:0, minWidth:0, overflowY:'auto', overflowX:'hidden' }}>
             <AssetDetailPanel key={'cmp-b-'+symB} symbol={symB} baseUrl={baseUrl} defaultLookback={60} embedded onClose={()=>{}} />
           </div>
         </div>
@@ -1629,6 +1741,9 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [corrFilter,   setCorrFilter]   = useState('all');
   const [corrExpanded,  setCorrExpanded]  = useState({});
   const [compareModal,  setCompareModal]  = useState(null); // { symA, symB, score }
+  // Heatmap-specific filter + search
+  const [heatSearch,    setHeatSearch]    = useState('');
+  const [heatThresh,    setHeatThresh]    = useState('');    // min |ρ| to show cell
 
   // Filters
   const [mssFilter,    setMssFilter]    = useState('all');
@@ -2095,6 +2210,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
               <button key={t.label} className={`mp-tf-btn ${tf===t.label?'active':''}`} onClick={() => setTf(t.label)}>{t.label}</button>
             ))}
           </div>
+          <VoiceSelector theme="dark" />
           <button className="mp-close-btn" onClick={() => setOpen(false)}>✕</button>
         </div>
       </div>
@@ -2340,6 +2456,10 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                           }
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                             <R2Badge r2={mss?.r_squared}/>
+                            <SpeakBtn
+                              text={stock.symbol+'. Return: '+stock.ret+' percent. '+stock.cls.label+'. Regime: '+stock.regime.label+(mss?' MSS '+mss.mss+' R squared '+mss.r_squared?.toFixed(2):'')}
+                              label="🔊" style={{ padding:'2px 5px', fontSize:10 }}
+                            />
                             <button
                               className={`adp-open-btn ${isPanelOpen ? 'active' : ''}`}
                               onClick={e=>{ e.stopPropagation(); togglePanel(stock.symbol); }}
@@ -2376,38 +2496,86 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                     {corrLoading[curSectorKey] && <div className="mp-loading"><div className="mp-spinner"/><span>Computing…</span></div>}
                     {curCorrData && !corrLoading[curSectorKey] && (
                       <>
-                        {/* Heatmap */}
-                        <div style={{ overflowX:'auto', marginBottom:12 }}>
-                          <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Correlation Heatmap</div>
-                          <div style={{ display:'grid', gap:2, gridTemplateColumns:`repeat(${curCorrData.tickers.length+1}, minmax(20px,1fr))`, minWidth:300 }}>
-                            <div/>
-                            {curCorrData.tickers.map(t => <div key={t} style={{ fontSize:7, fontWeight:700, color:'#64748b', textAlign:'center', overflow:'hidden' }}>{t}</div>)}
-                            {curCorrData.tickers.map(rowT => (
-                              <React.Fragment key={rowT}>
-                                <div style={{ fontSize:7, fontWeight:700, color:'#64748b', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:3 }}>{rowT}</div>
-                                {curCorrData.tickers.map(colT => {
-                                  if (rowT===colT) return <div key={colT} style={{ background:'#1e293b', borderRadius:2, height:20 }}/>;
-                                  const e = curCorrData.matrix.find(m=>(m.a===rowT&&m.b===colT)||(m.a===colT&&m.b===rowT));
-                                  const s = e?.score ?? 0;
-                                  const abs = Math.abs(s);
-                                  const bg  = s>0?`rgba(34,211,238,${0.15+abs*0.7})`:`rgba(248,113,113,${0.15+abs*0.7})`;
-                                  return (
-                                    <div key={colT}
-                                      onClick={() => { if(rowT!==colT && e) setCompareModal({ symA:rowT, symB:colT, score:s }); }}
-                                      title={rowT+'↔'+colT+': '+s.toFixed(3)+' — click to compare'}
-                                      style={{ background:bg, borderRadius:2, height:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, color:'#fff', transition:'transform 0.1s' }}
-                                      onMouseEnter={e2=>e2.currentTarget.style.transform='scale(1.2)'}
-                                      onMouseLeave={e2=>e2.currentTarget.style.transform='scale(1)'}
-                                    >{abs>0.5?s.toFixed(1):''}</div>
-                                  );
-                                })}
-                              </React.Fragment>
-                            ))}
+                        {/* Heatmap header + search/filter controls */}
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:8 }}>
+                            <span style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Correlation Heatmap</span>
+                            {/* Heatmap search */}
+                            <div style={{ display:'flex', alignItems:'center', background:'white', border:'1.5px solid #bae6fd', borderRadius:7, padding:'0 8px', flex:'1 1 120px', minWidth:0, transition:'border-color 0.15s' }}
+                              onFocusCapture={e=>e.currentTarget.style.borderColor='#0ea5e9'}
+                              onBlurCapture={e=>e.currentTarget.style.borderColor='#bae6fd'}>
+                              <span style={{ fontSize:11, flexShrink:0 }}>🔍</span>
+                              <input
+                                placeholder="Search ticker in heatmap…"
+                                value={heatSearch}
+                                onChange={e => setHeatSearch(e.target.value)}
+                                style={{ border:'none', outline:'none', fontSize:11, padding:'6px 6px', flex:1, minWidth:0, background:'transparent', color:'#0c4a6e' }}
+                              />
+                              {heatSearch && <button onClick={() => setHeatSearch('')} style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:12, padding:'0 2px', lineHeight:1 }}>✕</button>}
+                            </div>
+                            {/* Min |ρ| threshold */}
+                            <div style={{ display:'flex', alignItems:'center', gap:5, background:'white', border:'1.5px solid #bae6fd', borderRadius:7, padding:'4px 8px', flexShrink:0 }}>
+                              <span style={{ fontSize:10, color:'#0369a1', fontWeight:700, whiteSpace:'nowrap' }}>Min |ρ|</span>
+                              <input
+                                type="number" min="0" max="1" step="0.05"
+                                placeholder="0.00"
+                                value={heatThresh}
+                                onChange={e => setHeatThresh(e.target.value)}
+                                style={{ width:52, border:'none', outline:'none', fontSize:11, fontFamily:'monospace', fontWeight:700, background:'transparent', color:'#0c4a6e', padding:0 }}
+                              />
+                              {heatThresh && <button onClick={() => setHeatThresh('')} style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:11, padding:'0 2px', lineHeight:1 }}>✕</button>}
+                            </div>
+                            <SpeakBtn
+                              text={'Correlation heatmap for ' + activeSector + '. Average correlation: ' + (curCorrData.avgCorr >= 0 ? 'positive ' : 'negative ') + Math.abs(curCorrData.avgCorr).toFixed(2) + '. Top pairs: ' + filteredCorr.slice(0,3).map(c => c.a + ' and ' + c.b + ' at ' + c.score.toFixed(2)).join(', ')}
+                              label="🔊"
+                              style={{ padding:'4px 8px' }}
+                            />
+                          </div>
+                          {/* Heatmap grid */}
+                          <div style={{ overflowX:'auto' }}>
+                            <div style={{ display:'grid', gap:2, gridTemplateColumns:'repeat('+String(curCorrData.tickers.length+1)+', minmax(20px,1fr))', minWidth:300 }}>
+                              <div/>
+                              {curCorrData.tickers.map(t => {
+                                const hl = heatSearch && t.toLowerCase().includes(heatSearch.toLowerCase());
+                                return <div key={t} style={{ fontSize:7, fontWeight:700, color: hl ? '#0ea5e9' : '#64748b', textAlign:'center', overflow:'hidden', background: hl ? '#e0f2fe' : 'transparent', borderRadius:2 }}>{t}</div>;
+                              })}
+                              {curCorrData.tickers.map(rowT => {
+                                const rowHl = heatSearch && rowT.toLowerCase().includes(heatSearch.toLowerCase());
+                                const minAbs = heatThresh ? parseFloat(heatThresh) || 0 : 0;
+                                return (
+                                  <React.Fragment key={rowT}>
+                                    <div style={{ fontSize:7, fontWeight:700, color: rowHl ? '#0ea5e9' : '#64748b', display:'flex', alignItems:'center', justifyContent:'flex-end', paddingRight:3, background: rowHl ? '#e0f2fe' : 'transparent', borderRadius:2 }}>{rowT}</div>
+                                    {curCorrData.tickers.map(colT => {
+                                      if (rowT===colT) return <div key={colT} style={{ background:'#1e293b', borderRadius:2, height:20 }}/>;
+                                      const entry = curCorrData.matrix.find(m=>(m.a===rowT&&m.b===colT)||(m.a===colT&&m.b===rowT));
+                                      const s   = entry ? entry.score : 0;
+                                      const abs = Math.abs(s);
+                                      // Dim cells below threshold or not matching search
+                                      const colHl  = heatSearch && colT.toLowerCase().includes(heatSearch.toLowerCase());
+                                      const passes = abs >= minAbs && (!heatSearch || rowHl || colHl);
+                                      const bg = passes
+                                        ? (s>0 ? 'rgba(34,211,238,'+(0.15+abs*0.7)+')' : 'rgba(248,113,113,'+(0.15+abs*0.7)+')')
+                                        : 'rgba(100,116,139,0.08)';
+                                      const textCol = passes ? '#fff' : '#cbd5e1';
+                                      return (
+                                        <div key={colT}
+                                          onClick={() => { if(passes && entry) setCompareModal({ symA:rowT, symB:colT, score:s }); }}
+                                          title={rowT+' ↔ '+colT+': '+(s>=0?'+':'')+s.toFixed(3)+(passes?' — click to compare':'')}
+                                          style={{ background:bg, borderRadius:2, height:20, cursor: passes ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, fontWeight:700, color:textCol, transition:'transform 0.1s', outline: (rowHl||colHl)&&passes ? '1.5px solid #0ea5e9' : 'none' }}
+                                          onMouseEnter={e2=>{ if(passes) e2.currentTarget.style.transform='scale(1.2)'; }}
+                                          onMouseLeave={e2=>{ e2.currentTarget.style.transform='scale(1)'; }}
+                                        >{passes && abs>0.4 ? (s>=0?'+':'')+s.toFixed(1) : ''}</div>
+                                      );
+                                    })}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                         {/* Filters + cards */}
                         <div className="mp-corr-filters">
-                          <input placeholder="🔍 Search ticker…" value={corrSearch} onChange={e=>setCorrSearch(e.target.value)} className="mp-corr-search"/>
+                          <input placeholder="🔍 Search cards…" value={corrSearch} onChange={e=>setCorrSearch(e.target.value)} className="mp-corr-search"/>
                           <select value={corrFilter} onChange={e=>setCorrFilter(e.target.value)} className="mp-sel">
                             <option value="all">All</option>
                             <option value="strong_pos">Strong Positive (&gt;0.8)</option>
@@ -2428,6 +2596,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                                   <span style={{ fontSize:9, color:'#94a3b8' }}>↔</span>
                                   <span style={{ fontWeight:700, fontSize:11, color:'#475569' }}>{c.b}</span>
                                   <span style={{ marginLeft:'auto', fontFamily:'monospace', fontSize:11, fontWeight:800, color:col2, background:col2+'18', padding:'2px 7px', borderRadius:5 }}>{s>=0?'+':''}{s.toFixed(3)}</span>
+                                  <SpeakBtn text={c.a+' and '+c.b+': correlation '+(s>=0?'positive ':'negative ')+Math.abs(s).toFixed(2)} label="🔊" style={{ padding:'1px 5px', fontSize:10 }}/>
                                   <span style={{ fontSize:9, color:'#cbd5e1' }}>{corrExpanded[id]?'▼':'▶'}</span>
                                 </div>
                                 {corrExpanded[id] && (
