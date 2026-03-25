@@ -2030,6 +2030,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [analystLoading,     setAnalystLoading]     = useState(false);
     const [analystError,       setAnalystError]       = useState(null);
     const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
+    // ── Earnings markers on chart ──
+    const [showEarningsMarkers, setShowEarningsMarkers] = useState(true);
+    const earningsMarkersRef = useRef([]); // cached for re-apply on refresh
+
     // ── Drawing tools ──
     const LINE_COLORS = [
         { id:'amber',  hex:'#f59e0b', label:'Amber'  },
@@ -2422,6 +2426,102 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     };
 
     // ── Helper: apply backend indicator data to chart ───────────────────────
+    // Apply earnings date markers to the chart series
+    // earnings = the quarterly array from props; also reads upcoming date from yfinance
+    const applyEarningsMarkers = (series, candles) => {
+        if (!series || !candles?.length || !showEarningsMarkers) {
+            series?.setMarkers?.([]);
+            return;
+        }
+        // Build a set of YYYY-MM-DD strings from the candles for quick lookup
+        const candleDates = new Set(candles.map(c => {
+            // c.time can be unix timestamp (number) or 'YYYY-MM-DD' string
+            if (typeof c.time === 'number') {
+                return new Date(c.time * 1000).toISOString().slice(0, 10);
+            }
+            return String(c.time).slice(0, 10);
+        }));
+
+        const markers = [];
+
+        // Past earnings from props (quarterly history)
+        if (earnings?.length) {
+            earnings.forEach(e => {
+                if (!e.quarter) return;
+                // quarter is typically "Q1 2024" — try to find matching candle
+                // by scanning candles for the closest one to the quarter end
+                // Prefer exact date match if earningsDate field exists
+                const dateStr = e.earningsDate || null;
+                if (dateStr && candleDates.has(dateStr)) {
+                    const candle = candles.find(c => {
+                        const cd = typeof c.time === 'number'
+                            ? new Date(c.time * 1000).toISOString().slice(0, 10)
+                            : String(c.time).slice(0, 10);
+                        return cd === dateStr;
+                    });
+                    if (candle) {
+                        const beat = e.epsSurprise > 0;
+                        markers.push({
+                            time:     candle.time,
+                            position: 'belowBar',
+                            color:    beat ? '#10b981' : '#ef4444',
+                            shape:    'arrowUp',
+                            text:     `E ${e.quarter || ''}`,
+                            size:     1,
+                        });
+                    }
+                }
+            });
+        }
+
+        // Also place markers for any candle whose date matches a known earnings date
+        // from the earningsMarkersRef cache (populated by a lightweight fetch)
+        earningsMarkersRef.current.forEach(({ date, label, upcoming }) => {
+            // find matching candle
+            const candle = candles.find(c => {
+                const cd = typeof c.time === 'number'
+                    ? new Date(c.time * 1000).toISOString().slice(0, 10)
+                    : String(c.time).slice(0, 10);
+                return cd === date;
+            });
+            if (candle) {
+                markers.push({
+                    time:     candle.time,
+                    position: upcoming ? 'aboveBar' : 'belowBar',
+                    color:    upcoming ? '#3b82f6' : '#f59e0b',
+                    shape:    upcoming ? 'arrowDown' : 'arrowUp',
+                    text:     label || 'Earnings',
+                    size:     1,
+                });
+            }
+        });
+
+        // LWC requires markers sorted by time asc
+        markers.sort((a, b) => (a.time > b.time ? 1 : -1));
+        try { series.setMarkers(markers); } catch(e) { console.warn('[Markers]', e); }
+    };
+
+    // Fetch upcoming earnings date for current ticker and cache it
+    const fetchAndCacheEarningsDate = async (sym) => {
+        try {
+            const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_calendar_vault/`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ tickers: [sym] }),
+            });
+            const json = await res.json();
+            const today = new Date().toISOString().slice(0, 10);
+            earningsMarkersRef.current = (json.results || []).map(r => ({
+                date:     r.earningsDate?.slice(0, 10),
+                label:    r.earningsDate >= today ? '📅 Upcoming' : `E ${r.earningsDate?.slice(0,7) || ''}`,
+                upcoming: r.earningsDate >= today,
+            })).filter(r => r.date);
+        } catch(e) {
+            console.warn('[EarningsDate fetch]', e);
+            earningsMarkersRef.current = [];
+        }
+    };
+
     const applyIndicators = (chart, json, th) => {
         // clear old overlay series
         removeSeries(chart, twapSeriesRef);
@@ -2551,6 +2651,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 }
                 seriesRef.current = series;
                 applyIndicators(chart, json, th2);
+                // Fetch upcoming earnings date async then re-apply markers
+                fetchAndCacheEarningsDate(ticker).then(() => {
+                    if (seriesRef.current) applyEarningsMarkers(seriesRef.current, json.candles);
+                });
+                applyEarningsMarkers(series, json.candles);
                 chart.timeScale().fitContent();
                 setLastRefreshed(new Date());
             } catch (e) {
@@ -2612,6 +2717,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
 
                 // Update all indicator overlays in-place
                 applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
+                applyEarningsMarkers(seriesRef.current, json.candles);
                 checkAlerts(json.candles);
 
                 // Restore logical position — this runs AFTER the internal fit
@@ -3072,6 +3178,25 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         TradingView
                     </a>
                     <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Earnings markers toggle */}
+                    <button onClick={() => {
+                        setShowEarningsMarkers(v => {
+                            const next = !v;
+                            // re-apply immediately using current candle data
+                            if (seriesRef.current) {
+                                if (!next) { try { seriesRef.current.setMarkers([]); } catch {} }
+                                else { setRefreshTick(t => t + 1); }
+                            }
+                            return next;
+                        });
+                    }} title="Toggle earnings date markers on chart"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showEarningsMarkers?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        💰 {showEarningsMarkers ? 'Earnings ✓' : 'Earnings'}
+                    </button>
                     {/* Drawing tools toggle */}
                     <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON — click chart to drop a line' : 'Enable drawing mode'}
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
