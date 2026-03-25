@@ -95,6 +95,18 @@ REFERENCE FUNCTIONS — already available in the runtime. You may CALL these dir
   calculate_trend_elasticity(data, lookback_period=30) -> dict
     Returns: {elasticity, category, description, r_squared, consistency, slope_direction}
 
+  is_sector_bullish(sector='technology', lookback=50) -> bool
+    True if sector is in bullish trend (20 SMA > 50 SMA, price > 20 SMA, positive 5d momentum)
+    Sectors: 'technology', 'financials', 'healthcare', 'energy', 'consumer_discretionary',
+             'consumer_staples', 'industrials', 'materials', 'real_estate', 'utilities', 'communication'
+    Or use ETF directly: 'XLK', 'XLF', etc.
+
+  is_sector_bearish(sector='technology', lookback=50) -> bool
+    True if sector is in bearish trend (20 SMA < 50 SMA, price < 20 SMA, negative 5d momentum)
+
+  get_sector_strength(sector='technology') -> dict
+    Returns: {trend: 'bullish'/'bearish'/'neutral', sma_20, sma_50, price, momentum_5d, momentum_20d}
+
 EXAMPLE using reference functions:
   def is_strong_uptrend_signal(df):
       """True if market is stable, elastic, and latest close is above 20-bar SMA."""
@@ -102,6 +114,14 @@ EXAMPLE using reference functions:
           return False
       sma = df['close'].rolling(20).mean().iloc[-1]
       return float(df['close'].iloc[-1]) > float(sma)
+
+  def tech_sector_bullish_signal(df):
+      """True if tech sector is bullish and asset shows bullish momentum."""
+      if not is_sector_bullish('technology'):
+          return False
+      # Asset must also be above its own 50 SMA
+      sma_50 = df['close'].rolling(50).mean().iloc[-1]
+      return float(df['close'].iloc[-1]) > float(sma_50)
 
 NEVER include: @csrf_exempt, def view(request), JsonResponse, yf.Ticker, requests, Django, Flask`;
 
