@@ -107,6 +107,138 @@ const COMPARE_ASSETS = {
     ],
 };
 
+
+// ─── Earnings calendar — all monitored tickers with sector + name ─────────────
+const SECTOR_MAP = {
+    'AAPL':'Technology','MSFT':'Technology','GOOGL':'Technology','GOOG':'Technology',
+    'AMZN':'Consumer Cyclical','NVDA':'Technology','TSLA':'Consumer Cyclical','META':'Technology',
+    'AMD':'Technology','INTC':'Technology','ORCL':'Technology','CSCO':'Technology',
+    'ADBE':'Technology','CRM':'Technology','AVGO':'Technology','QCOM':'Technology',
+    'TXN':'Technology','AMAT':'Technology','LRCX':'Technology','KLAC':'Technology',
+    'SNPS':'Technology','CDNS':'Technology','MRVL':'Technology','NXPI':'Technology',
+    'MU':'Technology','ADI':'Technology','MPWR':'Technology','SWKS':'Technology',
+    'QRVO':'Technology','ON':'Technology','IBM':'Technology','ACN':'Technology',
+    'ADSK':'Technology','AKAM':'Technology','ANSS':'Technology','APH':'Technology',
+    'ANET':'Technology','ASML':'Technology','KEYS':'Technology','MCHP':'Technology',
+    'MSI':'Technology','MDB':'Technology','NTAP':'Technology','NTNX':'Technology',
+    'PAYC':'Technology','PTC':'Technology','SAP':'Technology','STX':'Technology',
+    'TER':'Technology','TSM':'Technology','TYL':'Technology','VRSN':'Technology',
+    'WDC':'Technology','ZBRA':'Technology','ZM':'Technology','DOCU':'Technology',
+    'TWLO':'Technology','SQ':'Technology','UBER':'Technology','LYFT':'Technology',
+    'DASH':'Technology','PINS':'Technology','SNAP':'Technology','SPOT':'Technology',
+    'ROKU':'Technology','AFRM':'Technology','COIN':'Technology','HOOD':'Technology',
+    'SOFI':'Technology','RBLX':'Technology','ASTS':'Technology','NOW':'Technology',
+    'INTU':'Technology','WDAY':'Technology','PANW':'Technology','CRWD':'Technology',
+    'ZS':'Technology','DDOG':'Technology','NET':'Technology','SNOW':'Technology',
+    'PLTR':'Technology','TEAM':'Technology','FTNT':'Technology','OKTA':'Technology',
+    'S':'Technology','CYBR':'Technology','BABA':'Technology','BIDU':'Technology',
+    'JPM':'Financial','BAC':'Financial','WFC':'Financial','C':'Financial',
+    'GS':'Financial','MS':'Financial','BLK':'Financial','SCHW':'Financial',
+    'AXP':'Financial','SPGI':'Financial','CME':'Financial','ICE':'Financial',
+    'MCO':'Financial','BK':'Financial','USB':'Financial','PNC':'Financial',
+    'TFC':'Financial','COF':'Financial','V':'Financial','MA':'Financial',
+    'PYPL':'Financial','ADP':'Financial','FISV':'Financial','FIS':'Financial',
+    'BRK-B':'Financial','PGR':'Financial','ALL':'Financial','TRV':'Financial',
+    'AIG':'Financial','MET':'Financial','PRU':'Financial','AFL':'Financial',
+    'AON':'Financial','AJG':'Financial','AMP':'Financial','CBOE':'Financial',
+    'DFS':'Financial','FITB':'Financial','HBAN':'Financial','HIG':'Financial',
+    'KEY':'Financial','LNC':'Financial','MTB':'Financial','NTRS':'Financial',
+    'NDAQ':'Financial','RF':'Financial','RJF':'Financial','STT':'Financial',
+    'SYF':'Financial','TROW':'Financial','ZION':'Financial','CFG':'Financial',
+    'ALLY':'Financial',
+    'JNJ':'Healthcare','LLY':'Healthcare','UNH':'Healthcare','PFE':'Healthcare',
+    'ABBV':'Healthcare','MRK':'Healthcare','TMO':'Healthcare','ABT':'Healthcare',
+    'DHR':'Healthcare','BMY':'Healthcare','AMGN':'Healthcare','GILD':'Healthcare',
+    'CVS':'Healthcare','CI':'Healthcare','ELV':'Healthcare','HUM':'Healthcare',
+    'VRTX':'Healthcare','REGN':'Healthcare','ISRG':'Healthcare','BIIB':'Healthcare',
+    'MRNA':'Healthcare','BNTX':'Healthcare','ALNY':'Healthcare','BGNE':'Healthcare',
+    'MCK':'Healthcare','CAH':'Healthcare','COR':'Healthcare','IDXX':'Healthcare',
+    'BAX':'Healthcare','BDX':'Healthcare','BSX':'Healthcare','DXCM':'Healthcare',
+    'EW':'Healthcare','HOLX':'Healthcare','ILMN':'Healthcare','INCY':'Healthcare',
+    'IQV':'Healthcare','LH':'Healthcare','MDT':'Healthcare','MOH':'Healthcare',
+    'NBIX':'Healthcare','PODD':'Healthcare','RMD':'Healthcare','STE':'Healthcare',
+    'SYK':'Healthcare','ZBH':'Healthcare','ZTS':'Healthcare','TDOC':'Healthcare',
+    'DOCS':'Healthcare','VEEV':'Healthcare','NVAX':'Healthcare','UTHR':'Healthcare',
+    'HD':'Consumer Cyclical','MCD':'Consumer Cyclical','NKE':'Consumer Cyclical',
+    'SBUX':'Consumer Cyclical','TJX':'Consumer Cyclical','LOW':'Consumer Cyclical',
+    'BKNG':'Consumer Cyclical','MAR':'Consumer Cyclical','CMG':'Consumer Cyclical',
+    'F':'Consumer Cyclical','GM':'Consumer Cyclical','ABNB':'Consumer Cyclical',
+    'SHOP':'Consumer Cyclical','MELI':'Consumer Cyclical','EBAY':'Consumer Cyclical',
+    'ETSY':'Consumer Cyclical','TGT':'Consumer Cyclical','ROST':'Consumer Cyclical',
+    'YUM':'Consumer Cyclical','DPZ':'Consumer Cyclical','AAL':'Consumer Cyclical',
+    'DAL':'Consumer Cyclical','UAL':'Consumer Cyclical','LUV':'Consumer Cyclical',
+    'CCL':'Consumer Cyclical','RCL':'Consumer Cyclical','EA':'Consumer Cyclical',
+    'TTWO':'Consumer Cyclical','RIVN':'Consumer Cyclical','LCID':'Consumer Cyclical',
+    'AZO':'Consumer Cyclical','EXPE':'Consumer Cyclical','GRMN':'Consumer Cyclical',
+    'HLT':'Consumer Cyclical','LEN':'Consumer Cyclical','LVS':'Consumer Cyclical',
+    'MGM':'Consumer Cyclical','ORLY':'Consumer Cyclical','PHM':'Consumer Cyclical',
+    'WYNN':'Consumer Cyclical','DG':'Consumer Cyclical','DLTR':'Consumer Cyclical',
+    'NCLH':'Consumer Cyclical','NIO':'Consumer Cyclical','XPEV':'Consumer Cyclical',
+    'LI':'Consumer Cyclical','JD':'Consumer Cyclical','PDD':'Consumer Cyclical',
+    'WMT':'Consumer Defensive','PG':'Consumer Defensive','KO':'Consumer Defensive',
+    'PEP':'Consumer Defensive','COST':'Consumer Defensive','PM':'Consumer Defensive',
+    'MO':'Consumer Defensive','MDLZ':'Consumer Defensive','CL':'Consumer Defensive',
+    'KMB':'Consumer Defensive','GIS':'Consumer Defensive','KHC':'Consumer Defensive',
+    'STZ':'Consumer Defensive','ADM':'Consumer Defensive','CAG':'Consumer Defensive',
+    'CHD':'Consumer Defensive','CLX':'Consumer Defensive','HSY':'Consumer Defensive',
+    'KDP':'Consumer Defensive','KR':'Consumer Defensive','MKC':'Consumer Defensive',
+    'MNST':'Consumer Defensive','SYY':'Consumer Defensive','TAP':'Consumer Defensive',
+    'TSN':'Consumer Defensive','WBA':'Consumer Defensive','HRL':'Consumer Defensive',
+    'XOM':'Energy','CVX':'Energy','COP':'Energy','EOG':'Energy','SLB':'Energy',
+    'MPC':'Energy','PSX':'Energy','VLO':'Energy','OXY':'Energy','HAL':'Energy',
+    'DVN':'Energy','HES':'Energy','BKR':'Energy','APA':'Energy','CTRA':'Energy',
+    'KMI':'Energy','LNG':'Energy','MRO':'Energy','OKE':'Energy','TRGP':'Energy',
+    'WMB':'Energy','EQT':'Energy','AR':'Energy','MTDR':'Energy','OVV':'Energy',
+    'RIG':'Energy','SM':'Energy',
+    'BA':'Industrials','HON':'Industrials','UNP':'Industrials','CAT':'Industrials',
+    'GE':'Industrials','RTX':'Industrials','LMT':'Industrials','UPS':'Industrials',
+    'DE':'Industrials','MMM':'Industrials','GD':'Industrials','NOC':'Industrials',
+    'FDX':'Industrials','CSX':'Industrials','HWM':'Industrials','TDG':'Industrials',
+    'LHX':'Industrials','EMR':'Industrials','ETN':'Industrials','FAST':'Industrials',
+    'GWW':'Industrials','IR':'Industrials','ITW':'Industrials','JCI':'Industrials',
+    'NSC':'Industrials','ODFL':'Industrials','OTIS':'Industrials','PWR':'Industrials',
+    'ROK':'Industrials','RSG':'Industrials','SNA':'Industrials','SWK':'Industrials',
+    'URI':'Industrials','WAB':'Industrials','WM':'Industrials','XYL':'Industrials',
+    'ALK':'Industrials','JBLU':'Industrials',
+    'T':'Communication','VZ':'Communication','CMCSA':'Communication',
+    'NFLX':'Communication','DIS':'Communication','TMUS':'Communication',
+    'CHTR':'Communication','LYV':'Communication','MTCH':'Communication',
+    'PARA':'Communication','WBD':'Communication','IPG':'Communication',
+    'AMT':'Real Estate','PLD':'Real Estate','CCI':'Real Estate','EQIX':'Real Estate',
+    'PSA':'Real Estate','SPG':'Real Estate','O':'Real Estate','AVB':'Real Estate',
+    'BXP':'Real Estate','CBRE':'Real Estate','DLR':'Real Estate','EQR':'Real Estate',
+    'EXR':'Real Estate','IRM':'Real Estate','MAA':'Real Estate','SBAC':'Real Estate',
+    'VTR':'Real Estate','WELL':'Real Estate','WY':'Real Estate','INVH':'Real Estate',
+    'LIN':'Materials','APD':'Materials','SHW':'Materials','ECL':'Materials',
+    'DD':'Materials','NEM':'Materials','FCX':'Materials','DOW':'Materials',
+    'LYB':'Materials','ALB':'Materials','EMN':'Materials','SQM':'Materials',
+    'CF':'Materials','CLF':'Materials','MLM':'Materials','NUE':'Materials',
+    'PPG':'Materials','STLD':'Materials','VMC':'Materials','AA':'Materials',
+    'MP':'Materials','RS':'Materials',
+    'NEE':'Utilities','DUK':'Utilities','SO':'Utilities','D':'Utilities',
+    'AEP':'Utilities','EXC':'Utilities','SRE':'Utilities','AEE':'Utilities',
+    'AWK':'Utilities','CMS':'Utilities','CNP':'Utilities','DTE':'Utilities',
+    'ED':'Utilities','EIX':'Utilities','ETR':'Utilities','FE':'Utilities',
+    'NRG':'Utilities','PCG':'Utilities','PEG':'Utilities','PPL':'Utilities',
+    'VST':'Utilities','WEC':'Utilities','XEL':'Utilities','CEG':'Utilities',
+};
+
+const SECTOR_COLORS = {
+    'Technology':        { bg:'#eff6ff', border:'#3b82f6', text:'#1d4ed8' },
+    'Financial':         { bg:'#f0fdf4', border:'#10b981', text:'#065f46' },
+    'Healthcare':        { bg:'#fdf4ff', border:'#a855f7', text:'#6b21a8' },
+    'Consumer Cyclical': { bg:'#fff7ed', border:'#f97316', text:'#9a3412' },
+    'Consumer Defensive':{ bg:'#fefce8', border:'#eab308', text:'#713f12' },
+    'Energy':            { bg:'#fff1f2', border:'#f43f5e', text:'#9f1239' },
+    'Industrials':       { bg:'#f0f9ff', border:'#0ea5e9', text:'#0369a1' },
+    'Communication':     { bg:'#faf5ff', border:'#8b5cf6', text:'#5b21b6' },
+    'Real Estate':       { bg:'#f0fdfa', border:'#14b8a6', text:'#0f766e' },
+    'Materials':         { bg:'#fdf2f8', border:'#ec4899', text:'#9d174d' },
+    'Utilities':         { bg:'#f8fafc', border:'#64748b', text:'#334155' },
+};
+
+const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
+
 // ─── Sabrina AI Chatbot Component ────────────────────────────────────────────
 function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -1536,6 +1668,318 @@ function EmptyNewsState({ message }) {
         }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
             <div style={{ color: '#666', fontSize: '15px' }}>{message}</div>
+        </div>
+    );
+}
+
+
+// ─── Earnings Calendar Component ──────────────────────────────────────────────
+function EarningsCalendar({ onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [earnings,      setEarnings]      = React.useState([]);
+    const [loading,       setLoading]       = React.useState(false);
+    const [error,         setError]         = React.useState(null);
+    const [currentMonth,  setCurrentMonth]  = React.useState(() => new Date());
+    const [selectedDay,   setSelectedDay]   = React.useState(null);
+    const [showModal,     setShowModal]     = React.useState(false);
+    const [modalEarnings, setModalEarnings] = React.useState([]);
+    const [search,        setSearch]        = React.useState('');
+    const [sectorFilter,  setSectorFilter]  = React.useState('All');
+    const [sortBy,        setSortBy]        = React.useState('date'); // 'date' | 'marketcap' | 'sector'
+
+    // Fetch all earnings on mount + month change
+    React.useEffect(() => {
+        fetchEarnings();
+    }, []);
+
+    const fetchEarnings = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_calendar_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: ALL_CALENDAR_TICKERS }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setEarnings(json.results || []);
+        } catch(e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── Calendar helpers (no date-fns needed — pure JS) ──────────────────────
+    const year  = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const firstDay  = new Date(year, month, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Build date → earnings map
+    const byDate = {};
+    earnings.forEach(e => {
+        const d = e.earningsDate?.slice(0, 10);
+        if (!d) return;
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(e);
+    });
+
+    // Top 5 per day by market cap
+    const top5 = (date) => {
+        const list = byDate[date] || [];
+        return [...list].sort((a, b) => (b.marketCap||0) - (a.marketCap||0)).slice(0, 5);
+    };
+
+    const openDay = (dateStr) => {
+        const all = byDate[dateStr] || [];
+        setSelectedDay(dateStr);
+        setModalEarnings(all);
+        setSearch(''); setSectorFilter('All');
+        setShowModal(true);
+    };
+
+    // ── Filter + sort for modal ───────────────────────────────────────────────
+    const sectors = ['All', ...new Set(Object.values(SECTOR_MAP))].sort();
+    const filtered = modalEarnings.filter(e => {
+        const matchSearch = !search || e.ticker.includes(search.toUpperCase()) || (e.name||'').toUpperCase().includes(search.toUpperCase());
+        const matchSector = sectorFilter === 'All' || SECTOR_MAP[e.ticker] === sectorFilter;
+        return matchSearch && matchSector;
+    }).sort((a, b) => {
+        if (sortBy === 'marketcap') return (b.marketCap||0) - (a.marketCap||0);
+        if (sortBy === 'sector') return (SECTOR_MAP[a.ticker]||'').localeCompare(SECTOR_MAP[b.ticker]||'');
+        return (a.earningsDate||'').localeCompare(b.earningsDate||'');
+    });
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(1)}B`;
+        if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
+
+    const fmtDate = (d) => {
+        if (!d) return '—';
+        const dt = new Date(d + 'T12:00:00');
+        return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    };
+
+    const isPast    = (d) => d < today;
+    const isToday   = (d) => d === today;
+    const isThisMonth = (d) => d?.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
+
+    // Calendar grid — 6 rows × 7 cols
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    return (
+        <div style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", backgroundColor:'#f8fafc', borderRadius:'16px', border:'1px solid #e2e8f0', overflow:'hidden', marginBottom:'24px' }}>
+            {/* Header */}
+            <div style={{ padding:'20px 24px', background:'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px' }}>
+                <div>
+                    <div style={{ fontSize:'18px', fontWeight:'800', color:'#fff' }}>📅 Earnings Calendar</div>
+                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>
+                        {earnings.length} upcoming reports tracked across {Object.keys(SECTOR_MAP).length} stocks
+                    </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                    <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))}
+                        style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>‹</button>
+                    <span style={{ fontSize:'15px', fontWeight:'700', color:'#fff', minWidth:'160px', textAlign:'center' }}>{monthLabel}</span>
+                    <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))}
+                        style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>›</button>
+                    <button onClick={fetchEarnings} disabled={loading}
+                        style={{ padding:'6px 14px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
+                        {loading ? '⏳' : '↻ Refresh'}
+                    </button>
+                </div>
+            </div>
+
+            {error && (
+                <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#ef4444', fontSize:'13px', borderBottom:'1px solid #fecaca' }}>
+                    ⚠️ {error} — <button onClick={fetchEarnings} style={{ background:'none', border:'none', color:'#ef4444', textDecoration:'underline', cursor:'pointer' }}>retry</button>
+                </div>
+            )}
+
+            {loading && !earnings.length && (
+                <div style={{ padding:'60px', textAlign:'center', color:'#64748b' }}>
+                    <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'12px' }}>⏳</div>
+                    <div style={{ fontSize:'14px' }}>Fetching earnings dates for {ALL_CALENDAR_TICKERS.length} stocks…</div>
+                    <div style={{ fontSize:'12px', color:'#94a3b8', marginTop:'4px' }}>This takes ~15–30s the first time</div>
+                </div>
+            )}
+
+            {!loading || earnings.length > 0 ? (
+                <div style={{ padding:'0' }}>
+                    {/* Day headers */}
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid #e2e8f0' }}>
+                        {DAYS.map(d => (
+                            <div key={d} style={{ padding:'10px 0', textAlign:'center', fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.07em', backgroundColor:'#f8fafc' }}>{d}</div>
+                        ))}
+                    </div>
+                    {/* Calendar grid */}
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+                        {cells.map((day, idx) => {
+                            if (!day) return <div key={`empty-${idx}`} style={{ minHeight:'90px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9', backgroundColor:'#fafbfc' }} />;
+                            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            const top = top5(dateStr);
+                            const total = (byDate[dateStr]||[]).length;
+                            const isWknd = idx % 7 === 0 || idx % 7 === 6;
+                            const past = isPast(dateStr);
+                            const todayCell = isToday(dateStr);
+                            return (
+                                <div key={dateStr}
+                                    onClick={() => top.length > 0 && openDay(dateStr)}
+                                    style={{
+                                        minHeight:'90px', padding:'6px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9',
+                                        backgroundColor: todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff',
+                                        cursor: top.length > 0 ? 'pointer' : 'default',
+                                        position:'relative',
+                                        outline: todayCell ? '2px solid #3b82f6' : 'none',
+                                        outlineOffset:'-1px',
+                                        opacity: past && !todayCell ? 0.6 : 1,
+                                        transition:'background 0.1s',
+                                    }}
+                                    onMouseEnter={e => { if (top.length > 0) e.currentTarget.style.backgroundColor = todayCell ? '#dbeafe' : '#f0f9ff'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff'; }}
+                                >
+                                    {/* Day number */}
+                                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' }}>
+                                        <span style={{ fontSize:'12px', fontWeight: todayCell ? '800' : '500', color: todayCell ? '#2563eb' : isWknd ? '#94a3b8' : '#374151' }}>
+                                            {day}
+                                        </span>
+                                        {total > 5 && (
+                                            <span style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', backgroundColor:'#e2e8f0', borderRadius:'10px', padding:'1px 5px' }}>
+                                                +{total - 5}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* Top 5 ticker chips */}
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                                        {top.map(e => {
+                                            const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                            return (
+                                                <div key={e.ticker} style={{ fontSize:'10px', fontWeight:'700', padding:'1px 5px', borderRadius:'4px', backgroundColor:sc.bg, border:`1px solid ${sc.border}40`, color:sc.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+                                                    {e.ticker}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Sector legend */}
+                    <div style={{ padding:'12px 20px', borderTop:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'6px', backgroundColor:'#f8fafc' }}>
+                        {Object.entries(SECTOR_COLORS).map(([sector, c]) => (
+                            <div key={sector} style={{ display:'flex', alignItems:'center', gap:'4px', padding:'2px 8px', borderRadius:'12px', backgroundColor:c.bg, border:`1px solid ${c.border}40`, fontSize:'10px', fontWeight:'700', color:c.text }}>
+                                <div style={{ width:'6px', height:'6px', borderRadius:'50%', backgroundColor:c.border }} />
+                                {sector}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+
+            {/* ── Day detail modal ─────────────────────────────────────────────── */}
+            {showModal && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9600, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}
+                    onClick={e => { if (e.target===e.currentTarget) setShowModal(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'16px', width:'100%', maxWidth:'740px', maxHeight:'90vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.3)', overflow:'hidden' }}>
+
+                        {/* Modal header */}
+                        <div style={{ padding:'18px 24px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>📅 {fmtDate(selectedDay)}</div>
+                                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>{modalEarnings.length} companies reporting</div>
+                            </div>
+                            <button onClick={() => setShowModal(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'24px', cursor:'pointer', lineHeight:1 }}>×</button>
+                        </div>
+
+                        {/* Controls */}
+                        <div style={{ padding:'12px 20px', borderBottom:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', flexShrink:0 }}>
+                            <input type="text" placeholder="Search ticker or name…"
+                                value={search} onChange={e => setSearch(e.target.value)}
+                                style={{ flex:1, minWidth:'160px', padding:'7px 12px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', outline:'none' }} />
+                            <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
+                                style={{ padding:'7px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', color:'#333', outline:'none' }}>
+                                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                                style={{ padding:'7px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', color:'#333', outline:'none' }}>
+                                <option value="marketcap">Sort: Market Cap</option>
+                                <option value="sector">Sort: Sector</option>
+                                <option value="date">Sort: Date</option>
+                            </select>
+                        </div>
+
+                        {/* Results */}
+                        <div style={{ overflowY:'auto', flex:1, padding:'8px 12px' }}>
+                            {filtered.length === 0 ? (
+                                <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No results match your filters</div>
+                            ) : (
+                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                    {filtered.map(e => {
+                                        const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        const past = e.earningsDate < today;
+                                        const surprise = e.epsActual != null && e.epsEstimate != null
+                                            ? ((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate) * 100).toFixed(1)
+                                            : null;
+                                        return (
+                                            <div key={e.ticker}
+                                                onClick={() => { setShowModal(false); if (onSelectTicker) onSelectTicker(e.ticker); }}
+                                                style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 14px', borderRadius:'10px', backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', transition:'all 0.1s' }}
+                                                onMouseEnter={e2 => { e2.currentTarget.style.backgroundColor='#eff6ff'; e2.currentTarget.style.borderColor='#bfdbfe'; }}
+                                                onMouseLeave={e2 => { e2.currentTarget.style.backgroundColor='#f8fafc'; e2.currentTarget.style.borderColor='#e2e8f0'; }}
+                                            >
+                                                {/* Ticker + name */}
+                                                <div style={{ minWidth:'55px' }}>
+                                                    <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{e.ticker}</div>
+                                                    <div style={{ fontSize:'10px', color:'#64748b', marginTop:'1px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'120px' }}>{e.name}</div>
+                                                </div>
+                                                {/* Sector badge */}
+                                                <div style={{ padding:'3px 8px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, border:`1px solid ${sc.border}40`, color:sc.text, whiteSpace:'nowrap', flexShrink:0 }}>
+                                                    {SECTOR_MAP[e.ticker] || '—'}
+                                                </div>
+                                                {/* Market cap */}
+                                                <div style={{ fontSize:'12px', color:'#475569', fontWeight:'600', minWidth:'60px', textAlign:'right' }}>{fmtCap(e.marketCap)}</div>
+                                                {/* EPS */}
+                                                <div style={{ marginLeft:'auto', textAlign:'right', flexShrink:0 }}>
+                                                    {e.epsEstimate != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>Est. <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
+                                                    )}
+                                                    {e.epsActual != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>
+                                                            Act. <strong style={{ color: e.epsActual >= (e.epsEstimate||0) ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                            {surprise && <span style={{ marginLeft:'4px', fontSize:'10px', color: parseFloat(surprise)>=0?'#10b981':'#ef4444', fontWeight:'700' }}>({parseFloat(surprise)>=0?'+':''}{surprise}%)</span>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Status */}
+                                                <div style={{ flexShrink:0 }}>
+                                                    {past
+                                                        ? <span style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', backgroundColor:'#f1f5f9', padding:'2px 6px', borderRadius:'6px' }}>Reported</span>
+                                                        : <span style={{ fontSize:'10px', fontWeight:'700', color:'#2563eb', backgroundColor:'#eff6ff', padding:'2px 6px', borderRadius:'6px' }}>Upcoming</span>
+                                                    }
+                                                </div>
+                                                <div style={{ fontSize:'11px', color:'#2563eb', flexShrink:0 }}>↗</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -3531,6 +3975,7 @@ export default function SnowAIStockScreener() {
     ];
 
     const [ticker, setTicker] = useState('');
+    const [showCalendar, setShowCalendar] = useState(false);
     const [stockData, setStockData] = useState(null);
     const [financials, setFinancials] = useState(null);
     const [earnings, setEarnings] = useState(null);
@@ -3895,6 +4340,10 @@ export default function SnowAIStockScreener() {
                                 <button onClick={() => setShowModal(true)} style={styles.browseButton}>
                                     📊 Browse Stocks
                                 </button>
+                                <button onClick={() => setShowCalendar(c => !c)}
+                                    style={{ ...styles.browseButton, backgroundColor: showCalendar ? '#1e3a5f' : '#6366f1' }}>
+                                    📅 {showCalendar ? 'Hide Calendar' : 'Earnings Calendar'}
+                                </button>
                                 <button onClick={runAIAnalysis} style={styles.aiAnalysisButton} disabled={aiAnalysisRunning}>
                                     {aiAnalysisRunning ? <><span>⏳</span><span>Analyzing...</span></> : <><span>🤖</span><span>AI Stock Analysis</span></>}
                                 </button>
@@ -3906,6 +4355,19 @@ export default function SnowAIStockScreener() {
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
                         </div>
+
+                        {/* Earnings Calendar */}
+                        {showCalendar && (
+                            <EarningsCalendar onSelectTicker={(sym) => {
+                                setTicker(sym);
+                                setShowCalendar(false);
+                                // Trigger a search for the selected ticker
+                                setTimeout(() => {
+                                    const evt = new KeyboardEvent('keypress', { key: 'Enter', bubbles: true });
+                                    document.querySelector('input[placeholder*="ticker"]')?.dispatchEvent(evt);
+                                }, 100);
+                            }} />
+                        )}
 
                         {/* Browse Stocks Modal */}
                         {showModal && (
