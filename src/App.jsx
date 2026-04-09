@@ -91,6 +91,7 @@ import SnowAISandbox from './components/sandbox.jsx';
 import SnowAIPeopleofInterest from './components/poi.jsx';
 import Valentine from './components/valentine.jsx';
 import DomainExpansion from './components/jjk.jsx';
+import SnowAIMoments from './components/moments.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -606,6 +607,12 @@ function App() {
             <Route path='/jjk' element={
               <ProtectedRoute>
                 <DomainExpansion />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/snowai_moments' element={
+              <ProtectedRoute>
+                <SnowAIMoments />
               </ProtectedRoute>
             } />
 
