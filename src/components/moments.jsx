@@ -741,14 +741,14 @@ export default function SnowAIMoments() {
                                             rows={4}
                                         />
 
-                                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                                        <div>
                                             <input 
                                                 type="text"
                                                 value={newMoment.event_name}
                                                 onChange={(e) => setNewMoment({...newMoment, event_name: e.target.value})}
                                                 placeholder="Event"
                                                 style={styles.input}
-                                            />
+                                            /><br />
 
                                             <input 
                                                 type="text"
