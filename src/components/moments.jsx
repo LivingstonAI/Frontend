@@ -370,7 +370,7 @@ export default function SnowAIMoments() {
                     {/* Header Section */}
                     <div className="snowai-hero">
                         <div className="snowai-hero-content">
-                            <h1 className="snowai-title">
+                            <h1 className="">
                                 <span className="snowai-icon">❄️</span>
                                 SnowAI Moments
                             </h1>
