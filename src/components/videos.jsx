@@ -646,7 +646,6 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   );
 };
 
-
 const InstaQuickView = ({onClose,onOpenViewer}) => {
   const [url,setUrl]=useState('');
   const [post,setPost]=useState(null);
@@ -822,6 +821,7 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
     </div>
   );
 };
+
 const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   const [hov,setHov]=useState(false);
   const [expanded,setExpanded]=useState(false);
@@ -876,6 +876,7 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
     </div>
   );
 };
+
 const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJump, onPlLoop, loopPl, plIdx}) => {
   if (!video) return null;
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
@@ -961,7 +962,65 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-// FIXED: Extracted SpotifyQuickPlay component
+// Spotify Modal Component
+const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
+  if (!entry) return null;
+  const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
+  const isTrack = entry.spotify_type === 'track';
+  
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:580,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+        <div style={{height:3,background:SPG,width:'100%'}}/>
+        <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'#0a0a0a'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
+            <div style={{flexShrink:0,background:SPG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5}}>
+              <span style={{fontSize:13}}>❄️</span>
+              <span style={{fontFamily:T.font,fontWeight:800,fontSize:11,color:'#000',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI Spotify</span>
+            </div>
+            <div style={{minWidth:0}}>
+              <div style={{color:'#fff',fontFamily:T.font,fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.title}</div>
+              <div style={{display:'flex',alignItems:'center',gap:5,marginTop:1}}>
+                <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:m.color,flexShrink:0}}/>
+                <span style={{color:'rgba(255,255,255,.45)',fontFamily:T.body,fontSize:10}}>{m.emoji} {m.label} · {entry.category_name || 'Uncategorized'}</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
+        </div>
+        
+        <div style={{background:'#000',padding: isTrack ? '12px' : '20px'}}>
+          <iframe 
+            src={spEmbedUrl(entry.spotify_type, entry.spotify_id)} 
+            width="100%" 
+            height={isTrack ? 80 : 380} 
+            style={{border:'none',display:'block',borderRadius:8}} 
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+            loading="lazy"
+          />
+        </div>
+        
+        {entry.artist && (
+          <div style={{flexShrink:0,padding:'8px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
+            <span style={{fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.5)',lineHeight:1.6}}><strong style={{color:'rgba(255,255,255,.7)'}}>Artist:</strong> {entry.artist}</span>
+          </div>
+        )}
+        {entry.notes && (
+          <div style={{flexShrink:0,padding:'8px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
+            <span style={{fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.5)',lineHeight:1.6}}><strong style={{color:'rgba(255,255,255,.7)'}}>Notes:</strong> {entry.notes}</span>
+          </div>
+        )}
+        
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+          <button onClick={onPrev} disabled={!hasPrev} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:hasPrev?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,opacity:hasPrev?1:0.35}}>← Prev</button>
+          <a href={entry.spotify_url || `https://open.spotify.com/${entry.spotify_type}/${entry.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'7px 18px',background:SPG,color:'#000',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open in Spotify ↗</a>
+          <button onClick={onNext} disabled={!hasNext} style={{background:SPG,border:'none',color:'#000',padding:'7px 18px',borderRadius:T.rs,cursor:hasNext?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,fontWeight:700,opacity:hasNext?1:0.35}}>Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SpotifyQuickPlay = ({ setSpPlaying }) => {
   const [spQUrl, setSpQUrl] = useState('');
   const [spQErr, setSpQErr] = useState('');
@@ -1048,6 +1107,7 @@ export default function SnowAIVideos() {
   const [spSearch,setSpSearch]=useState('');
   const [spTypeFilter,setSpTypeFilter]=useState('all');
   const [spPlaying,setSpPlaying]=useState(null);
+  const [spPlayIdx,setSpPlayIdx]=useState(null);
   const [spFormOpen,setSpFormOpen]=useState(false);
   const [spEditing,setSpEditing]=useState(null);
   const [spForm,setSpForm]=useState({title:'',artist:'',spotify_url:'',category_id:'',notes:''});
@@ -1097,6 +1157,27 @@ export default function SnowAIVideos() {
   const handleSpSubmit=async e=>{e.preventDefault();if(!spForm.title||!spForm.spotify_url||!spForm.category_id)return showToast('Title, URL and category required','error');const{type,id}=parseSpotify(spForm.spotify_url);if(!type||!id)return showToast('Could not parse Spotify URL','error');try{const url=spEditing?`${BASE}/api/snowai-spotify-entries/${spEditing.id}/update/`:`${BASE}/api/snowai-spotify-entries/create/`;const r=await fetch(url,{method:spEditing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...spForm,spotify_type:type,spotify_id:id})});if(r.ok){setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''});setSpFormOpen(false);setSpEditing(null);fetchSpEntries(spCat==='all'?null:spCat,spTypeFilter);showToast('Saved 🎵');}else{const d=await r.json();showToast(d.error||'Save failed','error');}}catch{showToast('Failed','error');}};
   const handleSpEdit=e=>{setSpEditing(e);setSpForm({title:e.title,artist:e.artist||'',spotify_url:e.spotify_url||`https://open.spotify.com/${e.spotify_type}/${e.spotify_id}`,category_id:e.category_id||'',notes:e.notes||''});setSpFormOpen(true);};
   const handleSpDelete=async id=>{if(!window.confirm('Delete?'))return;try{await fetch(`${BASE}/api/snowai-spotify-entries/${id}/delete/`,{method:'DELETE'});fetchSpEntries(spCat==='all'?null:spCat,spTypeFilter);if(spPlaying?.id===id)setSpPlaying(null);showToast('Deleted');}catch{showToast('Failed','error');}};
+  const handleSpPlay = (entry) => {
+    const idx = spFiltered.findIndex(e => e.id === entry.id);
+    setSpPlayIdx(idx >= 0 ? idx : null);
+    setSpPlaying(entry);
+  };
+  const handleSpNext = () => {
+    if (spPlayIdx === null) return;
+    const next = spPlayIdx + 1;
+    if (next < spFiltered.length) {
+      setSpPlayIdx(next);
+      setSpPlaying(spFiltered[next]);
+    }
+  };
+  const handleSpPrev = () => {
+    if (spPlayIdx === null) return;
+    const prev = spPlayIdx - 1;
+    if (prev >= 0) {
+      setSpPlayIdx(prev);
+      setSpPlaying(spFiltered[prev]);
+    }
+  };
 
   const secBtn=(active,type)=>{
     let bg = 'transparent';
@@ -1336,7 +1417,8 @@ export default function SnowAIVideos() {
                 </div>
                 {spCatForm&&(<form onSubmit={handleSpAddCat} style={{display:'flex',gap:8,marginBottom:10}}><Inp value={spNewCat} onChange={e=>setSpNewCat(e.target.value)} placeholder="Category name" style={{flex:1}}/><Btn type="submit" style={{padding:'10px 14px',background:SPG,color:'#000'}}>Add</Btn></form>)}
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                  {['all',...spCats.map(c=>c)].map((c,i)=>{const active=i===0?spCat==='all':spCat===c.id;return(<button key={i} style={{padding:'5px 13px',background:active?SPG:'transparent',color:active?'#000':T.accent,border:`1.5px solid ${active?'transparent':T.border}`,borderRadius:15,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:12,transition:'all .18s',whiteSpace:'nowrap'}} onClick={()=>i===0?handleSpCatF('all'):handleSpCatF(c.id)}>{i===0?'All':c.category_name}</button>);})}
+                  <button style={{padding:'5px 13px',background:spCat==='all'?SPG:'transparent',color:spCat==='all'?'#000':T.accent,border:`1.5px solid ${spCat==='all'?'transparent':T.border}`,borderRadius:15,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:12}} onClick={()=>handleSpCatF('all')}>All</button>
+                  {spCats.map(c=><button key={c.id} style={{padding:'5px 13px',background:spCat===c.id?SPG:'transparent',color:spCat===c.id?'#000':T.accent,border:`1.5px solid ${spCat===c.id?'transparent':T.border}`,borderRadius:15,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:12}} onClick={()=>handleSpCatF(c.id)}>{c.category_name}</button>)}
                 </div>
               </SC>
 
@@ -1383,12 +1465,11 @@ export default function SnowAIVideos() {
                   {spFiltered.filter(e=>spSearch?e.title?.toLowerCase().includes(spSearch.toLowerCase())||e.artist?.toLowerCase().includes(spSearch.toLowerCase())||e.notes?.toLowerCase().includes(spSearch.toLowerCase()):true).map((e,i)=>{
                     const m=SP_TYPE[e.spotify_type]||SP_TYPE.track;
                     const isTrack=e.spotify_type==='track';
-                    const isPlaying=spPlaying?.id===e.id && !(typeof spPlaying?.id === 'string' && spPlaying.id.startsWith('qp_'));
                     return(
-                      <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${isPlaying?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:isPlaying?`0 0 0 2px ${SP_GREEN}, 0 6px 28px rgba(30,215,96,.15)`:T.sh,transition:'all .22s'}}>
+                      <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${spPlaying?.id===e.id?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:spPlaying?.id===e.id?`0 0 0 2px ${SP_GREEN}, 0 6px 28px rgba(30,215,96,.15)`:T.sh,transition:'all .22s'}}>
                         {isTrack&&<div style={{padding:'10px 10px 0'}}><iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={80} style={{border:'none',display:'block',borderRadius:6}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/></div>}
                         {!isTrack&&(
-                          <div onClick={()=>setSpPlaying(p=>p?.id===e.id?null:e)} style={{height:110,cursor:'pointer',position:'relative',background:`linear-gradient(135deg,${m.color}22,${m.color}08)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                          <div onClick={()=>handleSpPlay(e)} style={{height:110,cursor:'pointer',position:'relative',background:`linear-gradient(135deg,${m.color}22,${m.color}08)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
                             <span style={{fontSize:38}}>{m.emoji}</span>
                             <div style={{position:'absolute',top:8,left:8}}><span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span></div>
                           </div>
@@ -1404,16 +1485,10 @@ export default function SnowAIVideos() {
                           {e.notes&&<p style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)',margin:0,lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{e.notes}</p>}
                         </div>
                         <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:'1px solid rgba(255,255,255,.06)'}}>
-                          {!isTrack&&<Btn onClick={()=>setSpPlaying(p=>p?.id===e.id?null:e)} style={{flex:1,padding:'6px 0',background:isPlaying?SP_GREEN:SPG,color:'#000',fontSize:12,fontWeight:700}}>{isPlaying?'■ Close':'▶ Play'}</Btn>}
-                          <a href={e.spotify_url||`https://open.spotify.com/${e.spotify_type}/${e.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'6px 10px',background:'transparent',border:'1px solid rgba(255,255,255,.12)',color:SP_GREEN,borderRadius:T.rs,fontSize:12,textDecoration:'none',display:'flex',alignItems:'center'}} title="Open on Spotify">↗</a>
+                          <Btn onClick={()=>handleSpPlay(e)} style={{flex:1,padding:'6px 0',background:spPlaying?.id===e.id?SP_GREEN:SPG,color:'#000',fontSize:12,fontWeight:700}}>{spPlaying?.id===e.id?'■ Close':'▶ Play'}</Btn>
                           <Btn onClick={()=>handleSpEdit(e)} style={{padding:'6px 10px',background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.5)',fontSize:12}}>✎</Btn>
                           <Btn onClick={()=>handleSpDelete(e.id)} style={{padding:'6px 10px',background:'rgba(239,68,68,.1)',color:'#f87171',fontSize:12}}>🗑</Btn>
                         </div>
-                        {isPlaying&&!isTrack&&(
-                          <div style={{padding:'0 10px 10px',background:'#000'}} className="sas-in">
-                            <iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={SP_EMBED_H[e.spotify_type]||380} style={{border:'none',display:'block',borderRadius:8}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -1425,6 +1500,16 @@ export default function SnowAIVideos() {
           {ytPlaying&&ytEmbedId&&<YtModal video={ytPlaying} embedId={ytEmbedId} onClose={()=>{setYtPlaying(null);setActivePL(null);}} playlist={activePL} onPlNext={()=>{ const n=plIdx<activePL.queue.length-1?plIdx+1:(plLoopRef.current?0:plIdx); setPlIdx(n); const v=activePL.queue[n]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlPrev={()=>{ const p=plIdx>0?plIdx-1:(plLoopRef.current?activePL.queue.length-1:0); setPlIdx(p); const v=activePL.queue[p]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlJump={i=>{ setPlIdx(i); const v=activePL.queue[i]; setYtPlaying({...v,youtube_embed_id:v.youtube_embed_id||ytId(v.video_url)}); }} onPlLoop={()=>setPlLoop(l=>!l)} loopPl={plLoop} plIdx={plIdx}/>}
           {showIgQV&&<InstaQuickView onClose={()=>setShowIgQV(false)} onOpenViewer={p=>{setIgPlaying(p);setIgPlayIdx(null);}}/>}
           {igPlaying&&<ReelModal post={igPlaying} onClose={()=>{setIgPlaying(null);setIgPlayIdx(null);}} onNext={handleIgNext} onPrev={handleIgPrev} hasPrev={igPlayIdx!==null&&igPlayIdx>0} hasNext={igPlayIdx!==null&&igPlayIdx<igFiltered.length-1}/>}
+          {spPlaying && !(typeof spPlaying.id === 'string' && spPlaying.id.startsWith('qp_')) && (
+            <SpModal 
+              entry={spPlaying} 
+              onClose={() => { setSpPlaying(null); setSpPlayIdx(null); }} 
+              onPrev={handleSpPrev} 
+              onNext={handleSpNext} 
+              hasPrev={spPlayIdx !== null && spPlayIdx > 0} 
+              hasNext={spPlayIdx !== null && spPlayIdx < spFiltered.length - 1} 
+            />
+          )}
           {showPLModal&&<PlaylistModal onClose={()=>{setShowPLModal(false);setPendingPLVid(null);}} savedVideos={ytVideos} onSave={handleSavePL} initVideo={pendingPLVid}/>}
         </div>
       </div>
