@@ -87,6 +87,53 @@ const ytId = url => {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]{11})/);
   return m ? m[1] : '';
 };
+
+// Auto-fetch YouTube video title
+const fetchYoutubeTitle = async (videoId) => {
+  try {
+    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+    const data = await response.json();
+    return data.title || '';
+  } catch (error) {
+    console.error('Failed to fetch YouTube title:', error);
+    return '';
+  }
+};
+
+// Auto-fetch Instagram metadata
+const fetchInstagramMetadata = async (url) => {
+  try {
+    const encodedUrl = encodeURIComponent(url);
+    const response = await fetch(`https://api.instagram.com/oembed/?url=${encodedUrl}&omitscript=true`);
+    const data = await response.json();
+    return {
+      title: data.title || '',
+      author: data.author_name || '',
+      thumbnail: data.thumbnail_url || ''
+    };
+  } catch (error) {
+    console.error('Failed to fetch Instagram metadata:', error);
+    return { title: '', author: '', thumbnail: '' };
+  }
+};
+
+// Auto-fetch Spotify metadata
+const fetchSpotifyMetadata = async (type, id) => {
+  try {
+    // Using Spotify's oembed endpoint
+    const response = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`);
+    const data = await response.json();
+    return {
+      title: data.title || '',
+      author: data.author_name || '',
+      thumbnail: data.thumbnail_url || ''
+    };
+  } catch (error) {
+    console.error('Failed to fetch Spotify metadata:', error);
+    return { title: '', author: '', thumbnail: '' };
+  }
+};
+
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const isReel  = url => url && (url.includes('/reel/') || url.includes('/tv/'));
 
@@ -258,12 +305,12 @@ const InstaEmbed = ({url, loop=false}) => {
   );
 };
 
-const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose, onSaved}) => {
+const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose, onSaved }) => {
   const BASE = 'https://backend-production-c0ab.up.railway.app';
   const [form, setForm] = useState({
     title:        defaultTitle || '',
     speaker_name: defaultHandle ? defaultHandle.replace('@','') : '',
-    category:     source === 'youtube' ? 'youtube' : 'instagram',
+    category:     source === 'youtube' ? 'youtube' : source === 'spotify' ? 'spotify' : 'instagram',
     transcript:   text || '',
   });
   const [saving, setSaving] = useState(false);
@@ -305,6 +352,12 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
     }
   };
 
+  const getSourceGradient = () => {
+    if (source === 'youtube') return YTG;
+    if (source === 'spotify') return SPG;
+    return IG;
+  };
+
   const field = (label, key, opts={}) => (
     <div style={{marginBottom:12}}>
       <label style={{display:'block',fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.5)',letterSpacing:'.05em',marginBottom:5}}>{label}</label>
@@ -321,15 +374,15 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:1200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
         style={{width:'100%',maxWidth:480,borderRadius:18,overflow:'hidden',background:'#111',boxShadow:'0 24px 80px rgba(0,0,0,.8)',border:'1px solid rgba(255,255,255,.1)'}}>
-        <div style={{height:3,background:source==='youtube'?YTG:IG}}/>
+        <div style={{height:3,background:getSourceGradient()}}/>
         <div style={{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <div style={{background:source==='youtube'?YTG:IG,borderRadius:8,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
+            <div style={{background:getSourceGradient(),borderRadius:8,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
               <span style={{fontSize:12}}>❄️</span>
               <span style={{fontFamily:T.font,fontWeight:800,fontSize:10,color:'#fff',whiteSpace:'nowrap'}}>Save Transcript</span>
             </div>
             <span style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)'}}>
-              {source==='youtube'?'YouTube':'Instagram'} · Web Speech API · {form.transcript.split(/\s+/).filter(Boolean).length} words
+              {source === 'youtube' ? 'YouTube' : source === 'spotify' ? 'Spotify' : 'Instagram'} · Web Speech API · {form.transcript.split(/\s+/).filter(Boolean).length} words
             </span>
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.4)',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
@@ -342,17 +395,19 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
               </div>
             : <>
                 {err && <div style={{background:'rgba(239,68,68,.15)',border:'1px solid rgba(239,68,68,.3)',borderRadius:T.rs,padding:'8px 11px',color:'#f87171',fontFamily:T.body,fontSize:12,marginBottom:12}}>{err}</div>}
-                {field('TITLE', 'title', {placeholder:`e.g. ${source==='youtube'?'Interview with...':'@handle reel — topic'}`})}
-                {field('SPEAKER / CREATOR', 'speaker_name', {placeholder:'e.g. John Smith or @username'})}
+                {field('TITLE', 'title', {placeholder:`e.g. ${source === 'youtube' ? 'Interview with...' : source === 'spotify' ? 'Song/Album name...' : '@handle reel — topic'}`})}
+                {field('SPEAKER / CREATOR', 'speaker_name', {placeholder:'e.g. John Smith or @username or Artist name'})}
                 <div style={{marginBottom:12}}>
                   <label style={{display:'block',fontFamily:T.font,fontWeight:700,fontSize:11,color:'rgba(255,255,255,.5)',letterSpacing:'.05em',marginBottom:5}}>CATEGORY</label>
                   <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))}
                     style={{width:'100%',padding:'9px 11px',background:'#1a1a1a',border:'1.5px solid rgba(255,255,255,.12)',borderRadius:T.rs,color:'#fff',fontFamily:T.body,fontSize:13,outline:'none'}}>
                     <option value="youtube">YouTube</option>
                     <option value="instagram">Instagram</option>
+                    <option value="spotify">Spotify</option>
                     <option value="interview">Interview</option>
                     <option value="lecture">Lecture / Talk</option>
                     <option value="podcast">Podcast</option>
+                    <option value="music">Music</option>
                     <option value="central_bank">Central Bank</option>
                     <option value="government">Government</option>
                     <option value="corporate">Corporate</option>
@@ -361,7 +416,7 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
                 </div>
                 {field('TRANSCRIPT', 'transcript', {textarea:true, rows:6})}
                 <button onClick={save} disabled={saving}
-                  style={{width:'100%',padding:'11px 0',background:source==='youtube'?YTG:IG,border:'none',color:'#fff',borderRadius:T.rs,cursor:saving?'not-allowed':'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,opacity:saving?.7:1}}>
+                  style={{width:'100%',padding:'11px 0',background:getSourceGradient(),border:'none',color:source === 'spotify' ? '#000' : '#fff',borderRadius:T.rs,cursor:saving?'not-allowed':'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,opacity:saving?.7:1}}>
                   {saving ? 'Saving…' : '💾 Save Transcript'}
                 </button>
               </>
@@ -650,21 +705,40 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
   const [url,setUrl]=useState('');
   const [post,setPost]=useState(null);
   const [err,setErr]=useState('');
-  const preview=()=>{
-    const u=url.trim();
-    if(!u)return;
-    if(!u.includes('instagram.com'))return setErr('Please paste a valid instagram.com URL');
+  const [fetching, setFetching] = useState(false);
+  
+  const preview = async () => {
+    const u = url.trim();
+    if(!u) return;
+    if(!u.includes('instagram.com')) return setErr('Please paste a valid instagram.com URL');
     setErr('');
-    const mt=u.includes('/reel/')?'REEL':u.includes('/tv/')?'TV':'POST';
-    setPost({id:'qv_'+Date.now(),title:'Quick View',post_url:u,account_handle:'',caption:'',thumbnail_url:null,media_type:mt,is_reel:mt==='REEL',date_added:new Date().toISOString()});
+    setFetching(true);
+    
+    // Auto-fetch metadata
+    const metadata = await fetchInstagramMetadata(u);
+    const mt = u.includes('/reel/') ? 'REEL' : u.includes('/tv/') ? 'TV' : 'POST';
+    
+    setPost({
+      id: 'qv_'+Date.now(),
+      title: metadata.title || 'Quick View',
+      post_url: u,
+      account_handle: metadata.author || '',
+      caption: metadata.title || '',
+      thumbnail_url: metadata.thumbnail,
+      media_type: mt,
+      is_reel: mt === 'REEL',
+      date_added: new Date().toISOString()
+    });
+    setFetching(false);
   };
+  
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:900,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:480,boxShadow:T.shm,overflow:'hidden'}}>
         <div style={{background:IG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
           <div>
             <div style={{fontFamily:T.font,fontWeight:800,fontSize:15,color:'#fff'}}>⚡ Insta Quick-View</div>
-            <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Paste any public Instagram post/reel — no saving needed</div>
+            <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Paste any public Instagram post/reel — auto-fetches metadata</div>
           </div>
           <button onClick={onClose} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:28,height:28,borderRadius:'50%',cursor:'pointer',fontSize:17}}>×</button>
         </div>
@@ -672,7 +746,9 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
           {err&&<Toast msg={err} type="error"/>}
           <div className="sas-flex-row" style={{marginBottom:12}}>
             <Inp value={url} onChange={e=>{setUrl(e.target.value);setPost(null);setErr('');}} onKeyDown={e=>e.key==='Enter'&&preview()} insta="1" placeholder="https://www.instagram.com/reel/Cxxx…" style={{flex:1}}/>
-            <Btn onClick={preview} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap'}}>Preview</Btn>
+            <Btn onClick={preview} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap'}} disabled={fetching}>
+              {fetching ? 'Fetching...' : 'Preview'}
+            </Btn>
           </div>
           {post&&(
             <div className="sas-in">
@@ -680,6 +756,7 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
                 <div>
                   <div style={{fontFamily:T.body,fontSize:11,color:T.textMut,marginBottom:2}}>Detected</div>
                   <div style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>{post.media_type==='REEL'?'🎬 Reel':post.media_type==='TV'?'📺 IGTV':'📸 Post'}</div>
+                  {post.account_handle && <div style={{fontSize:11,color:T.textSec,marginTop:2}}>@{post.account_handle}</div>}
                 </div>
                 <a href={post.post_url} target="_blank" rel="noopener noreferrer" style={{padding:'7px 13px',background:IG,color:'#fff',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open ↗</a>
               </div>
@@ -695,16 +772,61 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
 const YtQuickBar = ({onPlay,onAddToPlaylist}) => {
   const [url,setUrl]=useState('');
   const [err,setErr]=useState('');
-  const play=()=>{const id=ytId(url.trim());if(!id)return setErr('No YouTube video ID found');setErr('');onPlay({id:'qp_'+Date.now(),video_title:'Quick Play',video_url:url,youtube_embed_id:id,notes:null,category_name:''});setUrl('');};
-  const addPL=()=>{const id=ytId(url.trim());if(!id)return setErr('No YouTube video ID found');setErr('');onAddToPlaylist({id:'qp_'+Date.now(),video_title:url,video_url:url,youtube_embed_id:id,notes:null,category_name:''});setUrl('');};
+  const [fetching, setFetching] = useState(false);
+  
+  const play = async () => {
+    const id = ytId(url.trim());
+    if(!id) return setErr('No YouTube video ID found');
+    setErr('');
+    setFetching(true);
+    
+    // Auto-fetch video title
+    const title = await fetchYoutubeTitle(id);
+    
+    onPlay({
+      id:'qp_'+Date.now(),
+      video_title: title || 'Quick Play',
+      video_url: url,
+      youtube_embed_id: id,
+      notes: null,
+      category_name: ''
+    });
+    setUrl('');
+    setFetching(false);
+  };
+  
+  const addPL = async () => {
+    const id = ytId(url.trim());
+    if(!id) return setErr('No YouTube video ID found');
+    setErr('');
+    setFetching(true);
+    
+    const title = await fetchYoutubeTitle(id);
+    
+    onAddToPlaylist({
+      id:'qp_'+Date.now(),
+      video_title: title || url,
+      video_url: url,
+      youtube_embed_id: id,
+      notes: null,
+      category_name: ''
+    });
+    setUrl('');
+    setFetching(false);
+  };
+  
   return(
     <div style={{background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,padding:'13px 16px',marginBottom:14,boxShadow:T.sh}}>
-      <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — watch or queue without saving</div>
+      <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — watch or queue without saving (auto-fetches titles)</div>
       {err&&<Toast msg={err} type="error"/>}
       <div className="sas-flex-row">
         <Inp value={url} onChange={e=>{setUrl(e.target.value);setErr('');}} onKeyDown={e=>e.key==='Enter'&&play()} placeholder="Paste YouTube URL or video ID…" style={{flex:1}}/>
-        <Btn onClick={play} style={{padding:'10px 18px',background:YTG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(220,38,38,.25)'}}>▶ Play</Btn>
-        <Btn onClick={addPL} style={{padding:'10px 13px',background:T.accentPale,color:T.accent,whiteSpace:'nowrap'}}>+ Queue</Btn>
+        <Btn onClick={play} style={{padding:'10px 18px',background:YTG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(220,38,38,.25)'}} disabled={fetching}>
+          {fetching ? 'Loading...' : '▶ Play'}
+        </Btn>
+        <Btn onClick={addPL} style={{padding:'10px 13px',background:T.accentPale,color:T.accent,whiteSpace:'nowrap'}} disabled={fetching}>
+          + Queue
+        </Btn>
       </div>
     </div>
   );
@@ -785,6 +907,8 @@ const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
 const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
   const [hov,setHov]=useState(false);
   const [expanded,setExpanded]=useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   const vid=video.youtube_embed_id||ytId(video.video_url);
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -813,11 +937,14 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`,flexWrap:'wrap'}}>
         <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'#dc2626':YTG,color:'#fff',fontSize:12,minWidth:60}}>{expanded?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>📝</Btn>
         <Btn onClick={()=>onPlayModal(video)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onAddToPlaylist(video)} title="Add to playlist" style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>🎵</Btn>
         <Btn onClick={()=>onEdit(video)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(video.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
       </div>
+      {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={video.video_title} source="youtube" onClose={()=>setSaveTranscript(null)}/>}
+      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
     </div>
   );
 };
@@ -826,6 +953,8 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   const [hov,setHov]=useState(false);
   const [expanded,setExpanded]=useState(false);
   const [preloaded,setPreloaded]=useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   const reel = isReel(post.post_url);
   const code = igShortcode(post.post_url);
   const embedUrl = code ? `https://www.instagram.com/p/${code}/embed/` : null;
@@ -869,10 +998,13 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`}}>
         <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'rgba(193,53,132,.8)':IG,color:'#fff',fontSize:12}}>{expanded?'■ Stop':'▶ Play'}</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(193,53,132,.1)',color:T.iD,fontSize:12}}>📝</Btn>
         <Btn onClick={()=>onPlayModal(post)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onEdit(post)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(post.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
       </div>
+      {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
+      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
     </div>
   );
 };
@@ -962,11 +1094,57 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-// Spotify Modal Component
+// Spotify Card with Transcript
+const SpCard = ({ entry, index, onPlay, onEdit, onDelete }) => {
+  const [hov, setHov] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
+  const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
+  const isTrack = entry.spotify_type === 'track';
+  
+  return (
+    <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{animationDelay:`${index*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${hov?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:T.sh,transition:'all .22s'}}>
+      {isTrack && (
+        <div style={{padding:'10px 10px 0'}}>
+          <iframe src={spEmbedUrl(entry.spotify_type, entry.spotify_id)} width="100%" height={80} style={{border:'none',display:'block',borderRadius:6}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/>
+        </div>
+      )}
+      {!isTrack && (
+        <div onClick={()=>onPlay(entry)} style={{height:110,cursor:'pointer',position:'relative',background:`linear-gradient(135deg,${m.color}22,${m.color}08)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <span style={{fontSize:38}}>{m.emoji}</span>
+          <div style={{position:'absolute',top:8,left:8}}><span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span></div>
+        </div>
+      )}
+      <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:4}}>
+        <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.title}</div>
+        {entry.artist && <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.4)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{entry.artist}</div>}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:4,marginTop:2}}>
+          {isTrack && <span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span>}
+          <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)',background:'rgba(255,255,255,.06)',padding:'2px 7px',borderRadius:20}}>{entry.category_name||'—'}</span>
+          <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>{fmtDate(entry.date_added)}</span>
+        </div>
+        {entry.notes && <p style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)',margin:0,lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{entry.notes}</p>}
+      </div>
+      <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:'1px solid rgba(255,255,255,.06)'}}>
+        <Btn onClick={()=>onPlay(entry)} style={{flex:1,padding:'6px 0',background:SPG,color:'#000',fontSize:12,fontWeight:700}}>▶ Play</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(30,215,96,.1)',color:SP_GREEN,fontSize:12}}>📝</Btn>
+        <Btn onClick={()=>onEdit(entry)} style={{padding:'6px 10px',background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.5)',fontSize:12}}>✎</Btn>
+        <Btn onClick={()=>onDelete(entry.id)} style={{padding:'6px 10px',background:'rgba(239,68,68,.1)',color:'#f87171',fontSize:12}}>🗑</Btn>
+      </div>
+      {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={entry.title} defaultHandle={entry.artist} source="spotify" onClose={()=>setSaveTranscript(null)}/>}
+      <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+    </div>
+  );
+};
+
+// Spotify Modal with Transcript
 const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   if (!entry) return null;
   const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
   const isTrack = entry.spotify_type === 'track';
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [saveTranscript, setSaveTranscript] = useState(null);
   
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
@@ -986,7 +1164,14 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
               </div>
             </div>
           </div>
-          <button onClick={onClose} style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
+          <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
+            <button onClick={()=>setShowTranscript(t=>!t)}
+              style={{background:showTranscript?SPG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:showTranscript?'#000':'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+              📝
+            </button>
+            <button onClick={onClose}
+              style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
+          </div>
         </div>
         
         <div style={{background:'#000',padding: isTrack ? '12px' : '20px'}}>
@@ -1016,6 +1201,9 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
           <a href={entry.spotify_url || `https://open.spotify.com/${entry.spotify_type}/${entry.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'7px 18px',background:SPG,color:'#000',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open in Spotify ↗</a>
           <button onClick={onNext} disabled={!hasNext} style={{background:SPG,border:'none',color:'#000',padding:'7px 18px',borderRadius:T.rs,cursor:hasNext?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,fontWeight:700,opacity:hasNext?1:0.35}}>Next →</button>
         </div>
+        
+        {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={entry.title} defaultHandle={entry.artist} source="spotify" onClose={()=>setSaveTranscript(null)}/>}
+        <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
       </div>
     </div>
   );
@@ -1024,19 +1212,27 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
 const SpotifyQuickPlay = ({ setSpPlaying }) => {
   const [spQUrl, setSpQUrl] = useState('');
   const [spQErr, setSpQErr] = useState('');
+  const [fetching, setFetching] = useState(false);
   
-  const doPlay = () => {
+  const doPlay = async () => {
     const { type, id } = parseSpotify(spQUrl.trim());
     if (!type || !id) return setSpQErr('Paste a valid Spotify link');
     setSpQErr('');
+    setFetching(true);
+    
+    // Auto-fetch metadata
+    const metadata = await fetchSpotifyMetadata(type, id);
+    
     setSpPlaying({ 
       id: 'qp_' + Date.now(), 
-      title: 'Quick Play', 
+      title: metadata.title || 'Quick Play',
+      artist: metadata.author || '',
       spotify_type: type, 
       spotify_id: id, 
       spotify_url: spQUrl 
     });
     setSpQUrl('');
+    setFetching(false);
   };
   
   return (
@@ -1047,11 +1243,11 @@ const SpotifyQuickPlay = ({ setSpPlaying }) => {
           value={spQUrl} 
           onChange={e => { setSpQUrl(e.target.value); setSpQErr(''); }} 
           onKeyDown={e => e.key === 'Enter' && doPlay()} 
-          placeholder="Paste Spotify URL or URI — track, album, playlist, podcast…" 
+          placeholder="Paste Spotify URL or URI — auto-fetches title & artist…" 
           style={{ flex: 1 }}
         />
-        <Btn onClick={doPlay} style={{ padding: '10px 18px', background: SPG, color: '#000', fontWeight: 700, whiteSpace: 'nowrap' }}>
-          ▶ Play
+        <Btn onClick={doPlay} style={{ padding: '10px 18px', background: SPG, color: '#000', fontWeight: 700, whiteSpace: 'nowrap' }} disabled={fetching}>
+          {fetching ? 'Loading...' : '▶ Play'}
         </Btn>
       </div>
     </>
@@ -1210,7 +1406,7 @@ export default function SnowAIVideos() {
             <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:0,letterSpacing:'-.02em'}}>
               SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
             </h1>
-            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube & Instagram in one place.</p>
+            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube, Instagram & Spotify in one place with auto-fetch and transcript recording.</p>
           </div>
 
           <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
@@ -1293,7 +1489,7 @@ export default function SnowAIVideos() {
                 <div className="sas-banner">
                   <div>
                     <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#fff',letterSpacing:'-.02em'}}>SnowAI Insta 📸</div>
-                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Save posts & reels, or quick-view any public URL via Instagram oEmbed.</div>
+                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Save posts & reels, or quick-view any public URL with auto-fetch.</div>
                   </div>
                   <div className="sas-banner-right">
                     <Btn onClick={()=>setShowIgQV(true)} style={{padding:'7px 12px',background:'rgba(255,255,255,.2)',color:'#fff',border:'1.5px solid rgba(255,255,255,.4)',fontSize:12,backdropFilter:'blur(4px)'}}>⚡ Quick-View</Btn>
@@ -1383,14 +1579,14 @@ export default function SnowAIVideos() {
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div>
                     <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#000',letterSpacing:'-.02em'}}>SnowAI Spotify 🎵</div>
-                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — anything from Spotify.</div>
+                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — auto-fetches metadata + transcripts!</div>
                   </div>
                   <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'8px 16px',background:'#000',color:SP_GREEN,fontSize:12,fontWeight:700,border:'none'}}>+ Save</Btn>
                 </div>
               </div>
 
               <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r,padding:'13px 16px',marginBottom:14,boxShadow:T.sh}}>
-                <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — listen without saving</div>
+                <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — listen without saving (auto-fetches title & artist)</div>
                 <SpotifyQuickPlay setSpPlaying={setSpPlaying} />
               </div>
 
@@ -1406,6 +1602,7 @@ export default function SnowAIVideos() {
                     </div>
                     <button onClick={()=>setSpPlaying(null)} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.5)',borderRadius:'50%',width:26,height:26,cursor:'pointer',fontSize:14}}>×</button>
                   </div>
+                  {spPlaying.title && <div style={{color:'#fff',fontSize:12,marginBottom:8}}>{spPlaying.title}{spPlaying.artist && ` · ${spPlaying.artist}`}</div>}
                   <iframe src={spEmbedUrl(spPlaying.spotify_type,spPlaying.spotify_id)} width="100%" height={SP_EMBED_H[spPlaying.spotify_type]||380} style={{border:'none',display:'block',borderRadius:8}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/>
                 </div>
               )}
@@ -1462,36 +1659,9 @@ export default function SnowAIVideos() {
                 </div>
               ):(
                 <div className="sas-grid-yt">
-                  {spFiltered.filter(e=>spSearch?e.title?.toLowerCase().includes(spSearch.toLowerCase())||e.artist?.toLowerCase().includes(spSearch.toLowerCase())||e.notes?.toLowerCase().includes(spSearch.toLowerCase()):true).map((e,i)=>{
-                    const m=SP_TYPE[e.spotify_type]||SP_TYPE.track;
-                    const isTrack=e.spotify_type==='track';
-                    return(
-                      <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${spPlaying?.id===e.id?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:spPlaying?.id===e.id?`0 0 0 2px ${SP_GREEN}, 0 6px 28px rgba(30,215,96,.15)`:T.sh,transition:'all .22s'}}>
-                        {isTrack&&<div style={{padding:'10px 10px 0'}}><iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={80} style={{border:'none',display:'block',borderRadius:6}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/></div>}
-                        {!isTrack&&(
-                          <div onClick={()=>handleSpPlay(e)} style={{height:110,cursor:'pointer',position:'relative',background:`linear-gradient(135deg,${m.color}22,${m.color}08)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                            <span style={{fontSize:38}}>{m.emoji}</span>
-                            <div style={{position:'absolute',top:8,left:8}}><span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span></div>
-                          </div>
-                        )}
-                        <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:4}}>
-                          <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.title}</div>
-                          {e.artist&&<div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.4)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.artist}</div>}
-                          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:4,marginTop:2}}>
-                            {isTrack&&<span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span>}
-                            <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)',background:'rgba(255,255,255,.06)',padding:'2px 7px',borderRadius:20}}>{e.category_name||'—'}</span>
-                            <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>{fmtDate(e.date_added)}</span>
-                          </div>
-                          {e.notes&&<p style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)',margin:0,lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{e.notes}</p>}
-                        </div>
-                        <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:'1px solid rgba(255,255,255,.06)'}}>
-                          <Btn onClick={()=>handleSpPlay(e)} style={{flex:1,padding:'6px 0',background:spPlaying?.id===e.id?SP_GREEN:SPG,color:'#000',fontSize:12,fontWeight:700}}>{spPlaying?.id===e.id?'■ Close':'▶ Play'}</Btn>
-                          <Btn onClick={()=>handleSpEdit(e)} style={{padding:'6px 10px',background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.5)',fontSize:12}}>✎</Btn>
-                          <Btn onClick={()=>handleSpDelete(e.id)} style={{padding:'6px 10px',background:'rgba(239,68,68,.1)',color:'#f87171',fontSize:12}}>🗑</Btn>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {spFiltered.filter(e=>spSearch?e.title?.toLowerCase().includes(spSearch.toLowerCase())||e.artist?.toLowerCase().includes(spSearch.toLowerCase())||e.notes?.toLowerCase().includes(spSearch.toLowerCase()):true).map((e,i)=>(
+                    <SpCard key={e.id} entry={e} index={i} onPlay={handleSpPlay} onEdit={handleSpEdit} onDelete={handleSpDelete} />
+                  ))}
                 </div>
               )}
             </div>
