@@ -52,7 +52,55 @@ if (!document.head.querySelector('style[data-sas]')) {
     body, html {
       margin: 0;
       padding: 0;
-      overflow-x: hidden;
+      overflow: hidden;
+      height: 100vh;
+    }
+    /* LAYOUT FIX: CSS Grid ensures sidebar and main content are always visible */
+    .snowai-app-grid {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      grid-template-columns: auto 1fr;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background: #f0f6ff;
+    }
+    .snowai-header {
+      grid-row: 1;
+      grid-column: 1 / -1;
+      z-index: 10;
+    }
+    .snowai-sidebar {
+      grid-row: 2;
+      grid-column: 1;
+      overflow-y: auto;
+      background: #ffffff;
+      border-right: 1px solid #c8dfff;
+      z-index: 5;
+    }
+    .snowai-main {
+      grid-row: 2;
+      grid-column: 2;
+      overflow-y: auto;
+      background: #f0f6ff;
+      padding: 16px 14px;
+    }
+    @media (max-width: 768px) {
+      .snowai-sidebar {
+        position: fixed;
+        left: -260px;
+        transition: left 0.2s ease;
+        width: 260px;
+        height: 100%;
+        z-index: 1000;
+      }
+      .snowai-sidebar.open {
+        left: 0;
+        box-shadow: 2px 0 20px rgba(0,0,0,0.1);
+      }
+      .snowai-main {
+        grid-column: 1 / -1;
+      }
     }
   `;
   document.head.appendChild(s);
@@ -83,7 +131,6 @@ const SP_TYPE = {
   show:     {label:'PODCAST',  emoji:'🎧', color:'#14b8a6'},
 };
 
-// Language support for speech recognition
 const SUPPORTED_LANGUAGES = {
   'en-US': 'English (US)',
   'en-GB': 'English (UK)',
@@ -125,7 +172,6 @@ const ytId = url => {
   return m ? m[1] : '';
 };
 
-// Enhanced auto-fetch functions
 const fetchYoutubeTitle = async (videoId) => {
   try {
     const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
@@ -194,7 +240,6 @@ const fetchSpotifyMetadataFromUrl = async (url) => {
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const isReel  = url => url && (url.includes('/reel/') || url.includes('/tv/'));
 
-// Voice Shortcut Helper Component
 const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
   const [copied, setCopied] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState('ios');
@@ -265,9 +310,9 @@ const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
           <div style={{background:'rgba(255,255,255,.05)', borderRadius:T.rs, padding:'12px', marginBottom:12}}>
             <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4}}>Your Deep Link URL:</div>
             <div style={{fontFamily:'monospace', fontSize:11, color:'#86efac', wordBreak:'break-all', background:'rgba(0,0,0,.3)', padding:'8px', borderRadius:T.rs, marginBottom:8, maxHeight:80, overflowY:'auto'}}>{getDeepLink()}</div>
-            <Btn onClick={copyDeepLink} style={{width:'100%', padding:'8px', background:'#007aff', color:'#fff', fontSize:12}}>
+            <button onClick={copyDeepLink} style={{width:'100%', padding:'8px', background:'#007aff', color:'#fff', fontSize:12, border:'none', borderRadius:T.rs, cursor:'pointer', fontFamily:T.font, fontWeight:700}}>
               {copied ? '✓ Copied to Clipboard!' : '📋 Copy Deep Link'}
-            </Btn>
+            </button>
           </div>
           
           <div style={{background:'rgba(59,130,246,.15)', borderRadius:T.rs, padding:'10px', border:'1px solid rgba(59,130,246,.3)'}}>
@@ -572,7 +617,6 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
   );
 };
 
-// Multi-language Transcript Panel
 const TranscriptPanel = ({active, onClose, onSave}) => {
   const [lines, setLines] = useState([]);
   const [running, setRunning] = useState(false);
@@ -927,7 +971,6 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
   );
 };
 
-// Auto-fill YouTube Quick Bar
 const YtQuickBar = ({onPlay,onAddToPlaylist}) => {
   const [url,setUrl]=useState('');
   const [err,setErr]=useState('');
@@ -1410,7 +1453,6 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   );
 };
 
-// Auto-fill Spotify Quick Play
 const SpotifyQuickPlay = ({ setSpPlaying }) => {
   const [spQUrl, setSpQUrl] = useState('');
   const [spQErr, setSpQErr] = useState('');
@@ -1482,7 +1524,6 @@ const SpotifyQuickPlay = ({ setSpPlaying }) => {
   );
 };
 
-// Auto-fill YouTube Save Form
 const YoutubeSaveForm = ({ initialUrl, onUrlChange, onMetadataFetched }) => {
   const [fetching, setFetching] = useState(false);
   
@@ -1498,7 +1539,7 @@ const YoutubeSaveForm = ({ initialUrl, onUrlChange, onMetadataFetched }) => {
     }
   };
   
-  return null; // This is just a logic component, the UI is in the main form
+  return null;
 };
 
 export default function SnowAIVideos() {
@@ -1561,7 +1602,6 @@ export default function SnowAIVideos() {
   const [spNewCat,setSpNewCat]=useState('');
   const [spUrlPreview,setSpUrlPreview]=useState(null);
 
-  // Auto-fetch for YouTube form
   const handleYtUrlBlur = async () => {
     const url = ytForm.video_url;
     const id = ytId(url);
@@ -1575,7 +1615,6 @@ export default function SnowAIVideos() {
     }
   };
 
-  // Auto-fetch for Instagram form
   const handleIgUrlBlur = async () => {
     const url = igForm.post_url;
     if (url && url.includes('instagram.com') && (!igForm.title || !igForm.account_handle)) {
@@ -1592,7 +1631,6 @@ export default function SnowAIVideos() {
     }
   };
 
-  // Auto-fetch for Spotify form
   const handleSpUrlBlur = async () => {
     const url = spForm.spotify_url;
     const { type, id } = parseSpotify(url);
@@ -1772,18 +1810,22 @@ export default function SnowAIVideos() {
 
   const ytEmbedId=ytPlaying?(ytPlaying.youtube_embed_id||ytId(ytPlaying.video_url)):null;
 
-  return(
-    <div style={{background:T.bg,minHeight:'100vh',fontFamily:T.body}}>
-      <div className="header"><Header/></div>
-      <div className="main-page-body" style={{minHeight:'calc(100vh - 60px)',display:'flex'}}>
-        <SideNavs/>
-        <div className="main-body-info" style={{flex:1,padding:'16px 14px',background:T.bg,minWidth:0,overflow:'hidden',height:'calc(100vh - 60px)',overflowY:'auto'}}>
-          <div style={{marginBottom:16}}>
-            <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:0,letterSpacing:'-.02em'}}>
-              SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
-            </h1>
-            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube, Instagram & Spotify in one place with auto-fetch, multi-language transcript recording, and voice shortcuts! 🎤</p>
-          </div>
+  return (
+    <div className="snowai-app-grid">
+      <div className="snowai-header">
+        <Header />
+      </div>
+      <div className="snowai-sidebar">
+        <SideNavs />
+      </div>
+      <div className="snowai-main">
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:'0 0 8px 0',letterSpacing:'-.02em'}}>
+            SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
+          </h1>
+          <p style={{fontFamily:T.body,color:T.textMut,margin:'0 0 16px 0',fontSize:12}}>
+            YouTube, Instagram & Spotify in one place with auto-fetch, multi-language transcript recording, and voice shortcuts! 🎤
+          </p>
 
           <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
             <button style={secBtn(tab==='youtube','youtube')}   onClick={()=>setTab('youtube')}>▶ YouTube</button>
