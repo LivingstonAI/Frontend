@@ -59,7 +59,7 @@ const IG  = 'linear-gradient(45deg,#f56040,#fd1d1d,#e1306c,#c13584,#833ab4,#5851
 const YTG = 'linear-gradient(135deg,#dc2626,#ef4444)';
 const AG  = 'linear-gradient(135deg,#2563eb,#60a5fa)';
 const SPG = 'linear-gradient(135deg,#1db954,#1ed760)';
-const SP_GREEN = '#1ed760'; // ← single source of truth for Spotify green
+const SP_GREEN = '#1ed760';
 
 // Spotify type metadata
 const SP_TYPE = {
@@ -962,6 +962,44 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
+// FIXED: Extracted SpotifyQuickPlay component
+const SpotifyQuickPlay = ({ setSpPlaying }) => {
+  const [spQUrl, setSpQUrl] = useState('');
+  const [spQErr, setSpQErr] = useState('');
+  
+  const doPlay = () => {
+    const { type, id } = parseSpotify(spQUrl.trim());
+    if (!type || !id) return setSpQErr('Paste a valid Spotify link');
+    setSpQErr('');
+    setSpPlaying({ 
+      id: 'qp_' + Date.now(), 
+      title: 'Quick Play', 
+      spotify_type: type, 
+      spotify_id: id, 
+      spotify_url: spQUrl 
+    });
+    setSpQUrl('');
+  };
+  
+  return (
+    <>
+      {spQErr && <Toast msg={spQErr} type="error"/>}
+      <div className="sas-flex-row">
+        <Inp 
+          value={spQUrl} 
+          onChange={e => { setSpQUrl(e.target.value); setSpQErr(''); }} 
+          onKeyDown={e => e.key === 'Enter' && doPlay()} 
+          placeholder="Paste Spotify URL or URI — track, album, playlist, podcast…" 
+          style={{ flex: 1 }}
+        />
+        <Btn onClick={doPlay} style={{ padding: '10px 18px', background: SPG, color: '#000', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          ▶ Play
+        </Btn>
+      </div>
+    </>
+  );
+};
+
 export default function SnowAIVideos() {
   const BASE='https://backend-production-c0ab.up.railway.app';
   const [tab,setTab]=useState('youtube');
@@ -1269,36 +1307,26 @@ export default function SnowAIVideos() {
                     <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#000',letterSpacing:'-.02em'}}>SnowAI Spotify 🎵</div>
                     <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — anything from Spotify.</div>
                   </div>
-                  {/* ── FIX: was C.green (undefined), now SP_GREEN ── */}
                   <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'8px 16px',background:'#000',color:SP_GREEN,fontSize:12,fontWeight:700,border:'none'}}>+ Save</Btn>
                 </div>
               </div>
 
-              {/* Quick Play */}
+              {/* Quick Play - FIXED: Using extracted component */}
               <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r,padding:'13px 16px',marginBottom:14,boxShadow:T.sh}}>
                 <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — listen without saving</div>
-                {(()=>{
-                  const [spQUrl,setSpQUrl]=React.useState('');
-                  const [spQErr,setSpQErr]=React.useState('');
-                  const doPlay=()=>{const{type,id}=parseSpotify(spQUrl.trim());if(!type||!id)return setSpQErr('Paste a valid Spotify link');setSpQErr('');setSpPlaying({id:'qp_'+Date.now(),title:'Quick Play',spotify_type:type,spotify_id:id,spotify_url:spQUrl});setSpQUrl('');};
-                  return(<>
-                    {spQErr&&<Toast msg={spQErr} type="error"/>}
-                    <div className="sas-flex-row">
-                      <Inp value={spQUrl} onChange={e=>{setSpQUrl(e.target.value);setSpQErr('');}} onKeyDown={e=>e.key==='Enter'&&doPlay()} placeholder="Paste Spotify URL or URI — track, album, playlist, podcast…" style={{flex:1}}/>
-                      <Btn onClick={doPlay} style={{padding:'10px 18px',background:SPG,color:'#000',fontWeight:700,whiteSpace:'nowrap'}}>▶ Play</Btn>
-                    </div>
-                  </>);
-                })()}
+                <SpotifyQuickPlay setSpPlaying={setSpPlaying} />
               </div>
 
               {/* Quick play inline player */}
-              {spPlaying&&spPlaying.id?.startsWith('qp_')&&(
+              {spPlaying && spPlaying.id?.startsWith('qp_') && (
                 <div style={{marginBottom:14,background:'#0a0a0a',borderRadius:T.r,border:'1px solid rgba(30,215,96,.3)',padding:'12px',boxShadow:'0 4px 24px rgba(30,215,96,.1)'}} className="sas-in">
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                     <div style={{display:'flex',alignItems:'center',gap:7}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:SP_GREEN,animation:'sas-spin 2s linear infinite'}}/>
                       <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:SP_GREEN,letterSpacing:'.06em'}}>QUICK PLAY</span>
-                      <span style={{background:`${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}22`,color:(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color,border:`1px solid ${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).emoji} {(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).label}</span>
+                      <span style={{background:`${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}22`,color:(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color,border:`1px solid ${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>
+                        {(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).emoji} {(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).label}
+                      </span>
                     </div>
                     <button onClick={()=>setSpPlaying(null)} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.5)',borderRadius:'50%',width:26,height:26,cursor:'pointer',fontSize:14}}>×</button>
                   </div>
