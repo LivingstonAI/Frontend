@@ -49,6 +49,17 @@ if (!document.head.querySelector('style[data-sas]')) {
       z-index: 2000;
       animation: sas-up 0.3s ease both;
     }
+    /* Global scrolling */
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    .main-scroll-area {
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
   `;
   document.head.appendChild(s);
 }
@@ -96,7 +107,6 @@ const ytId = url => {
   return m ? m[1] : '';
 };
 
-// Auto-fetch YouTube video title
 const fetchYoutubeTitle = async (videoId) => {
   try {
     const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
@@ -108,7 +118,6 @@ const fetchYoutubeTitle = async (videoId) => {
   }
 };
 
-// Auto-fetch Instagram metadata
 const fetchInstagramMetadata = async (url) => {
   try {
     const encodedUrl = encodeURIComponent(url);
@@ -125,7 +134,6 @@ const fetchInstagramMetadata = async (url) => {
   }
 };
 
-// Auto-fetch Spotify metadata
 const fetchSpotifyMetadata = async (type, id) => {
   try {
     const response = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`);
@@ -144,7 +152,6 @@ const fetchSpotifyMetadata = async (type, id) => {
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const isReel  = url => url && (url.includes('/reel/') || url.includes('/tv/'));
 
-// Voice Shortcut Helper Component
 const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
   const [copied, setCopied] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState('ios');
@@ -184,9 +191,9 @@ const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
   };
   
   return (
-    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:1300, display:'flex', alignItems:'center', justifyContent:'center', padding:16}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:'#1a1a1a', borderRadius:T.rl, width:'100%', maxWidth:500, boxShadow:'0 25px 50px rgba(0,0,0,.5)', border:'1px solid rgba(255,255,255,.1)', overflow:'hidden'}}>
-        <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:1300, display:'flex', alignItems:'center', justifyContent:'center', padding:16, overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:'#1a1a1a', borderRadius:T.rl, width:'100%', maxWidth:500, maxHeight:'90vh', overflowY:'auto', boxShadow:'0 25px 50px rgba(0,0,0,.5)', border:'1px solid rgba(255,255,255,.1)'}}>
+        <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:1}}>
           <div>
             <div style={{fontFamily:T.font, fontWeight:800, fontSize:16, color:'#fff'}}>🎤 Voice Shortcut Creator</div>
             <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.7)', marginTop:2}}>Free Siri & Google Assistant integration</div>
@@ -227,7 +234,7 @@ const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
           
           <div style={{background:'rgba(255,255,255,.05)', borderRadius:T.rs, padding:'12px', marginBottom:12}}>
             <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4}}>Your Deep Link URL:</div>
-            <div style={{fontFamily:'monospace', fontSize:11, color:'#86efac', wordBreak:'break-all', background:'rgba(0,0,0,.3)', padding:'8px', borderRadius:T.rs, marginBottom:8}}>{getDeepLink()}</div>
+            <div style={{fontFamily:'monospace', fontSize:11, color:'#86efac', wordBreak:'break-all', background:'rgba(0,0,0,.3)', padding:'8px', borderRadius:T.rs, marginBottom:8, maxHeight:80, overflowY:'auto'}}>{getDeepLink()}</div>
             <Btn onClick={copyDeepLink} style={{width:'100%', padding:'8px', background:'#007aff', color:'#fff', fontSize:12}}>
               {copied ? '✓ Copied to Clipboard!' : '📋 Copy Deep Link'}
             </Btn>
@@ -488,9 +495,9 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:1200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
-        style={{width:'100%',maxWidth:480,borderRadius:18,overflow:'hidden',background:'#111',boxShadow:'0 24px 80px rgba(0,0,0,.8)',border:'1px solid rgba(255,255,255,.1)'}}>
+        style={{width:'100%',maxWidth:480,maxHeight:'90vh',overflowY:'auto',borderRadius:18,overflow:'hidden',background:'#111',boxShadow:'0 24px 80px rgba(0,0,0,.8)',border:'1px solid rgba(255,255,255,.1)'}}>
         <div style={{height:3,background:getSourceGradient()}}/>
-        <div style={{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
+        <div style={{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid rgba(255,255,255,.08)',position:'sticky',top:0,background:'#111',zIndex:1}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <div style={{background:getSourceGradient(),borderRadius:8,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
               <span style={{fontSize:12}}>❄️</span>
@@ -502,7 +509,7 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.4)',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
         </div>
-        <div style={{padding:'16px 18px',maxHeight:'70vh',overflowY:'auto'}} className="sas-scroll">
+        <div style={{padding:'16px 18px'}}>
           {saved
             ? <div style={{textAlign:'center',padding:'24px 0'}}>
                 <div style={{fontSize:36,marginBottom:10}}>✅</div>
@@ -744,9 +751,9 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
-        style={{width:'100%',maxWidth:500,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',margin:'auto'}}>
+        style={{width:'100%',maxWidth:500,maxHeight:'90vh',overflowY:'auto',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',margin:'auto'}}>
         <div style={{height:3,background:IG}}/>
-        <div style={{padding:'11px 14px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+        <div style={{padding:'11px 14px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,position:'sticky',top:0,background:'#0a0a0a',zIndex:1}}>
           <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
             <div style={{flexShrink:0,background:IG,borderRadius:10,padding:'3px 9px 3px 7px',display:'flex',alignItems:'center',gap:4}}>
               <span style={{fontSize:12}}>❄️</span>
@@ -800,7 +807,7 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
         )}
         {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
         {showTranscript&&<TranscriptPanel active={true} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)',position:'sticky',bottom:0}}>
           {[['← Prev',onPrev,hasPrev],['Next →',onNext,hasNext]].map(([lbl,fn,en])=>(
             <button key={lbl} onClick={fn} disabled={!en}
               style={{background:en?'rgba(255,255,255,.08)':'transparent',border:`1px solid ${en?'rgba(255,255,255,.15)':'rgba(255,255,255,.04)'}`,color:en?'#fff':'rgba(255,255,255,.2)',padding:'7px 18px',borderRadius:T.rs,cursor:en?'pointer':'not-allowed',fontFamily:T.body,fontSize:12}}
@@ -848,8 +855,8 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
   
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:900,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:480,boxShadow:T.shm,overflow:'hidden'}}>
-        <div style={{background:IG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:480,maxHeight:'90vh',overflowY:'auto',boxShadow:T.shm}}>
+        <div style={{background:IG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0}}>
           <div>
             <div style={{fontFamily:T.font,fontWeight:800,fontSize:15,color:'#fff'}}>⚡ Insta Quick-View</div>
             <div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.75)',marginTop:2}}>Paste any public Instagram post/reel — auto-fetches metadata</div>
@@ -957,12 +964,12 @@ const PlaylistModal = ({onClose,savedVideos,onSave,initVideo}) => {
   const save=()=>{if(!name.trim())return setErr('Give your playlist a name');if(queue.length===0)return setErr('Add at least one video');onSave({id:'pl_'+Date.now(),name:name.trim(),queue:[...queue]});onClose();};
   return(
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:900,display:'flex',alignItems:'center',justifyContent:'center',padding:16,overflowY:'auto'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:540,boxShadow:T.shm,overflow:'hidden',maxHeight:'90vh',display:'flex',flexDirection:'column'}}>
-        <div style={{background:AG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:T.surface,borderRadius:T.r,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto',boxShadow:T.shm}}>
+        <div style={{background:AG,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0}}>
           <div style={{fontFamily:T.font,fontWeight:800,fontSize:15,color:'#fff'}}>🎵 Create Playlist</div>
           <button onClick={onClose} style={{background:'rgba(255,255,255,.2)',border:'none',color:'#fff',width:28,height:28,borderRadius:'50%',cursor:'pointer',fontSize:17}}>×</button>
         </div>
-        <div style={{padding:18,overflowY:'auto',flex:1}} className="sas-scroll">
+        <div style={{padding:18}}>
           {err&&<Toast msg={err} type="error"/>}
           <div style={{marginBottom:12}}>
             <label style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,letterSpacing:'.06em',display:'block',marginBottom:6}}>PLAYLIST NAME</label>
@@ -1135,9 +1142,9 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   const [saveTranscript, setSaveTranscript] = useState(null);
   const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
-        <div style={{flexShrink:0}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto',borderRadius:22,boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+        <div style={{flexShrink:0,position:'sticky',top:0,background:'#0a0a0a',zIndex:1}}>
           <div style={{height:3,background:YTG,width:'100%'}}/>
           <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
             <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
@@ -1207,7 +1214,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
           </div>
         )}
         {!hasPl && (
-          <div style={{display:'flex',justifyContent:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+          <div style={{display:'flex',justifyContent:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)',position:'sticky',bottom:0}}>
             <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
           </div>
         )}
@@ -1219,7 +1226,6 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   );
 };
 
-// Spotify Card with Transcript and Voice Shortcut
 const SpCard = ({ entry, index, onPlay, onEdit, onDelete }) => {
   const [hov, setHov] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -1266,7 +1272,6 @@ const SpCard = ({ entry, index, onPlay, onEdit, onDelete }) => {
   );
 };
 
-// Spotify Modal with Transcript and Voice Shortcut
 const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   if (!entry) return null;
   const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
@@ -1276,10 +1281,10 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:580,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:580,maxHeight:'90vh',overflowY:'auto',borderRadius:22,boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
         <div style={{height:3,background:SPG,width:'100%'}}/>
-        <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'#0a0a0a'}}>
+        <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'#0a0a0a',position:'sticky',top:0,zIndex:1}}>
           <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
             <div style={{flexShrink:0,background:SPG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5}}>
               <span style={{fontSize:13}}>❄️</span>
@@ -1329,7 +1334,7 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
           </div>
         )}
         
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)',position:'sticky',bottom:0}}>
           <button onClick={onPrev} disabled={!hasPrev} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:hasPrev?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,opacity:hasPrev?1:0.35}}>← Prev</button>
           <a href={entry.spotify_url || `https://open.spotify.com/${entry.spotify_type}/${entry.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'7px 18px',background:SPG,color:'#000',borderRadius:T.rs,fontFamily:T.font,fontWeight:700,fontSize:12,textDecoration:'none'}}>Open in Spotify ↗</a>
           <button onClick={onNext} disabled={!hasNext} style={{background:SPG,border:'none',color:'#000',padding:'7px 18px',borderRadius:T.rs,cursor:hasNext?'pointer':'not-allowed',fontFamily:T.body,fontSize:12,fontWeight:700,opacity:hasNext?1:0.35}}>Next →</button>
@@ -1444,7 +1449,6 @@ export default function SnowAIVideos() {
   const [spNewCat,setSpNewCat]=useState('');
   const [spUrlPreview,setSpUrlPreview]=useState(null);
 
-  // Deep link handler for voice shortcuts
   useEffect(() => {
     const handleDeepLink = () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -1513,7 +1517,6 @@ export default function SnowAIVideos() {
         showToast(`Switched to ${query} tab`, 'success');
       }
       
-      // Clean URL after handling
       if (action) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -1611,10 +1614,9 @@ export default function SnowAIVideos() {
   return(
     <div style={{background:T.bg,minHeight:'100vh',fontFamily:T.body}}>
       <div className="header"><Header/></div>
-      <div className="main-page-body" style={{minHeight:'calc(100vh - 60px)'}}>
+      <div className="main-page-body" style={{minHeight:'calc(100vh - 60px)',display:'flex'}}>
         <SideNavs/>
-        <div className="main-body-info" style={{flex:1,padding:'16px 14px',background:T.bg,minWidth:0,overflow:'hidden'}}>
-
+        <div className="main-body-info" style={{flex:1,padding:'16px 14px',background:T.bg,minWidth:0,overflow:'hidden',height:'calc(100vh - 60px)',overflowY:'auto'}} className="main-scroll-area">
           <div style={{marginBottom:16}}>
             <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:0,letterSpacing:'-.02em'}}>
               SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
