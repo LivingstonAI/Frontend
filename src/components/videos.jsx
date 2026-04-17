@@ -58,7 +58,8 @@ const T = {
 const IG  = 'linear-gradient(45deg,#f56040,#fd1d1d,#e1306c,#c13584,#833ab4,#5851db,#405de6)';
 const YTG = 'linear-gradient(135deg,#dc2626,#ef4444)';
 const AG  = 'linear-gradient(135deg,#2563eb,#60a5fa)';
-const SPG = 'linear-gradient(135deg,#1db954,#1ed760)'; // Spotify green
+const SPG = 'linear-gradient(135deg,#1db954,#1ed760)';
+const SP_GREEN = '#1ed760'; // ← single source of truth for Spotify green
 
 // Spotify type metadata
 const SP_TYPE = {
@@ -125,19 +126,12 @@ const StoryRing = ({label,url,onClick,active}) => (
   </div>
 );
 
-// Instagram oEmbed viewer — uses Instagram official API, no auth needed for public posts
-// Extract Instagram shortcode from any post/reel/tv URL
 const igShortcode = url => {
   if (!url) return null;
   const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
   return m ? m[1] : null;
 };
 
-// Direct Instagram embed iframe — uses instagram.com/p/{code}/embed/
-// This is what every third-party site uses; works for public posts & reels without any JS/auth
-// ─── INSTA EMBED ─────────────────────────────────────────────────────────────
-// Loop via silence detection using Web Audio API — triggers when reel actually ends.
-// We load the iframe, pipe tab audio through AudioContext, watch for sustained silence.
 const InstaEmbed = ({url, loop=false}) => {
   const [loaded,    setLoaded]    = useState(false);
   const [errored,   setErrored]   = useState(false);
@@ -148,7 +142,6 @@ const InstaEmbed = ({url, loop=false}) => {
   const iframeRef  = useRef(null);
   const code = igShortcode(url);
 
-  // Detect when iframe steals focus = user clicked end-screen "Watch on Instagram"
   useEffect(() => {
     if (!loaded) return;
     const onBlur = () => {
@@ -212,7 +205,6 @@ const InstaEmbed = ({url, loop=false}) => {
           <span style={{fontSize:28}}>🔁</span>
         </div>
       )}
-      {/* Intercept modal — pops up when iframe tries to navigate away */}
       {showNav && (
         <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.82)',backdropFilter:'blur(4px)'}} className="sas-in">
           <div style={{background:'#1a1a1a',borderRadius:16,padding:'22px 20px',maxWidth:240,width:'90%',border:'1px solid rgba(255,255,255,.1)',boxShadow:'0 16px 48px rgba(0,0,0,.6)',display:'flex',flexDirection:'column',alignItems:'center',gap:13,textAlign:'center'}}>
@@ -267,7 +259,6 @@ const InstaEmbed = ({url, loop=false}) => {
   );
 };
 
-// ─── TRANSCRIPT SAVE MODAL ───────────────────────────────────────────────────
 const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose, onSaved}) => {
   const BASE = 'https://backend-production-c0ab.up.railway.app';
   const [form, setForm] = useState({
@@ -285,7 +276,6 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
     if (!form.title.trim())      return setErr('Please add a title.');
     setSaving(true); setErr('');
     try {
-      // Build minimal payload matching SnowAIVideoTranscriptRecord
       const payload = {
         transcript_uuid:      crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
         youtube_video_id:     source === 'youtube' ? (defaultTitle || '').slice(0,50) : null,
@@ -332,8 +322,6 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:1200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
         style={{width:'100%',maxWidth:480,borderRadius:18,overflow:'hidden',background:'#111',boxShadow:'0 24px 80px rgba(0,0,0,.8)',border:'1px solid rgba(255,255,255,.1)'}}>
-
-        {/* Header */}
         <div style={{height:3,background:source==='youtube'?YTG:IG}}/>
         <div style={{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
@@ -347,8 +335,6 @@ const TranscriptSaveModal = ({text, defaultTitle, defaultHandle, source, onClose
           </div>
           <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(255,255,255,.4)',cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
         </div>
-
-        {/* Form */}
         <div style={{padding:'16px 18px',maxHeight:'70vh',overflowY:'auto'}} className="sas-scroll">
           {saved
             ? <div style={{textAlign:'center',padding:'24px 0'}}>
@@ -400,7 +386,6 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
   }, [lines]);
 
   const stop = useCallback(() => {
-    // Set flag FIRST so onend doesn't restart
     runRef.current = false;
     setRunning(false);
     try { recogRef.current?.abort(); } catch {}
@@ -433,7 +418,6 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
         if (e.error === 'not-allowed') { setError('Microphone access denied.'); stop(); }
         else setError(`Error: ${e.error}`);
       };
-      // Only restart if we're still supposed to be running
       r.onend = () => {
         if (!runRef.current) return;
         try { const next = makeRecog(); recogRef.current = next; next.start(); } catch {}
@@ -448,21 +432,17 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
     r.start();
   }, [stop]);
 
-  // Stop when panel closes or unmounts
   useEffect(() => { if (!active) stop(); }, [active, stop]);
   useEffect(() => () => stop(), [stop]);
 
   if (!active) return null;
 
-  // Floating overlay — fixed position relative to viewport so it never
-  // pushes the embed or grows the modal height
   return (
     <div style={{
       position:'fixed', bottom:0, left:0, right:0, zIndex:1100,
       background:'rgba(10,10,10,.97)', borderTop:'2px solid rgba(255,255,255,.1)',
       padding:'12px 16px', boxShadow:'0 -8px 32px rgba(0,0,0,.6)'
     }}>
-      {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,gap:8}}>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <div style={{width:8,height:8,borderRadius:'50%',
@@ -516,7 +496,6 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
         </div>
       )}
 
-      {/* Text output — fixed height, never grows */}
       <div ref={scrollRef}
         style={{height:80,overflowY:'auto',fontFamily:T.body,fontSize:13,color:'rgba(255,255,255,.75)',lineHeight:1.75,scrollBehavior:'smooth'}}
         className="sas-scroll">
@@ -535,8 +514,6 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
   );
 };
 
-// ─── INLINE REEL PLAYER (standalone, no modal) ───────────────────────────────
-// Used on mobile / when user picks "Play here" instead of opening modal
 const InlineReelPlayer = ({post, onOpenModal, onClose}) => {
   const [loop, setLoop] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -577,7 +554,6 @@ const InlineReelPlayer = ({post, onOpenModal, onClose}) => {
   );
 };
 
-// ─── REEL MODAL ───────────────────────────────────────────────────────────────
 const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
   if(!post)return null;
   const isReelPost = isReel(post.post_url);
@@ -600,8 +576,6 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px',overflowY:'auto'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up"
         style={{width:'100%',maxWidth:500,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',margin:'auto'}}>
-
-        {/* Header */}
         <div style={{height:3,background:IG}}/>
         <div style={{padding:'11px 14px 10px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <div style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0}}>
@@ -638,13 +612,9 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
               onMouseLeave={e=>e.currentTarget.style.background='rgba(255,255,255,.1)'}>×</button>
           </div>
         </div>
-
-        {/* Embed — plain block div, no flex nonsense */}
         <div style={{background:'#000'}}>
           <InstaEmbed url={post.post_url} loop={loop}/>
         </div>
-
-        {/* Metadata strip — caption, author, category, notes */}
         {(meta?.title||post.caption||post.notes||meta?.author_name)&&(
           <div style={{padding:'9px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.07)'}}>
             {(meta?.title||post.caption)&&(
@@ -659,12 +629,8 @@ const ReelModal = ({post,onClose,onPrev,onNext,hasPrev,hasNext}) => {
             </div>
           </div>
         )}
-
-        {/* Transcript — collapsible, sits below embed */}
         {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
         {showTranscript&&<TranscriptPanel active={true} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>}
-
-        {/* Nav */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
           {[['← Prev',onPrev,hasPrev],['Next →',onNext,hasNext]].map(([lbl,fn,en])=>(
             <button key={lbl} onClick={fn} disabled={!en}
@@ -867,7 +833,6 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${expanded?'#c13584':hov?'#c13584':T.border}`,overflow:'hidden',boxShadow:expanded?`0 0 0 2px #c13584,${T.shm}`:T.sh,display:'flex',flexDirection:'column',transition:'all .22s ease'}}>
-      {/* Thumbnail — hidden when expanded; shorter fixed height so it's compact on mobile */}
       {!expanded && (
         <div onClick={()=>setExpanded(true)} style={{position:'relative',height:220,background:'linear-gradient(135deg,#1a1a2e,#16213e)',overflow:'hidden',cursor:'pointer',flexShrink:0}}>
           {embedUrl && (
@@ -887,7 +852,6 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
           <div style={{position:'absolute',top:7,left:7,zIndex:3}}><Badge label={reel?'REEL':'POST'} bg={reel?IG:'rgba(0,0,0,.55)'}/></div>
         </div>
       )}
-      {/* Inline player — replaces thumbnail entirely when expanded */}
       {expanded && (
         <div style={{background:'#000',borderTop:'2px solid #c13584',flexShrink:0}} className="sas-in">
           <iframe src={embedUrl}
@@ -920,14 +884,11 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   const [saveTranscript, setSaveTranscript] = useState(null);
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
-      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,width:'100%',borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
-
-        {/* ── HEADER ── */}
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
         <div style={{flexShrink:0}}>
           <div style={{height:3,background:YTG,width:'100%'}}/>
           <div style={{padding:'13px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
             <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-              {/* SnowAI YT pill */}
               <div style={{flexShrink:0,background:YTG,borderRadius:10,padding:'3px 10px 3px 8px',display:'flex',alignItems:'center',gap:5,boxShadow:'0 2px 10px rgba(220,38,38,.4)'}}>
                 <span style={{fontSize:13}}>❄️</span>
                 <span style={{fontFamily:T.font,fontWeight:800,fontSize:11,color:'#fff',letterSpacing:'.02em',whiteSpace:'nowrap'}}>SnowAI YouTube</span>
@@ -954,32 +915,24 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
             </div>
           </div>
         </div>
-
-        {/* ── PLAYER — true 16:9 via aspect-ratio ── */}
         <div style={{width:'100%',aspectRatio:'16/9',background:'#000',flexShrink:0}}>
           <iframe src={`https://www.youtube.com/embed/${embedId}?autoplay=1&enablejsapi=1`}
             title={video.video_title} frameBorder="0" style={{width:'100%',height:'100%',display:'block'}}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
         </div>
-
-        {/* ── NOTES ── */}
         {video.notes && (
           <div style={{flexShrink:0,padding:'8px 14px',background:'#111',borderTop:'1px solid rgba(255,255,255,.06)'}}>
             <span style={{fontFamily:T.body,fontSize:12,color:'rgba(255,255,255,.5)',lineHeight:1.6}}><strong style={{color:'rgba(255,255,255,.7)'}}>Notes:</strong> {video.notes}</span>
           </div>
         )}
-
-        {/* ── PLAYLIST CONTROLS (if active) ── */}
         {hasPl && (
           <div style={{flexShrink:0,borderTop:'1px solid rgba(255,255,255,.07)'}}>
-            {/* prev / loop / next */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 14px',gap:8}}>
               <button onClick={onPlPrev} disabled={plIdx===0&&!loopPl} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.12)',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,opacity:(plIdx===0&&!loopPl)?.35:1}}>← Prev</button>
               <button onClick={onPlLoop} style={{background:loopPl?'rgba(239,68,68,.2)':'rgba(255,255,255,.06)',border:`1px solid ${loopPl?'rgba(239,68,68,.5)':'rgba(255,255,255,.12)'}`,color:loopPl?'#fca5a5':'rgba(255,255,255,.6)',padding:'7px 14px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:11,fontWeight:600}}>🔁 Loop {loopPl?'On':'Off'}</button>
               <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
               <button onClick={onPlNext} disabled={plIdx===playlist.queue.length-1&&!loopPl} style={{background:'rgba(220,38,38,.7)',border:'none',color:'#fff',padding:'7px 18px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:12,opacity:(plIdx===playlist.queue.length-1&&!loopPl)?.35:1}}>Next →</button>
             </div>
-            {/* queue strip */}
             <div style={{maxHeight:130,overflowY:'auto',borderTop:'1px solid rgba(255,255,255,.06)'}} className="sas-scroll">
               {playlist.queue.map((v,i)=>{
                 const vid=v.youtube_embed_id||ytId(v.video_url);
@@ -997,14 +950,11 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
             </div>
           </div>
         )}
-
-        {/* ── FOOTER (no playlist) ── */}
         {!hasPl && (
           <div style={{display:'flex',justifyContent:'center',padding:'9px 14px',background:'#0a0a0a',borderTop:'1px solid rgba(255,255,255,.07)'}}>
             <div style={{fontFamily:T.font,fontWeight:800,fontSize:10,letterSpacing:'.1em',background:YTG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',userSelect:'none'}}>SNOWAI</div>
           </div>
         )}
-        {/* ── TRANSCRIPT (floating overlay, doesn't affect modal layout) ── */}
         {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={video.video_title} source="youtube" onClose={()=>setSaveTranscript(null)}/>}
         <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
       </div>
@@ -1053,7 +1003,7 @@ export default function SnowAIVideos() {
   const [igNewCat,setIgNewCat]=useState('');
   const [igView,setIgView]=useState('grid');
   const [showIgQV,setShowIgQV]=useState(false);
-  // ── Spotify state ──
+
   const [spEntries,setSpEntries]=useState([]);
   const [spFiltered,setSpFiltered]=useState([]);
   const [spCats,setSpCats]=useState([]);
@@ -1102,7 +1052,6 @@ export default function SnowAIVideos() {
   const handleIgNext=()=>{if(igPlayIdx===null)return;const n=igPlayIdx+1;if(n<igFiltered.length){setIgPlayIdx(n);setIgPlaying(igFiltered[n]);}};
   const handleIgPrev=()=>{if(igPlayIdx===null)return;const p=igPlayIdx-1;if(p>=0){setIgPlayIdx(p);setIgPlaying(igFiltered[p]);}};
 
-  // ── Spotify API ──
   const fetchSpCats=async()=>{try{const r=await fetch(`${BASE}/api/snowai-spotify-categories/`);const d=await r.json();setSpCats(d.categories||[]);}catch{}};
   const fetchSpEntries=async(cid=null,typ=null)=>{setLoading(true);try{let url=`${BASE}/api/snowai-spotify-entries/`;const p=[];if(cid)p.push(`category_id=${cid}`);if(typ&&typ!=='all')p.push(`type=${typ}`);if(p.length)url+='?'+p.join('&');const r=await fetch(url);const d=await r.json();setSpEntries(d.entries||[]);setSpFiltered(d.entries||[]);}catch{showToast('Failed to load Spotify entries','error');}finally{setLoading(false);}};
   const handleSpCatF=id=>{setSpCat(id);setSpSearch('');fetchSpEntries(id==='all'?null:id,spTypeFilter);};
@@ -1112,7 +1061,21 @@ export default function SnowAIVideos() {
   const handleSpEdit=e=>{setSpEditing(e);setSpForm({title:e.title,artist:e.artist||'',spotify_url:e.spotify_url||`https://open.spotify.com/${e.spotify_type}/${e.spotify_id}`,category_id:e.category_id||'',notes:e.notes||''});setSpFormOpen(true);};
   const handleSpDelete=async id=>{if(!window.confirm('Delete?'))return;try{await fetch(`${BASE}/api/snowai-spotify-entries/${id}/delete/`,{method:'DELETE'});fetchSpEntries(spCat==='all'?null:spCat,spTypeFilter);if(spPlaying?.id===id)setSpPlaying(null);showToast('Deleted');}catch{showToast('Failed','error');}};
 
-  const secBtn=(active,insta)=>({padding:'10px 20px',background:active?(insta?IG:AG):'transparent',color:active?'#fff':T.textSec,border:`2px solid ${active?'transparent':T.border}`,borderRadius:T.rl,cursor:'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,transition:'all .2s',boxShadow:active?T.shm:'none'});
+  const secBtn=(active,type)=>{
+    let bg = 'transparent';
+    let color = T.textSec;
+    let border = `2px solid ${T.border}`;
+    let shadow = 'none';
+    if (active) {
+      if (type === 'spotify') { bg = SPG; color = '#000'; }
+      else if (type === 'instagram') { bg = IG; color = '#fff'; }
+      else { bg = AG; color = '#fff'; }
+      border = '2px solid transparent';
+      shadow = T.shm;
+    }
+    return {padding:'10px 20px',background:bg,color,border,borderRadius:T.rl,cursor:'pointer',fontFamily:T.font,fontWeight:700,fontSize:14,transition:'all .2s',boxShadow:shadow};
+  };
+
   const catBtn=(active,insta)=>({padding:'5px 13px',background:active?(insta?IG:AG):T.surface,color:active?'#fff':T.accent,border:`1.5px solid ${active?'transparent':T.border}`,borderRadius:15,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:12,transition:'all .18s',whiteSpace:'nowrap'});
   const tareaStyle={width:'100%',padding:'10px 13px',border:`1.5px solid ${T.border}`,borderRadius:T.rs,fontFamily:T.body,fontSize:14,color:T.text,background:T.bg,outline:'none',resize:'vertical',marginBottom:10,boxSizing:'border-box'};
 
@@ -1132,10 +1095,11 @@ export default function SnowAIVideos() {
             <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube & Instagram in one place.</p>
           </div>
 
+          {/* ── TAB BAR ── */}
           <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
-            <button style={secBtn(tab==='youtube',false)} onClick={()=>setTab('youtube')}>▶ YouTube</button>
-            <button style={{...secBtn(tab==='instagram',true),background:tab==='instagram'?IG:undefined}} onClick={()=>setTab('instagram')}>📸 Instagram</button>
-            <button style={{...secBtn(tab==='spotify',false),background:tab==='spotify'?SPG:undefined,color:tab==='spotify'?'#000':undefined}} onClick={()=>setTab('spotify')}>🎵 Spotify</button>
+            <button style={secBtn(tab==='youtube','youtube')}   onClick={()=>setTab('youtube')}>▶ YouTube</button>
+            <button style={secBtn(tab==='instagram','instagram')} onClick={()=>setTab('instagram')}>📸 Instagram</button>
+            <button style={secBtn(tab==='spotify','spotify')}   onClick={()=>setTab('spotify')}>🎵 Spotify</button>
           </div>
 
           {toast.msg&&<Toast msg={toast.msg} type={toast.type}/>}
@@ -1143,7 +1107,6 @@ export default function SnowAIVideos() {
           {tab==='youtube'&&(
             <div className="sas-in">
               <YtQuickBar onPlay={v=>{setActivePL(null);setYtPlaying(v);}} onAddToPlaylist={handleAddToPL}/>
-
 
               {!activePL&&playlists.length>0&&(
                 <SC style={{marginBottom:14}}>
@@ -1165,7 +1128,6 @@ export default function SnowAIVideos() {
                 </div>
               )}
 
-
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                   <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>Categories</span>
@@ -1180,7 +1142,7 @@ export default function SnowAIVideos() {
 
               <div className="sas-flex-row" style={{marginBottom:12}}>
                 <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={ytSearch} onChange={e=>setYtSearch(e.target.value)} placeholder="Search saved videos…" style={{paddingLeft:32}}/></div>
-                <Btn onClick={()=>{setYtFormOpen(true);setYtEditing(null);setYtForm({video_title:'',video_url:'',category_id:'',notes:''}); }} style={{padding:'10px 16px',background:YTG,color:'#fff',whiteSpace:'nowrap'}}>+ Save</Btn>
+                <Btn onClick={()=>{setYtFormOpen(true);setYtEditing(null);setYtForm({video_title:'',video_url:'',category_id:'',notes:''});}} style={{padding:'10px 16px',background:YTG,color:'#fff',whiteSpace:'nowrap'}}>+ Save</Btn>
               </div>
 
               {ytFormOpen&&(
@@ -1250,7 +1212,7 @@ export default function SnowAIVideos() {
 
               <div className="sas-flex-row" style={{marginBottom:12}}>
                 <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={igSearch} onChange={e=>setIgSearch(e.target.value)} placeholder="Search posts, handles, captions…" style={{paddingLeft:32}}/></div>
-                <Btn onClick={()=>{setIgFormOpen(true);setIgEditing(null);setIgForm({title:'',post_url:'',category_id:'',account_handle:'',notes:''}); }} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(193,53,132,.3)'}}>+ Save</Btn>
+                <Btn onClick={()=>{setIgFormOpen(true);setIgEditing(null);setIgForm({title:'',post_url:'',category_id:'',account_handle:'',notes:''});}} style={{padding:'10px 16px',background:IG,color:'#fff',whiteSpace:'nowrap',boxShadow:'0 3px 10px rgba(193,53,132,.3)'}}>+ Save</Btn>
               </div>
 
               {igFormOpen&&(
@@ -1307,7 +1269,8 @@ export default function SnowAIVideos() {
                     <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#000',letterSpacing:'-.02em'}}>SnowAI Spotify 🎵</div>
                     <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — anything from Spotify.</div>
                   </div>
-                  <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'8px 16px',background:'#000',color:C.green||'#1ed760',fontSize:12,fontWeight:700,border:'none'}}>+ Save</Btn>
+                  {/* ── FIX: was C.green (undefined), now SP_GREEN ── */}
+                  <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'8px 16px',background:'#000',color:SP_GREEN,fontSize:12,fontWeight:700,border:'none'}}>+ Save</Btn>
                 </div>
               </div>
 
@@ -1333,8 +1296,8 @@ export default function SnowAIVideos() {
                 <div style={{marginBottom:14,background:'#0a0a0a',borderRadius:T.r,border:'1px solid rgba(30,215,96,.3)',padding:'12px',boxShadow:'0 4px 24px rgba(30,215,96,.1)'}} className="sas-in">
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                     <div style={{display:'flex',alignItems:'center',gap:7}}>
-                      <div style={{width:6,height:6,borderRadius:'50%',background:'#1ed760',animation:'sas-spin 2s linear infinite'}}/>
-                      <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:'#1ed760',letterSpacing:'.06em'}}>QUICK PLAY</span>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:SP_GREEN,animation:'sas-spin 2s linear infinite'}}/>
+                      <span style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:SP_GREEN,letterSpacing:'.06em'}}>QUICK PLAY</span>
                       <span style={{background:`${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}22`,color:(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color,border:`1px solid ${(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).emoji} {(SP_TYPE[spPlaying.spotify_type]||SP_TYPE.track).label}</span>
                     </div>
                     <button onClick={()=>setSpPlaying(null)} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'rgba(255,255,255,.5)',borderRadius:'50%',width:26,height:26,cursor:'pointer',fontSize:14}}>×</button>
@@ -1347,7 +1310,7 @@ export default function SnowAIVideos() {
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                   <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>Categories</span>
-                  <Btn onClick={()=>setSpCatForm(v=>!v)} style={{padding:'5px 10px',background:'rgba(30,215,96,.12)',color:'#1ed760',fontSize:12}}>{spCatForm?'Cancel':'+ Category'}</Btn>
+                  <Btn onClick={()=>setSpCatForm(v=>!v)} style={{padding:'5px 10px',background:'rgba(30,215,96,.12)',color:SP_GREEN,fontSize:12}}>{spCatForm?'Cancel':'+ Category'}</Btn>
                 </div>
                 {spCatForm&&(<form onSubmit={handleSpAddCat} style={{display:'flex',gap:8,marginBottom:10}}><Inp value={spNewCat} onChange={e=>setSpNewCat(e.target.value)} placeholder="Category name" style={{flex:1}}/><Btn type="submit" style={{padding:'10px 14px',background:SPG,color:'#000'}}>Add</Btn></form>)}
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
@@ -1358,7 +1321,7 @@ export default function SnowAIVideos() {
               {/* Type filter pills */}
               <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
                 {['all','track','album','playlist','artist','episode','show'].map(t=>{
-                  const m=SP_TYPE[t]||{color:'#1ed760',emoji:'',label:'All'};
+                  const m=SP_TYPE[t]||{color:SP_GREEN,emoji:'',label:'All'};
                   const active=spTypeFilter===t;
                   return(<button key={t} onClick={()=>handleSpTypeF(t)} style={{padding:'5px 12px',background:active?`${m.color}22`:'transparent',color:active?m.color:T.textMut,border:`1px solid ${active?m.color:T.border}`,borderRadius:20,cursor:'pointer',fontFamily:T.body,fontWeight:600,fontSize:11,transition:'all .18s',whiteSpace:'nowrap'}}>
                     {t==='all'?'All':`${m.emoji} ${m.label}`}
@@ -1369,7 +1332,7 @@ export default function SnowAIVideos() {
               {/* Search + Save */}
               <div className="sas-flex-row" style={{marginBottom:12}}>
                 <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={spSearch} onChange={e=>setSpSearch(e.target.value)} placeholder="Search saved entries…" style={{paddingLeft:32}}/></div>
-                <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''});}} style={{padding:'10px 16px',background:SPG,color:'#000',whiteSpace:'nowrap',fontWeight:700}}>+ Save</Btn>
+                <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'10px 16px',background:SPG,color:'#000',whiteSpace:'nowrap',fontWeight:700}}>+ Save</Btn>
               </div>
 
               {/* Save/Edit Form */}
@@ -1404,17 +1367,14 @@ export default function SnowAIVideos() {
                     const isTrack=e.spotify_type==='track';
                     const isPlaying=spPlaying?.id===e.id&&!spPlaying?.id?.startsWith('qp_');
                     return(
-                      <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${isPlaying?'#1ed760':T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:isPlaying?'0 0 0 2px #1ed760, 0 6px 28px rgba(30,215,96,.15)':T.sh,transition:'all .22s'}}>
-                        {/* Track — compact embed always visible */}
+                      <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${isPlaying?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:isPlaying?`0 0 0 2px ${SP_GREEN}, 0 6px 28px rgba(30,215,96,.15)`:T.sh,transition:'all .22s'}}>
                         {isTrack&&<div style={{padding:'10px 10px 0'}}><iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={80} style={{border:'none',display:'block',borderRadius:6}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/></div>}
-                        {/* Non-track — colour block with emoji */}
                         {!isTrack&&(
                           <div onClick={()=>setSpPlaying(p=>p?.id===e.id?null:e)} style={{height:110,cursor:'pointer',position:'relative',background:`linear-gradient(135deg,${m.color}22,${m.color}08)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
                             <span style={{fontSize:38}}>{m.emoji}</span>
                             <div style={{position:'absolute',top:8,left:8}}><span style={{background:`${m.color}22`,color:m.color,border:`1px solid ${m.color}44`,borderRadius:5,padding:'2px 7px',fontSize:10,fontWeight:700,fontFamily:T.font}}>{m.emoji} {m.label}</span></div>
                           </div>
                         )}
-                        {/* Info */}
                         <div style={{padding:'10px 12px',flex:1,display:'flex',flexDirection:'column',gap:4}}>
                           <div style={{fontFamily:T.font,fontWeight:700,fontSize:13,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.title}</div>
                           {e.artist&&<div style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.4)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.artist}</div>}
@@ -1425,14 +1385,12 @@ export default function SnowAIVideos() {
                           </div>
                           {e.notes&&<p style={{fontFamily:T.body,fontSize:11,color:'rgba(255,255,255,.35)',margin:0,lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{e.notes}</p>}
                         </div>
-                        {/* Actions */}
                         <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:'1px solid rgba(255,255,255,.06)'}}>
-                          {!isTrack&&<Btn onClick={()=>setSpPlaying(p=>p?.id===e.id?null:e)} style={{flex:1,padding:'6px 0',background:isPlaying?'#1ed760':SPG,color:'#000',fontSize:12,fontWeight:700}}>{isPlaying?'■ Close':'▶ Play'}</Btn>}
-                          <a href={e.spotify_url||`https://open.spotify.com/${e.spotify_type}/${e.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'6px 10px',background:'transparent',border:'1px solid rgba(255,255,255,.12)',color:'#1ed760',borderRadius:T.rs,fontSize:12,textDecoration:'none',display:'flex',alignItems:'center'}} title="Open on Spotify">↗</a>
+                          {!isTrack&&<Btn onClick={()=>setSpPlaying(p=>p?.id===e.id?null:e)} style={{flex:1,padding:'6px 0',background:isPlaying?SP_GREEN:SPG,color:'#000',fontSize:12,fontWeight:700}}>{isPlaying?'■ Close':'▶ Play'}</Btn>}
+                          <a href={e.spotify_url||`https://open.spotify.com/${e.spotify_type}/${e.spotify_id}`} target="_blank" rel="noopener noreferrer" style={{padding:'6px 10px',background:'transparent',border:'1px solid rgba(255,255,255,.12)',color:SP_GREEN,borderRadius:T.rs,fontSize:12,textDecoration:'none',display:'flex',alignItems:'center'}} title="Open on Spotify">↗</a>
                           <Btn onClick={()=>handleSpEdit(e)} style={{padding:'6px 10px',background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.5)',fontSize:12}}>✎</Btn>
                           <Btn onClick={()=>handleSpDelete(e.id)} style={{padding:'6px 10px',background:'rgba(239,68,68,.1)',color:'#f87171',fontSize:12}}>🗑</Btn>
                         </div>
-                        {/* Inline expanded player for non-tracks */}
                         {isPlaying&&!isTrack&&(
                           <div style={{padding:'0 10px 10px',background:'#000'}} className="sas-in">
                             <iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={SP_EMBED_H[e.spotify_type]||380} style={{border:'none',display:'block',borderRadius:8}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/>
