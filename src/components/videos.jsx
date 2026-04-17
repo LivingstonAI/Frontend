@@ -52,27 +52,15 @@ if (!document.head.querySelector('style[data-sas]')) {
     body, html {
       margin: 0;
       padding: 0;
-      overflow: hidden;
-      height: 100vh;
+      overflow-x: hidden;
     }
-    /* STACKED LAYOUT: Header → SideNavs (top nav) → Main content */
     .snowai-app {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-      background: #f0f6ff;
-    }
-    .snowai-header {
-      flex-shrink: 0;
-    }
-    .snowai-topnav {
-      flex-shrink: 0;
+      min-height: 100vh;
     }
     .snowai-main {
       flex: 1;
-      overflow-y: auto;
       padding: 16px 14px;
       background: #f0f6ff;
     }
@@ -1786,12 +1774,8 @@ export default function SnowAIVideos() {
 
   return (
     <div className="snowai-app">
-      <div className="snowai-header">
-        <Header />
-      </div>
-      <div className="snowai-topnav">
-        <SideNavs />
-      </div>
+      <Header />
+      <SideNavs />
       <div className="snowai-main">
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:'0 0 8px 0',letterSpacing:'-.02em'}}>
