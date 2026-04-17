@@ -61,7 +61,6 @@ const AG  = 'linear-gradient(135deg,#2563eb,#60a5fa)';
 const SPG = 'linear-gradient(135deg,#1db954,#1ed760)';
 const SP_GREEN = '#1ed760';
 
-// Spotify type metadata
 const SP_TYPE = {
   track:    {label:'TRACK',    emoji:'🎵', color:'#1ed760'},
   album:    {label:'ALBUM',    emoji:'💿', color:'#a855f7'},
@@ -1133,7 +1132,6 @@ export default function SnowAIVideos() {
             <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube & Instagram in one place.</p>
           </div>
 
-          {/* ── TAB BAR ── */}
           <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
             <button style={secBtn(tab==='youtube','youtube')}   onClick={()=>setTab('youtube')}>▶ YouTube</button>
             <button style={secBtn(tab==='instagram','instagram')} onClick={()=>setTab('instagram')}>📸 Instagram</button>
@@ -1300,7 +1298,6 @@ export default function SnowAIVideos() {
 
           {tab==='spotify'&&(
             <div className="sas-in">
-              {/* Banner */}
               <div style={{background:SPG,borderRadius:T.r,padding:'13px 16px',marginBottom:14,boxShadow:'0 6px 24px rgba(30,215,96,.25)'}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div>
@@ -1311,14 +1308,12 @@ export default function SnowAIVideos() {
                 </div>
               </div>
 
-              {/* Quick Play - FIXED: Using extracted component */}
               <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:T.r,padding:'13px 16px',marginBottom:14,boxShadow:T.sh}}>
                 <div style={{fontFamily:T.font,fontWeight:700,fontSize:11,color:T.textMut,marginBottom:9,letterSpacing:'.07em'}}>⚡ QUICK PLAY — listen without saving</div>
                 <SpotifyQuickPlay setSpPlaying={setSpPlaying} />
               </div>
 
-              {/* Quick play inline player */}
-              {spPlaying && spPlaying.id?.startsWith('qp_') && (
+              {spPlaying && typeof spPlaying.id === 'string' && spPlaying.id.startsWith('qp_') && (
                 <div style={{marginBottom:14,background:'#0a0a0a',borderRadius:T.r,border:'1px solid rgba(30,215,96,.3)',padding:'12px',boxShadow:'0 4px 24px rgba(30,215,96,.1)'}} className="sas-in">
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                     <div style={{display:'flex',alignItems:'center',gap:7}}>
@@ -1334,7 +1329,6 @@ export default function SnowAIVideos() {
                 </div>
               )}
 
-              {/* Categories */}
               <SC>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
                   <span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>Categories</span>
@@ -1346,7 +1340,6 @@ export default function SnowAIVideos() {
                 </div>
               </SC>
 
-              {/* Type filter pills */}
               <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
                 {['all','track','album','playlist','artist','episode','show'].map(t=>{
                   const m=SP_TYPE[t]||{color:SP_GREEN,emoji:'',label:'All'};
@@ -1357,13 +1350,11 @@ export default function SnowAIVideos() {
                 })}
               </div>
 
-              {/* Search + Save */}
               <div className="sas-flex-row" style={{marginBottom:12}}>
                 <div style={{flex:1,position:'relative'}}><span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',fontSize:13,pointerEvents:'none'}}>🔍</span><Inp value={spSearch} onChange={e=>setSpSearch(e.target.value)} placeholder="Search saved entries…" style={{paddingLeft:32}}/></div>
                 <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'10px 16px',background:SPG,color:'#000',whiteSpace:'nowrap',fontWeight:700}}>+ Save</Btn>
               </div>
 
-              {/* Save/Edit Form */}
               {spFormOpen&&(
                 <SC style={{border:'1px solid rgba(30,215,96,.2)'}} className="sas-in">
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}><div style={{width:4,height:22,borderRadius:3,background:SPG}}/><span style={{fontFamily:T.font,fontWeight:700,fontSize:14,color:T.text}}>{spEditing?'✎ Edit':'+ Save Spotify Link'}</span></div>
@@ -1381,7 +1372,6 @@ export default function SnowAIVideos() {
                 </SC>
               )}
 
-              {/* Grid */}
               {loading?(<div style={{display:'flex',justifyContent:'center',padding:48}}><Spinner sz={32}/></div>)
                 :spFiltered.filter(e=>spSearch?e.title?.toLowerCase().includes(spSearch.toLowerCase())||e.artist?.toLowerCase().includes(spSearch.toLowerCase())||e.notes?.toLowerCase().includes(spSearch.toLowerCase()):true).length===0?(
                 <div style={{textAlign:'center',padding:'48px 20px',background:T.surface,borderRadius:T.r,border:`1px solid ${T.border}`,color:T.textMut,fontFamily:T.body}}>
@@ -1393,7 +1383,7 @@ export default function SnowAIVideos() {
                   {spFiltered.filter(e=>spSearch?e.title?.toLowerCase().includes(spSearch.toLowerCase())||e.artist?.toLowerCase().includes(spSearch.toLowerCase())||e.notes?.toLowerCase().includes(spSearch.toLowerCase()):true).map((e,i)=>{
                     const m=SP_TYPE[e.spotify_type]||SP_TYPE.track;
                     const isTrack=e.spotify_type==='track';
-                    const isPlaying=spPlaying?.id===e.id&&!spPlaying?.id?.startsWith('qp_');
+                    const isPlaying=spPlaying?.id===e.id && !(typeof spPlaying?.id === 'string' && spPlaying.id.startsWith('qp_'));
                     return(
                       <div key={e.id} className="sas-card sas-in" style={{animationDelay:`${i*.04}s`,background:'#0a0a0a',borderRadius:T.r,border:`1px solid ${isPlaying?SP_GREEN:T.border}`,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:isPlaying?`0 0 0 2px ${SP_GREEN}, 0 6px 28px rgba(30,215,96,.15)`:T.sh,transition:'all .22s'}}>
                         {isTrack&&<div style={{padding:'10px 10px 0'}}><iframe src={spEmbedUrl(e.spotify_type,e.spotify_id)} width="100%" height={80} style={{border:'none',display:'block',borderRadius:6}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"/></div>}
