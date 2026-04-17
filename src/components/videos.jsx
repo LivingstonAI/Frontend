@@ -64,6 +64,16 @@ if (!document.head.querySelector('style[data-sas]')) {
       padding: 16px 14px;
       background: #f0f6ff;
     }
+    /* Fix for language selector dropdown */
+    .sas-language-select {
+      background: #1a1a1a !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255,255,255,0.2) !important;
+    }
+    .sas-language-select option {
+      background: #1a1a1a !important;
+      color: #ffffff !important;
+    }
   `;
   document.head.appendChild(s);
 }
@@ -668,10 +678,13 @@ const TranscriptPanel = ({active, onClose, onSave}) => {
           {running && <span style={{fontFamily:T.body,fontSize:10,color:'rgba(255,255,255,.3)'}}>🎙 listening in {SUPPORTED_LANGUAGES[selectedLanguage]}...</span>}
         </div>
         <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-          <select value={selectedLanguage} onChange={e => setSelectedLanguage(e.target.value)}
-            style={{background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.15)',color:'rgba(255,255,255,.7)',padding:'3px 8px',borderRadius:T.rs,fontFamily:T.body,fontSize:10,cursor:'pointer'}}>
+          <select 
+            value={selectedLanguage} 
+            onChange={e => setSelectedLanguage(e.target.value)}
+            className="sas-language-select"
+            style={{background:'#1a1a1a',border:'1px solid rgba(255,255,255,.2)',color:'#fff',padding:'3px 8px',borderRadius:T.rs,fontFamily:T.body,fontSize:10,cursor:'pointer'}}>
             {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
-              <option key={code} value={code}>{name}</option>
+              <option key={code} value={code} style={{background:'#1a1a1a',color:'#fff'}}>{name}</option>
             ))}
           </select>
           {lines.filter(l=>l.final).length > 0 && (
@@ -1103,8 +1116,13 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
       style={{animationDelay:`${index*.04}s`,background:T.surface,borderRadius:T.r,border:`1px solid ${expanded?T.accent:hov?T.accentMid:T.border}`,overflow:'hidden',boxShadow:expanded?`0 0 0 2px ${T.accent},${T.shm}`:T.sh,display:'flex',flexDirection:'column'}}>
       <div onClick={()=>setExpanded(e=>!e)} style={{position:'relative',paddingTop:'56.25%',cursor:'pointer',background:'#0f172a',overflow:'hidden'}}>
         {vid&&<img src={`https://img.youtube.com/vi/${vid}/hqdefault.jpg`} alt={video.video_title} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transition:'transform .3s',transform:hov?'scale(1.05)':'scale(1)'}}/>}
-        <div style={{position:'absolute',inset:0,background:`rgba(15,23,42,${hov?.35:.15})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}>
-          <div style={{background:expanded?T.accent:'rgba(255,255,255,.92)',borderRadius:'50%',width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,boxShadow:'0 3px 12px rgba(0,0,0,.3)',transform:hov?'scale(1.1)':'scale(1)',transition:'all .2s'}}>{expanded?<span style={{color:'#fff',fontSize:13}}>■</span>:'▶'}</div>
+        {/* Removed the blueish circle overlay - now just a simple play button on hover */}
+        <div style={{position:'absolute',inset:0,background:`rgba(0,0,0,${hov?.3:0})`,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}>
+          {hov && (
+            <div style={{background:'rgba(255,255,255,.9)',borderRadius:'50%',width:42,height:42,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,boxShadow:'0 3px 12px rgba(0,0,0,.3)'}}>
+              ▶
+            </div>
+          )}
         </div>
         <div style={{position:'absolute',top:7,left:7}}><Badge label="YT" bg="#dc2626"/></div>
       </div>
