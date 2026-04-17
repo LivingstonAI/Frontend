@@ -55,52 +55,26 @@ if (!document.head.querySelector('style[data-sas]')) {
       overflow: hidden;
       height: 100vh;
     }
-    /* LAYOUT FIX: CSS Grid ensures sidebar and main content are always visible */
-    .snowai-app-grid {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      grid-template-columns: auto 1fr;
+    /* STACKED LAYOUT: Header → SideNavs (top nav) → Main content */
+    .snowai-app {
+      display: flex;
+      flex-direction: column;
       height: 100vh;
       width: 100vw;
       overflow: hidden;
       background: #f0f6ff;
     }
     .snowai-header {
-      grid-row: 1;
-      grid-column: 1 / -1;
-      z-index: 10;
+      flex-shrink: 0;
     }
-    .snowai-sidebar {
-      grid-row: 2;
-      grid-column: 1;
-      overflow-y: auto;
-      background: #ffffff;
-      border-right: 1px solid #c8dfff;
-      z-index: 5;
+    .snowai-topnav {
+      flex-shrink: 0;
     }
     .snowai-main {
-      grid-row: 2;
-      grid-column: 2;
+      flex: 1;
       overflow-y: auto;
-      background: #f0f6ff;
       padding: 16px 14px;
-    }
-    @media (max-width: 768px) {
-      .snowai-sidebar {
-        position: fixed;
-        left: -260px;
-        transition: left 0.2s ease;
-        width: 260px;
-        height: 100%;
-        z-index: 1000;
-      }
-      .snowai-sidebar.open {
-        left: 0;
-        box-shadow: 2px 0 20px rgba(0,0,0,0.1);
-      }
-      .snowai-main {
-        grid-column: 1 / -1;
-      }
+      background: #f0f6ff;
     }
   `;
   document.head.appendChild(s);
@@ -1811,11 +1785,11 @@ export default function SnowAIVideos() {
   const ytEmbedId=ytPlaying?(ytPlaying.youtube_embed_id||ytId(ytPlaying.video_url)):null;
 
   return (
-    <div className="snowai-app-grid">
+    <div className="snowai-app">
       <div className="snowai-header">
         <Header />
       </div>
-      <div className="snowai-sidebar">
+      <div className="snowai-topnav">
         <SideNavs />
       </div>
       <div className="snowai-main">
