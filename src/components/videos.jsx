@@ -41,6 +41,14 @@ if (!document.head.querySelector('style[data-sas]')) {
     .sas-scroll::-webkit-scrollbar { width:4px; height:4px; }
     .sas-scroll::-webkit-scrollbar-track { background:transparent; }
     .sas-scroll::-webkit-scrollbar-thumb { background:#c8dfff; border-radius:4px; }
+    .shortcut-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      animation: sas-up 0.3s ease both;
+    }
   `;
   document.head.appendChild(s);
 }
@@ -120,7 +128,6 @@ const fetchInstagramMetadata = async (url) => {
 // Auto-fetch Spotify metadata
 const fetchSpotifyMetadata = async (type, id) => {
   try {
-    // Using Spotify's oembed endpoint
     const response = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/${type}/${id}`);
     const data = await response.json();
     return {
@@ -136,6 +143,114 @@ const fetchSpotifyMetadata = async (type, id) => {
 
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
 const isReel  = url => url && (url.includes('/reel/') || url.includes('/tv/'));
+
+// Voice Shortcut Helper Component
+const VoiceShortcutHelper = ({ onClose, item, itemType, itemName }) => {
+  const [copied, setCopied] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState('ios');
+  
+  const getDeepLink = () => {
+    if (item && itemType) {
+      if (itemType === 'youtube') {
+        return `${window.location.origin}/?action=play&type=youtube&id=${item.id}`;
+      } else if (itemType === 'spotify') {
+        return `${window.location.origin}/?action=play&type=spotify&id=${item.id}`;
+      } else if (itemType === 'instagram') {
+        return `${window.location.origin}/?action=play&type=instagram&id=${item.id}`;
+      } else if (itemType === 'playlist') {
+        return `${window.location.origin}/?action=playlist&name=${encodeURIComponent(itemName)}`;
+      }
+    }
+    return `${window.location.origin}/?action=search&q=`;
+  };
+  
+  const getSearchDeepLink = (query) => {
+    return `${window.location.origin}/?action=search&q=${encodeURIComponent(query)}`;
+  };
+  
+  const copyDeepLink = () => {
+    navigator.clipboard.writeText(getDeepLink());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const copySearchLink = () => {
+    const query = prompt('Enter your search query:', 'react tutorial');
+    if (query) {
+      navigator.clipboard.writeText(getSearchDeepLink(query));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+  
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,.8)', zIndex:1300, display:'flex', alignItems:'center', justifyContent:'center', padding:16}}>
+      <div onClick={e=>e.stopPropagation()} className="sas-up" style={{background:'#1a1a1a', borderRadius:T.rl, width:'100%', maxWidth:500, boxShadow:'0 25px 50px rgba(0,0,0,.5)', border:'1px solid rgba(255,255,255,.1)', overflow:'hidden'}}>
+        <div style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+          <div>
+            <div style={{fontFamily:T.font, fontWeight:800, fontSize:16, color:'#fff'}}>🎤 Voice Shortcut Creator</div>
+            <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.7)', marginTop:2}}>Free Siri & Google Assistant integration</div>
+          </div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.2)', border:'none', color:'#fff', width:28, height:28, borderRadius:'50%', cursor:'pointer', fontSize:17}}>×</button>
+        </div>
+        
+        <div style={{padding:20}}>
+          <div style={{display:'flex', gap:10, marginBottom:16}}>
+            <button onClick={()=>setSelectedPlatform('ios')} style={{flex:1, padding:'8px 12px', background:selectedPlatform==='ios'? '#007aff' : 'rgba(255,255,255,.1)', border:'none', borderRadius:T.rs, color:'#fff', cursor:'pointer', fontFamily:T.body, fontSize:13, fontWeight:600}}>🍎 iPhone / Siri</button>
+            <button onClick={()=>setSelectedPlatform('android')} style={{flex:1, padding:'8px 12px', background:selectedPlatform==='android'? '#3ddc84' : 'rgba(255,255,255,.1)', border:'none', borderRadius:T.rs, color:selectedPlatform==='android'? '#000' : '#fff', cursor:'pointer', fontFamily:T.body, fontSize:13, fontWeight:600}}>🤖 Android / Google</button>
+          </div>
+          
+          {selectedPlatform === 'ios' ? (
+            <div>
+              <div style={{fontFamily:T.font, fontWeight:700, fontSize:13, color:'#fff', marginBottom:8}}>📱 Setup Siri Shortcut:</div>
+              <ol style={{fontFamily:T.body, fontSize:12, color:'rgba(255,255,255,.7)', margin:'0 0 16px 20px', lineHeight:1.6}}>
+                <li>Open <strong>Shortcuts</strong> app on your iPhone</li>
+                <li>Tap <strong>+</strong> → <strong>Add Action</strong></li>
+                <li>Search for <strong>"Open URLs"</strong></li>
+                <li>Paste the link below into the URL field</li>
+                <li>Tap <strong>Add to Siri</strong> → Record your voice phrase</li>
+                <li>Example: <em>"Play my {itemName || 'saved item'}"</em></li>
+              </ol>
+            </div>
+          ) : (
+            <div>
+              <div style={{fontFamily:T.font, fontWeight:700, fontSize:13, color:'#fff', marginBottom:8}}>📱 Setup Google Assistant Routine:</div>
+              <ol style={{fontFamily:T.body, fontSize:12, color:'rgba(255,255,255,.7)', margin:'0 0 16px 20px', lineHeight:1.6}}>
+                <li>Open <strong>Google Home</strong> app</li>
+                <li>Go to <strong>Routines</strong> → <strong>New Routine</strong></li>
+                <li>Add a trigger phrase (e.g., <em>"Play my {itemName || 'saved item'}"</em>)</li>
+                <li>Add action: <strong>"Open URL"</strong> → Paste the link below</li>
+                <li>Say <strong>"Hey Google"</strong> + your trigger phrase</li>
+              </ol>
+            </div>
+          )}
+          
+          <div style={{background:'rgba(255,255,255,.05)', borderRadius:T.rs, padding:'12px', marginBottom:12}}>
+            <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4}}>Your Deep Link URL:</div>
+            <div style={{fontFamily:'monospace', fontSize:11, color:'#86efac', wordBreak:'break-all', background:'rgba(0,0,0,.3)', padding:'8px', borderRadius:T.rs, marginBottom:8}}>{getDeepLink()}</div>
+            <Btn onClick={copyDeepLink} style={{width:'100%', padding:'8px', background:'#007aff', color:'#fff', fontSize:12}}>
+              {copied ? '✓ Copied to Clipboard!' : '📋 Copy Deep Link'}
+            </Btn>
+          </div>
+          
+          <div style={{marginBottom:12}}>
+            <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.5)', marginBottom:4}}>🔍 Search Shortcut (optional):</div>
+            <Btn onClick={copySearchLink} style={{width:'100%', padding:'8px', background:'rgba(255,255,255,.1)', color:'#fff', fontSize:12}}>
+              🔍 Create Search Shortcut
+            </Btn>
+          </div>
+          
+          <div style={{background:'rgba(59,130,246,.15)', borderRadius:T.rs, padding:'10px', border:'1px solid rgba(59,130,246,.3)'}}>
+            <div style={{fontFamily:T.font, fontSize:11, color:'#60a5fa', marginBottom:4}}>💡 Pro Tip:</div>
+            <div style={{fontFamily:T.body, fontSize:11, color:'rgba(255,255,255,.6)'}}>
+              Add SnowAI to your home screen for the best experience! Open in Safari/Chrome → Share → Add to Home Screen.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Spinner = ({sz=20,c=T.accent}) => (
   <div style={{width:sz,height:sz,borderRadius:'50%',border:`2.5px solid ${c}22`,borderTopColor:c,animation:'sas-spin .8s linear infinite',display:'inline-block',flexShrink:0}}/>
@@ -714,7 +829,6 @@ const InstaQuickView = ({onClose,onOpenViewer}) => {
     setErr('');
     setFetching(true);
     
-    // Auto-fetch metadata
     const metadata = await fetchInstagramMetadata(u);
     const mt = u.includes('/reel/') ? 'REEL' : u.includes('/tv/') ? 'TV' : 'POST';
     
@@ -780,7 +894,6 @@ const YtQuickBar = ({onPlay,onAddToPlaylist}) => {
     setErr('');
     setFetching(true);
     
-    // Auto-fetch video title
     const title = await fetchYoutubeTitle(id);
     
     onPlay({
@@ -909,6 +1022,7 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
   const [expanded,setExpanded]=useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [saveTranscript, setSaveTranscript] = useState(null);
+  const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   const vid=video.youtube_embed_id||ytId(video.video_url);
   return(
     <div className="sas-card sas-in" onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -937,7 +1051,8 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`,flexWrap:'wrap'}}>
         <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'#dc2626':YTG,color:'#fff',fontSize:12,minWidth:60}}>{expanded?'■ Stop':'▶ Play'}</Btn>
-        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>📝</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}} title="Record Transcript">📝</Btn>
+        <Btn onClick={()=>setShowVoiceHelper(true)} style={{padding:'6px 10px',background:'#667eea',color:'#fff',fontSize:12}} title="Create Voice Shortcut">🎤</Btn>
         <Btn onClick={()=>onPlayModal(video)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onAddToPlaylist(video)} title="Add to playlist" style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>🎵</Btn>
         <Btn onClick={()=>onEdit(video)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
@@ -945,6 +1060,7 @@ const YtCard = ({video,index,onPlayModal,onEdit,onDelete,onAddToPlaylist}) => {
       </div>
       {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={video.video_title} source="youtube" onClose={()=>setSaveTranscript(null)}/>}
       <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+      {showVoiceHelper && <VoiceShortcutHelper onClose={()=>setShowVoiceHelper(false)} item={video} itemType="youtube" itemName={video.video_title} />}
     </div>
   );
 };
@@ -955,6 +1071,7 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
   const [preloaded,setPreloaded]=useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [saveTranscript, setSaveTranscript] = useState(null);
+  const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   const reel = isReel(post.post_url);
   const code = igShortcode(post.post_url);
   const embedUrl = code ? `https://www.instagram.com/p/${code}/embed/` : null;
@@ -998,13 +1115,15 @@ const IgCard = ({post,index,onPlayModal,onEdit,onDelete}) => {
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:`1px solid ${T.borderLight}`}}>
         <Btn onClick={()=>setExpanded(e=>!e)} style={{flex:1,padding:'6px 0',background:expanded?'rgba(193,53,132,.8)':IG,color:'#fff',fontSize:12}}>{expanded?'■ Stop':'▶ Play'}</Btn>
-        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(193,53,132,.1)',color:T.iD,fontSize:12}}>📝</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(193,53,132,.1)',color:T.iD,fontSize:12}} title="Record Transcript">📝</Btn>
+        <Btn onClick={()=>setShowVoiceHelper(true)} style={{padding:'6px 10px',background:'#667eea',color:'#fff',fontSize:12}} title="Create Voice Shortcut">🎤</Btn>
         <Btn onClick={()=>onPlayModal(post)} title="Open full view" style={{padding:'6px 10px',background:T.surfaceAlt,color:T.textSec,fontSize:13,border:`1px solid ${T.border}`}}>⛶</Btn>
         <Btn onClick={()=>onEdit(post)} style={{padding:'6px 10px',background:T.accentPale,color:T.accent,fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(post.id)} style={{padding:'6px 10px',background:'#fef2f2',color:T.danger,fontSize:12}}>🗑</Btn>
       </div>
       {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={post.title} defaultHandle={post.account_handle} source="instagram" onClose={()=>setSaveTranscript(null)}/>}
       <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+      {showVoiceHelper && <VoiceShortcutHelper onClose={()=>setShowVoiceHelper(false)} item={post} itemType="instagram" itemName={post.title} />}
     </div>
   );
 };
@@ -1014,6 +1133,7 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
   const hasPl = !!(playlist && playlist.queue && playlist.queue.length > 0);
   const [showTranscript, setShowTranscript] = useState(false);
   const [saveTranscript, setSaveTranscript] = useState(null);
+  const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',backdropFilter:'blur(8px)',WebkitBackdropFilter:'blur(8px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
       <div onClick={e=>e.stopPropagation()} className="sas-up" style={{width:'100%',maxWidth:680,borderRadius:22,overflow:'hidden',boxShadow:'0 32px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.06)',background:'#0a0a0a',display:'flex',flexDirection:'column'}}>
@@ -1039,6 +1159,10 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
               <button onClick={()=>setShowTranscript(t=>!t)}
                 style={{background:showTranscript?YTG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
                 📝
+              </button>
+              <button onClick={()=>setShowVoiceHelper(true)}
+                style={{background:'#667eea',border:'none',color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+                🎤
               </button>
               <button onClick={onClose}
                 style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
@@ -1089,16 +1213,18 @@ const YtModal = ({video, embedId, onClose, playlist, onPlNext, onPlPrev, onPlJum
         )}
         {saveTranscript&&<TranscriptSaveModal text={saveTranscript} defaultTitle={video.video_title} source="youtube" onClose={()=>setSaveTranscript(null)}/>}
         <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+        {showVoiceHelper && <VoiceShortcutHelper onClose={()=>setShowVoiceHelper(false)} item={video} itemType="youtube" itemName={video.video_title} />}
       </div>
     </div>
   );
 };
 
-// Spotify Card with Transcript
+// Spotify Card with Transcript and Voice Shortcut
 const SpCard = ({ entry, index, onPlay, onEdit, onDelete }) => {
   const [hov, setHov] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [saveTranscript, setSaveTranscript] = useState(null);
+  const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
   const isTrack = entry.spotify_type === 'track';
   
@@ -1128,23 +1254,26 @@ const SpCard = ({ entry, index, onPlay, onEdit, onDelete }) => {
       </div>
       <div style={{display:'flex',gap:5,padding:'8px 12px',borderTop:'1px solid rgba(255,255,255,.06)'}}>
         <Btn onClick={()=>onPlay(entry)} style={{flex:1,padding:'6px 0',background:SPG,color:'#000',fontSize:12,fontWeight:700}}>▶ Play</Btn>
-        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(30,215,96,.1)',color:SP_GREEN,fontSize:12}}>📝</Btn>
+        <Btn onClick={()=>setShowTranscript(true)} style={{padding:'6px 10px',background:'rgba(30,215,96,.1)',color:SP_GREEN,fontSize:12}} title="Record Transcript">📝</Btn>
+        <Btn onClick={()=>setShowVoiceHelper(true)} style={{padding:'6px 10px',background:'#667eea',color:'#fff',fontSize:12}} title="Create Voice Shortcut">🎤</Btn>
         <Btn onClick={()=>onEdit(entry)} style={{padding:'6px 10px',background:'rgba(255,255,255,.06)',color:'rgba(255,255,255,.5)',fontSize:12}}>✎</Btn>
         <Btn onClick={()=>onDelete(entry.id)} style={{padding:'6px 10px',background:'rgba(239,68,68,.1)',color:'#f87171',fontSize:12}}>🗑</Btn>
       </div>
       {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={entry.title} defaultHandle={entry.artist} source="spotify" onClose={()=>setSaveTranscript(null)}/>}
       <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+      {showVoiceHelper && <VoiceShortcutHelper onClose={()=>setShowVoiceHelper(false)} item={entry} itemType="spotify" itemName={entry.title} />}
     </div>
   );
 };
 
-// Spotify Modal with Transcript
+// Spotify Modal with Transcript and Voice Shortcut
 const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   if (!entry) return null;
   const m = SP_TYPE[entry.spotify_type] || SP_TYPE.track;
   const isTrack = entry.spotify_type === 'track';
   const [showTranscript, setShowTranscript] = useState(false);
   const [saveTranscript, setSaveTranscript] = useState(null);
+  const [showVoiceHelper, setShowVoiceHelper] = useState(false);
   
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
@@ -1168,6 +1297,10 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
             <button onClick={()=>setShowTranscript(t=>!t)}
               style={{background:showTranscript?SPG:'rgba(255,255,255,.1)',border:`1px solid ${showTranscript?'transparent':'rgba(255,255,255,.15)'}`,color:showTranscript?'#000':'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
               📝
+            </button>
+            <button onClick={()=>setShowVoiceHelper(true)}
+              style={{background:'#667eea',border:'none',color:'#fff',padding:'4px 9px',borderRadius:T.rs,cursor:'pointer',fontFamily:T.body,fontSize:10,fontWeight:700}}>
+              🎤
             </button>
             <button onClick={onClose}
               style={{background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.12)',color:'rgba(255,255,255,.8)',width:30,height:30,borderRadius:'50%',cursor:'pointer',fontSize:17,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
@@ -1204,6 +1337,7 @@ const SpModal = ({ entry, onClose, onPrev, onNext, hasPrev, hasNext }) => {
         
         {saveTranscript && <TranscriptSaveModal text={saveTranscript} defaultTitle={entry.title} defaultHandle={entry.artist} source="spotify" onClose={()=>setSaveTranscript(null)}/>}
         <TranscriptPanel active={showTranscript} onClose={()=>setShowTranscript(false)} onSave={t=>{setShowTranscript(false);setSaveTranscript(t);}}/>
+        {showVoiceHelper && <VoiceShortcutHelper onClose={()=>setShowVoiceHelper(false)} item={entry} itemType="spotify" itemName={entry.title} />}
       </div>
     </div>
   );
@@ -1220,7 +1354,6 @@ const SpotifyQuickPlay = ({ setSpPlaying }) => {
     setSpQErr('');
     setFetching(true);
     
-    // Auto-fetch metadata
     const metadata = await fetchSpotifyMetadata(type, id);
     
     setSpPlaying({ 
@@ -1310,6 +1443,86 @@ export default function SnowAIVideos() {
   const [spCatForm,setSpCatForm]=useState(false);
   const [spNewCat,setSpNewCat]=useState('');
   const [spUrlPreview,setSpUrlPreview]=useState(null);
+
+  // Deep link handler for voice shortcuts
+  useEffect(() => {
+    const handleDeepLink = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+      const type = urlParams.get('type');
+      const id = urlParams.get('id');
+      const query = urlParams.get('q');
+      const playlistName = urlParams.get('name');
+      
+      if (action === 'play' && type && id) {
+        if (type === 'youtube') {
+          const video = ytVideos.find(v => v.id === id);
+          if (video) {
+            setTab('youtube');
+            setYtPlaying(video);
+            showToast(`Playing: ${video.video_title}`, 'success');
+          } else {
+            showToast('Video not found in your library', 'warn');
+          }
+        } else if (type === 'spotify') {
+          const spotify = spEntries.find(s => s.id === id);
+          if (spotify) {
+            setTab('spotify');
+            setSpPlaying(spotify);
+            showToast(`Playing: ${spotify.title}`, 'success');
+          } else {
+            showToast('Spotify item not found', 'warn');
+          }
+        } else if (type === 'instagram') {
+          const post = igPosts.find(p => p.id === id);
+          if (post) {
+            setTab('instagram');
+            setIgPlaying(post);
+            showToast(`Opening: ${post.title}`, 'success');
+          } else {
+            showToast('Post not found', 'warn');
+          }
+        }
+      } else if (action === 'search' && query) {
+        if (type === 'youtube') {
+          setTab('youtube');
+          setYtSearch(query);
+          showToast(`Searching YouTube for: ${query}`, 'success');
+        } else if (type === 'spotify') {
+          setTab('spotify');
+          setSpSearch(query);
+          showToast(`Searching Spotify for: ${query}`, 'success');
+        } else if (type === 'instagram') {
+          setTab('instagram');
+          setIgSearch(query);
+          showToast(`Searching Instagram for: ${query}`, 'success');
+        }
+      } else if (action === 'playlist' && playlistName) {
+        const playlist = playlists.find(p => p.name === playlistName);
+        if (playlist && playlist.queue.length) {
+          setActivePL(playlist);
+          setPlIdx(0);
+          setYtPlaying(playlist.queue[0]);
+          setTab('youtube');
+          showToast(`Playing playlist: ${playlistName}`, 'success');
+        } else {
+          showToast('Playlist not found', 'warn');
+        }
+      } else if (action === 'tab' && query) {
+        setTab(query);
+        showToast(`Switched to ${query} tab`, 'success');
+      }
+      
+      // Clean URL after handling
+      if (action) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+    
+    handleDeepLink();
+    window.addEventListener('popstate', handleDeepLink);
+    return () => window.removeEventListener('popstate', handleDeepLink);
+  }, [ytVideos, spEntries, igPosts, playlists]);
 
   useEffect(()=>{fetchYtCats();fetchYtVideos();},[]);
   useEffect(()=>{fetchIgCats();fetchIgPosts();},[]);
@@ -1406,7 +1619,7 @@ export default function SnowAIVideos() {
             <h1 style={{fontFamily:T.font,fontWeight:800,fontSize:22,color:T.text,margin:0,letterSpacing:'-.02em'}}>
               SnowAI <span style={{background:AG,WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Stream</span>
             </h1>
-            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube, Instagram & Spotify in one place with auto-fetch and transcript recording.</p>
+            <p style={{fontFamily:T.body,color:T.textMut,margin:'3px 0 0',fontSize:12}}>YouTube, Instagram & Spotify in one place with auto-fetch, transcript recording, and voice shortcuts! 🎤</p>
           </div>
 
           <div style={{display:'flex',gap:6,marginBottom:16,background:T.surface,padding:4,borderRadius:T.rl,border:`1px solid ${T.border}`,width:'fit-content',boxShadow:T.sh}}>
@@ -1579,7 +1792,7 @@ export default function SnowAIVideos() {
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
                   <div>
                     <div style={{fontFamily:T.font,fontWeight:800,fontSize:17,color:'#000',letterSpacing:'-.02em'}}>SnowAI Spotify 🎵</div>
-                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — auto-fetches metadata + transcripts!</div>
+                    <div style={{fontFamily:T.body,fontSize:11,color:'rgba(0,0,0,.55)',marginTop:2}}>Save tracks, albums, playlists, podcasts — auto-fetches metadata + transcripts + voice shortcuts!</div>
                   </div>
                   <Btn onClick={()=>{setSpFormOpen(true);setSpEditing(null);setSpForm({title:'',artist:'',spotify_url:'',category_id:'',notes:''}); }} style={{padding:'8px 16px',background:'#000',color:SP_GREEN,fontSize:12,fontWeight:700,border:'none'}}>+ Save</Btn>
                 </div>
