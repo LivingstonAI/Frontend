@@ -156,6 +156,8 @@ const CSS = `
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     border-top: 1px solid var(--border);
+    max-height: 500px;
+    overflow-y: auto;
   }
   .dt-filter-item {
     display: flex;
@@ -516,27 +518,40 @@ const PERIODS = [10, 15, 20, 30, 45, 60, 90, 180];
 const ASSET_CLASSES = ['all', 'stocks', 'forex', 'indices', 'commodities', 'bonds'];
 const PAGE_LIMIT = 50;
 
+// Get unique values from data for dropdowns
+const getUniqueValues = (data, key) => {
+  if (!data || data.length === 0) return [];
+  const values = new Set();
+  data.forEach(row => {
+    const val = row[key];
+    if (val && val !== 'null' && val !== 'undefined') {
+      values.add(val);
+    }
+  });
+  return Array.from(values).sort();
+};
+
 // Numeric columns for range filtering
 const NUMERIC_COLUMNS = [
-  { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1 },
-  { key: 'r_squared', label: 'R²', min: 0, max: 1, step: 0.01 },
-  { key: 'volatility', label: 'Volatility', min: 0, max: 1, step: 0.01 },
-  { key: 'trend_consistency', label: 'Trend Consistency', min: 0, max: 1, step: 0.01 },
-  { key: 'trend_strength', label: 'Trend Strength', min: 0, max: 1, step: 0.01 },
-  { key: 'current_price', label: 'Price', min: 0, max: 5000, step: 10 },
-  { key: 'price_change', label: 'Price Change %', min: -100, max: 100, step: 1 },
-  { key: 'analyst_rating_pct', label: 'Analyst Rating %', min: 0, max: 100, step: 5 },
-  { key: 'put_call_ratio', label: 'Put/Call Ratio', min: 0, max: 5, step: 0.1 },
+  { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1, unit: '' },
+  { key: 'r_squared', label: 'R²', min: 0, max: 1, step: 0.01, unit: '' },
+  { key: 'volatility', label: 'Volatility', min: 0, max: 1, step: 0.01, unit: '' },
+  { key: 'trend_consistency', label: 'Trend Consistency', min: 0, max: 1, step: 0.01, unit: '' },
+  { key: 'trend_strength', label: 'Trend Strength', min: 0, max: 1, step: 0.01, unit: '' },
+  { key: 'current_price', label: 'Price', min: 0, max: 5000, step: 10, unit: '$' },
+  { key: 'price_change', label: 'Price Change %', min: -100, max: 100, step: 1, unit: '%' },
+  { key: 'analyst_rating_pct', label: 'Analyst Rating %', min: 0, max: 100, step: 5, unit: '%' },
+  { key: 'put_call_ratio', label: 'Put/Call Ratio', min: 0, max: 5, step: 0.1, unit: '' },
 ];
 
-// Text/category columns for exact filtering
+// Text columns for dropdown filtering
 const TEXT_COLUMNS = [
-  { key: 'symbol', label: 'Symbol' },
-  { key: 'asset_class', label: 'Asset Class' },
-  { key: 'sector', label: 'Sector' },
-  { key: 'category', label: 'Status (stable/choppy/volatile)' },
-  { key: 'analyst_bias', label: 'Analyst Bias' },
-  { key: 'put_call_bias', label: 'Put/Call Bias' },
+  { key: 'symbol', label: 'Symbol', type: 'text' },
+  { key: 'asset_class', label: 'Asset Class', type: 'dropdown' },
+  { key: 'sector', label: 'Sector', type: 'dropdown' },
+  { key: 'category', label: 'Status', type: 'dropdown' },
+  { key: 'analyst_bias', label: 'Analyst Bias', type: 'dropdown' },
+  { key: 'put_call_bias', label: 'Put/Call Bias', type: 'dropdown' },
 ];
 
 const mssColor = (mss) => {
@@ -603,6 +618,15 @@ export default function DataTracker() {
   const [symbols, setSymbols] = useState([]);
   const [summary, setSummary] = useState(null);
   
+  // Dropdown options (dynamically populated from data)
+  const [dropdownOptions, setDropdownOptions] = useState({
+    asset_class: [],
+    sector: [],
+    category: [],
+    analyst_bias: [],
+    put_call_bias: [],
+  });
+  
   const debouncedSymbol = useDebounce(symbol, 500);
 
   // Fetch symbol list
@@ -649,6 +673,16 @@ export default function DataTracker() {
       setData(rows);
       setTotal(json.total);
       setPage(p);
+      
+      // Update dropdown options from fetched data
+      const newOptions = {};
+      TEXT_COLUMNS.forEach(col => {
+        if (col.type === 'dropdown') {
+          newOptions[col.key] = getUniqueValues(rows, col.key);
+        }
+      });
+      setDropdownOptions(newOptions);
+      
     } catch (e) {
       setError(e.message);
     } finally {
@@ -674,13 +708,13 @@ export default function DataTracker() {
       }
     }
     
-    // Apply text filters
+    // Apply text filters (dropdown values)
     for (const [key, value] of Object.entries(textFilters)) {
-      if (value && value.trim() !== '') {
+      if (value && value.trim() !== '' && value !== 'all') {
         filtered = filtered.filter(row => {
           const rowValue = row[key];
           if (!rowValue) return false;
-          return rowValue.toString().toLowerCase().includes(value.toLowerCase());
+          return rowValue.toString().toLowerCase() === value.toLowerCase();
         });
       }
     }
@@ -699,10 +733,11 @@ export default function DataTracker() {
     // Count active filters
     let count = 0;
     for (const range of Object.values(numericFilters)) {
-      if ((range.min !== '' && range.min !== undefined) || (range.max !== '' && range.max !== undefined)) count++;
+      if ((range.min !== '' && range.min !== undefined && range.min !== null) || 
+          (range.max !== '' && range.max !== undefined && range.max !== null)) count++;
     }
     for (const val of Object.values(textFilters)) {
-      if (val && val.trim() !== '') count++;
+      if (val && val.trim() !== '' && val !== 'all') count++;
     }
     setActiveFilterCount(count);
   }, [data, numericFilters, textFilters, sortKey, sortDir]);
@@ -856,20 +891,51 @@ export default function DataTracker() {
                   {/* Numeric Range Filters */}
                   {NUMERIC_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
-                      <label>{col.label}</label>
+                      <label>{col.label} {col.unit && `(${col.unit})`}</label>
                       <div className="dt-range-group">
-                        <input type="number" placeholder={`Min ${col.min}`} step={col.step} value={numericFilters[col.key]?.min || ''} onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} />
+                        <input 
+                          type="number" 
+                          placeholder={`Min ${col.min}`} 
+                          step={col.step} 
+                          value={numericFilters[col.key]?.min || ''} 
+                          onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} 
+                        />
                         <span>to</span>
-                        <input type="number" placeholder={`Max ${col.max}`} step={col.step} value={numericFilters[col.key]?.max || ''} onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} />
+                        <input 
+                          type="number" 
+                          placeholder={`Max ${col.max}`} 
+                          step={col.step} 
+                          value={numericFilters[col.key]?.max || ''} 
+                          onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} 
+                        />
                       </div>
                     </div>
                   ))}
                   
-                  {/* Text Filters */}
+                  {/* Text Filters with Dropdowns */}
                   {TEXT_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
                       <label>{col.label}</label>
-                      <input className="dt-filter-input" type="text" placeholder={`Filter by ${col.label.toLowerCase()}...`} value={textFilters[col.key] || ''} onChange={e => handleTextFilterChange(col.key, e.target.value)} />
+                      {col.type === 'dropdown' ? (
+                        <select 
+                          className="dt-filter-select" 
+                          value={textFilters[col.key] || 'all'} 
+                          onChange={e => handleTextFilterChange(col.key, e.target.value)}
+                        >
+                          <option value="all">All {col.label}s</option>
+                          {dropdownOptions[col.key]?.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input 
+                          className="dt-filter-input" 
+                          type="text" 
+                          placeholder={`Filter by ${col.label.toLowerCase()}...`} 
+                          value={textFilters[col.key] || ''} 
+                          onChange={e => handleTextFilterChange(col.key, e.target.value)} 
+                        />
+                      )}
                     </div>
                   ))}
                   
@@ -884,10 +950,11 @@ export default function DataTracker() {
             {activeFilterCount > 0 && (
               <div className="dt-active-filters">
                 {Object.entries(numericFilters).map(([key, range]) => {
-                  const label = NUMERIC_COLUMNS.find(c => c.key === key)?.label || key;
+                  const col = NUMERIC_COLUMNS.find(c => c.key === key);
+                  const label = col?.label || key;
                   const parts = [];
-                  if (range.min !== '' && range.min !== undefined) parts.push(`${label} ≥ ${range.min}`);
-                  if (range.max !== '' && range.max !== undefined) parts.push(`${label} ≤ ${range.max}`);
+                  if (range.min !== '' && range.min !== undefined && range.min !== null) parts.push(`${label} ≥ ${range.min}${col?.unit || ''}`);
+                  if (range.max !== '' && range.max !== undefined && range.max !== null) parts.push(`${label} ≤ ${range.max}${col?.unit || ''}`);
                   return parts.map(part => (
                     <div key={`${key}-${part}`} className="dt-filter-tag">
                       {part}
@@ -899,8 +966,9 @@ export default function DataTracker() {
                   ));
                 })}
                 {Object.entries(textFilters).map(([key, value]) => {
-                  if (!value || value.trim() === '') return null;
-                  const label = TEXT_COLUMNS.find(c => c.key === key)?.label || key;
+                  if (!value || value.trim() === '' || value === 'all') return null;
+                  const col = TEXT_COLUMNS.find(c => c.key === key);
+                  const label = col?.label || key;
                   return (
                     <div key={key} className="dt-filter-tag">
                       {label} = {value}
@@ -979,7 +1047,7 @@ export default function DataTracker() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                   </table>
                 )}
               </div>
 
