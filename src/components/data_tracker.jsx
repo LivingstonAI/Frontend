@@ -136,7 +136,7 @@ const CSS = `
   /* ── Filter bar ── */
   .dt-filters {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 22px;
@@ -150,6 +150,8 @@ const CSS = `
     display: flex;
     flex-direction: column;
     gap: 3px;
+    flex: 1;
+    min-width: 120px;
   }
   .dt-filter-label {
     font-size: 10px;
@@ -167,14 +169,13 @@ const CSS = `
     color: var(--navy);
     background: var(--offwhite);
     outline: none;
-    min-width: 120px;
     transition: border-color .18s;
+    width: 100%;
   }
   .dt-select:focus, .dt-input:focus {
     border-color: var(--blue);
     background: var(--white);
   }
-  .dt-input { min-width: 160px; }
   .dt-btn {
     padding: 8px 18px;
     border-radius: var(--radius-sm);
@@ -186,7 +187,8 @@ const CSS = `
     transition: all .18s;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    margin-top: 16px;
+    height: 34px;
+    margin-top: 0;
   }
   .dt-btn-primary {
     background: var(--deep);
@@ -204,7 +206,6 @@ const CSS = `
     width: 1px;
     height: 36px;
     background: var(--border);
-    margin-top: 16px;
   }
 
   /* ── Stats bar ── */
@@ -253,6 +254,8 @@ const CSS = `
   }
   .dt-table-scroll {
     overflow-x: auto;
+    max-height: 70vh;
+    overflow-y: auto;
   }
   table.dt-table {
     width: 100%;
@@ -262,6 +265,9 @@ const CSS = `
   .dt-table thead tr {
     background: var(--navy);
     color: var(--white);
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
   .dt-table thead th {
     padding: 11px 14px;
@@ -280,11 +286,6 @@ const CSS = `
   .dt-table tbody tr {
     border-bottom: 1px solid var(--border);
     transition: background .12s;
-    animation: rowIn .25s ease both;
-  }
-  @keyframes rowIn {
-    from { opacity:0; transform: translateY(4px); }
-    to   { opacity:1; transform: translateY(0); }
   }
   .dt-table tbody tr:nth-child(even) { background: var(--ice); }
   .dt-table tbody tr:hover { background: var(--sky) !important; }
@@ -358,7 +359,7 @@ const CSS = `
     gap: 8px;
   }
   .dt-pag-info { font-size: 11px; color: var(--muted); }
-  .dt-pag-btns { display: flex; gap: 6px; }
+  .dt-pag-btns { display: flex; gap: 6px; flex-wrap: wrap; }
   .dt-pag-btn {
     padding: 5px 12px;
     border: 1.5px solid var(--border);
@@ -447,22 +448,15 @@ const CSS = `
   }
   .dt-empty-icon { font-size: 36px; margin-bottom: 12px; opacity:.5; }
 
-  /* ── Chart area (sparkline) ── */
-  .dt-sparkline {
-    display: inline-block;
-    vertical-align: middle;
-  }
-
-  /* ── Sort icon ── */
-  .dt-sort { opacity:.4; margin-left:4px; font-size:10px; }
-  .dt-sort.asc, .dt-sort.desc { opacity:1; color: var(--sky); }
-
   /* ── Responsive ── */
   @media (max-width: 700px) {
     .dt-body { padding: 16px 10px 32px; }
     .dt-page-title { font-size: 20px; }
     .dt-topnav { padding: 0 14px; }
     .dt-topnav-links { display: none; }
+    .dt-filters { flex-direction: column; align-items: stretch; }
+    .dt-filter-group { min-width: auto; }
+    .dt-divider { display: none; }
   }
 `;
 
@@ -507,6 +501,23 @@ const MSSBar = ({ mss }) => (
 const fmt = (n, dec = 4) =>
   n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
 
+// ── Debounce hook for search ──────────────────────────────────────────────────
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function DataTracker() {
   // ── Filter state ────────────────────────────────────────────────────
@@ -527,19 +538,41 @@ export default function DataTracker() {
 
   // ── Symbol list for autocomplete ────────────────────────────────────
   const [symbols, setSymbols] = useState([]);
+  const [filteredSymbols, setFilteredSymbols] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // ── Summary stats ───────────────────────────────────────────────────
   const [summary, setSummary] = useState(null);
 
-  const inputRef = useRef();
+  // ── Debounced symbol for API calls ──────────────────────────────────
+  const debouncedSymbol = useDebounce(symbol, 500);
 
   // ── Fetch symbol list once ──────────────────────────────────────────
   useEffect(() => {
     fetch(`${BASE_URL}/api/mss/symbols/`)
       .then(r => r.json())
-      .then(d => { if (d.success) setSymbols(d.data); })
+      .then(d => { 
+        if (d.success) {
+          setSymbols(d.data);
+          setFilteredSymbols(d.data);
+        }
+      })
       .catch(() => {});
   }, []);
+
+  // ── Filter symbols based on input ───────────────────────────────────
+  useEffect(() => {
+    if (symbol.trim() === '') {
+      setFilteredSymbols(symbols);
+      setShowSuggestions(false);
+    } else {
+      const filtered = symbols.filter(s => 
+        s.symbol.toLowerCase().includes(symbol.toLowerCase())
+      );
+      setFilteredSymbols(filtered.slice(0, 10)); // Show top 10 matches
+      setShowSuggestions(true);
+    }
+  }, [symbol, symbols]);
 
   // ── Fetch summary ───────────────────────────────────────────────────
   useEffect(() => {
@@ -561,7 +594,7 @@ export default function DataTracker() {
         page: p,
         limit: PAGE_LIMIT,
       });
-      if (symbol.trim()) params.set('symbol', symbol.trim().toUpperCase());
+      if (debouncedSymbol.trim()) params.set('symbol', debouncedSymbol.trim().toUpperCase());
 
       const res = await fetch(`${BASE_URL}/api/mss/history/?${params}`);
       const json = await res.json();
@@ -591,7 +624,7 @@ export default function DataTracker() {
     } finally {
       setLoading(false);
     }
-  }, [symbol, period, daysBack, assetClass, sortKey, sortDir]);
+  }, [debouncedSymbol, period, daysBack, assetClass, sortKey, sortDir]);
 
   useEffect(() => {
     if (activeTab === 'history') fetchHistory(1);
@@ -610,10 +643,9 @@ export default function DataTracker() {
 
   // ── Download handler ─────────────────────────────────────────────────
   const handleDownload = (fmt) => {
-    const sym = symbol.trim().toUpperCase() || 'ALL';
+    const sym = debouncedSymbol.trim().toUpperCase() || 'ALL';
     const params = new URLSearchParams({ format: fmt, period, days: daysBack });
     if (fmt === 'json') {
-      // Client-side JSON export
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -622,6 +654,22 @@ export default function DataTracker() {
       return;
     }
     window.open(`${BASE_URL}/api/mss/download/${sym}/?${params}`, '_blank');
+  };
+
+  // ── Handle symbol selection from suggestions ─────────────────────────
+  const handleSymbolSelect = (selectedSymbol) => {
+    setSymbol(selectedSymbol);
+    setShowSuggestions(false);
+    // Trigger search immediately
+    setTimeout(() => fetchHistory(1), 0);
+  };
+
+  // ── Handle Enter key in search ───────────────────────────────────────
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      setShowSuggestions(false);
+      fetchHistory(1);
+    }
   };
 
   // ── Summary stats derived ────────────────────────────────────────────
@@ -644,293 +692,326 @@ export default function DataTracker() {
     <>
       <style>{CSS}</style>
       <div className="dt-root">
-        {/* Global header (your existing component) */}
         <Header />
         <div>
-                        <SideNavs />
+          <SideNavs />
 
-        {/* Top nav */}
-        <nav className="dt-topnav">
-          <div className="dt-topnav-brand">
-            <span /> SnowAI Tracker
-          </div>
-          <div className="dt-topnav-links">
-            {[
-              { id: 'history', label: 'History' },
-              { id: 'summary', label: 'Daily Snapshot' },
-              { id: 'download', label: 'Download Centre' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`dt-nav-link ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        <div className="dt-body">
-          {/* Page header */}
-          <div className="dt-page-header">
-            <div>
-              <div className="dt-page-title">MSS Historical Data & Performance Tracker</div>
-              <div className="dt-page-subtitle">
-                Market Stability Score · R² · Analyst Bias · Put/Call Ratio — all periods, all assets
-              </div>
+          {/* Top nav */}
+          <nav className="dt-topnav">
+            <div className="dt-topnav-brand">
+              <span /> SnowAI Tracker
             </div>
-          </div>
-
-          {/* Filters */}
-          <div className="dt-filters">
-            <div className="dt-filter-group">
-              <div className="dt-filter-label">Symbol</div>
-              <input
-                ref={inputRef}
-                className="dt-input"
-                placeholder="e.g. AAPL, EURUSD=X"
-                value={symbol}
-                onChange={e => setSymbol(e.target.value)}
-                list="sym-list"
-                style={{ textTransform: 'uppercase' }}
-              />
-              <datalist id="sym-list">
-                {symbols.slice(0, 200).map(s => (
-                  <option key={s.symbol} value={s.symbol} />
-                ))}
-              </datalist>
+            <div className="dt-topnav-links">
+              {[
+                { id: 'history', label: 'History' },
+                { id: 'summary', label: 'Daily Snapshot' },
+                { id: 'download', label: 'Download Centre' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  className={`dt-nav-link ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+          </nav>
 
-            <div className="dt-filter-group">
-              <div className="dt-filter-label">Period (days)</div>
-              <select className="dt-select" value={period} onChange={e => setPeriod(+e.target.value)}>
-                {PERIODS.map(p => <option key={p} value={p}>{p}d</option>)}
-              </select>
-            </div>
-
-            <div className="dt-filter-group">
-              <div className="dt-filter-label">Asset Class</div>
-              <select className="dt-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>
-                {ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div className="dt-filter-group">
-              <div className="dt-filter-label">Days back</div>
-              <select className="dt-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>
-                {[30, 60, 90, 180, 365, 730].map(d => <option key={d} value={d}>{d} days</option>)}
-              </select>
-            </div>
-
-            <div className="dt-divider" />
-
-            <button
-              className="dt-btn dt-btn-primary"
-              disabled={loading}
-              onClick={() => fetchHistory(1)}
-            >
-              {loading ? 'Loading…' : '⟳ Run Query'}
-            </button>
-          </div>
-
-          {/* Stats bar */}
-          {stats && (
-            <div className="dt-stats">
-              <div className="dt-stat-card">
-                <div className="dt-stat-label">Avg MSS</div>
-                <div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>
-                  {stats.avgMss.toFixed(1)}
+          <div className="dt-body">
+            {/* Page header */}
+            <div className="dt-page-header">
+              <div>
+                <div className="dt-page-title">MSS Historical Data & Performance Tracker</div>
+                <div className="dt-page-subtitle">
+                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — all periods, all assets
                 </div>
-                <div className="dt-stat-sub">across {stats.total} records</div>
-              </div>
-              <div className="dt-stat-card">
-                <div className="dt-stat-label">Stable</div>
-                <div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div>
-                <div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div>
-              </div>
-              <div className="dt-stat-card">
-                <div className="dt-stat-label">Choppy</div>
-                <div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div>
-                <div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div>
-              </div>
-              <div className="dt-stat-card">
-                <div className="dt-stat-label">Volatile</div>
-                <div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div>
-                <div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div>
-              </div>
-              <div className="dt-stat-card">
-                <div className="dt-stat-label">Avg R²</div>
-                <div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div>
-                <div className="dt-stat-sub">trend clarity</div>
               </div>
             </div>
-          )}
 
-          {/* Download panel */}
-          {activeTab === 'download' && (
-            <div className="dt-dl-panel">
-              <div className="dt-dl-title">⤓ Export Data</div>
-              <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                Symbol: <strong>{symbol.toUpperCase() || 'ALL'}</strong> · Period: {period}d · Last {daysBack} days
-              </span>
-              <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>
-                📄 CSV
-              </button>
-              <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>
-                📊 Excel
-              </button>
-              <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>
-                📑 PDF
-              </button>
-              <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>
-                {'{ }'} JSON
-              </button>
-              <span style={{ fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
-                Enter a symbol above for single-asset export
-              </span>
-            </div>
-          )}
-
-          {/* Table */}
-          <div className="dt-table-wrap">
-            <div className="dt-table-scroll">
-              {loading ? (
-                <div className="dt-loading">
-                  <div className="dt-spinner" />
-                  Fetching MSS records…
-                </div>
-              ) : error ? (
-                <div className="dt-empty">
-                  <div className="dt-empty-icon">⚠</div>
-                  {error}
-                </div>
-              ) : data.length === 0 ? (
-                <div className="dt-empty">
-                  <div className="dt-empty-icon">📭</div>
-                  No records found. Adjust filters and run the query.
-                </div>
-              ) : (
-                <table className="dt-table">
-                  <thead>
-                    <tr>
-                      {[
-                        ['date_taken',        'Date'],
-                        ['symbol',            'Symbol'],
-                        ['asset_class',       'Class'],
-                        ['period_days',       'Period'],
-                        ['mss',               'MSS'],
-                        ['category',          'Status'],
-                        ['r_squared',         'R²'],
-                        ['volatility',        'Volatility'],
-                        ['trend_consistency', 'Trend Cons.'],
-                        ['trend_strength',    'Trend Str.'],
-                        ['current_price',     'Price'],
-                        ['price_change',      'Chg%'],
-                        ['analyst_rating_pct','Analyst%'],
-                        ['analyst_bias',      'A.Bias'],
-                        ['put_call_ratio',    'P/C Ratio'],
-                        ['put_call_bias',     'PC Bias'],
-                      ].map(([k, label]) => (
-                        <th key={k} onClick={() => handleSort(k)}>
-                          {label}<SortIcon k={k} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.map((row, i) => (
-                      <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
-                        <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
-                        <td><span className="dt-symbol">{row.symbol}</span></td>
-                        <td>
-                          <span style={{
-                            fontSize: 10,
-                            padding: '2px 7px',
-                            borderRadius: 20,
-                            background: 'var(--ice)',
-                            color: 'var(--deep)',
-                            fontWeight: 600,
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                          }}>
-                            {row.asset_class}
-                          </span>
-                        </td>
-                        <td style={{ color: 'var(--muted)' }}>{row.period_days}d</td>
-                        <td style={{ minWidth: 130 }}><MSSBar mss={row.mss} /></td>
-                        <td>{categoryBadge(row.category)}</td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                          {fmt(row.r_squared, 4)}
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                          {fmt(row.volatility, 5)}
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                          {fmt(row.trend_consistency, 3)}
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                          {fmt(row.trend_strength, 3)}
-                        </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                          ${fmt(row.current_price, 2)}
-                        </td>
-                        <td style={{
-                          color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)',
-                          fontWeight: 600,
-                          fontSize: 12,
-                        }}>
-                          {row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%
-                        </td>
-                        <td>
-                          {row.analyst_rating_pct != null ? (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                              {row.analyst_rating_pct.toFixed(1)}%
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td>{biasBadge(row.analyst_bias)}</td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                          {fmt(row.put_call_ratio, 3)}
-                        </td>
-                        <td>{biasBadge(row.put_call_bias)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* Pagination */}
-            {!loading && data.length > 0 && (
-              <div className="dt-pagination">
-                <div className="dt-pag-info">
-                  Showing {(page - 1) * PAGE_LIMIT + 1}–{Math.min(page * PAGE_LIMIT, total)} of {total} records
-                </div>
-                <div className="dt-pag-btns">
-                  <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(1)}>«</button>
-                  <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(page - 1)}>‹ Prev</button>
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    const p = Math.max(1, page - 3) + i;
-                    if (p > totalPages) return null;
-                    return (
-                      <button
-                        key={p}
-                        className={`dt-pag-btn ${p === page ? 'active' : ''}`}
-                        onClick={() => fetchHistory(p)}
+            {/* Filters */}
+            <div className="dt-filters">
+              <div className="dt-filter-group" style={{ position: 'relative' }}>
+                <div className="dt-filter-label">Symbol</div>
+                <input
+                  className="dt-input"
+                  placeholder="Type symbol (e.g., AAPL, EURUSD=X)"
+                  value={symbol}
+                  onChange={e => setSymbol(e.target.value.toUpperCase())}
+                  onKeyPress={handleKeyPress}
+                  onBlur={() => {
+                    // Delay hiding to allow click on suggestion
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                  onFocus={() => symbol && setShowSuggestions(true)}
+                  style={{ textTransform: 'uppercase' }}
+                />
+                {/* Autocomplete dropdown */}
+                {showSuggestions && filteredSymbols.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--white)',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    zIndex: 1000,
+                    marginTop: '2px',
+                    boxShadow: 'var(--shadow)'
+                  }}>
+                    {filteredSymbols.map(s => (
+                      <div
+                        key={s.symbol}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--border)',
+                          fontSize: '12px',
+                          fontFamily: 'var(--font-mono)'
+                        }}
+                        onClick={() => handleSymbolSelect(s.symbol)}
+                        onMouseEnter={(e) => e.target.style.background = 'var(--ice)'}
+                        onMouseLeave={(e) => e.target.style.background = 'var(--white)'}
                       >
-                        {p}
-                      </button>
-                    );
-                  })}
-                  <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(page + 1)}>Next ›</button>
-                  <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(totalPages)}>»</button>
+                        <strong>{s.symbol}</strong>
+                        <span style={{ color: 'var(--muted)', marginLeft: '8px', fontSize: '10px' }}>
+                          {s.asset_class}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="dt-filter-group">
+                <div className="dt-filter-label">Period (days)</div>
+                <select className="dt-select" value={period} onChange={e => setPeriod(+e.target.value)}>
+                  {PERIODS.map(p => <option key={p} value={p}>{p}d</option>)}
+                </select>
+              </div>
+
+              <div className="dt-filter-group">
+                <div className="dt-filter-label">Asset Class</div>
+                <select className="dt-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>
+                  {ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div className="dt-filter-group">
+                <div className="dt-filter-label">Days back</div>
+                <select className="dt-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>
+                  {[30, 60, 90, 180, 365, 730].map(d => <option key={d} value={d}>{d} days</option>)}
+                </select>
+              </div>
+
+              <div className="dt-divider" />
+
+              <button
+                className="dt-btn dt-btn-primary"
+                disabled={loading}
+                onClick={() => fetchHistory(1)}
+              >
+                {loading ? 'Loading…' : '⟳ Run Query'}
+              </button>
+            </div>
+
+            {/* Stats bar */}
+            {stats && (
+              <div className="dt-stats">
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Avg MSS</div>
+                  <div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>
+                    {stats.avgMss.toFixed(1)}
+                  </div>
+                  <div className="dt-stat-sub">across {stats.total} records</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Stable</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div>
+                  <div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Choppy</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div>
+                  <div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Volatile</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div>
+                  <div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Avg R²</div>
+                  <div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div>
+                  <div className="dt-stat-sub">trend clarity</div>
                 </div>
               </div>
             )}
+
+            {/* Download panel */}
+            {activeTab === 'download' && (
+              <div className="dt-dl-panel">
+                <div className="dt-dl-title">⤓ Export Data</div>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  Symbol: <strong>{debouncedSymbol.toUpperCase() || 'ALL'}</strong> · Period: {period}d · Last {daysBack} days
+                </span>
+                <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>
+                  📄 CSV
+                </button>
+                <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>
+                  📊 Excel
+                </button>
+                <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>
+                  📑 PDF
+                </button>
+                <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>
+                  {'{ }'} JSON
+                </button>
+              </div>
+            )}
+
+            {/* Table */}
+            <div className="dt-table-wrap">
+              <div className="dt-table-scroll">
+                {loading ? (
+                  <div className="dt-loading">
+                    <div className="dt-spinner" />
+                    Fetching MSS records…
+                  </div>
+                ) : error ? (
+                  <div className="dt-empty">
+                    <div className="dt-empty-icon">⚠</div>
+                    {error}
+                  </div>
+                ) : data.length === 0 ? (
+                  <div className="dt-empty">
+                    <div className="dt-empty-icon">📭</div>
+                    No records found. Adjust filters and run the query.
+                  </div>
+                ) : (
+                  <table className="dt-table">
+                    <thead>
+                      <tr>
+                        {[
+                          ['date_taken',        'Date'],
+                          ['symbol',            'Symbol'],
+                          ['asset_class',       'Class'],
+                          ['period_days',       'Period'],
+                          ['mss',               'MSS'],
+                          ['category',          'Status'],
+                          ['r_squared',         'R²'],
+                          ['volatility',        'Volatility'],
+                          ['trend_consistency', 'Trend Cons.'],
+                          ['trend_strength',    'Trend Str.'],
+                          ['current_price',     'Price'],
+                          ['price_change',      'Chg%'],
+                          ['analyst_rating_pct','Analyst%'],
+                          ['analyst_bias',      'A.Bias'],
+                          ['put_call_ratio',    'P/C Ratio'],
+                          ['put_call_bias',     'PC Bias'],
+                        ].map(([k, label]) => (
+                          <th key={k} onClick={() => handleSort(k)}>
+                            {label}<SortIcon k={k} />
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.map((row, i) => (
+                        <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
+                          <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
+                          <td><span className="dt-symbol">{row.symbol}</span></td>
+                          <td>
+                            <span style={{
+                              fontSize: 10,
+                              padding: '2px 7px',
+                              borderRadius: 20,
+                              background: 'var(--ice)',
+                              color: 'var(--deep)',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                            }}>
+                              {row.asset_class}
+                            </span>
+                          </td>
+                          <td style={{ color: 'var(--muted)' }}>{row.period_days}d</td>
+                          <td style={{ minWidth: 130 }}><MSSBar mss={row.mss} /></td>
+                          <td>{categoryBadge(row.category)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                            {fmt(row.r_squared, 4)}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                            {fmt(row.volatility, 5)}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                            {fmt(row.trend_consistency, 3)}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                            {fmt(row.trend_strength, 3)}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                            ${fmt(row.current_price, 2)}
+                          </td>
+                          <td style={{
+                            color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)',
+                            fontWeight: 600,
+                            fontSize: 12,
+                          }}>
+                            {row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%
+                          </td>
+                          <td>
+                            {row.analyst_rating_pct != null ? (
+                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                                {row.analyst_rating_pct.toFixed(1)}%
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td>{biasBadge(row.analyst_bias)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                            {fmt(row.put_call_ratio, 3)}
+                          </td>
+                          <td>{biasBadge(row.put_call_bias)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Pagination */}
+              {!loading && data.length > 0 && (
+                <div className="dt-pagination">
+                  <div className="dt-pag-info">
+                    Showing {(page - 1) * PAGE_LIMIT + 1}–{Math.min(page * PAGE_LIMIT, total)} of {total} records
+                  </div>
+                  <div className="dt-pag-btns">
+                    <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(1)}>«</button>
+                    <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(page - 1)}>‹ Prev</button>
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      const p = Math.max(1, page - 3) + i;
+                      if (p > totalPages) return null;
+                      return (
+                        <button
+                          key={p}
+                          className={`dt-pag-btn ${p === page ? 'active' : ''}`}
+                          onClick={() => fetchHistory(p)}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                    <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(page + 1)}>Next ›</button>
+                    <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(totalPages)}>»</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </>
   );
