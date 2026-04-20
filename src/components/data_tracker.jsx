@@ -41,7 +41,6 @@ const CSS = `
     color: var(--navy);
   }
 
-  /* ── Top nav ── */
   .dt-topnav {
     position: sticky;
     top: 0;
@@ -102,14 +101,12 @@ const CSS = `
   .dt-nav-link:hover { background: var(--ice); color: var(--deep); }
   .dt-nav-link.active { background: var(--ice); color: var(--deep); font-weight: 600; }
 
-  /* ── Page body ── */
   .dt-body {
-    max-width: 1320px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 28px 24px 48px;
   }
 
-  /* ── Page header ── */
   .dt-page-header {
     display: flex;
     align-items: flex-end;
@@ -133,10 +130,89 @@ const CSS = `
     letter-spacing: 0.03em;
   }
 
-  /* ── Filter bar ── */
-  .dt-filters {
+  /* Advanced Filters Panel */
+  .dt-filters-panel {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+  .dt-filters-header {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: var(--ice);
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .dt-filters-header:hover { background: var(--sky); }
+  .dt-filters-grid {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .dt-filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .dt-filter-item label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .dt-filter-input, .dt-filter-select {
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--offwhite);
+    outline: none;
+  }
+  .dt-filter-input:focus, .dt-filter-select:focus {
+    border-color: var(--blue);
+    background: var(--white);
+  }
+  .dt-range-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .dt-range-group input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--offwhite);
+  }
+  .dt-range-group span { font-size: 11px; color: var(--muted); }
+  .dt-filter-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .dt-btn-sm {
+    padding: 6px 14px;
+    font-size: 11px;
+  }
+
+  /* Quick filter bar */
+  .dt-quick-bar {
+    display: flex;
+    align-items: center;
     gap: 10px;
     flex-wrap: wrap;
     margin-bottom: 22px;
@@ -146,35 +222,34 @@ const CSS = `
     padding: 14px 18px;
     box-shadow: var(--shadow);
   }
-  .dt-filter-group {
+  .dt-quick-group {
     display: flex;
     flex-direction: column;
     gap: 3px;
     flex: 1;
     min-width: 120px;
   }
-  .dt-filter-label {
+  .dt-quick-label {
     font-size: 10px;
     color: var(--muted);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     font-weight: 500;
   }
-  .dt-select, .dt-input {
+  .dt-quick-input, .dt-quick-select {
     padding: 7px 11px;
     border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
     font-size: 12px;
-    color: var(--navy);
     background: var(--offwhite);
     outline: none;
-    transition: border-color .18s;
     width: 100%;
   }
-  .dt-select:focus, .dt-input:focus {
-    border-color: var(--blue);
-    background: var(--white);
+  .dt-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--border);
   }
   .dt-btn {
     padding: 8px 18px;
@@ -187,28 +262,15 @@ const CSS = `
     transition: all .18s;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    height: 34px;
-    margin-top: 0;
   }
-  .dt-btn-primary {
-    background: var(--deep);
-    color: var(--white);
-  }
+  .dt-btn-primary { background: var(--deep); color: var(--white); }
   .dt-btn-primary:hover { background: var(--navy); }
-  .dt-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-  .dt-btn-ghost {
-    background: var(--ice);
-    color: var(--deep);
-    border: 1.5px solid var(--border);
-  }
-  .dt-btn-ghost:hover { background: var(--sky); }
-  .dt-divider {
-    width: 1px;
-    height: 36px;
-    background: var(--border);
-  }
+  .dt-btn-secondary { background: var(--ice); color: var(--deep); border: 1.5px solid var(--border); }
+  .dt-btn-secondary:hover { background: var(--sky); }
+  .dt-btn-danger { background: #FBDEDE; color: #D63B3B; border: 1.5px solid #D63B3B; }
+  .dt-btn-danger:hover { background: #D63B3B; color: white; }
 
-  /* ── Stats bar ── */
+  /* Stats bar */
   .dt-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -244,7 +306,34 @@ const CSS = `
     margin-top: 2px;
   }
 
-  /* ── Table ── */
+  /* Active filters tags */
+  .dt-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .dt-filter-tag {
+    background: var(--ice);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dt-filter-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 0 2px;
+  }
+  .dt-filter-tag button:hover { color: var(--volatile); }
+
+  /* Table */
   .dt-table-wrap {
     background: var(--white);
     border: 1.5px solid var(--border);
@@ -254,7 +343,7 @@ const CSS = `
   }
   .dt-table-scroll {
     overflow-x: auto;
-    max-height: 70vh;
+    max-height: 65vh;
     overflow-y: auto;
   }
   table.dt-table {
@@ -280,13 +369,9 @@ const CSS = `
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    transition: background .15s;
   }
   .dt-table thead th:hover { background: var(--deep); }
-  .dt-table tbody tr {
-    border-bottom: 1px solid var(--border);
-    transition: background .12s;
-  }
+  .dt-table tbody tr { border-bottom: 1px solid var(--border); }
   .dt-table tbody tr:nth-child(even) { background: var(--ice); }
   .dt-table tbody tr:hover { background: var(--sky) !important; }
   .dt-table td {
@@ -294,14 +379,8 @@ const CSS = `
     white-space: nowrap;
     color: var(--navy);
   }
-  .dt-symbol {
-    font-family: var(--font-head);
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--deep);
-  }
+  .dt-symbol { font-family: var(--font-head); font-weight: 700; font-size: 13px; color: var(--deep); }
 
-  /* ── Badges ── */
   .dt-badge {
     display: inline-flex;
     align-items: center;
@@ -320,7 +399,6 @@ const CSS = `
   .dt-badge-bearish  { background: #FBDEDE; color: #D63B3B; }
   .dt-badge-neutral  { background: var(--ice); color: var(--muted); }
 
-  /* ── MSS bar ── */
   .dt-mss-bar {
     display: flex;
     align-items: center;
@@ -347,7 +425,6 @@ const CSS = `
     text-align: right;
   }
 
-  /* ── Pagination ── */
   .dt-pagination {
     display: flex;
     align-items: center;
@@ -369,36 +446,24 @@ const CSS = `
     font-family: var(--font-mono);
     font-size: 11px;
     cursor: pointer;
-    transition: all .15s;
   }
   .dt-pag-btn:hover:not(:disabled) { background: var(--ice); }
-  .dt-pag-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .dt-pag-btn:disabled { opacity: .4; cursor: not-allowed; }
   .dt-pag-btn.active { background: var(--deep); color: var(--white); border-color: var(--deep); }
 
-  /* ── Download panel ── */
   .dt-dl-panel {
     background: var(--white);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
     padding: 20px 22px;
     margin-bottom: 22px;
-    box-shadow: var(--shadow);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 14px;
   }
-  .dt-dl-title {
-    font-family: var(--font-head);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--deep);
-    margin-right: 8px;
-  }
+  .dt-dl-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--deep); }
   .dt-dl-btn {
-    display: flex;
-    align-items: center;
-    gap: 7px;
     padding: 9px 16px;
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
@@ -407,8 +472,6 @@ const CSS = `
     cursor: pointer;
     border: 1.5px solid;
     transition: all .18s;
-    letter-spacing: 0.03em;
-    text-decoration: none;
   }
   .dt-dl-csv  { border-color: #1BA86D; color: #1BA86D; background: #D6F5E8; }
   .dt-dl-csv:hover  { background: #1BA86D; color: #fff; }
@@ -419,7 +482,6 @@ const CSS = `
   .dt-dl-json { border-color: var(--muted); color: var(--muted); background: var(--ice); }
   .dt-dl-json:hover { background: var(--muted); color: #fff; }
 
-  /* ── Loading ── */
   .dt-loading {
     display: flex;
     flex-direction: column;
@@ -428,7 +490,6 @@ const CSS = `
     padding: 60px 24px;
     gap: 14px;
     color: var(--muted);
-    font-size: 13px;
   }
   .dt-spinner {
     width: 32px; height: 32px;
@@ -439,24 +500,14 @@ const CSS = `
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Empty state ── */
-  .dt-empty {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--muted);
-    font-size: 13px;
-  }
-  .dt-empty-icon { font-size: 36px; margin-bottom: 12px; opacity:.5; }
+  .dt-empty { text-align: center; padding: 60px 24px; color: var(--muted); font-size: 13px; }
+  .dt-empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
 
-  /* ── Responsive ── */
   @media (max-width: 700px) {
     .dt-body { padding: 16px 10px 32px; }
     .dt-page-title { font-size: 20px; }
     .dt-topnav { padding: 0 14px; }
-    .dt-topnav-links { display: none; }
-    .dt-filters { flex-direction: column; align-items: stretch; }
-    .dt-filter-group { min-width: auto; }
-    .dt-divider { display: none; }
+    .dt-filters-grid { grid-template-columns: 1fr; }
   }
 `;
 
@@ -465,7 +516,29 @@ const PERIODS = [10, 15, 20, 30, 45, 60, 90, 180];
 const ASSET_CLASSES = ['all', 'stocks', 'forex', 'indices', 'commodities', 'bonds'];
 const PAGE_LIMIT = 50;
 
-// ── Colour helpers ────────────────────────────────────────────────────────────
+// Numeric columns for range filtering
+const NUMERIC_COLUMNS = [
+  { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1 },
+  { key: 'r_squared', label: 'R²', min: 0, max: 1, step: 0.01 },
+  { key: 'volatility', label: 'Volatility', min: 0, max: 1, step: 0.01 },
+  { key: 'trend_consistency', label: 'Trend Consistency', min: 0, max: 1, step: 0.01 },
+  { key: 'trend_strength', label: 'Trend Strength', min: 0, max: 1, step: 0.01 },
+  { key: 'current_price', label: 'Price', min: 0, max: 5000, step: 10 },
+  { key: 'price_change', label: 'Price Change %', min: -100, max: 100, step: 1 },
+  { key: 'analyst_rating_pct', label: 'Analyst Rating %', min: 0, max: 100, step: 5 },
+  { key: 'put_call_ratio', label: 'Put/Call Ratio', min: 0, max: 5, step: 0.1 },
+];
+
+// Text/category columns for exact filtering
+const TEXT_COLUMNS = [
+  { key: 'symbol', label: 'Symbol' },
+  { key: 'asset_class', label: 'Asset Class' },
+  { key: 'sector', label: 'Sector' },
+  { key: 'category', label: 'Status (stable/choppy/volatile)' },
+  { key: 'analyst_bias', label: 'Analyst Bias' },
+  { key: 'put_call_bias', label: 'Put/Call Bias' },
+];
+
 const mssColor = (mss) => {
   if (mss >= 47) return 'var(--stable)';
   if (mss >= 30) return 'var(--choppy)';
@@ -474,8 +547,7 @@ const mssColor = (mss) => {
 
 const categoryBadge = (cat) => (
   <span className={`dt-badge dt-badge-${cat}`}>
-    {cat === 'stable' ? '● ' : cat === 'choppy' ? '◆ ' : '▲ '}
-    {cat}
+    {cat === 'stable' ? '● ' : cat === 'choppy' ? '◆ ' : '▲ '}{cat}
   </span>
 );
 
@@ -487,94 +559,61 @@ const biasBadge = (bias) => {
 const MSSBar = ({ mss }) => (
   <div className="dt-mss-bar">
     <div className="dt-mss-track">
-      <div
-        className="dt-mss-fill"
-        style={{ width: `${mss}%`, background: mssColor(mss) }}
-      />
+      <div className="dt-mss-fill" style={{ width: `${mss}%`, background: mssColor(mss) }} />
     </div>
-    <span className="dt-mss-num" style={{ color: mssColor(mss) }}>
-      {mss?.toFixed(1)}
-    </span>
+    <span className="dt-mss-num" style={{ color: mssColor(mss) }}>{mss?.toFixed(1)}</span>
   </div>
 );
 
-const fmt = (n, dec = 4) =>
-  n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
+const fmt = (n, dec = 4) => n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
 
-// ── Debounce hook for search ──────────────────────────────────────────────────
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
   }, [value, delay]);
-
   return debouncedValue;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function DataTracker() {
-  // ── Filter state ────────────────────────────────────────────────────
-  const [symbol, setSymbol]           = useState('');
-  const [period, setPeriod]           = useState(60);
-  const [assetClass, setAssetClass]   = useState('all');
-  const [daysBack, setDaysBack]       = useState(365);
-  const [activeTab, setActiveTab]     = useState('history');
-  const [sortKey, setSortKey]         = useState('date_taken');
-  const [sortDir, setSortDir]         = useState('desc');
-  const [page, setPage]               = useState(1);
-
-  // ── Data state ──────────────────────────────────────────────────────
-  const [data, setData]       = useState([]);
-  const [total, setTotal]     = useState(0);
+  // Base filters
+  const [symbol, setSymbol] = useState('');
+  const [period, setPeriod] = useState(60);
+  const [assetClass, setAssetClass] = useState('all');
+  const [daysBack, setDaysBack] = useState(365);
+  const [activeTab, setActiveTab] = useState('history');
+  const [sortKey, setSortKey] = useState('date_taken');
+  const [sortDir, setSortDir] = useState('desc');
+  const [page, setPage] = useState(1);
+  
+  // Advanced filters state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [numericFilters, setNumericFilters] = useState({});
+  const [textFilters, setTextFilters] = useState({});
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
+  
+  // Data state
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
-
-  // ── Symbol list for autocomplete ────────────────────────────────────
+  const [error, setError] = useState(null);
   const [symbols, setSymbols] = useState([]);
-  const [filteredSymbols, setFilteredSymbols] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // ── Summary stats ───────────────────────────────────────────────────
   const [summary, setSummary] = useState(null);
-
-  // ── Debounced symbol for API calls ──────────────────────────────────
+  
   const debouncedSymbol = useDebounce(symbol, 500);
 
-  // ── Fetch symbol list once ──────────────────────────────────────────
+  // Fetch symbol list
   useEffect(() => {
     fetch(`${BASE_URL}/api/mss/symbols/`)
       .then(r => r.json())
-      .then(d => { 
-        if (d.success) {
-          setSymbols(d.data);
-          setFilteredSymbols(d.data);
-        }
-      })
+      .then(d => { if (d.success) setSymbols(d.data); })
       .catch(() => {});
   }, []);
 
-  // ── Filter symbols based on input ───────────────────────────────────
-  useEffect(() => {
-    if (symbol.trim() === '') {
-      setFilteredSymbols(symbols);
-      setShowSuggestions(false);
-    } else {
-      const filtered = symbols.filter(s => 
-        s.symbol.toLowerCase().includes(symbol.toLowerCase())
-      );
-      setFilteredSymbols(filtered.slice(0, 10)); // Show top 10 matches
-      setShowSuggestions(true);
-    }
-  }, [symbol, symbols]);
-
-  // ── Fetch summary ───────────────────────────────────────────────────
+  // Fetch summary
   useEffect(() => {
     if (activeTab !== 'summary') return;
     fetch(`${BASE_URL}/api/mss/summary/?period=${period}`)
@@ -583,7 +622,7 @@ export default function DataTracker() {
       .catch(() => {});
   }, [activeTab, period]);
 
-  // ── Fetch history ───────────────────────────────────────────────────
+  // Fetch history
   const fetchHistory = useCallback(async (p = 1) => {
     setLoading(true);
     setError(null);
@@ -601,21 +640,12 @@ export default function DataTracker() {
       if (!json.success) throw new Error(json.error || 'Unknown error');
 
       let rows = json.data;
-
-      // Client-side asset class filter
+      
+      // Apply asset class filter
       if (assetClass !== 'all') {
         rows = rows.filter(r => r.asset_class === assetClass);
       }
-
-      // Client-side sort
-      rows.sort((a, b) => {
-        const av = a[sortKey], bv = b[sortKey];
-        if (av == null) return 1;
-        if (bv == null) return -1;
-        const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-        return sortDir === 'asc' ? cmp : -cmp;
-      });
-
+      
       setData(rows);
       setTotal(json.total);
       setPage(p);
@@ -624,13 +654,59 @@ export default function DataTracker() {
     } finally {
       setLoading(false);
     }
-  }, [debouncedSymbol, period, daysBack, assetClass, sortKey, sortDir]);
+  }, [debouncedSymbol, period, daysBack, assetClass]);
 
   useEffect(() => {
     if (activeTab === 'history') fetchHistory(1);
   }, [activeTab, fetchHistory]);
 
-  // ── Sort handler ─────────────────────────────────────────────────────
+  // Apply advanced filters to data
+  useEffect(() => {
+    let filtered = [...data];
+    
+    // Apply numeric range filters
+    for (const [key, range] of Object.entries(numericFilters)) {
+      if (range.min !== '' && range.min !== undefined && range.min !== null) {
+        filtered = filtered.filter(row => row[key] >= parseFloat(range.min));
+      }
+      if (range.max !== '' && range.max !== undefined && range.max !== null) {
+        filtered = filtered.filter(row => row[key] <= parseFloat(range.max));
+      }
+    }
+    
+    // Apply text filters
+    for (const [key, value] of Object.entries(textFilters)) {
+      if (value && value.trim() !== '') {
+        filtered = filtered.filter(row => {
+          const rowValue = row[key];
+          if (!rowValue) return false;
+          return rowValue.toString().toLowerCase().includes(value.toLowerCase());
+        });
+      }
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    
+    setFilteredData(filtered);
+    
+    // Count active filters
+    let count = 0;
+    for (const range of Object.values(numericFilters)) {
+      if ((range.min !== '' && range.min !== undefined) || (range.max !== '' && range.max !== undefined)) count++;
+    }
+    for (const val of Object.values(textFilters)) {
+      if (val && val.trim() !== '') count++;
+    }
+    setActiveFilterCount(count);
+  }, [data, numericFilters, textFilters, sortKey, sortDir]);
+
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
@@ -641,12 +717,45 @@ export default function DataTracker() {
     return <span className={`dt-sort ${sortDir}`}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // ── Download handler ─────────────────────────────────────────────────
+  const handleNumericFilterChange = (key, type, value) => {
+    setNumericFilters(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [type]: value }
+    }));
+  };
+
+  const handleTextFilterChange = (key, value) => {
+    setTextFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setNumericFilters({});
+    setTextFilters({});
+  };
+
+  const clearFilter = (key, type = null) => {
+    if (type) {
+      setNumericFilters(prev => ({
+        ...prev,
+        [key]: { ...prev[key], [type]: '' }
+      }));
+    } else {
+      setTextFilters(prev => {
+        const newFilters = { ...prev };
+        delete newFilters[key];
+        return newFilters;
+      });
+    }
+  };
+
   const handleDownload = (fmt) => {
     const sym = debouncedSymbol.trim().toUpperCase() || 'ALL';
     const params = new URLSearchParams({ format: fmt, period, days: daysBack });
     if (fmt === 'json') {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `${sym}_mss_history.json`; a.click();
@@ -656,38 +765,20 @@ export default function DataTracker() {
     window.open(`${BASE_URL}/api/mss/download/${sym}/?${params}`, '_blank');
   };
 
-  // ── Handle symbol selection from suggestions ─────────────────────────
-  const handleSymbolSelect = (selectedSymbol) => {
-    setSymbol(selectedSymbol);
-    setShowSuggestions(false);
-    // Trigger search immediately
-    setTimeout(() => fetchHistory(1), 0);
-  };
-
-  // ── Handle Enter key in search ───────────────────────────────────────
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      setShowSuggestions(false);
-      fetchHistory(1);
-    }
-  };
-
-  // ── Summary stats derived ────────────────────────────────────────────
+  // Stats from filtered data
   const stats = React.useMemo(() => {
-    const src = activeTab === 'summary' && summary ? summary.data : data;
-    if (!src.length) return null;
-    const mssList = src.map(r => r.mss).filter(Boolean);
-    const avgMss  = mssList.reduce((a, b) => a + b, 0) / mssList.length;
-    const stable  = src.filter(r => r.category === 'stable').length;
-    const choppy  = src.filter(r => r.category === 'choppy').length;
-    const volatile= src.filter(r => r.category === 'volatile').length;
-    const avgR2   = src.map(r => r.r_squared).filter(Boolean).reduce((a, b) => a + b, 0) / src.length;
-    return { avgMss, stable, choppy, volatile, avgR2, total: src.length };
-  }, [data, summary, activeTab]);
+    if (!filteredData.length) return null;
+    const mssList = filteredData.map(r => r.mss).filter(Boolean);
+    const avgMss = mssList.reduce((a, b) => a + b, 0) / mssList.length;
+    const stable = filteredData.filter(r => r.category === 'stable').length;
+    const choppy = filteredData.filter(r => r.category === 'choppy').length;
+    const volatile = filteredData.filter(r => r.category === 'volatile').length;
+    const avgR2 = filteredData.map(r => r.r_squared).filter(Boolean).reduce((a, b) => a + b, 0) / filteredData.length;
+    return { avgMss, stable, choppy, volatile, avgR2, total: filteredData.length };
+  }, [filteredData]);
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
-  // ── Render ────────────────────────────────────────────────────────────
   return (
     <>
       <style>{CSS}</style>
@@ -695,23 +786,15 @@ export default function DataTracker() {
         <Header />
         <div>
           <SideNavs />
-
-          {/* Top nav */}
           <nav className="dt-topnav">
-            <div className="dt-topnav-brand">
-              <span /> SnowAI Tracker
-            </div>
+            <div className="dt-topnav-brand"><span /> SnowAI Tracker</div>
             <div className="dt-topnav-links">
               {[
                 { id: 'history', label: 'History' },
                 { id: 'summary', label: 'Daily Snapshot' },
                 { id: 'download', label: 'Download Centre' },
               ].map(tab => (
-                <button
-                  key={tab.id}
-                  className={`dt-nav-link ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
+                <button key={tab.id} className={`dt-nav-link ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
                   {tab.label}
                 </button>
               ))}
@@ -719,157 +802,140 @@ export default function DataTracker() {
           </nav>
 
           <div className="dt-body">
-            {/* Page header */}
             <div className="dt-page-header">
               <div>
                 <div className="dt-page-title">MSS Historical Data & Performance Tracker</div>
                 <div className="dt-page-subtitle">
-                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — all periods, all assets
+                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced filtering on all columns
                 </div>
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="dt-filters">
-              <div className="dt-filter-group" style={{ position: 'relative' }}>
-                <div className="dt-filter-label">Symbol</div>
-                <input
-                  className="dt-input"
-                  placeholder="Type symbol (e.g., AAPL, EURUSD=X)"
-                  value={symbol}
-                  onChange={e => setSymbol(e.target.value.toUpperCase())}
-                  onKeyPress={handleKeyPress}
-                  onBlur={() => {
-                    // Delay hiding to allow click on suggestion
-                    setTimeout(() => setShowSuggestions(false), 200);
-                  }}
-                  onFocus={() => symbol && setShowSuggestions(true)}
-                  style={{ textTransform: 'uppercase' }}
-                />
-                {/* Autocomplete dropdown */}
-                {showSuggestions && filteredSymbols.length > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'var(--white)',
-                    border: '1.5px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                    marginTop: '2px',
-                    boxShadow: 'var(--shadow)'
-                  }}>
-                    {filteredSymbols.map(s => (
-                      <div
-                        key={s.symbol}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid var(--border)',
-                          fontSize: '12px',
-                          fontFamily: 'var(--font-mono)'
-                        }}
-                        onClick={() => handleSymbolSelect(s.symbol)}
-                        onMouseEnter={(e) => e.target.style.background = 'var(--ice)'}
-                        onMouseLeave={(e) => e.target.style.background = 'var(--white)'}
-                      >
-                        <strong>{s.symbol}</strong>
-                        <span style={{ color: 'var(--muted)', marginLeft: '8px', fontSize: '10px' }}>
-                          {s.asset_class}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Quick Filters Bar */}
+            <div className="dt-quick-bar">
+              <div className="dt-quick-group">
+                <div className="dt-quick-label">Symbol</div>
+                <input className="dt-quick-input" placeholder="Type symbol..." value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} list="sym-list" />
+                <datalist id="sym-list">{symbols.slice(0, 200).map(s => <option key={s.symbol} value={s.symbol} />)}</datalist>
               </div>
-
-              <div className="dt-filter-group">
-                <div className="dt-filter-label">Period (days)</div>
-                <select className="dt-select" value={period} onChange={e => setPeriod(+e.target.value)}>
+              <div className="dt-quick-group">
+                <div className="dt-quick-label">Period (days)</div>
+                <select className="dt-quick-select" value={period} onChange={e => setPeriod(+e.target.value)}>
                   {PERIODS.map(p => <option key={p} value={p}>{p}d</option>)}
                 </select>
               </div>
-
-              <div className="dt-filter-group">
-                <div className="dt-filter-label">Asset Class</div>
-                <select className="dt-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>
+              <div className="dt-quick-group">
+                <div className="dt-quick-label">Asset Class</div>
+                <select className="dt-quick-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>
                   {ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-
-              <div className="dt-filter-group">
-                <div className="dt-filter-label">Days back</div>
-                <select className="dt-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>
+              <div className="dt-quick-group">
+                <div className="dt-quick-label">Days back</div>
+                <select className="dt-quick-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>
                   {[30, 60, 90, 180, 365, 730].map(d => <option key={d} value={d}>{d} days</option>)}
                 </select>
               </div>
-
               <div className="dt-divider" />
-
-              <button
-                className="dt-btn dt-btn-primary"
-                disabled={loading}
-                onClick={() => fetchHistory(1)}
-              >
+              <button className="dt-btn dt-btn-primary" disabled={loading} onClick={() => fetchHistory(1)}>
                 {loading ? 'Loading…' : '⟳ Run Query'}
+              </button>
+              <button className="dt-btn dt-btn-secondary" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+                🔍 {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
               </button>
             </div>
 
-            {/* Stats bar */}
-            {stats && (
-              <div className="dt-stats">
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Avg MSS</div>
-                  <div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>
-                    {stats.avgMss.toFixed(1)}
+            {/* Advanced Filters Panel */}
+            {showAdvancedFilters && (
+              <div className="dt-filters-panel">
+                <div className="dt-filters-header" onClick={() => setShowAdvancedFilters(false)}>
+                  <span>⚙️ Advanced Filters — Filter by any column</span>
+                  <span>▼</span>
+                </div>
+                <div className="dt-filters-grid">
+                  {/* Numeric Range Filters */}
+                  {NUMERIC_COLUMNS.map(col => (
+                    <div key={col.key} className="dt-filter-item">
+                      <label>{col.label}</label>
+                      <div className="dt-range-group">
+                        <input type="number" placeholder={`Min ${col.min}`} step={col.step} value={numericFilters[col.key]?.min || ''} onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} />
+                        <span>to</span>
+                        <input type="number" placeholder={`Max ${col.max}`} step={col.step} value={numericFilters[col.key]?.max || ''} onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} />
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Text Filters */}
+                  {TEXT_COLUMNS.map(col => (
+                    <div key={col.key} className="dt-filter-item">
+                      <label>{col.label}</label>
+                      <input className="dt-filter-input" type="text" placeholder={`Filter by ${col.label.toLowerCase()}...`} value={textFilters[col.key] || ''} onChange={e => handleTextFilterChange(col.key, e.target.value)} />
+                    </div>
+                  ))}
+                  
+                  <div className="dt-filter-actions">
+                    <button className="dt-btn-sm dt-btn-secondary" onClick={clearAllFilters}>Clear All Filters</button>
                   </div>
-                  <div className="dt-stat-sub">across {stats.total} records</div>
-                </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Stable</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div>
-                  <div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div>
-                </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Choppy</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div>
-                  <div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div>
-                </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Volatile</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div>
-                  <div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div>
-                </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Avg R²</div>
-                  <div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div>
-                  <div className="dt-stat-sub">trend clarity</div>
                 </div>
               </div>
             )}
 
-            {/* Download panel */}
+            {/* Active Filters Tags */}
+            {activeFilterCount > 0 && (
+              <div className="dt-active-filters">
+                {Object.entries(numericFilters).map(([key, range]) => {
+                  const label = NUMERIC_COLUMNS.find(c => c.key === key)?.label || key;
+                  const parts = [];
+                  if (range.min !== '' && range.min !== undefined) parts.push(`${label} ≥ ${range.min}`);
+                  if (range.max !== '' && range.max !== undefined) parts.push(`${label} ≤ ${range.max}`);
+                  return parts.map(part => (
+                    <div key={`${key}-${part}`} className="dt-filter-tag">
+                      {part}
+                      <button onClick={() => {
+                        if (range.min !== '') handleNumericFilterChange(key, 'min', '');
+                        if (range.max !== '') handleNumericFilterChange(key, 'max', '');
+                      }}>✕</button>
+                    </div>
+                  ));
+                })}
+                {Object.entries(textFilters).map(([key, value]) => {
+                  if (!value || value.trim() === '') return null;
+                  const label = TEXT_COLUMNS.find(c => c.key === key)?.label || key;
+                  return (
+                    <div key={key} className="dt-filter-tag">
+                      {label} = {value}
+                      <button onClick={() => clearFilter(key)}>✕</button>
+                    </div>
+                  );
+                })}
+                {activeFilterCount > 1 && (
+                  <div className="dt-filter-tag" style={{ background: 'var(--volatile)', color: 'white' }}>
+                    <button onClick={clearAllFilters} style={{ color: 'white' }}>Clear All ✕</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Stats Bar */}
+            {stats && (
+              <div className="dt-stats">
+                <div className="dt-stat-card"><div className="dt-stat-label">Avg MSS</div><div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div><div className="dt-stat-sub">across {stats.total} records</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Stable</div><div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div><div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Choppy</div><div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div><div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Volatile</div><div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div><div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Avg R²</div><div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div><div className="dt-stat-sub">trend clarity</div></div>
+              </div>
+            )}
+
+            {/* Download Panel */}
             {activeTab === 'download' && (
               <div className="dt-dl-panel">
                 <div className="dt-dl-title">⤓ Export Data</div>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  Symbol: <strong>{debouncedSymbol.toUpperCase() || 'ALL'}</strong> · Period: {period}d · Last {daysBack} days
-                </span>
-                <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>
-                  📄 CSV
-                </button>
-                <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>
-                  📊 Excel
-                </button>
-                <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>
-                  📑 PDF
-                </button>
-                <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>
-                  {'{ }'} JSON
-                </button>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Symbol: <strong>{debouncedSymbol.toUpperCase() || 'ALL'}</strong> · Period: {period}d · Last {daysBack} days</span>
+                <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>📄 CSV</button>
+                <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>📊 Excel</button>
+                <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>📑 PDF</button>
+                <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>{'{ }'} JSON</button>
               </div>
             )}
 
@@ -877,103 +943,38 @@ export default function DataTracker() {
             <div className="dt-table-wrap">
               <div className="dt-table-scroll">
                 {loading ? (
-                  <div className="dt-loading">
-                    <div className="dt-spinner" />
-                    Fetching MSS records…
-                  </div>
+                  <div className="dt-loading"><div className="dt-spinner" />Fetching MSS records…</div>
                 ) : error ? (
-                  <div className="dt-empty">
-                    <div className="dt-empty-icon">⚠</div>
-                    {error}
-                  </div>
-                ) : data.length === 0 ? (
-                  <div className="dt-empty">
-                    <div className="dt-empty-icon">📭</div>
-                    No records found. Adjust filters and run the query.
-                  </div>
+                  <div className="dt-empty"><div className="dt-empty-icon">⚠</div>{error}</div>
+                ) : filteredData.length === 0 ? (
+                  <div className="dt-empty"><div className="dt-empty-icon">📭</div>No records match your filters. Try adjusting them.</div>
                 ) : (
                   <table className="dt-table">
                     <thead>
                       <tr>
-                        {[
-                          ['date_taken',        'Date'],
-                          ['symbol',            'Symbol'],
-                          ['asset_class',       'Class'],
-                          ['period_days',       'Period'],
-                          ['mss',               'MSS'],
-                          ['category',          'Status'],
-                          ['r_squared',         'R²'],
-                          ['volatility',        'Volatility'],
-                          ['trend_consistency', 'Trend Cons.'],
-                          ['trend_strength',    'Trend Str.'],
-                          ['current_price',     'Price'],
-                          ['price_change',      'Chg%'],
-                          ['analyst_rating_pct','Analyst%'],
-                          ['analyst_bias',      'A.Bias'],
-                          ['put_call_ratio',    'P/C Ratio'],
-                          ['put_call_bias',     'PC Bias'],
-                        ].map(([k, label]) => (
-                          <th key={k} onClick={() => handleSort(k)}>
-                            {label}<SortIcon k={k} />
-                          </th>
+                        {[['date_taken','Date'],['symbol','Symbol'],['asset_class','Class'],['period_days','Period'],['mss','MSS'],['category','Status'],['r_squared','R²'],['volatility','Volatility'],['trend_consistency','Trend Cons.'],['trend_strength','Trend Str.'],['current_price','Price'],['price_change','Chg%'],['analyst_rating_pct','Analyst%'],['analyst_bias','A.Bias'],['put_call_ratio','P/C Ratio'],['put_call_bias','PC Bias']].map(([k,label]) => (
+                          <th key={k} onClick={() => handleSort(k)}>{label}<SortIcon k={k} /></th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {data.map((row, i) => (
+                      {filteredData.map((row, i) => (
                         <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
                           <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
                           <td><span className="dt-symbol">{row.symbol}</span></td>
-                          <td>
-                            <span style={{
-                              fontSize: 10,
-                              padding: '2px 7px',
-                              borderRadius: 20,
-                              background: 'var(--ice)',
-                              color: 'var(--deep)',
-                              fontWeight: 600,
-                              letterSpacing: '0.04em',
-                              textTransform: 'uppercase',
-                            }}>
-                              {row.asset_class}
-                            </span>
-                          </td>
+                          <td><span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, background: 'var(--ice)', color: 'var(--deep)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{row.asset_class}</span></td>
                           <td style={{ color: 'var(--muted)' }}>{row.period_days}d</td>
                           <td style={{ minWidth: 130 }}><MSSBar mss={row.mss} /></td>
                           <td>{categoryBadge(row.category)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            {fmt(row.r_squared, 4)}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            {fmt(row.volatility, 5)}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            {fmt(row.trend_consistency, 3)}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            {fmt(row.trend_strength, 3)}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-                            ${fmt(row.current_price, 2)}
-                          </td>
-                          <td style={{
-                            color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)',
-                            fontWeight: 600,
-                            fontSize: 12,
-                          }}>
-                            {row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%
-                          </td>
-                          <td>
-                            {row.analyst_rating_pct != null ? (
-                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                                {row.analyst_rating_pct.toFixed(1)}%
-                              </span>
-                            ) : '—'}
-                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.r_squared, 4)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.volatility, 5)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_consistency, 3)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_strength, 3)}</td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>${fmt(row.current_price, 2)}</td>
+                          <td style={{ color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)', fontWeight: 600, fontSize: 12 }}>{row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%</td>
+                          <td>{row.analyst_rating_pct != null ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{row.analyst_rating_pct.toFixed(1)}%</span> : '—'}</td>
                           <td>{biasBadge(row.analyst_bias)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
-                            {fmt(row.put_call_ratio, 3)}
-                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{fmt(row.put_call_ratio, 3)}</td>
                           <td>{biasBadge(row.put_call_bias)}</td>
                         </tr>
                       ))}
@@ -982,27 +983,16 @@ export default function DataTracker() {
                 )}
               </div>
 
-              {/* Pagination */}
-              {!loading && data.length > 0 && (
+              {!loading && filteredData.length > 0 && (
                 <div className="dt-pagination">
-                  <div className="dt-pag-info">
-                    Showing {(page - 1) * PAGE_LIMIT + 1}–{Math.min(page * PAGE_LIMIT, total)} of {total} records
-                  </div>
+                  <div className="dt-pag-info">Showing {filteredData.length} of {total} records (filtered)</div>
                   <div className="dt-pag-btns">
                     <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(1)}>«</button>
                     <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(page - 1)}>‹ Prev</button>
                     {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                       const p = Math.max(1, page - 3) + i;
                       if (p > totalPages) return null;
-                      return (
-                        <button
-                          key={p}
-                          className={`dt-pag-btn ${p === page ? 'active' : ''}`}
-                          onClick={() => fetchHistory(p)}
-                        >
-                          {p}
-                        </button>
-                      );
+                      return <button key={p} className={`dt-pag-btn ${p === page ? 'active' : ''}`} onClick={() => fetchHistory(p)}>{p}</button>;
                     })}
                     <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(page + 1)}>Next ›</button>
                     <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(totalPages)}>»</button>
