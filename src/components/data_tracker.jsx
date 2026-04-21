@@ -269,8 +269,6 @@ const CSS = `
   .dt-btn-primary:hover { background: var(--navy); }
   .dt-btn-secondary { background: var(--ice); color: var(--deep); border: 1.5px solid var(--border); }
   .dt-btn-secondary:hover { background: var(--sky); }
-  .dt-btn-danger { background: #FBDEDE; color: #D63B3B; border: 1.5px solid #D63B3B; }
-  .dt-btn-danger:hover { background: #D63B3B; color: white; }
 
   /* Stats bar */
   .dt-stats {
@@ -516,22 +514,8 @@ const CSS = `
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PERIODS = [10, 15, 20, 30, 45, 60, 90, 180];
 const ASSET_CLASSES = ['all', 'stocks', 'forex', 'indices', 'commodities', 'bonds'];
-const PAGE_LIMIT = 50;
+const PAGE_SIZE = 50;
 
-// Get unique values from data for dropdowns
-const getUniqueValues = (data, key) => {
-  if (!data || data.length === 0) return [];
-  const values = new Set();
-  data.forEach(row => {
-    const val = row[key];
-    if (val && val !== 'null' && val !== 'undefined') {
-      values.add(val);
-    }
-  });
-  return Array.from(values).sort();
-};
-
-// Numeric columns for range filtering
 const NUMERIC_COLUMNS = [
   { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1, unit: '' },
   { key: 'r_squared', label: 'R²', min: 0, max: 1, step: 0.01, unit: '' },
@@ -544,7 +528,6 @@ const NUMERIC_COLUMNS = [
   { key: 'put_call_ratio', label: 'Put/Call Ratio', min: 0, max: 5, step: 0.1, unit: '' },
 ];
 
-// Text columns for dropdown filtering
 const TEXT_COLUMNS = [
   { key: 'symbol', label: 'Symbol', type: 'text' },
   { key: 'asset_class', label: 'Asset Class', type: 'dropdown' },
@@ -601,33 +584,25 @@ export default function DataTracker() {
   const [activeTab, setActiveTab] = useState('history');
   const [sortKey, setSortKey] = useState('date_taken');
   const [sortDir, setSortDir] = useState('desc');
-  const [page, setPage] = useState(1);
   
   // Advanced filters state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [numericFilters, setNumericFilters] = useState({});
   const [textFilters, setTextFilters] = useState({});
-  const [activeFilterCount, setActiveFilterCount] = useState(0);
   
   // Data state
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [allData, setAllData] = useState([]); // Store ALL filtered data from server
+  const [paginatedData, setPaginatedData] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [symbols, setSymbols] = useState([]);
   const [summary, setSummary] = useState(null);
-  
-  // Dropdown options (dynamically populated from data)
-  const [dropdownOptions, setDropdownOptions] = useState({
-    asset_class: [],
-    sector: [],
-    category: [],
-    analyst_bias: [],
-    put_call_bias: [],
-  });
+  const [totalRecords, setTotalRecords] = useState(0);
   
   const debouncedSymbol = useDebounce(symbol, 500);
+  const debouncedNumericFilters = useDebounce(numericFilters, 500);
+  const debouncedTextFilters = useDebounce(textFilters, 500);
 
   // Fetch symbol list
   useEffect(() => {
@@ -646,81 +621,59 @@ export default function DataTracker() {
       .catch(() => {});
   }, [activeTab, period]);
 
-  // Fetch history
-  const fetchHistory = useCallback(async (p = 1) => {
+  // Fetch ALL filtered data from server (not just one page)
+  const fetchFilteredData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // Build filters object
+      const filters = {
+        numeric: numericFilters,
+        text: textFilters
+      };
+      
       const params = new URLSearchParams({
         period: period,
         days: daysBack,
-        page: p,
-        limit: PAGE_LIMIT,
+        symbol: debouncedSymbol.trim().toUpperCase(),
+        asset_class: assetClass,
+        filters: JSON.stringify(filters)
       });
-      if (debouncedSymbol.trim()) params.set('symbol', debouncedSymbol.trim().toUpperCase());
-
-      const res = await fetch(`${BASE_URL}/api/mss/history/?${params}`);
+      
+      const res = await fetch(`${BASE_URL}/api/mss/filtered-data/?${params}`);
       const json = await res.json();
+      
       if (!json.success) throw new Error(json.error || 'Unknown error');
-
-      let rows = json.data;
       
-      // Apply asset class filter
-      if (assetClass !== 'all') {
-        rows = rows.filter(r => r.asset_class === assetClass);
-      }
-      
-      setData(rows);
-      setTotal(json.total);
-      setPage(p);
-      
-      // Update dropdown options from fetched data
-      const newOptions = {};
-      TEXT_COLUMNS.forEach(col => {
-        if (col.type === 'dropdown') {
-          newOptions[col.key] = getUniqueValues(rows, col.key);
-        }
-      });
-      setDropdownOptions(newOptions);
+      setAllData(json.data);
+      setTotalRecords(json.total);
+      setCurrentPage(1); // Reset to first page when new filters apply
       
     } catch (e) {
       setError(e.message);
+      setAllData([]);
+      setTotalRecords(0);
     } finally {
       setLoading(false);
     }
-  }, [debouncedSymbol, period, daysBack, assetClass]);
+  }, [debouncedSymbol, period, daysBack, assetClass, numericFilters, textFilters]);
 
+  // Trigger fetch when filters change
   useEffect(() => {
-    if (activeTab === 'history') fetchHistory(1);
-  }, [activeTab, fetchHistory]);
+    if (activeTab === 'history') {
+      fetchFilteredData();
+    }
+  }, [activeTab, fetchFilteredData]);
 
-  // Apply advanced filters to data
+  // Apply sorting and pagination to the filtered data
   useEffect(() => {
-    let filtered = [...data];
-    
-    // Apply numeric range filters
-    for (const [key, range] of Object.entries(numericFilters)) {
-      if (range.min !== '' && range.min !== undefined && range.min !== null) {
-        filtered = filtered.filter(row => row[key] >= parseFloat(range.min));
-      }
-      if (range.max !== '' && range.max !== undefined && range.max !== null) {
-        filtered = filtered.filter(row => row[key] <= parseFloat(range.max));
-      }
+    if (!allData.length) {
+      setPaginatedData([]);
+      return;
     }
     
-    // Apply text filters (dropdown values)
-    for (const [key, value] of Object.entries(textFilters)) {
-      if (value && value.trim() !== '' && value !== 'all') {
-        filtered = filtered.filter(row => {
-          const rowValue = row[key];
-          if (!rowValue) return false;
-          return rowValue.toString().toLowerCase() === value.toLowerCase();
-        });
-      }
-    }
-    
-    // Apply sorting
-    filtered.sort((a, b) => {
+    // Sort data
+    const sorted = [...allData].sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
       if (av == null) return 1;
       if (bv == null) return -1;
@@ -728,19 +681,12 @@ export default function DataTracker() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     
-    setFilteredData(filtered);
+    // Paginate
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    setPaginatedData(sorted.slice(start, end));
     
-    // Count active filters
-    let count = 0;
-    for (const range of Object.values(numericFilters)) {
-      if ((range.min !== '' && range.min !== undefined && range.min !== null) || 
-          (range.max !== '' && range.max !== undefined && range.max !== null)) count++;
-    }
-    for (const val of Object.values(textFilters)) {
-      if (val && val.trim() !== '' && val !== 'all') count++;
-    }
-    setActiveFilterCount(count);
-  }, [data, numericFilters, textFilters, sortKey, sortDir]);
+  }, [allData, sortKey, sortDir, currentPage]);
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -790,7 +736,7 @@ export default function DataTracker() {
     const sym = debouncedSymbol.trim().toUpperCase() || 'ALL';
     const params = new URLSearchParams({ format: fmt, period, days: daysBack });
     if (fmt === 'json') {
-      const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `${sym}_mss_history.json`; a.click();
@@ -800,19 +746,44 @@ export default function DataTracker() {
     window.open(`${BASE_URL}/api/mss/download/${sym}/?${params}`, '_blank');
   };
 
+  // Count active filters
+  const activeFilterCount = React.useMemo(() => {
+    let count = 0;
+    for (const range of Object.values(numericFilters)) {
+      if ((range.min !== '' && range.min !== undefined && range.min !== null) || 
+          (range.max !== '' && range.max !== undefined && range.max !== null)) count++;
+    }
+    for (const val of Object.values(textFilters)) {
+      if (val && val.trim() !== '' && val !== 'all') count++;
+    }
+    return count;
+  }, [numericFilters, textFilters]);
+
   // Stats from filtered data
   const stats = React.useMemo(() => {
-    if (!filteredData.length) return null;
-    const mssList = filteredData.map(r => r.mss).filter(Boolean);
+    if (!allData.length) return null;
+    const mssList = allData.map(r => r.mss).filter(Boolean);
     const avgMss = mssList.reduce((a, b) => a + b, 0) / mssList.length;
-    const stable = filteredData.filter(r => r.category === 'stable').length;
-    const choppy = filteredData.filter(r => r.category === 'choppy').length;
-    const volatile = filteredData.filter(r => r.category === 'volatile').length;
-    const avgR2 = filteredData.map(r => r.r_squared).filter(Boolean).reduce((a, b) => a + b, 0) / filteredData.length;
-    return { avgMss, stable, choppy, volatile, avgR2, total: filteredData.length };
-  }, [filteredData]);
+    const stable = allData.filter(r => r.category === 'stable').length;
+    const choppy = allData.filter(r => r.category === 'choppy').length;
+    const volatile = allData.filter(r => r.category === 'volatile').length;
+    const avgR2 = allData.map(r => r.r_squared).filter(Boolean).reduce((a, b) => a + b, 0) / allData.length;
+    return { avgMss, stable, choppy, volatile, avgR2, total: allData.length };
+  }, [allData]);
 
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
+  const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
+
+  // Get unique dropdown values from the filtered data
+  const getDropdownOptions = (key) => {
+    const values = new Set();
+    allData.forEach(row => {
+      const val = row[key];
+      if (val && val !== 'null' && val !== 'undefined') {
+        values.add(val);
+      }
+    });
+    return Array.from(values).sort();
+  };
 
   return (
     <>
@@ -841,7 +812,7 @@ export default function DataTracker() {
               <div>
                 <div className="dt-page-title">MSS Historical Data & Performance Tracker</div>
                 <div className="dt-page-subtitle">
-                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced filtering on all columns
+                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced filtering on ALL data
                 </div>
               </div>
             </div>
@@ -872,8 +843,8 @@ export default function DataTracker() {
                 </select>
               </div>
               <div className="dt-divider" />
-              <button className="dt-btn dt-btn-primary" disabled={loading} onClick={() => fetchHistory(1)}>
-                {loading ? 'Loading…' : '⟳ Run Query'}
+              <button className="dt-btn dt-btn-primary" disabled={loading} onClick={fetchFilteredData}>
+                {loading ? 'Loading…' : '⟳ Apply Filters'}
               </button>
               <button className="dt-btn dt-btn-secondary" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
                 🔍 {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
@@ -884,7 +855,7 @@ export default function DataTracker() {
             {showAdvancedFilters && (
               <div className="dt-filters-panel">
                 <div className="dt-filters-header" onClick={() => setShowAdvancedFilters(false)}>
-                  <span>⚙️ Advanced Filters — Filter by any column</span>
+                  <span>⚙️ Advanced Filters — Filter by any column (applies to ALL {totalRecords} records)</span>
                   <span>▼</span>
                 </div>
                 <div className="dt-filters-grid">
@@ -923,7 +894,7 @@ export default function DataTracker() {
                           onChange={e => handleTextFilterChange(col.key, e.target.value)}
                         >
                           <option value="all">All {col.label}s</option>
-                          {dropdownOptions[col.key]?.map(option => (
+                          {getDropdownOptions(col.key).map(option => (
                             <option key={option} value={option}>{option}</option>
                           ))}
                         </select>
@@ -984,14 +955,39 @@ export default function DataTracker() {
               </div>
             )}
 
-            {/* Stats Bar */}
+            {/* Stats Bar - Shows stats for ALL filtered data */}
             {stats && (
               <div className="dt-stats">
-                <div className="dt-stat-card"><div className="dt-stat-label">Avg MSS</div><div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div><div className="dt-stat-sub">across {stats.total} records</div></div>
-                <div className="dt-stat-card"><div className="dt-stat-label">Stable</div><div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div><div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div></div>
-                <div className="dt-stat-card"><div className="dt-stat-label">Choppy</div><div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div><div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div></div>
-                <div className="dt-stat-card"><div className="dt-stat-label">Volatile</div><div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div><div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div></div>
-                <div className="dt-stat-card"><div className="dt-stat-label">Avg R²</div><div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div><div className="dt-stat-sub">trend clarity</div></div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Total Records</div>
+                  <div className="dt-stat-value">{stats.total.toLocaleString()}</div>
+                  <div className="dt-stat-sub">after filters</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Avg MSS</div>
+                  <div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div>
+                  <div className="dt-stat-sub">across filtered data</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Stable</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div>
+                  <div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Choppy</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div>
+                  <div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Volatile</div>
+                  <div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div>
+                  <div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div>
+                </div>
+                <div className="dt-stat-card">
+                  <div className="dt-stat-label">Avg R²</div>
+                  <div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div>
+                  <div className="dt-stat-sub">trend clarity</div>
+                </div>
               </div>
             )}
 
@@ -999,7 +995,9 @@ export default function DataTracker() {
             {activeTab === 'download' && (
               <div className="dt-dl-panel">
                 <div className="dt-dl-title">⤓ Export Data</div>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Symbol: <strong>{debouncedSymbol.toUpperCase() || 'ALL'}</strong> · Period: {period}d · Last {daysBack} days</span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                  <strong>{allData.length.toLocaleString()} records</strong> match current filters
+                </span>
                 <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>📄 CSV</button>
                 <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>📊 Excel</button>
                 <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>📑 PDF</button>
@@ -1007,14 +1005,14 @@ export default function DataTracker() {
               </div>
             )}
 
-            {/* Table */}
+            {/* Table - Shows PAGINATED data from filtered results */}
             <div className="dt-table-wrap">
               <div className="dt-table-scroll">
                 {loading ? (
-                  <div className="dt-loading"><div className="dt-spinner" />Fetching MSS records…</div>
+                  <div className="dt-loading"><div className="dt-spinner" />Fetching {totalRecords.toLocaleString()} records…</div>
                 ) : error ? (
                   <div className="dt-empty"><div className="dt-empty-icon">⚠</div>{error}</div>
-                ) : filteredData.length === 0 ? (
+                ) : paginatedData.length === 0 ? (
                   <div className="dt-empty"><div className="dt-empty-icon">📭</div>No records match your filters. Try adjusting them.</div>
                 ) : (
                   <table className="dt-table">
@@ -1026,7 +1024,7 @@ export default function DataTracker() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredData.map((row, i) => (
+                      {paginatedData.map((row, i) => (
                         <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
                           <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
                           <td><span className="dt-symbol">{row.symbol}</span></td>
@@ -1047,23 +1045,30 @@ export default function DataTracker() {
                         </tr>
                       ))}
                     </tbody>
-                   </table>
+                  </table>
                 )}
               </div>
 
-              {!loading && filteredData.length > 0 && (
+              {/* Pagination - Pages through FILTERED results */}
+              {!loading && allData.length > 0 && (
                 <div className="dt-pagination">
-                  <div className="dt-pag-info">Showing {filteredData.length} of {total} records (filtered)</div>
+                  <div className="dt-pag-info">
+                    Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords.toLocaleString()} filtered records
+                  </div>
                   <div className="dt-pag-btns">
-                    <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(1)}>«</button>
-                    <button className="dt-pag-btn" disabled={page <= 1} onClick={() => fetchHistory(page - 1)}>‹ Prev</button>
+                    <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>«</button>
+                    <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>‹ Prev</button>
                     {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      const p = Math.max(1, page - 3) + i;
+                      const p = Math.max(1, currentPage - 3) + i;
                       if (p > totalPages) return null;
-                      return <button key={p} className={`dt-pag-btn ${p === page ? 'active' : ''}`} onClick={() => fetchHistory(p)}>{p}</button>;
+                      return (
+                        <button key={p} className={`dt-pag-btn ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>
+                          {p}
+                        </button>
+                      );
                     })}
-                    <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(page + 1)}>Next ›</button>
-                    <button className="dt-pag-btn" disabled={page >= totalPages} onClick={() => fetchHistory(totalPages)}>»</button>
+                    <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Next ›</button>
+                    <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</button>
                   </div>
                 </div>
               )}
