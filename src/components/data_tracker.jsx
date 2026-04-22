@@ -1,64 +1,116 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 
 const BASE_URL = "https://backend-production-c0ab.up.railway.app";
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+// ── CSS (Enhanced with dark mode, heatmap, etc.) ─────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap');
 
+  /* Light Mode (Default) */
+  :root {
+    --bg-primary: #F5FAFE;
+    --bg-secondary: #FFFFFF;
+    --text-primary: #0D2D45;
+    --text-secondary: #7BA9C4;
+    --border-color: #CBE4F2;
+    --card-bg: #FFFFFF;
+    --table-header: #0D2D45;
+    --table-row-even: #EAF4FB;
+    --table-row-hover: #B8DCF0;
+    --shadow: 0 2px 16px rgba(26,94,138,0.10);
+    --shadow-lg: 0 8px 40px rgba(26,94,138,0.14);
+    
+    --ice: #EAF4FB;
+    --sky: #B8DCF0;
+    --blue: #3A9FD5;
+    --deep: #1A5E8A;
+    --navy: #0D2D45;
+    --white: #FFFFFF;
+    --offwhite: #F5FAFE;
+    --muted: #7BA9C4;
+    --border: #CBE4F2;
+    --stable: #1BA86D;
+    --choppy: #E89C2A;
+    --volatile: #D63B3B;
+    --bullish: #1BA86D;
+    --bearish: #D63B3B;
+    --neutral: #7BA9C4;
+  }
+
+  /* Dark Mode */
+  [data-theme="dark"] {
+    --bg-primary: #0D1117;
+    --bg-secondary: #161B22;
+    --text-primary: #E6EDF3;
+    --text-secondary: #8B949E;
+    --border-color: #30363D;
+    --card-bg: #161B22;
+    --table-header: #161B22;
+    --table-row-even: #21262D;
+    --table-row-hover: #30363D;
+    --shadow: 0 2px 16px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+    
+    --ice: #21262D;
+    --sky: #30363D;
+    --blue: #58A6FF;
+    --deep: #1F6FEB;
+    --navy: #161B22;
+    --white: #161B22;
+    --offwhite: #0D1117;
+    --muted: #8B949E;
+    --border: #30363D;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --ice:       #EAF4FB;
-    --sky:       #B8DCF0;
-    --blue:      #3A9FD5;
-    --deep:      #1A5E8A;
-    --navy:      #0D2D45;
-    --white:     #FFFFFF;
-    --offwhite:  #F5FAFE;
-    --muted:     #7BA9C4;
-    --border:    #CBE4F2;
-    --stable:    #1BA86D;
-    --choppy:    #E89C2A;
-    --volatile:  #D63B3B;
-    --bullish:   #1BA86D;
-    --bearish:   #D63B3B;
-    --neutral:   #7BA9C4;
-    --shadow:    0 2px 16px rgba(26,94,138,0.10);
-    --shadow-lg: 0 8px 40px rgba(26,94,138,0.14);
-    --radius:    12px;
-    --radius-sm: 7px;
-    --font-head: 'Syne', sans-serif;
-    --font-mono: 'DM Mono', monospace;
-  }
+  body { background: var(--bg-primary); transition: background 0.3s ease; }
 
   .dt-root {
     min-height: 100vh;
-    background: var(--offwhite);
-    font-family: var(--font-mono);
-    color: var(--navy);
+    background: var(--bg-primary);
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary);
   }
 
+  /* Dark mode toggle */
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+  }
+  .theme-toggle:hover { transform: scale(1.05); }
+
+  /* Top nav */
   .dt-topnav {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--white);
+    background: var(--bg-secondary);
     border-bottom: 1.5px solid var(--border);
     display: flex;
     align-items: center;
     gap: 0;
     padding: 0 28px;
     height: 52px;
-    box-shadow: 0 2px 12px rgba(26,94,138,0.07);
+    box-shadow: var(--shadow);
   }
   .dt-topnav-brand {
-    font-family: var(--font-head);
+    font-family: 'Syne', sans-serif;
     font-size: 15px;
     font-weight: 800;
-    color: var(--deep);
+    color: var(--text-primary);
     letter-spacing: -0.02em;
     margin-right: 32px;
     white-space: nowrap;
@@ -86,428 +138,219 @@ const CSS = `
   }
   .dt-nav-link {
     padding: 6px 14px;
-    font-family: var(--font-mono);
+    font-family: 'DM Mono', monospace;
     font-size: 12px;
-    color: var(--muted);
+    color: var(--text-secondary);
     background: none;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: 7px;
     cursor: pointer;
     white-space: nowrap;
     transition: all .18s;
     font-weight: 500;
-    letter-spacing: 0.02em;
   }
-  .dt-nav-link:hover { background: var(--ice); color: var(--deep); }
-  .dt-nav-link.active { background: var(--ice); color: var(--deep); font-weight: 600; }
+  .dt-nav-link:hover { background: var(--ice); color: var(--text-primary); }
+  .dt-nav-link.active { background: var(--ice); color: var(--text-primary); font-weight: 600; }
 
   .dt-body {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 28px 24px 48px;
   }
 
-  .dt-page-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .dt-page-title {
-    font-family: var(--font-head);
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--navy);
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-  }
-  .dt-page-subtitle {
-    font-size: 12px;
-    color: var(--muted);
-    margin-top: 4px;
-    letter-spacing: 0.03em;
-  }
-
-  /* Advanced Filters Panel */
-  .dt-filters-panel {
-    background: var(--white);
+  /* Presets Panel */
+  .dt-presets-panel {
+    background: var(--bg-secondary);
     border: 1.5px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 12px;
     margin-bottom: 22px;
-    overflow: hidden;
+    padding: 16px 20px;
   }
-  .dt-filters-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    background: var(--ice);
-    cursor: pointer;
-    user-select: none;
-    font-weight: 600;
+  .dt-presets-title {
+    font-family: 'Syne', sans-serif;
     font-size: 13px;
-  }
-  .dt-filters-header:hover { background: var(--sky); }
-  .dt-filters-grid {
-    padding: 18px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    border-top: 1px solid var(--border);
-    max-height: 500px;
-    overflow-y: auto;
-  }
-  .dt-filter-item {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-  .dt-filter-item label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .dt-filter-input, .dt-filter-select {
-    padding: 7px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    background: var(--offwhite);
-    outline: none;
-  }
-  .dt-filter-input:focus, .dt-filter-select:focus {
-    border-color: var(--blue);
-    background: var(--white);
-  }
-  .dt-range-group {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .dt-range-group input {
-    flex: 1;
-    padding: 7px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    background: var(--offwhite);
-  }
-  .dt-range-group span { font-size: 11px; color: var(--muted); }
-  .dt-filter-actions {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 8px;
-  }
-  .dt-btn-sm {
-    padding: 6px 14px;
-    font-size: 11px;
-  }
-
-  /* Quick filter bar */
-  .dt-quick-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 22px;
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    box-shadow: var(--shadow);
-  }
-  .dt-quick-group {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex: 1;
-    min-width: 120px;
-  }
-  .dt-quick-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    font-weight: 500;
-  }
-  .dt-quick-input, .dt-quick-select {
-    padding: 7px 11px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    background: var(--offwhite);
-    outline: none;
-    width: 100%;
-  }
-  .dt-divider {
-    width: 1px;
-    height: 36px;
-    background: var(--border);
-  }
-  .dt-btn {
-    padding: 8px 18px;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all .18s;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-  }
-  .dt-btn-primary { background: var(--deep); color: var(--white); }
-  .dt-btn-primary:hover { background: var(--navy); }
-  .dt-btn-secondary { background: var(--ice); color: var(--deep); border: 1.5px solid var(--border); }
-  .dt-btn-secondary:hover { background: var(--sky); }
-
-  /* Stats bar */
-  .dt-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin-bottom: 22px;
-  }
-  .dt-stat-card {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px 18px;
-    box-shadow: var(--shadow);
-    transition: transform .18s, box-shadow .18s;
-  }
-  .dt-stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-  .dt-stat-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    font-weight: 500;
-  }
-  .dt-stat-value {
-    font-family: var(--font-head);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--deep);
-    margin-top: 4px;
-  }
-  .dt-stat-sub {
-    font-size: 10px;
-    color: var(--muted);
-    margin-top: 2px;
-  }
-
-  /* Active filters tags */
-  .dt-active-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-  .dt-filter-tag {
-    background: var(--ice);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .dt-filter-tag button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--muted);
-    font-size: 12px;
-    padding: 0 2px;
-  }
-  .dt-filter-tag button:hover { color: var(--volatile); }
-
-  /* Table */
-  .dt-table-wrap {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
-  .dt-table-scroll {
-    overflow-x: auto;
-    max-height: 65vh;
-    overflow-y: auto;
-  }
-  table.dt-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-  .dt-table thead tr {
-    background: var(--navy);
-    color: var(--white);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .dt-table thead th {
-    padding: 11px 14px;
-    text-align: left;
-    font-family: var(--font-head);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-  .dt-table thead th:hover { background: var(--deep); }
-  .dt-table tbody tr { border-bottom: 1px solid var(--border); }
-  .dt-table tbody tr:nth-child(even) { background: var(--ice); }
-  .dt-table tbody tr:hover { background: var(--sky) !important; }
-  .dt-table td {
-    padding: 10px 14px;
-    white-space: nowrap;
-    color: var(--navy);
-  }
-  .dt-symbol { font-family: var(--font-head); font-weight: 700; font-size: 13px; color: var(--deep); }
-
-  .dt-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .dt-badge-stable   { background: #D6F5E8; color: #1BA86D; }
-  .dt-badge-choppy   { background: #FEF0D6; color: #C07A10; }
-  .dt-badge-volatile { background: #FBDEDE; color: #D63B3B; }
-  .dt-badge-bullish  { background: #D6F5E8; color: #1BA86D; }
-  .dt-badge-bearish  { background: #FBDEDE; color: #D63B3B; }
-  .dt-badge-neutral  { background: var(--ice); color: var(--muted); }
-
-  .dt-mss-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .dt-mss-track {
-    flex: 1;
-    height: 5px;
-    background: var(--ice);
-    border-radius: 3px;
-    min-width: 60px;
-    overflow: hidden;
-  }
-  .dt-mss-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width .5s ease;
-  }
-  .dt-mss-num {
-    font-family: var(--font-head);
     font-weight: 700;
-    font-size: 13px;
-    min-width: 36px;
-    text-align: right;
-  }
-
-  .dt-pagination {
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 18px;
-    border-top: 1.5px solid var(--border);
-    background: var(--white);
-    flex-wrap: wrap;
-    gap: 8px;
   }
-  .dt-pag-info { font-size: 11px; color: var(--muted); }
-  .dt-pag-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-  .dt-pag-btn {
-    padding: 5px 12px;
+  .dt-preset-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .dt-preset-btn {
+    padding: 6px 14px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--white);
-    color: var(--deep);
-    font-family: var(--font-mono);
+    border-radius: 7px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'DM Mono', monospace;
     font-size: 11px;
     cursor: pointer;
+    transition: all 0.2s;
   }
-  .dt-pag-btn:hover:not(:disabled) { background: var(--ice); }
-  .dt-pag-btn:disabled { opacity: .4; cursor: not-allowed; }
-  .dt-pag-btn.active { background: var(--deep); color: var(--white); border-color: var(--deep); }
+  .dt-preset-btn:hover { background: var(--blue); color: white; border-color: var(--blue); }
+  .dt-preset-save {
+    background: var(--stable);
+    color: white;
+    border-color: var(--stable);
+  }
+  .dt-preset-save:hover { opacity: 0.8; }
 
-  .dt-dl-panel {
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 22px;
+  /* Heatmap View */
+  .dt-heatmap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
     margin-bottom: 22px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
   }
-  .dt-dl-title { font-family: var(--font-head); font-size: 14px; font-weight: 700; color: var(--deep); }
-  .dt-dl-btn {
-    padding: 9px 16px;
-    border-radius: var(--radius-sm);
-    font-family: var(--font-mono);
+  .dt-heatmap-cell {
+    padding: 12px 8px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
     font-size: 11px;
     font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid;
-    transition: all .18s;
   }
-  .dt-dl-csv  { border-color: #1BA86D; color: #1BA86D; background: #D6F5E8; }
-  .dt-dl-csv:hover  { background: #1BA86D; color: #fff; }
-  .dt-dl-xlsx { border-color: var(--blue); color: var(--deep); background: var(--ice); }
-  .dt-dl-xlsx:hover { background: var(--blue); color: #fff; }
-  .dt-dl-pdf  { border-color: #D63B3B; color: #D63B3B; background: #FBDEDE; }
-  .dt-dl-pdf:hover  { background: #D63B3B; color: #fff; }
-  .dt-dl-json { border-color: var(--muted); color: var(--muted); background: var(--ice); }
-  .dt-dl-json:hover { background: var(--muted); color: #fff; }
+  .dt-heatmap-cell:hover { transform: scale(1.05); z-index: 1; }
+  .dt-heatmap-symbol { font-weight: 700; margin-bottom: 4px; }
+  .dt-heatmap-value { font-size: 10px; opacity: 0.8; }
 
-  .dt-loading {
+  /* Comparison View */
+  .dt-comparison {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .dt-comparison-selector {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 24px;
-    gap: 14px;
-    color: var(--muted);
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
   }
-  .dt-spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--blue);
-    border-radius: 50%;
-    animation: spin .7s linear infinite;
+  .dt-compare-card {
+    flex: 1;
+    min-width: 200px;
+    padding: 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border);
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .dt-compare-header {
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dt-compare-metric {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .dt-compare-win { color: var(--stable); font-weight: 700; }
+  .dt-compare-loss { color: var(--volatile); }
 
-  .dt-empty { text-align: center; padding: 60px 24px; color: var(--muted); font-size: 13px; }
-  .dt-empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
+  /* Sector Leaderboard */
+  .dt-leaderboard {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .dt-leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .dt-leaderboard-rank {
+    font-weight: 700;
+    width: 40px;
+    color: var(--blue);
+  }
+  .dt-leaderboard-name { flex: 1; font-weight: 600; }
+  .dt-leaderboard-score { font-family: 'DM Mono', monospace; font-weight: 700; }
+
+  /* Sparklines */
+  .dt-sparkline {
+    width: 60px;
+    height: 24px;
+    display: inline-block;
+  }
+
+  /* Portfolio Analysis */
+  .dt-portfolio {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .dt-portfolio-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .dt-portfolio-input textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .dt-risk-metric {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--ice);
+    border-radius: 20px;
+    font-size: 11px;
+    margin: 4px;
+  }
+
+  /* Rest of existing styles (filters, table, etc.) - keeping same structure */
+  .dt-filters-panel, .dt-quick-bar, .dt-stats, .dt-active-filters, 
+  .dt-table-wrap, .dt-pagination, .dt-dl-panel {
+    background: var(--bg-secondary);
+    border-color: var(--border);
+    color: var(--text-primary);
+  }
+  
+  .dt-filter-input, .dt-filter-select, .dt-quick-input, .dt-quick-select {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border);
+  }
+  
+  .dt-table thead tr { background: var(--table-header); }
+  .dt-table tbody tr:nth-child(even) { background: var(--table-row-even); }
+  .dt-table tbody tr:hover { background: var(--table-row-hover) !important; }
+  
+  .dt-stat-card, .dt-filter-tag, .dt-presets-panel, .dt-comparison, 
+  .dt-leaderboard, .dt-portfolio {
+    background: var(--card-bg);
+  }
 
   @media (max-width: 700px) {
     .dt-body { padding: 16px 10px 32px; }
-    .dt-page-title { font-size: 20px; }
     .dt-topnav { padding: 0 14px; }
     .dt-filters-grid { grid-template-columns: 1fr; }
+    .dt-heatmap { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+    .dt-compare-card { min-width: 100%; }
   }
 `;
 
@@ -537,10 +380,30 @@ const TEXT_COLUMNS = [
   { key: 'put_call_bias', label: 'Put/Call Bias', type: 'dropdown' },
 ];
 
+// Saved filter presets
+const DEFAULT_PRESETS = {
+  'High Quality Growth': { numeric: { mss: { min: 50 }, r_squared: { min: 0.7 }, analyst_rating_pct: { min: 60 } }, text: { analyst_bias: 'bullish' } },
+  'Oversold Opportunities': { numeric: { price_change: { max: -15 }, mss: { max: 35 } }, text: {} },
+  'Low Risk Income': { numeric: { volatility: { max: 0.2 }, mss: { min: 55 } }, text: { sector: 'Utilities', category: 'stable' } },
+  'Momentum Leaders': { numeric: { price_change: { min: 10 }, trend_strength: { min: 0.6 } }, text: {} },
+  'Contrarian Picks': { numeric: { put_call_ratio: { min: 1.2 }, analyst_rating_pct: { max: 40 } }, text: { analyst_bias: 'bearish' } },
+};
+
+// Helper functions
 const mssColor = (mss) => {
   if (mss >= 47) return 'var(--stable)';
   if (mss >= 30) return 'var(--choppy)';
   return 'var(--volatile)';
+};
+
+const getHeatmapColor = (mss) => {
+  if (mss >= 70) return '#1BA86D';
+  if (mss >= 60) return '#5CB85C';
+  if (mss >= 47) return '#8BC34A';
+  if (mss >= 35) return '#FFC107';
+  if (mss >= 25) return '#FF9800';
+  if (mss >= 15) return '#F44336';
+  return '#D63B3B';
 };
 
 const categoryBadge = (cat) => (
@@ -563,6 +426,44 @@ const MSSBar = ({ mss }) => (
   </div>
 );
 
+// Sparkline component
+const Sparkline = ({ data, width = 60, height = 24 }) => {
+  const canvasRef = useRef(null);
+  
+  useEffect(() => {
+    if (!canvasRef.current || !data || data.length < 2) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const w = width, h = height;
+    canvas.width = w;
+    canvas.height = h;
+    
+    ctx.clearRect(0, 0, w, h);
+    
+    const values = data.map(d => d.mss).filter(v => v != null);
+    if (values.length < 2) return;
+    
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const range = maxVal - minVal || 1;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = mssColor(values[values.length - 1]);
+    ctx.lineWidth = 1.5;
+    
+    values.forEach((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - ((v - minVal) / range) * h;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }, [data, width, height]);
+  
+  return <canvas ref={canvasRef} width={width} height={height} className="dt-sparkline" />;
+};
+
 const fmt = (n, dec = 4) => n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
 
 function useDebounce(value, delay) {
@@ -584,14 +485,18 @@ export default function DataTracker() {
   const [activeTab, setActiveTab] = useState('history');
   const [sortKey, setSortKey] = useState('date_taken');
   const [sortDir, setSortDir] = useState('desc');
+  const [viewMode, setViewMode] = useState('table'); // 'table', 'heatmap', 'comparison', 'portfolio'
+  const [darkMode, setDarkMode] = useState(false);
   
   // Advanced filters state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [numericFilters, setNumericFilters] = useState({});
   const [textFilters, setTextFilters] = useState({});
+  const [savedPresets, setSavedPresets] = useState(DEFAULT_PRESETS);
+  const [presetName, setPresetName] = useState('');
   
   // Data state
-  const [allData, setAllData] = useState([]); // Store ALL filtered data from server
+  const [allData, setAllData] = useState([]);
   const [paginatedData, setPaginatedData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -600,9 +505,29 @@ export default function DataTracker() {
   const [summary, setSummary] = useState(null);
   const [totalRecords, setTotalRecords] = useState(0);
   
+  // Comparison state
+  const [compareSymbols, setCompareSymbols] = useState(['AAPL', 'MSFT']);
+  const [comparisonData, setComparisonData] = useState([]);
+  
+  // Portfolio state
+  const [portfolioSymbols, setPortfolioSymbols] = useState('');
+  const [portfolioAnalysis, setPortfolioAnalysis] = useState(null);
+  
+  // Historical data for sparklines
+  const [historicalData, setHistoricalData] = useState({});
+  
   const debouncedSymbol = useDebounce(symbol, 500);
   const debouncedNumericFilters = useDebounce(numericFilters, 500);
   const debouncedTextFilters = useDebounce(textFilters, 500);
+
+  // Dark mode toggle
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [darkMode]);
 
   // Fetch symbol list
   useEffect(() => {
@@ -621,17 +546,12 @@ export default function DataTracker() {
       .catch(() => {});
   }, [activeTab, period]);
 
-  // Fetch ALL filtered data from server (not just one page)
+  // Fetch ALL filtered data from server
   const fetchFilteredData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build filters object
-      const filters = {
-        numeric: numericFilters,
-        text: textFilters
-      };
-      
+      const filters = { numeric: numericFilters, text: textFilters };
       const params = new URLSearchParams({
         period: period,
         days: daysBack,
@@ -642,12 +562,22 @@ export default function DataTracker() {
       
       const res = await fetch(`${BASE_URL}/api/mss/filtered-data/?${params}`);
       const json = await res.json();
-      
       if (!json.success) throw new Error(json.error || 'Unknown error');
       
       setAllData(json.data);
       setTotalRecords(json.total);
-      setCurrentPage(1); // Reset to first page when new filters apply
+      setCurrentPage(1);
+      
+      // Fetch historical data for sparklines (top 50 symbols)
+      const topSymbols = json.data.slice(0, 50).map(r => r.symbol);
+      const historyPromises = topSymbols.map(async (sym) => {
+        const histRes = await fetch(`${BASE_URL}/api/mss/history/?symbol=${sym}&period=${period}&days=90&limit=90`);
+        const histJson = await histRes.json();
+        if (histJson.success) {
+          setHistoricalData(prev => ({ ...prev, [sym]: histJson.data }));
+        }
+      });
+      await Promise.all(historyPromises);
       
     } catch (e) {
       setError(e.message);
@@ -658,21 +588,65 @@ export default function DataTracker() {
     }
   }, [debouncedSymbol, period, daysBack, assetClass, numericFilters, textFilters]);
 
-  // Trigger fetch when filters change
-  useEffect(() => {
-    if (activeTab === 'history') {
-      fetchFilteredData();
+  // Fetch comparison data
+  const fetchComparisonData = useCallback(async () => {
+    const params = new URLSearchParams({
+      period: period,
+      days: daysBack,
+      symbol: compareSymbols.join(','),
+    });
+    const res = await fetch(`${BASE_URL}/api/mss/filtered-data/?${params}`);
+    const json = await res.json();
+    if (json.success) {
+      setComparisonData(json.data);
     }
-  }, [activeTab, fetchFilteredData]);
+  }, [compareSymbols, period, daysBack]);
 
-  // Apply sorting and pagination to the filtered data
+  // Analyze portfolio
+  const analyzePortfolio = useCallback(async () => {
+    const symbolsList = portfolioSymbols.split(',').map(s => s.trim().toUpperCase());
+    const params = new URLSearchParams({
+      period: period,
+      days: daysBack,
+      symbol: symbolsList.join(','),
+    });
+    const res = await fetch(`${BASE_URL}/api/mss/filtered-data/?${params}`);
+    const json = await res.json();
+    if (json.success && json.data.length) {
+      const portfolio = json.data;
+      const avgMss = portfolio.reduce((sum, r) => sum + r.mss, 0) / portfolio.length;
+      const avgVol = portfolio.reduce((sum, r) => sum + r.volatility, 0) / portfolio.length;
+      const stableCount = portfolio.filter(r => r.category === 'stable').length;
+      const choppyCount = portfolio.filter(r => r.category === 'choppy').length;
+      const volatileCount = portfolio.filter(r => r.category === 'volatile').length;
+      const bullishCount = portfolio.filter(r => r.analyst_bias === 'bullish').length;
+      
+      // Simple VaR approximation (5% worst case)
+      const returns = portfolio.map(r => r.price_change / 100);
+      returns.sort((a, b) => a - b);
+      const var95 = returns[Math.floor(returns.length * 0.05)] * 100;
+      
+      setPortfolioAnalysis({
+        total: portfolio.length,
+        avgMss,
+        avgVol,
+        stableCount,
+        choppyCount,
+        volatileCount,
+        bullishCount,
+        var95,
+        symbols: portfolio.map(r => r.symbol),
+      });
+    }
+  }, [portfolioSymbols, period, daysBack]);
+
+  // Apply sort and pagination
   useEffect(() => {
     if (!allData.length) {
       setPaginatedData([]);
       return;
     }
     
-    // Sort data
     const sorted = [...allData].sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
       if (av == null) return 1;
@@ -681,12 +655,20 @@ export default function DataTracker() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     
-    // Paginate
     const start = (currentPage - 1) * PAGE_SIZE;
     const end = start + PAGE_SIZE;
     setPaginatedData(sorted.slice(start, end));
-    
   }, [allData, sortKey, sortDir, currentPage]);
+
+  // Trigger fetch when filters change
+  useEffect(() => {
+    if (activeTab === 'history') fetchFilteredData();
+  }, [activeTab, fetchFilteredData]);
+
+  // Fetch comparison when needed
+  useEffect(() => {
+    if (viewMode === 'comparison') fetchComparisonData();
+  }, [viewMode, fetchComparisonData]);
 
   const handleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -699,17 +681,11 @@ export default function DataTracker() {
   };
 
   const handleNumericFilterChange = (key, type, value) => {
-    setNumericFilters(prev => ({
-      ...prev,
-      [key]: { ...prev[key], [type]: value }
-    }));
+    setNumericFilters(prev => ({ ...prev, [key]: { ...prev[key], [type]: value } }));
   };
 
   const handleTextFilterChange = (key, value) => {
-    setTextFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setTextFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const clearAllFilters = () => {
@@ -719,17 +695,21 @@ export default function DataTracker() {
 
   const clearFilter = (key, type = null) => {
     if (type) {
-      setNumericFilters(prev => ({
-        ...prev,
-        [key]: { ...prev[key], [type]: '' }
-      }));
+      setNumericFilters(prev => ({ ...prev, [key]: { ...prev[key], [type]: '' } }));
     } else {
-      setTextFilters(prev => {
-        const newFilters = { ...prev };
-        delete newFilters[key];
-        return newFilters;
-      });
+      setTextFilters(prev => { const newFilters = { ...prev }; delete newFilters[key]; return newFilters; });
     }
+  };
+
+  const savePreset = () => {
+    if (!presetName) return;
+    setSavedPresets(prev => ({ ...prev, [presetName]: { numeric: numericFilters, text: textFilters } }));
+    setPresetName('');
+  };
+
+  const loadPreset = (preset) => {
+    setNumericFilters(preset.numeric || {});
+    setTextFilters(preset.text || {});
   };
 
   const handleDownload = (fmt) => {
@@ -747,7 +727,7 @@ export default function DataTracker() {
   };
 
   // Count active filters
-  const activeFilterCount = React.useMemo(() => {
+  const activeFilterCount = useMemo(() => {
     let count = 0;
     for (const range of Object.values(numericFilters)) {
       if ((range.min !== '' && range.min !== undefined && range.min !== null) || 
@@ -760,7 +740,7 @@ export default function DataTracker() {
   }, [numericFilters, textFilters]);
 
   // Stats from filtered data
-  const stats = React.useMemo(() => {
+  const stats = useMemo(() => {
     if (!allData.length) return null;
     const mssList = allData.map(r => r.mss).filter(Boolean);
     const avgMss = mssList.reduce((a, b) => a + b, 0) / mssList.length;
@@ -771,16 +751,29 @@ export default function DataTracker() {
     return { avgMss, stable, choppy, volatile, avgR2, total: allData.length };
   }, [allData]);
 
+  // Sector leaderboard
+  const sectorLeaderboard = useMemo(() => {
+    const sectors = {};
+    allData.forEach(row => {
+      if (!row.sector) return;
+      if (!sectors[row.sector]) sectors[row.sector] = { total: 0, count: 0, mssSum: 0 };
+      sectors[row.sector].total++;
+      sectors[row.sector].count++;
+      sectors[row.sector].mssSum += row.mss || 0;
+    });
+    return Object.entries(sectors)
+      .map(([name, data]) => ({ name, avgMss: data.mssSum / data.count, count: data.total }))
+      .sort((a, b) => b.avgMss - a.avgMss)
+      .slice(0, 10);
+  }, [allData]);
+
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
-  // Get unique dropdown values from the filtered data
   const getDropdownOptions = (key) => {
     const values = new Set();
     allData.forEach(row => {
       const val = row[key];
-      if (val && val !== 'null' && val !== 'undefined') {
-        values.add(val);
-      }
+      if (val && val !== 'null' && val !== 'undefined') values.add(val);
     });
     return Array.from(values).sort();
   };
@@ -789,6 +782,10 @@ export default function DataTracker() {
     <>
       <style>{CSS}</style>
       <div className="dt-root">
+        <div className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
+          {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+        </div>
+        
         <Header />
         <div>
           <SideNavs />
@@ -812,8 +809,30 @@ export default function DataTracker() {
               <div>
                 <div className="dt-page-title">MSS Historical Data & Performance Tracker</div>
                 <div className="dt-page-subtitle">
-                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced filtering on ALL data
+                  Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced analytics & visualization
                 </div>
+              </div>
+              <div className="dt-view-toggle">
+                <button className={`dt-btn ${viewMode === 'table' ? 'dt-btn-primary' : 'dt-btn-secondary'}`} onClick={() => setViewMode('table')}>📋 Table</button>
+                <button className={`dt-btn ${viewMode === 'heatmap' ? 'dt-btn-primary' : 'dt-btn-secondary'}`} onClick={() => setViewMode('heatmap')}>🔥 Heatmap</button>
+                <button className={`dt-btn ${viewMode === 'comparison' ? 'dt-btn-primary' : 'dt-btn-secondary'}`} onClick={() => setViewMode('comparison')}>📊 Compare</button>
+                <button className={`dt-btn ${viewMode === 'portfolio' ? 'dt-btn-primary' : 'dt-btn-secondary'}`} onClick={() => setViewMode('portfolio')}>💼 Portfolio</button>
+              </div>
+            </div>
+
+            {/* Presets Panel */}
+            <div className="dt-presets-panel">
+              <div className="dt-presets-title">
+                <span>📌 Saved Filters</span>
+                <div>
+                  <input type="text" placeholder="Preset name" value={presetName} onChange={e => setPresetName(e.target.value)} style={{ padding: '4px 8px', marginRight: '8px', fontSize: '11px' }} />
+                  <button className="dt-preset-btn dt-preset-save" onClick={savePreset}>Save Current</button>
+                </div>
+              </div>
+              <div className="dt-preset-buttons">
+                {Object.entries(savedPresets).map(([name, preset]) => (
+                  <button key={name} className="dt-preset-btn" onClick={() => loadPreset(preset)}>{name}</button>
+                ))}
               </div>
             </div>
 
@@ -859,53 +878,27 @@ export default function DataTracker() {
                   <span>▼</span>
                 </div>
                 <div className="dt-filters-grid">
-                  {/* Numeric Range Filters */}
                   {NUMERIC_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
                       <label>{col.label} {col.unit && `(${col.unit})`}</label>
                       <div className="dt-range-group">
-                        <input 
-                          type="number" 
-                          placeholder={`Min ${col.min}`} 
-                          step={col.step} 
-                          value={numericFilters[col.key]?.min || ''} 
-                          onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} 
-                        />
+                        <input type="number" placeholder={`Min ${col.min}`} step={col.step} value={numericFilters[col.key]?.min || ''} onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} />
                         <span>to</span>
-                        <input 
-                          type="number" 
-                          placeholder={`Max ${col.max}`} 
-                          step={col.step} 
-                          value={numericFilters[col.key]?.max || ''} 
-                          onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} 
-                        />
+                        <input type="number" placeholder={`Max ${col.max}`} step={col.step} value={numericFilters[col.key]?.max || ''} onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} />
                       </div>
                     </div>
                   ))}
                   
-                  {/* Text Filters with Dropdowns */}
                   {TEXT_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
                       <label>{col.label}</label>
                       {col.type === 'dropdown' ? (
-                        <select 
-                          className="dt-filter-select" 
-                          value={textFilters[col.key] || 'all'} 
-                          onChange={e => handleTextFilterChange(col.key, e.target.value)}
-                        >
+                        <select className="dt-filter-select" value={textFilters[col.key] || 'all'} onChange={e => handleTextFilterChange(col.key, e.target.value)}>
                           <option value="all">All {col.label}s</option>
-                          {getDropdownOptions(col.key).map(option => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
+                          {getDropdownOptions(col.key).map(option => <option key={option} value={option}>{option}</option>)}
                         </select>
                       ) : (
-                        <input 
-                          className="dt-filter-input" 
-                          type="text" 
-                          placeholder={`Filter by ${col.label.toLowerCase()}...`} 
-                          value={textFilters[col.key] || ''} 
-                          onChange={e => handleTextFilterChange(col.key, e.target.value)} 
-                        />
+                        <input className="dt-filter-input" type="text" placeholder={`Filter by ${col.label.toLowerCase()}...`} value={textFilters[col.key] || ''} onChange={e => handleTextFilterChange(col.key, e.target.value)} />
                       )}
                     </div>
                   ))}
@@ -955,39 +948,167 @@ export default function DataTracker() {
               </div>
             )}
 
-            {/* Stats Bar - Shows stats for ALL filtered data */}
+            {/* Stats Bar */}
             {stats && (
               <div className="dt-stats">
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Total Records</div>
-                  <div className="dt-stat-value">{stats.total.toLocaleString()}</div>
-                  <div className="dt-stat-sub">after filters</div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Total Records</div><div className="dt-stat-value">{stats.total.toLocaleString()}</div><div className="dt-stat-sub">after filters</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Avg MSS</div><div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div><div className="dt-stat-sub">across filtered data</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Stable</div><div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div><div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Choppy</div><div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div><div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Volatile</div><div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div><div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div></div>
+                <div className="dt-stat-card"><div className="dt-stat-label">Avg R²</div><div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div><div className="dt-stat-sub">trend clarity</div></div>
+              </div>
+            )}
+
+            {/* Sector Leaderboard */}
+            {sectorLeaderboard.length > 0 && (
+              <div className="dt-leaderboard">
+                <h3 style={{ marginBottom: '16px', fontFamily: 'Syne, sans-serif', fontSize: '14px' }}>🏆 Sector Performance Leaderboard</h3>
+                {sectorLeaderboard.map((sector, idx) => (
+                  <div key={sector.name} className="dt-leaderboard-item">
+                    <div className="dt-leaderboard-rank">#{idx + 1}</div>
+                    <div className="dt-leaderboard-name">{sector.name}</div>
+                    <div className="dt-leaderboard-score" style={{ color: mssColor(sector.avgMss) }}>MSS {sector.avgMss.toFixed(1)}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--muted)' }}>{sector.count} assets</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* View Mode Content */}
+            {viewMode === 'heatmap' && (
+              <div className="dt-heatmap">
+                {allData.slice(0, 100).map(row => (
+                  <div key={row.symbol} className="dt-heatmap-cell" style={{ background: getHeatmapColor(row.mss), color: row.mss > 50 ? 'white' : 'black' }}>
+                    <div className="dt-heatmap-symbol">{row.symbol}</div>
+                    <div className="dt-heatmap-value">{row.mss?.toFixed(0)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {viewMode === 'comparison' && (
+              <div className="dt-comparison">
+                <div className="dt-comparison-selector">
+                  <input type="text" placeholder="Symbols to compare (comma separated)" value={compareSymbols.join(',')} onChange={e => setCompareSymbols(e.target.value.toUpperCase().split(',').map(s => s.trim()))} style={{ flex: 1, padding: '8px', border: '1px solid var(--border)', borderRadius: '7px', background: 'var(--bg-primary)' }} />
+                  <button className="dt-btn dt-btn-primary" onClick={fetchComparisonData}>Compare</button>
                 </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Avg MSS</div>
-                  <div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div>
-                  <div className="dt-stat-sub">across filtered data</div>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                  {comparisonData.map(symbol => {
+                    const metrics = [
+                      { label: 'MSS', value: symbol.mss, color: mssColor(symbol.mss) },
+                      { label: 'R²', value: symbol.r_squared },
+                      { label: 'Volatility', value: symbol.volatility },
+                      { label: 'Price Change %', value: symbol.price_change, suffix: '%', positiveGood: true },
+                      { label: 'Analyst Rating', value: symbol.analyst_rating_pct, suffix: '%' },
+                      { label: 'Put/Call Ratio', value: symbol.put_call_ratio },
+                    ];
+                    return (
+                      <div key={symbol.symbol} className="dt-compare-card">
+                        <div className="dt-compare-header">{symbol.symbol}</div>
+                        {metrics.map(m => (
+                          <div key={m.label} className="dt-compare-metric">
+                            <span>{m.label}</span>
+                            <span style={{ color: m.color, fontWeight: m.value > 0 && m.positiveGood ? 'bold' : 'normal' }}>
+                              {fmt(m.value, 2)}{m.suffix || ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Stable</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div>
-                  <div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}% of set</div>
+              </div>
+            )}
+
+            {viewMode === 'portfolio' && (
+              <div className="dt-portfolio">
+                <div className="dt-portfolio-input">
+                  <textarea rows="3" placeholder="Enter portfolio symbols (comma separated)&#10;Example: AAPL, MSFT, GOOGL, NVDA, TSLA" value={portfolioSymbols} onChange={e => setPortfolioSymbols(e.target.value)} />
+                  <button className="dt-btn dt-btn-primary" onClick={analyzePortfolio}>Analyze Portfolio</button>
                 </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Choppy</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div>
-                  <div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}% of set</div>
+                {portfolioAnalysis && (
+                  <div>
+                    <h4 style={{ marginBottom: '16px' }}>📊 Portfolio Analysis</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                      <div className="dt-risk-metric">Total Assets: {portfolioAnalysis.total}</div>
+                      <div className="dt-risk-metric">Avg MSS: {portfolioAnalysis.avgMss.toFixed(1)}</div>
+                      <div className="dt-risk-metric">Avg Volatility: {(portfolioAnalysis.avgVol * 100).toFixed(2)}%</div>
+                      <div className="dt-risk-metric">VaR (95%): {portfolioAnalysis.var95.toFixed(1)}%</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <div className="dt-risk-metric" style={{ background: 'var(--stable)' }}>Stable: {portfolioAnalysis.stableCount}</div>
+                      <div className="dt-risk-metric" style={{ background: 'var(--choppy)' }}>Choppy: {portfolioAnalysis.choppyCount}</div>
+                      <div className="dt-risk-metric" style={{ background: 'var(--volatile)' }}>Volatile: {portfolioAnalysis.volatileCount}</div>
+                      <div className="dt-risk-metric" style={{ background: 'var(--bullish)' }}>Bullish: {portfolioAnalysis.bullishCount}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Table View */}
+            {viewMode === 'table' && (
+              <div className="dt-table-wrap">
+                <div className="dt-table-scroll">
+                  {loading ? (
+                    <div className="dt-loading"><div className="dt-spinner" />Fetching {totalRecords.toLocaleString()} records…</div>
+                  ) : error ? (
+                    <div className="dt-empty"><div className="dt-empty-icon">⚠</div>{error}</div>
+                  ) : paginatedData.length === 0 ? (
+                    <div className="dt-empty"><div className="dt-empty-icon">📭</div>No records match your filters.</div>
+                  ) : (
+                    <table className="dt-table">
+                      <thead>
+                        <tr>
+                          {[['date_taken','Date'],['symbol','Symbol'],['asset_class','Class'],['period_days','Period'],['mss','MSS'],['category','Status'],['r_squared','R²'],['volatility','Volatility'],['trend_consistency','Trend Cons.'],['trend_strength','Trend Str.'],['current_price','Price'],['price_change','Chg%'],['analyst_rating_pct','Analyst%'],['analyst_bias','A.Bias'],['put_call_ratio','P/C Ratio'],['put_call_bias','PC Bias'],['sparkline','Trend']].map(([k,label]) => (
+                            <th key={k} onClick={() => k !== 'sparkline' && handleSort(k)}>{label}{k !== 'sparkline' && <SortIcon k={k} />}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedData.map((row, i) => (
+                          <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
+                            <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
+                            <td><span className="dt-symbol">{row.symbol}</span></td>
+                            <td><span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, background: 'var(--ice)', color: 'var(--deep)', fontWeight: 600 }}>{row.asset_class}</span></td>
+                            <td style={{ color: 'var(--muted)' }}>{row.period_days}d</td>
+                            <td style={{ minWidth: 130 }}><MSSBar mss={row.mss} /></td>
+                            <td>{categoryBadge(row.category)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.r_squared, 4)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.volatility, 5)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_consistency, 3)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_strength, 3)}</td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>${fmt(row.current_price, 2)}</td>
+                            <td style={{ color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)', fontWeight: 600 }}>{row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%</td>
+                            <td>{row.analyst_rating_pct != null ? `${row.analyst_rating_pct.toFixed(1)}%` : '—'}</td>
+                            <td>{biasBadge(row.analyst_bias)}</td>
+                            <td>{fmt(row.put_call_ratio, 3)}</td>
+                            <td>{biasBadge(row.put_call_bias)}</td>
+                            <td><Sparkline data={historicalData[row.symbol] || []} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Volatile</div>
-                  <div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div>
-                  <div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}% of set</div>
-                </div>
-                <div className="dt-stat-card">
-                  <div className="dt-stat-label">Avg R²</div>
-                  <div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div>
-                  <div className="dt-stat-sub">trend clarity</div>
-                </div>
+
+                {!loading && allData.length > 0 && (
+                  <div className="dt-pagination">
+                    <div className="dt-pag-info">Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords.toLocaleString()} filtered records</div>
+                    <div className="dt-pag-btns">
+                      <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>«</button>
+                      <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>‹ Prev</button>
+                      {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                        const p = Math.max(1, currentPage - 3) + i;
+                        if (p > totalPages) return null;
+                        return <button key={p} className={`dt-pag-btn ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>;
+                      })}
+                      <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Next ›</button>
+                      <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -995,84 +1116,13 @@ export default function DataTracker() {
             {activeTab === 'download' && (
               <div className="dt-dl-panel">
                 <div className="dt-dl-title">⤓ Export Data</div>
-                <span style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  <strong>{allData.length.toLocaleString()} records</strong> match current filters
-                </span>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}><strong>{allData.length.toLocaleString()} records</strong> match current filters</span>
                 <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>📄 CSV</button>
                 <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>📊 Excel</button>
                 <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>📑 PDF</button>
                 <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>{'{ }'} JSON</button>
               </div>
             )}
-
-            {/* Table - Shows PAGINATED data from filtered results */}
-            <div className="dt-table-wrap">
-              <div className="dt-table-scroll">
-                {loading ? (
-                  <div className="dt-loading"><div className="dt-spinner" />Fetching {totalRecords.toLocaleString()} records…</div>
-                ) : error ? (
-                  <div className="dt-empty"><div className="dt-empty-icon">⚠</div>{error}</div>
-                ) : paginatedData.length === 0 ? (
-                  <div className="dt-empty"><div className="dt-empty-icon">📭</div>No records match your filters. Try adjusting them.</div>
-                ) : (
-                  <table className="dt-table">
-                    <thead>
-                      <tr>
-                        {[['date_taken','Date'],['symbol','Symbol'],['asset_class','Class'],['period_days','Period'],['mss','MSS'],['category','Status'],['r_squared','R²'],['volatility','Volatility'],['trend_consistency','Trend Cons.'],['trend_strength','Trend Str.'],['current_price','Price'],['price_change','Chg%'],['analyst_rating_pct','Analyst%'],['analyst_bias','A.Bias'],['put_call_ratio','P/C Ratio'],['put_call_bias','PC Bias']].map(([k,label]) => (
-                          <th key={k} onClick={() => handleSort(k)}>{label}<SortIcon k={k} /></th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedData.map((row, i) => (
-                        <tr key={`${row.symbol}-${row.date_taken}-${row.period_days}-${i}`}>
-                          <td style={{ color: 'var(--muted)', fontSize: 11 }}>{row.date_taken}</td>
-                          <td><span className="dt-symbol">{row.symbol}</span></td>
-                          <td><span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, background: 'var(--ice)', color: 'var(--deep)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{row.asset_class}</span></td>
-                          <td style={{ color: 'var(--muted)' }}>{row.period_days}d</td>
-                          <td style={{ minWidth: 130 }}><MSSBar mss={row.mss} /></td>
-                          <td>{categoryBadge(row.category)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.r_squared, 4)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.volatility, 5)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_consistency, 3)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{fmt(row.trend_strength, 3)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>${fmt(row.current_price, 2)}</td>
-                          <td style={{ color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)', fontWeight: 600, fontSize: 12 }}>{row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%</td>
-                          <td>{row.analyst_rating_pct != null ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{row.analyst_rating_pct.toFixed(1)}%</span> : '—'}</td>
-                          <td>{biasBadge(row.analyst_bias)}</td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{fmt(row.put_call_ratio, 3)}</td>
-                          <td>{biasBadge(row.put_call_bias)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* Pagination - Pages through FILTERED results */}
-              {!loading && allData.length > 0 && (
-                <div className="dt-pagination">
-                  <div className="dt-pag-info">
-                    Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords.toLocaleString()} filtered records
-                  </div>
-                  <div className="dt-pag-btns">
-                    <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>«</button>
-                    <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>‹ Prev</button>
-                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                      const p = Math.max(1, currentPage - 3) + i;
-                      if (p > totalPages) return null;
-                      return (
-                        <button key={p} className={`dt-pag-btn ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>
-                          {p}
-                        </button>
-                      );
-                    })}
-                    <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Next ›</button>
-                    <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
