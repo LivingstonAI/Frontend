@@ -152,7 +152,7 @@ const CSS = `
   .dt-status-header:hover { background: var(--deep); }
   .dt-status-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
     padding: 16px;
   }
@@ -161,6 +161,7 @@ const CSS = `
     border-radius: var(--radius-sm);
     padding: 12px;
     border-left: 4px solid var(--muted);
+    transition: all 0.2s ease;
   }
   .dt-period-card.running { border-left-color: var(--blue); background: #E8F4FD; }
   .dt-period-card.completed { border-left-color: var(--stable); }
@@ -179,7 +180,7 @@ const CSS = `
     margin-bottom: 8px;
   }
   .dt-status-pending { background: var(--border); color: var(--muted); }
-  .dt-status-running { background: var(--blue); color: white; }
+  .dt-status-running { background: var(--blue); color: white; animation: pulse 1.5s ease-in-out infinite; }
   .dt-status-completed { background: var(--stable); color: white; }
   .dt-status-failed { background: var(--volatile); color: white; }
   .dt-period-info {
@@ -196,16 +197,45 @@ const CSS = `
   }
   .dt-run-btn {
     margin-top: 8px;
-    padding: 4px 10px;
-    font-size: 10px;
-    background: var(--white);
-    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--deep);
+    color: white;
+    border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     width: 100%;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
-  .dt-run-btn:hover:not(:disabled) { background: var(--sky); }
-  .dt-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .dt-run-btn:hover:not(:disabled) { 
+    background: var(--navy); 
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+  .dt-run-btn:disabled { 
+    opacity: 0.6; 
+    cursor: not-allowed;
+    transform: none;
+  }
+  .dt-run-btn-loading {
+    background: var(--muted);
+    cursor: wait;
+  }
+  .dt-spinner-small {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Advanced Filters Panel */
   .dt-filters-panel {
@@ -575,10 +605,33 @@ const CSS = `
     border-radius: 50%;
     animation: spin .7s linear infinite;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
   .dt-empty { text-align: center; padding: 60px 24px; color: var(--muted); font-size: 13px; }
   .dt-empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
+
+  /* Global loading overlay */
+  .dt-global-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .dt-global-loading-content {
+    background: var(--white);
+    padding: 24px 32px;
+    border-radius: var(--radius);
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+  }
+  .dt-global-loading-content .dt-spinner {
+    margin: 0 auto 12px;
+  }
 
   @media (max-width: 700px) {
     .dt-body { padding: 16px 10px 32px; }
@@ -682,6 +735,8 @@ export default function DataTracker() {
   // Period status state
   const [periodStatus, setPeriodStatus] = useState({});
   const [runningPeriods, setRunningPeriods] = useState({});
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalLoadingMessage, setGlobalLoadingMessage] = useState('');
   
   const debouncedSymbol = useDebounce(symbol, 500);
   const debouncedNumericFilters = useDebounce(numericFilters, 500);
@@ -703,21 +758,30 @@ export default function DataTracker() {
   // Run a specific period manually
   const runPeriod = async (periodDays) => {
     setRunningPeriods(prev => ({ ...prev, [periodDays]: true }));
+    setGlobalLoading(true);
+    setGlobalLoadingMessage(`Running ${periodDays} day period snapshot... This may take a few minutes.`);
+    
     try {
       const res = await fetch(`${BASE_URL}/api/mss/run-period/${periodDays}/`, {
         method: 'POST',
       });
       const data = await res.json();
       if (data.success) {
-        alert(`Period ${periodDays}d completed! Saved ${data.records_saved} records.`);
-        fetchPeriodStatus();
+        alert(`✅ Period ${periodDays}d completed! Saved ${data.records_saved} records.`);
+        await fetchPeriodStatus();
+        // Refresh data if on history tab
+        if (activeTab === 'history') {
+          await fetchFilteredData();
+        }
       } else {
-        alert(`Failed: ${data.error}`);
+        alert(`❌ Failed: ${data.error}`);
       }
     } catch (e) {
-      alert(`Error: ${e.message}`);
+      alert(`❌ Error: ${e.message}`);
     } finally {
       setRunningPeriods(prev => ({ ...prev, [periodDays]: false }));
+      setGlobalLoading(false);
+      setGlobalLoadingMessage('');
     }
   };
 
@@ -729,7 +793,7 @@ export default function DataTracker() {
       .catch(() => {});
     
     fetchPeriodStatus();
-    const interval = setInterval(fetchPeriodStatus, 10000); // Refresh every 10 seconds
+    const interval = setInterval(fetchPeriodStatus, 10000);
     return () => clearInterval(interval);
   }, [fetchPeriodStatus]);
 
@@ -907,6 +971,16 @@ export default function DataTracker() {
     <>
       <style>{CSS}</style>
       <div className="dt-root">
+        {/* Global Loading Overlay */}
+        {globalLoading && (
+          <div className="dt-global-loading">
+            <div className="dt-global-loading-content">
+              <div className="dt-spinner"></div>
+              <div style={{ marginTop: 12, fontSize: 13 }}>{globalLoadingMessage}</div>
+            </div>
+          </div>
+        )}
+        
         <Header />
         <div>
           <SideNavs />
@@ -945,6 +1019,7 @@ export default function DataTracker() {
                 <div className="dt-status-grid">
                   {PERIODS.map(p => {
                     const status = periodStatus[p] || { status: 'pending', records: 0, current_asset: '' };
+                    const isRunning = status.status === 'running' || runningPeriods[p];
                     return (
                       <div key={p} className={`dt-period-card ${status.status}`}>
                         <div className="dt-period-title">{p} Day Period</div>
@@ -961,11 +1036,22 @@ export default function DataTracker() {
                           {status.last_run && <div>Last run: {new Date(status.last_run).toLocaleTimeString()}</div>}
                         </div>
                         <button 
-                          className="dt-run-btn" 
+                          className={`dt-run-btn ${isRunning ? 'dt-run-btn-loading' : ''}`}
                           onClick={() => runPeriod(p)}
-                          disabled={status.status === 'running' || runningPeriods[p]}
+                          disabled={isRunning}
+                          style={{ 
+                            background: isRunning ? 'var(--muted)' : 'var(--deep)',
+                            cursor: isRunning ? 'wait' : 'pointer'
+                          }}
                         >
-                          {status.status === 'running' || runningPeriods[p] ? 'Running...' : '▶ Run Now'}
+                          {isRunning ? (
+                            <>
+                              <span className="dt-spinner-small"></span>
+                              Running...
+                            </>
+                          ) : (
+                            '▶ Run Now'
+                          )}
                         </button>
                       </div>
                     );
