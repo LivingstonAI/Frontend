@@ -755,35 +755,54 @@ export default function DataTracker() {
     }
   }, []);
 
-  // Run a specific period manually
-  const runPeriod = async (periodDays) => {
-    setRunningPeriods(prev => ({ ...prev, [periodDays]: true }));
-    setGlobalLoading(true);
-    setGlobalLoadingMessage(`Running ${periodDays} day period snapshot... This may take a few minutes.`);
+  // Replace just the runPeriod function with this improved version:
+
+const runPeriod = async (periodDays) => {
+  setRunningPeriods(prev => ({ ...prev, [periodDays]: true }));
+  setGlobalLoading(true);
+  setGlobalLoadingMessage(`Running ${periodDays} day period snapshot... This may take a few minutes.`);
+  
+  try {
+    console.log(`Starting manual run for period: ${periodDays}d`);
+    console.log(`API URL: ${BASE_URL}/api/mss/run-period/${periodDays}/`);
     
-    try {
-      const res = await fetch(`${BASE_URL}/api/mss/run-period/${periodDays}/`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(`✅ Period ${periodDays}d completed! Saved ${data.records_saved} records.`);
-        await fetchPeriodStatus();
-        // Refresh data if on history tab
-        if (activeTab === 'history') {
-          await fetchFilteredData();
-        }
-      } else {
-        alert(`❌ Failed: ${data.error}`);
-      }
-    } catch (e) {
-      alert(`❌ Error: ${e.message}`);
-    } finally {
-      setRunningPeriods(prev => ({ ...prev, [periodDays]: false }));
-      setGlobalLoading(false);
-      setGlobalLoadingMessage('');
+    const res = await fetch(`${BASE_URL}/api/mss/run-period/${periodDays}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log(`Response status: ${res.status}`);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`Error response: ${errorText}`);
+      throw new Error(`HTTP ${res.status}: ${errorText.substring(0, 100)}`);
     }
-  };
+    
+    const data = await res.json();
+    console.log(`Response data:`, data);
+    
+    if (data.success) {
+      alert(`✅ Period ${periodDays}d completed! Saved ${data.records_saved} records.`);
+      await fetchPeriodStatus();
+      // Refresh data if on history tab
+      if (activeTab === 'history') {
+        await fetchFilteredData();
+      }
+    } else {
+      alert(`❌ Failed: ${data.error || 'Unknown error'}`);
+    }
+  } catch (e) {
+    console.error(`Manual run error for period ${periodDays}:`, e);
+    alert(`❌ Error: ${e.message}\n\nCheck console for details. Make sure the backend is running.`);
+  } finally {
+    setRunningPeriods(prev => ({ ...prev, [periodDays]: false }));
+    setGlobalLoading(false);
+    setGlobalLoadingMessage('');
+  }
+};
 
   // Fetch symbol list
   useEffect(() => {
