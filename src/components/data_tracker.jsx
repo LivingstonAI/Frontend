@@ -130,6 +130,83 @@ const CSS = `
     letter-spacing: 0.03em;
   }
 
+  /* Period Status Panel */
+  .dt-status-panel {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    overflow: hidden;
+  }
+  .dt-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    background: var(--navy);
+    color: var(--white);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .dt-status-header:hover { background: var(--deep); }
+  .dt-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+  .dt-period-card {
+    background: var(--ice);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    border-left: 4px solid var(--muted);
+  }
+  .dt-period-card.running { border-left-color: var(--blue); background: #E8F4FD; }
+  .dt-period-card.completed { border-left-color: var(--stable); }
+  .dt-period-card.failed { border-left-color: var(--volatile); }
+  .dt-period-title {
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+  .dt-period-status {
+    font-size: 10px;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .dt-status-pending { background: var(--border); color: var(--muted); }
+  .dt-status-running { background: var(--blue); color: white; }
+  .dt-status-completed { background: var(--stable); color: white; }
+  .dt-status-failed { background: var(--volatile); color: white; }
+  .dt-period-info {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .dt-period-current {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--deep);
+    margin-top: 6px;
+    word-break: break-all;
+  }
+  .dt-run-btn {
+    margin-top: 8px;
+    padding: 4px 10px;
+    font-size: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    width: 100%;
+  }
+  .dt-run-btn:hover:not(:disabled) { background: var(--sky); }
+  .dt-run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
   /* Advanced Filters Panel */
   .dt-filters-panel {
     background: var(--white);
@@ -508,6 +585,7 @@ const CSS = `
     .dt-page-title { font-size: 20px; }
     .dt-topnav { padding: 0 14px; }
     .dt-filters-grid { grid-template-columns: 1fr; }
+    .dt-status-grid { grid-template-columns: 1fr; }
   }
 `;
 
@@ -587,11 +665,12 @@ export default function DataTracker() {
   
   // Advanced filters state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showStatusPanel, setShowStatusPanel] = useState(true);
   const [numericFilters, setNumericFilters] = useState({});
   const [textFilters, setTextFilters] = useState({});
   
   // Data state
-  const [allData, setAllData] = useState([]); // Store ALL filtered data from server
+  const [allData, setAllData] = useState([]);
   const [paginatedData, setPaginatedData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -600,9 +679,47 @@ export default function DataTracker() {
   const [summary, setSummary] = useState(null);
   const [totalRecords, setTotalRecords] = useState(0);
   
+  // Period status state
+  const [periodStatus, setPeriodStatus] = useState({});
+  const [runningPeriods, setRunningPeriods] = useState({});
+  
   const debouncedSymbol = useDebounce(symbol, 500);
   const debouncedNumericFilters = useDebounce(numericFilters, 500);
   const debouncedTextFilters = useDebounce(textFilters, 500);
+
+  // Fetch period status
+  const fetchPeriodStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/mss/period-status/`);
+      const data = await res.json();
+      if (data.success) {
+        setPeriodStatus(data.periods);
+      }
+    } catch (e) {
+      console.error("Failed to fetch period status:", e);
+    }
+  }, []);
+
+  // Run a specific period manually
+  const runPeriod = async (periodDays) => {
+    setRunningPeriods(prev => ({ ...prev, [periodDays]: true }));
+    try {
+      const res = await fetch(`${BASE_URL}/api/mss/run-period/${periodDays}/`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Period ${periodDays}d completed! Saved ${data.records_saved} records.`);
+        fetchPeriodStatus();
+      } else {
+        alert(`Failed: ${data.error}`);
+      }
+    } catch (e) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setRunningPeriods(prev => ({ ...prev, [periodDays]: false }));
+    }
+  };
 
   // Fetch symbol list
   useEffect(() => {
@@ -610,7 +727,11 @@ export default function DataTracker() {
       .then(r => r.json())
       .then(d => { if (d.success) setSymbols(d.data); })
       .catch(() => {});
-  }, []);
+    
+    fetchPeriodStatus();
+    const interval = setInterval(fetchPeriodStatus, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, [fetchPeriodStatus]);
 
   // Fetch summary
   useEffect(() => {
@@ -621,12 +742,11 @@ export default function DataTracker() {
       .catch(() => {});
   }, [activeTab, period]);
 
-  // Fetch ALL filtered data from server (not just one page)
+  // Fetch ALL filtered data from server
   const fetchFilteredData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Build filters object
       const filters = {
         numeric: numericFilters,
         text: textFilters
@@ -647,7 +767,7 @@ export default function DataTracker() {
       
       setAllData(json.data);
       setTotalRecords(json.total);
-      setCurrentPage(1); // Reset to first page when new filters apply
+      setCurrentPage(1);
       
     } catch (e) {
       setError(e.message);
@@ -665,14 +785,13 @@ export default function DataTracker() {
     }
   }, [activeTab, fetchFilteredData]);
 
-  // Apply sorting and pagination to the filtered data
+  // Apply sorting and pagination
   useEffect(() => {
     if (!allData.length) {
       setPaginatedData([]);
       return;
     }
     
-    // Sort data
     const sorted = [...allData].sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
       if (av == null) return 1;
@@ -681,7 +800,6 @@ export default function DataTracker() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     
-    // Paginate
     const start = (currentPage - 1) * PAGE_SIZE;
     const end = start + PAGE_SIZE;
     setPaginatedData(sorted.slice(start, end));
@@ -773,7 +891,7 @@ export default function DataTracker() {
 
   const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
 
-  // Get unique dropdown values from the filtered data
+  // Get dropdown options from filtered data
   const getDropdownOptions = (key) => {
     const values = new Set();
     allData.forEach(row => {
@@ -815,6 +933,45 @@ export default function DataTracker() {
                   Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Advanced filtering on ALL data
                 </div>
               </div>
+            </div>
+
+            {/* Period Status Panel */}
+            <div className="dt-status-panel">
+              <div className="dt-status-header" onClick={() => setShowStatusPanel(!showStatusPanel)}>
+                <span>📊 MSS Snapshot Status — Daily runs at 12:00-12:35 PM NYC</span>
+                <span>{showStatusPanel ? '▼' : '▲'}</span>
+              </div>
+              {showStatusPanel && (
+                <div className="dt-status-grid">
+                  {PERIODS.map(p => {
+                    const status = periodStatus[p] || { status: 'pending', records: 0, current_asset: '' };
+                    return (
+                      <div key={p} className={`dt-period-card ${status.status}`}>
+                        <div className="dt-period-title">{p} Day Period</div>
+                        <div className={`dt-period-status dt-status-${status.status}`}>
+                          {status.status === 'running' ? '🔄 RUNNING' : 
+                           status.status === 'completed' ? '✅ COMPLETED' : 
+                           status.status === 'failed' ? '❌ FAILED' : '⏳ PENDING'}
+                        </div>
+                        {status.status === 'running' && status.current_asset && (
+                          <div className="dt-period-current">Current: {status.current_asset}</div>
+                        )}
+                        <div className="dt-period-info">
+                          {status.records > 0 ? `${status.records.toLocaleString()} records saved` : 'No data yet'}
+                          {status.last_run && <div>Last run: {new Date(status.last_run).toLocaleTimeString()}</div>}
+                        </div>
+                        <button 
+                          className="dt-run-btn" 
+                          onClick={() => runPeriod(p)}
+                          disabled={status.status === 'running' || runningPeriods[p]}
+                        >
+                          {status.status === 'running' || runningPeriods[p] ? 'Running...' : '▶ Run Now'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Quick Filters Bar */}
@@ -859,7 +1016,6 @@ export default function DataTracker() {
                   <span>▼</span>
                 </div>
                 <div className="dt-filters-grid">
-                  {/* Numeric Range Filters */}
                   {NUMERIC_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
                       <label>{col.label} {col.unit && `(${col.unit})`}</label>
@@ -883,7 +1039,6 @@ export default function DataTracker() {
                     </div>
                   ))}
                   
-                  {/* Text Filters with Dropdowns */}
                   {TEXT_COLUMNS.map(col => (
                     <div key={col.key} className="dt-filter-item">
                       <label>{col.label}</label>
@@ -955,7 +1110,7 @@ export default function DataTracker() {
               </div>
             )}
 
-            {/* Stats Bar - Shows stats for ALL filtered data */}
+            {/* Stats Bar */}
             {stats && (
               <div className="dt-stats">
                 <div className="dt-stat-card">
@@ -1005,7 +1160,7 @@ export default function DataTracker() {
               </div>
             )}
 
-            {/* Table - Shows PAGINATED data from filtered results */}
+            {/* Table */}
             <div className="dt-table-wrap">
               <div className="dt-table-scroll">
                 {loading ? (
@@ -1049,7 +1204,7 @@ export default function DataTracker() {
                 )}
               </div>
 
-              {/* Pagination - Pages through FILTERED results */}
+              {/* Pagination */}
               {!loading && allData.length > 0 && (
                 <div className="dt-pagination">
                   <div className="dt-pag-info">
