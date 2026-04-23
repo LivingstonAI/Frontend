@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import { createChart } from "lightweight-charts";
+import * as LightweightCharts from "lightweight-charts";
 
 const BASE_URL = "https://backend-production-c0ab.up.railway.app";
 
@@ -172,7 +172,6 @@ const CSS = `
     margin-top: 4px;
   }
 
-  /* Period Status Panel */
   .dt-status-panel {
     background: var(--card-bg);
     border: 1.5px solid var(--border-color);
@@ -254,7 +253,6 @@ const CSS = `
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Filters */
   .dt-quick-bar, .dt-filters-panel, .dt-dl-panel {
     background: var(--card-bg);
     border: 1.5px solid var(--border-color);
@@ -323,7 +321,6 @@ const CSS = `
   .dt-btn-secondary { background: var(--ice); color: var(--text-primary); border: 1.5px solid var(--border-color); }
   .dt-btn-sm { padding: 6px 14px; font-size: 11px; }
 
-  /* Stats */
   .dt-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -340,7 +337,6 @@ const CSS = `
   .dt-stat-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; font-weight: 500; }
   .dt-stat-value { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 4px; }
 
-  /* Active Filters */
   .dt-active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .dt-filter-tag {
     background: var(--ice);
@@ -354,7 +350,6 @@ const CSS = `
   }
   .dt-filter-tag button { background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 12px; }
 
-  /* Column Visibility Controls */
   .dt-column-controls {
     display: flex;
     align-items: center;
@@ -394,7 +389,6 @@ const CSS = `
   }
   .dt-column-checkbox:hover { background: var(--ice); }
 
-  /* Table */
   .dt-table-wrap {
     background: var(--card-bg);
     border: 1.5px solid var(--border-color);
@@ -428,7 +422,7 @@ const CSS = `
     white-space: nowrap;
     cursor: pointer;
   }
-  .dt-table tbody tr { border-bottom: 1px solid var(--border-color); cursor: pointer; }
+  .dt-table tbody tr { border-bottom: 1px solid var(--border-color); }
   .dt-table tbody tr:nth-child(even) { background: var(--ice); }
   .dt-table tbody tr:hover { background: var(--sky) !important; }
   .dt-table td { padding: 10px 14px; white-space: nowrap; color: var(--text-primary); }
@@ -498,7 +492,6 @@ const CSS = `
   .dt-spinner { width: 32px; height: 32px; border: 3px solid var(--border-color); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
   .dt-empty { text-align: center; padding: 60px 24px; color: var(--text-secondary); }
 
-  /* Chart Modal */
   .chart-modal-overlay {
     position: fixed;
     top: 0;
@@ -557,6 +550,46 @@ const CSS = `
     color: white;
   }
   .theme-selector { margin-left: auto; display: flex; gap: 5px; }
+
+  .compare-panel {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    padding: 16px;
+  }
+  .compare-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .compare-symbols {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .compare-tag {
+    background: var(--ice);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .compare-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--volatile);
+  }
+  .compare-chart-container {
+    height: 400px;
+    position: relative;
+  }
 
   @media (max-width: 700px) {
     .dt-body { padding: 16px 10px 32px; }
@@ -621,7 +654,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// Chart Component
+// Individual Asset Chart Component
 const AssetChart = ({ symbol, onClose, initialTheme = 'light' }) => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
@@ -646,6 +679,12 @@ const AssetChart = ({ symbol, onClose, initialTheme = 'light' }) => {
     { label: '2Y', period: '2y', interval: '1wk' },
     { label: '5Y', period: '5y', interval: '1wk' },
   ];
+
+  const getChartTheme = () => ({
+    light: { layout: { background: { color: '#FFFFFF' }, textColor: '#0D2D45' }, grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } } },
+    dark: { layout: { background: { color: '#16213e' }, textColor: '#EEEEEE' }, grid: { vertLines: { color: '#2a2a4a' }, horzLines: { color: '#2a2a4a' } } },
+    hud: { layout: { background: { color: 'rgba(0,0,0,0.85)' }, textColor: '#0ff' }, grid: { vertLines: { color: '#0ff' }, horzLines: { color: '#0ff' } } }
+  });
 
   const fetchChartData = useCallback(async () => {
     try {
@@ -682,16 +721,10 @@ const AssetChart = ({ symbol, onClose, initialTheme = 'light' }) => {
 
   useEffect(() => {
     if (chartContainerRef.current && !chartRef.current) {
-      const chartTheme = {
-        light: { layout: { background: { color: '#FFFFFF' }, textColor: '#0D2D45' }, grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } } },
-        dark: { layout: { background: { color: '#16213e' }, textColor: '#EEEEEE' }, grid: { vertLines: { color: '#2a2a4a' }, horzLines: { color: '#2a2a4a' } } },
-        hud: { layout: { background: { color: 'rgba(0,0,0,0.85)' }, textColor: '#0ff' }, grid: { vertLines: { color: '#0ff' }, horzLines: { color: '#0ff' } } }
-      };
-      
-      chartRef.current = createChart(chartContainerRef.current, {
+      chartRef.current = LightweightCharts.createChart(chartContainerRef.current, {
         width: chartContainerRef.current.clientWidth,
         height: 500,
-        ...chartTheme[theme]
+        ...getChartTheme()[theme]
       });
       
       candlestickSeriesRef.current = chartRef.current.addCandlestickSeries({
@@ -711,12 +744,7 @@ const AssetChart = ({ symbol, onClose, initialTheme = 'light' }) => {
     }
     
     if (chartRef.current) {
-      const chartTheme = {
-        light: { layout: { background: { color: '#FFFFFF' }, textColor: '#0D2D45' } },
-        dark: { layout: { background: { color: '#16213e' }, textColor: '#EEEEEE' } },
-        hud: { layout: { background: { color: 'rgba(0,0,0,0.85)' }, textColor: '#0ff' } }
-      };
-      chartRef.current.applyOptions(chartTheme[theme]);
+      chartRef.current.applyOptions(getChartTheme()[theme]);
     }
     
     fetchChartData();
@@ -747,27 +775,140 @@ const AssetChart = ({ symbol, onClose, initialTheme = 'light' }) => {
     setInterval(intv);
   };
 
-  return (
-    <div className="chart-modal-overlay" data-theme={theme}>
-      <div className="chart-modal-header">
-        <div><h3>{symbol} - {metadata?.name || symbol}</h3><small>{metadata?.sector} | {metadata?.currency}</small></div>
-        <div className="theme-selector">
-          <button className={`chart-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>☀️ Light</button>
-          <button className={`chart-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
-          <button className={`chart-btn ${theme === 'hud' ? 'active' : ''}`} onClick={() => setTheme('hud')}>🖥️ HUD</button>
-        </div>
-        <button className="chart-modal-close" onClick={onClose}>✕</button>
-      </div>
-      <div className="chart-container" ref={chartContainerRef}>{loading && <div style={{ textAlign: 'center', padding: 50 }}>Loading chart...</div>}</div>
-      <div className="chart-controls">
-        {timeframes.map(tf => (
-          <button key={tf.label} className={`chart-btn ${timeframe === tf.period && interval === tf.interval ? 'active' : ''}`} onClick={() => handleTimeframeChange(tf.period, tf.interval)}>{tf.label}</button>
-        ))}
-        <button className={`chart-btn ${showMSSOverlay ? 'active' : ''}`} onClick={() => { setShowMSSOverlay(!showMSSOverlay); fetchMSSData(); }}>📊 MSS</button>
-        <button className={`chart-btn ${autoRefresh ? 'active' : ''}`} onClick={() => setAutoRefresh(!autoRefresh)}>🔄 Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</button>
-        <button className="chart-btn" onClick={fetchChartData}>⟳ Refresh</button>
-      </div>
-    </div>
+  return React.createElement('div', { className: 'chart-modal-overlay', 'data-theme': theme },
+    React.createElement('div', { className: 'chart-modal-header' },
+      React.createElement('div', null,
+        React.createElement('h3', null, symbol, ' - ', metadata?.name || symbol),
+        React.createElement('small', null, metadata?.sector, ' | ', metadata?.currency)
+      ),
+      React.createElement('div', { className: 'theme-selector' },
+        React.createElement('button', { className: `chart-btn ${theme === 'light' ? 'active' : ''}`, onClick: () => setTheme('light') }, '☀️ Light'),
+        React.createElement('button', { className: `chart-btn ${theme === 'dark' ? 'active' : ''}`, onClick: () => setTheme('dark') }, '🌙 Dark'),
+        React.createElement('button', { className: `chart-btn ${theme === 'hud' ? 'active' : ''}`, onClick: () => setTheme('hud') }, '🖥️ HUD')
+      ),
+      React.createElement('button', { className: 'chart-modal-close', onClick: onClose }, '✕')
+    ),
+    React.createElement('div', { className: 'chart-container', ref: chartContainerRef }, loading && React.createElement('div', { style: { textAlign: 'center', padding: 50 } }, 'Loading chart...')),
+    React.createElement('div', { className: 'chart-controls' },
+      timeframes.map(tf => React.createElement('button', { key: tf.label, className: `chart-btn ${timeframe === tf.period && interval === tf.interval ? 'active' : ''}`, onClick: () => handleTimeframeChange(tf.period, tf.interval) }, tf.label)),
+      React.createElement('button', { className: `chart-btn ${showMSSOverlay ? 'active' : ''}`, onClick: () => { setShowMSSOverlay(!showMSSOverlay); fetchMSSData(); } }, '📊 MSS'),
+      React.createElement('button', { className: `chart-btn ${autoRefresh ? 'active' : ''}`, onClick: () => setAutoRefresh(!autoRefresh) }, '🔄 Auto-refresh ', autoRefresh ? 'ON' : 'OFF'),
+      React.createElement('button', { className: 'chart-btn', onClick: fetchChartData }, '⟳ Refresh')
+    )
+  );
+};
+
+// Multi-Asset Comparison Chart Component
+const MultiCompareChart = ({ symbols, onClose, initialTheme = 'light' }) => {
+  const chartContainerRef = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRefs = useRef({});
+  const [loading, setLoading] = useState(true);
+  const [timeframe, setTimeframe] = useState('1mo');
+  const [theme, setTheme] = useState(initialTheme);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
+  const timeframes = [
+    { label: '1M', period: '1mo' }, { label: '3M', period: '3mo' }, 
+    { label: '6M', period: '6mo' }, { label: '1Y', period: '1y' }, 
+    { label: '2Y', period: '2y' }, { label: '5Y', period: '5y' }
+  ];
+
+  const colors = ['#3A9FD5', '#1BA86D', '#D63B3B', '#E89C2A', '#9B59B6', '#3498DB', '#E74C3C', '#2ECC71'];
+
+  const getChartTheme = () => ({
+    light: { layout: { background: { color: '#FFFFFF' }, textColor: '#0D2D45' }, grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } } },
+    dark: { layout: { background: { color: '#16213e' }, textColor: '#EEEEEE' }, grid: { vertLines: { color: '#2a2a4a' }, horzLines: { color: '#2a2a4a' } } },
+    hud: { layout: { background: { color: 'rgba(0,0,0,0.85)' }, textColor: '#0ff' }, grid: { vertLines: { color: '#0ff' }, horzLines: { color: '#0ff' } } }
+  });
+
+  const fetchComparisonData = useCallback(async () => {
+    try {
+      for (let i = 0; i < symbols.length; i++) {
+        const symbol = symbols[i];
+        const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${symbol}/?period=${timeframe}&interval=1d`);
+        const data = await res.json();
+        
+        if (data.success && data.data.length > 0) {
+          const priceData = data.data.map(d => ({
+            time: d.time,
+            value: d.close
+          }));
+          
+          if (seriesRefs.current[symbol]) {
+            seriesRefs.current[symbol].setData(priceData);
+          } else if (chartRef.current) {
+            const lineSeries = chartRef.current.addLineSeries({
+              color: colors[i % colors.length],
+              lineWidth: 2,
+              title: symbol,
+              priceLineVisible: false
+            });
+            lineSeries.setData(priceData);
+            seriesRefs.current[symbol] = lineSeries;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching comparison data:', error);
+    }
+  }, [symbols, timeframe]);
+
+  useEffect(() => {
+    if (chartContainerRef.current && !chartRef.current) {
+      chartRef.current = LightweightCharts.createChart(chartContainerRef.current, {
+        width: chartContainerRef.current.clientWidth,
+        height: 500,
+        ...getChartTheme()[theme]
+      });
+      chartRef.current.timeScale().fitContent();
+    }
+    
+    if (chartRef.current) {
+      chartRef.current.applyOptions(getChartTheme()[theme]);
+    }
+    
+    fetchComparisonData();
+    setLoading(false);
+  }, [symbols, timeframe, theme, fetchComparisonData]);
+
+  useEffect(() => {
+    let intervalId;
+    if (autoRefresh) {
+      intervalId = setInterval(fetchComparisonData, 60000);
+    }
+    return () => clearInterval(intervalId);
+  }, [autoRefresh, fetchComparisonData]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (chartRef.current && chartContainerRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return React.createElement('div', { className: 'chart-modal-overlay', 'data-theme': theme },
+    React.createElement('div', { className: 'chart-modal-header' },
+      React.createElement('div', null,
+        React.createElement('h3', null, 'Comparison: ', symbols.join(', ')),
+        React.createElement('small', null, 'Normalized price comparison')
+      ),
+      React.createElement('div', { className: 'theme-selector' },
+        React.createElement('button', { className: `chart-btn ${theme === 'light' ? 'active' : ''}`, onClick: () => setTheme('light') }, '☀️ Light'),
+        React.createElement('button', { className: `chart-btn ${theme === 'dark' ? 'active' : ''}`, onClick: () => setTheme('dark') }, '🌙 Dark'),
+        React.createElement('button', { className: `chart-btn ${theme === 'hud' ? 'active' : ''}`, onClick: () => setTheme('hud') }, '🖥️ HUD')
+      ),
+      React.createElement('button', { className: 'chart-modal-close', onClick: onClose }, '✕')
+    ),
+    React.createElement('div', { className: 'chart-container', ref: chartContainerRef }, loading && React.createElement('div', { style: { textAlign: 'center', padding: 50 } }, 'Loading charts...')),
+    React.createElement('div', { className: 'chart-controls' },
+      timeframes.map(tf => React.createElement('button', { key: tf.label, className: `chart-btn ${timeframe === tf.period ? 'active' : ''}`, onClick: () => setTimeframe(tf.period) }, tf.label)),
+      React.createElement('button', { className: `chart-btn ${autoRefresh ? 'active' : ''}`, onClick: () => setAutoRefresh(!autoRefresh) }, '🔄 Auto-refresh ', autoRefresh ? 'ON' : 'OFF'),
+      React.createElement('button', { className: 'chart-btn', onClick: fetchComparisonData }, '⟳ Refresh')
+    )
   );
 };
 
@@ -795,6 +936,8 @@ export default function DataTracker() {
   const [periodStatus, setPeriodStatus] = useState({});
   const [runningPeriods, setRunningPeriods] = useState({});
   const [selectedChartSymbol, setSelectedChartSymbol] = useState(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSymbols, setCompareSymbols] = useState([]);
   const [globalTheme, setGlobalTheme] = useState('light');
   const [hiddenColumns, setHiddenColumns] = useState([]);
 
@@ -866,8 +1009,8 @@ export default function DataTracker() {
   };
 
   const SortIcon = ({ k }) => {
-    if (sortKey !== k) return <span className="dt-sort">↕</span>;
-    return <span className={`dt-sort ${sortDir}`}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
+    if (sortKey !== k) return React.createElement('span', { className: 'dt-sort' }, '↕');
+    return React.createElement('span', { className: `dt-sort ${sortDir}` }, sortDir === 'asc' ? '↑' : '↓');
   };
 
   const handleNumericFilterChange = (key, type, value) => setNumericFilters(prev => ({ ...prev, [key]: { ...prev[key], [type]: value } }));
@@ -885,6 +1028,23 @@ export default function DataTracker() {
       return;
     }
     window.open(`${BASE_URL}/api/mss/download/${sym}/?${params}`, '_blank');
+  };
+
+  const addToCompare = (symbolName) => {
+    if (!compareSymbols.includes(symbolName) && compareSymbols.length < 8) {
+      setCompareSymbols([...compareSymbols, symbolName]);
+      setCompareMode(true);
+    }
+  };
+
+  const removeFromCompare = (symbolName) => {
+    setCompareSymbols(compareSymbols.filter(s => s !== symbolName));
+    if (compareSymbols.length <= 1) setCompareMode(false);
+  };
+
+  const clearCompare = () => {
+    setCompareSymbols([]);
+    setCompareMode(false);
   };
 
   const activeFilterCount = Object.values(numericFilters).filter(r => (r.min !== '' && r.min) || (r.max !== '' && r.max)).length + Object.values(textFilters).filter(v => v && v !== 'all').length;
@@ -905,9 +1065,14 @@ export default function DataTracker() {
   const getDropdownOptions = (key) => [...new Set(allData.map(row => row[key]).filter(v => v && v !== 'null'))].sort();
 
   const mssColor = (val) => { if (val >= 47) return 'var(--stable)'; if (val >= 30) return 'var(--choppy)'; return 'var(--volatile)'; };
-  const categoryBadge = (cat) => <span className={`dt-badge dt-badge-${cat}`}>{cat === 'stable' ? '● ' : cat === 'choppy' ? '◆ ' : '▲ '}{cat}</span>;
-  const biasBadge = (bias) => !bias ? <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>—</span> : <span className={`dt-badge dt-badge-${bias}`}>{bias}</span>;
-  const MSSBar = ({ val }) => <div className="dt-mss-bar"><div className="dt-mss-track"><div className="dt-mss-fill" style={{ width: `${val}%`, background: mssColor(val) }} /></div><span className="dt-mss-num" style={{ color: mssColor(val) }}>{val?.toFixed(1)}</span></div>;
+  const categoryBadge = (cat) => React.createElement('span', { className: `dt-badge dt-badge-${cat}` }, cat === 'stable' ? '● ' : cat === 'choppy' ? '◆ ' : '▲ ', cat);
+  const biasBadge = (bias) => !bias ? React.createElement('span', { style: { color: 'var(--text-secondary)', fontSize: 11 } }, '—') : React.createElement('span', { className: `dt-badge dt-badge-${bias}` }, bias);
+  const MSSBar = ({ val }) => React.createElement('div', { className: 'dt-mss-bar' },
+    React.createElement('div', { className: 'dt-mss-track' },
+      React.createElement('div', { className: 'dt-mss-fill', style: { width: `${val}%`, background: mssColor(val) } })
+    ),
+    React.createElement('span', { className: 'dt-mss-num', style: { color: mssColor(val) } }, val?.toFixed(1))
+  );
   const fmt = (n, dec = 4) => n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
 
   const toggleColumn = (colKey) => {
@@ -918,203 +1083,216 @@ export default function DataTracker() {
 
   const visibleColumns = ALL_COLUMNS.filter(col => !hiddenColumns.includes(col.key));
 
-  return (
-    <div className="dt-root" data-theme={globalTheme}>
-      <style>{CSS}</style>
-      <Header />
-      <div>
-        <SideNavs />
-        <nav className="dt-topnav">
-          <div className="dt-topnav-brand"><span /> SnowAI Tracker</div>
-          <div className="dt-topnav-links">
-            {[{ id: 'history', label: 'History' }, { id: 'summary', label: 'Daily Snapshot' }, { id: 'download', label: 'Download Centre' }].map(tab => (
-              <button key={tab.id} className={`dt-nav-link ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>
-            ))}
-          </div>
-          <div className="theme-selector">
-            <button className={`chart-btn ${globalTheme === 'light' ? 'active' : ''}`} onClick={() => setGlobalTheme('light')}>☀️</button>
-            <button className={`chart-btn ${globalTheme === 'dark' ? 'active' : ''}`} onClick={() => setGlobalTheme('dark')}>🌙</button>
-            <button className={`chart-btn ${globalTheme === 'hud' ? 'active' : ''}`} onClick={() => setGlobalTheme('hud')}>🖥️</button>
-          </div>
-        </nav>
-
-        <div className="dt-body">
-          <div className="dt-page-header">
-            <div><div className="dt-page-title">MSS Historical Data & Performance Tracker</div><div className="dt-page-subtitle">Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Click any row to view chart</div></div>
-          </div>
-
-          <div className="dt-status-panel">
-            <div className="dt-status-header" onClick={() => setShowStatusPanel(!showStatusPanel)}>
-              <span>📊 MSS Snapshot Status — Daily runs at 20-min intervals (12:00 PM - 2:20 PM NYC)</span>
-              <span>{showStatusPanel ? '▼' : '▲'}</span>
-            </div>
-            {showStatusPanel && (
-              <div className="dt-status-grid">
-                {PERIODS.map(p => {
-                  const status = periodStatus[p] || { status: 'pending', records: 0, current_asset: '' };
-                  return (
-                    <div key={p} className={`dt-period-card ${status.status}`}>
-                      <div className="dt-period-title">{p} Day Period</div>
-                      <div className={`dt-period-status dt-status-${status.status}`}>
-                        {status.status === 'running' ? '🔄 RUNNING' : status.status === 'completed' ? '✅ COMPLETED' : status.status === 'failed' ? '❌ FAILED' : '⏳ PENDING'}
-                      </div>
-                      {status.status === 'running' && status.current_asset && <div className="dt-period-current">Current: {status.current_asset}</div>}
-                      <div className="dt-period-info">{status.records > 0 ? `${status.records.toLocaleString()} records saved` : 'No data yet'}{status.last_run && <div>Last run: {new Date(status.last_run).toLocaleTimeString()}</div>}</div>
-                      <button className="dt-run-btn" onClick={() => runPeriod(p)} disabled={status.status === 'running' || runningPeriods[p]}>
-                        {status.status === 'running' || runningPeriods[p] ? <><span className="dt-spinner-small"></span> Running...</> : '▶ Run Now'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="dt-quick-bar">
-            <div className="dt-quick-group"><div className="dt-quick-label">Symbol</div><input className="dt-quick-input" placeholder="Type symbol..." value={symbol} onChange={e => setSymbol(e.target.value.toUpperCase())} list="sym-list" /><datalist id="sym-list">{symbols.slice(0, 200).map(s => <option key={s.symbol} value={s.symbol} />)}</datalist></div>
-            <div className="dt-quick-group"><div className="dt-quick-label">Period</div><select className="dt-quick-select" value={period} onChange={e => setPeriod(+e.target.value)}>{PERIODS.map(p => <option key={p} value={p}>{p}d</option>)}</select></div>
-            <div className="dt-quick-group"><div className="dt-quick-label">Asset Class</div><select className="dt-quick-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>{ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-            <div className="dt-quick-group"><div className="dt-quick-label">Days back</div><select className="dt-quick-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>{[30, 60, 90, 180, 365, 730].map(d => <option key={d} value={d}>{d} days</option>)}</select></div>
-            <div className="dt-divider" />
-            <button className="dt-btn dt-btn-primary" disabled={loading} onClick={fetchFilteredData}>{loading ? 'Loading…' : '⟳ Apply Filters'}</button>
-            <button className="dt-btn dt-btn-secondary" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>🔍 {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters {activeFilterCount > 0 && `(${activeFilterCount})`}</button>
-          </div>
-
-          {showAdvancedFilters && (
-            <div className="dt-filters-panel">
-              <div className="dt-filters-header" onClick={() => setShowAdvancedFilters(false)}><span>⚙️ Advanced Filters</span><span>▼</span></div>
-              <div className="dt-filters-grid">
-                {NUMERIC_COLUMNS.map(col => (
-                  <div key={col.key} className="dt-filter-item">
-                    <label>{col.label} {col.unit && `(${col.unit})`}</label>
-                    <div className="dt-range-group">
-                      <input type="number" placeholder={`Min ${col.min}`} step={col.step} value={numericFilters[col.key]?.min || ''} onChange={e => handleNumericFilterChange(col.key, 'min', e.target.value)} />
-                      <span>to</span>
-                      <input type="number" placeholder={`Max ${col.max}`} step={col.step} value={numericFilters[col.key]?.max || ''} onChange={e => handleNumericFilterChange(col.key, 'max', e.target.value)} />
-                    </div>
-                  </div>
-                ))}
-                {TEXT_COLUMNS.map(col => (
-                  <div key={col.key} className="dt-filter-item">
-                    <label>{col.label}</label>
-                    {col.type === 'dropdown' ? (
-                      <select className="dt-filter-select" value={textFilters[col.key] || 'all'} onChange={e => handleTextFilterChange(col.key, e.target.value)}>
-                        <option value="all">All {col.label}s</option>
-                        {getDropdownOptions(col.key).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    ) : (
-                      <input className="dt-filter-input" type="text" placeholder={`Filter by ${col.label.toLowerCase()}...`} value={textFilters[col.key] || ''} onChange={e => handleTextFilterChange(col.key, e.target.value)} />
-                    )}
-                  </div>
-                ))}
-                <div className="dt-filter-actions"><button className="dt-btn-sm dt-btn-secondary" onClick={clearAllFilters}>Clear All Filters</button></div>
-              </div>
-            </div>
-          )}
-
-          {activeFilterCount > 0 && (
-            <div className="dt-active-filters">
-              {Object.entries(numericFilters).map(([key, range]) => {
-                const col = NUMERIC_COLUMNS.find(c => c.key === key);
-                const parts = [];
-                if (range.min) parts.push(`${col?.label} ≥ ${range.min}${col?.unit || ''}`);
-                if (range.max) parts.push(`${col?.label} ≤ ${range.max}${col?.unit || ''}`);
-                return parts.map(part => <div key={`${key}-${part}`} className="dt-filter-tag">{part}<button onClick={() => { if (range.min) handleNumericFilterChange(key, 'min', ''); if (range.max) handleNumericFilterChange(key, 'max', ''); }}>✕</button></div>);
-              })}
-              {Object.entries(textFilters).map(([key, val]) => {
-                if (!val || val === 'all') return null;
-                const col = TEXT_COLUMNS.find(c => c.key === key);
-                return <div key={key} className="dt-filter-tag">{col?.label} = {val}<button onClick={() => clearFilter(key)}>✕</button></div>;
-              })}
-              {activeFilterCount > 1 && <div className="dt-filter-tag" style={{ background: 'var(--volatile)', color: 'white' }}><button onClick={clearAllFilters} style={{ color: 'white' }}>Clear All ✕</button></div>}
-            </div>
-          )}
-
-          <div className="dt-column-controls">
-            <span style={{ fontSize: '11px', fontWeight: 600 }}>📋 Columns:</span>
-            <div className="dt-column-dropdown">
-              <button className="dt-btn-sm dt-btn-secondary">☰ Toggle Columns ▼</button>
-              <div className="dt-column-dropdown-content">
-                {ALL_COLUMNS.map(col => (
-                  <label key={col.key} className="dt-column-checkbox">
-                    <input type="checkbox" checked={!hiddenColumns.includes(col.key)} onChange={() => toggleColumn(col.key)} />
-                    {col.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <button className="dt-btn-sm dt-btn-secondary" onClick={resetColumns}>⟳ Reset Columns</button>
-          </div>
-
-          {stats && (
-            <div className="dt-stats">
-              <div className="dt-stat-card"><div className="dt-stat-label">Total Records</div><div className="dt-stat-value">{stats.total.toLocaleString()}</div></div>
-              <div className="dt-stat-card"><div className="dt-stat-label">Avg MSS</div><div className="dt-stat-value" style={{ color: mssColor(stats.avgMss) }}>{stats.avgMss.toFixed(1)}</div></div>
-              <div className="dt-stat-card"><div className="dt-stat-label">Stable</div><div className="dt-stat-value" style={{ color: 'var(--stable)' }}>{stats.stable}</div><div className="dt-stat-sub">{((stats.stable / stats.total) * 100).toFixed(0)}%</div></div>
-              <div className="dt-stat-card"><div className="dt-stat-label">Choppy</div><div className="dt-stat-value" style={{ color: 'var(--choppy)' }}>{stats.choppy}</div><div className="dt-stat-sub">{((stats.choppy / stats.total) * 100).toFixed(0)}%</div></div>
-              <div className="dt-stat-card"><div className="dt-stat-label">Volatile</div><div className="dt-stat-value" style={{ color: 'var(--volatile)' }}>{stats.volatile}</div><div className="dt-stat-sub">{((stats.volatile / stats.total) * 100).toFixed(0)}%</div></div>
-              <div className="dt-stat-card"><div className="dt-stat-label">Avg R²</div><div className="dt-stat-value">{stats.avgR2.toFixed(3)}</div></div>
-            </div>
-          )}
-
-          {activeTab === 'download' && (
-            <div className="dt-dl-panel">
-              <div className="dt-dl-title">⤓ Export Data</div>
-              <span style={{ fontSize: 11 }}><strong>{allData.length.toLocaleString()} records</strong> match current filters</span>
-              <button className="dt-dl-btn dt-dl-csv" onClick={() => handleDownload('csv')}>📄 CSV</button>
-              <button className="dt-dl-btn dt-dl-xlsx" onClick={() => handleDownload('xlsx')}>📊 Excel</button>
-              <button className="dt-dl-btn dt-dl-pdf" onClick={() => handleDownload('pdf')}>📑 PDF</button>
-              <button className="dt-dl-btn dt-dl-json" onClick={() => handleDownload('json')}>{'{ }'} JSON</button>
-            </div>
-          )}
-
-          <div className="dt-table-wrap">
-            <div className="dt-table-scroll">
-              {loading ? <div className="dt-loading"><div className="dt-spinner" />Fetching {totalRecords.toLocaleString()} records…</div>
-              : error ? <div className="dt-empty">⚠ {error}</div>
-              : paginatedData.length === 0 ? <div className="dt-empty">📭 No records match your filters.</div>
-              : <table className="dt-table"><thead><tr>{visibleColumns.map(({ key, label }) => <th key={key} onClick={() => handleSort(key)}>{label}<SortIcon k={key} /></th>)}</tr></thead><tbody>
-                {paginatedData.map((row, i) => (
-                  <tr key={`${row.symbol}-${row.date_taken}-${i}`} onClick={() => setSelectedChartSymbol(row.symbol)} style={{ cursor: 'pointer' }}>
-                    {visibleColumns.map(col => {
-                      if (col.key === 'symbol') return <td key={col.key}><span className="dt-symbol">{row.symbol}</span></td>;
-                      if (col.key === 'mss') return <td key={col.key} style={{ minWidth: 130 }}><MSSBar val={row.mss} /></td>;
-                      if (col.key === 'category') return <td key={col.key}>{categoryBadge(row.category)}</td>;
-                      if (col.key === 'analyst_bias' || col.key === 'put_call_bias') return <td key={col.key}>{biasBadge(row[col.key])}</td>;
-                      if (col.key === 'price_change') return <td key={col.key} style={{ color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)', fontWeight: 600 }}>{row.price_change >= 0 ? '+' : ''}{fmt(row.price_change, 2)}%</td>;
-                      if (col.key === 'current_price') return <td key={col.key}>${fmt(row.current_price, 2)}</td>;
-                      if (col.key === 'date_taken') return <td key={col.key} style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{row.date_taken}</td>;
-                      if (col.key === 'period_days') return <td key={col.key} style={{ color: 'var(--text-secondary)' }}>{row.period_days}d</td>;
-                      return <td key={col.key}>{fmt(row[col.key], col.key === 'r_squared' ? 4 : col.key === 'volatility' ? 5 : 3)}</td>;
-                    })}
-                  </tr>
-                ))}
-              </tbody></table>}
-            </div>
-
-            {!loading && allData.length > 0 && (
-              <div className="dt-pagination">
-                <div className="dt-pag-info">Showing {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalRecords)} of {totalRecords.toLocaleString()}</div>
-                <div className="dt-pag-btns">
-                  <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(1)}>«</button>
-                  <button className="dt-pag-btn" disabled={currentPage <= 1} onClick={() => setCurrentPage(currentPage - 1)}>‹ Prev</button>
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    const p = Math.max(1, currentPage - 3) + i;
-                    if (p > totalPages) return null;
-                    return <button key={p} className={`dt-pag-btn ${p === currentPage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>;
-                  })}
-                  <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Next ›</button>
-                  <button className="dt-pag-btn" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(totalPages)}>»</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {selectedChartSymbol && (
-        <AssetChart symbol={selectedChartSymbol} onClose={() => setSelectedChartSymbol(null)} initialTheme={globalTheme} />
-      )}
-    </div>
+  return React.createElement('div', { className: 'dt-root', 'data-theme': globalTheme },
+    React.createElement('style', null, CSS),
+    React.createElement(Header, null),
+    React.createElement('div', null,
+      React.createElement(SideNavs, null),
+      React.createElement('nav', { className: 'dt-topnav' },
+        React.createElement('div', { className: 'dt-topnav-brand' }, React.createElement('span', null), ' SnowAI Tracker'),
+        React.createElement('div', { className: 'dt-topnav-links' },
+          [{ id: 'history', label: 'History' }, { id: 'summary', label: 'Daily Snapshot' }, { id: 'download', label: 'Download Centre' }].map(tab =>
+            React.createElement('button', { key: tab.id, className: `dt-nav-link ${activeTab === tab.id ? 'active' : ''}`, onClick: () => setActiveTab(tab.id) }, tab.label)
+          )
+        ),
+        React.createElement('div', { className: 'theme-selector' },
+          React.createElement('button', { className: `chart-btn ${globalTheme === 'light' ? 'active' : ''}`, onClick: () => setGlobalTheme('light') }, '☀️'),
+          React.createElement('button', { className: `chart-btn ${globalTheme === 'dark' ? 'active' : ''}`, onClick: () => setGlobalTheme('dark') }, '🌙'),
+          React.createElement('button', { className: `chart-btn ${globalTheme === 'hud' ? 'active' : ''}`, onClick: () => setGlobalTheme('hud') }, '🖥️')
+        )
+      ),
+      React.createElement('div', { className: 'dt-body' },
+        React.createElement('div', { className: 'dt-page-header' },
+          React.createElement('div', null,
+            React.createElement('div', { className: 'dt-page-title' }, 'MSS Historical Data & Performance Tracker'),
+            React.createElement('div', { className: 'dt-page-subtitle' }, 'Market Stability Score · R² · Analyst Bias · Put/Call Ratio — Click any row to view chart, or use Compare mode')
+          )
+        ),
+        compareMode && React.createElement('div', { className: 'compare-panel' },
+          React.createElement('div', { className: 'compare-header' },
+            React.createElement('strong', null, '📊 Compare Mode: ', compareSymbols.length, ' assets selected'),
+            React.createElement('button', { className: 'chart-btn', onClick: clearCompare }, 'Clear All')
+          ),
+          React.createElement('div', { className: 'compare-symbols' },
+            compareSymbols.map(s => React.createElement('div', { key: s, className: 'compare-tag' }, s, React.createElement('button', { onClick: () => removeFromCompare(s) }, '✕'))),
+            React.createElement('button', { className: 'chart-btn', onClick: () => setCompareMode(false) }, 'Close Compare')
+          ),
+          React.createElement('div', { className: 'compare-chart-container' },
+            React.createElement(MultiCompareChart, { symbols: compareSymbols, onClose: () => setCompareMode(false), initialTheme: globalTheme })
+          )
+        ),
+        React.createElement('div', { className: 'dt-status-panel' },
+          React.createElement('div', { className: 'dt-status-header', onClick: () => setShowStatusPanel(!showStatusPanel) },
+            React.createElement('span', null, '📊 MSS Snapshot Status — Daily runs at 20-min intervals (12:00 PM - 2:20 PM NYC)'),
+            React.createElement('span', null, showStatusPanel ? '▼' : '▲')
+          ),
+          showStatusPanel && React.createElement('div', { className: 'dt-status-grid' },
+            PERIODS.map(p => {
+              const status = periodStatus[p] || { status: 'pending', records: 0, current_asset: '' };
+              return React.createElement('div', { key: p, className: `dt-period-card ${status.status}` },
+                React.createElement('div', { className: 'dt-period-title' }, p, ' Day Period'),
+                React.createElement('div', { className: `dt-period-status dt-status-${status.status}` },
+                  status.status === 'running' ? '🔄 RUNNING' : status.status === 'completed' ? '✅ COMPLETED' : status.status === 'failed' ? '❌ FAILED' : '⏳ PENDING'
+                ),
+                status.status === 'running' && status.current_asset && React.createElement('div', { className: 'dt-period-current' }, 'Current: ', status.current_asset),
+                React.createElement('div', { className: 'dt-period-info' },
+                  status.records > 0 ? `${status.records.toLocaleString()} records saved` : 'No data yet',
+                  status.last_run && React.createElement('div', null, 'Last run: ', new Date(status.last_run).toLocaleTimeString())
+                ),
+                React.createElement('button', { className: 'dt-run-btn', onClick: () => runPeriod(p), disabled: status.status === 'running' || runningPeriods[p] },
+                  (status.status === 'running' || runningPeriods[p]) ? React.createElement(React.Fragment, null, React.createElement('span', { className: 'dt-spinner-small' }), ' Running...') : '▶ Run Now'
+                )
+              );
+            })
+          )
+        ),
+        React.createElement('div', { className: 'dt-quick-bar' },
+          React.createElement('div', { className: 'dt-quick-group' },
+            React.createElement('div', { className: 'dt-quick-label' }, 'Symbol'),
+            React.createElement('input', { className: 'dt-quick-input', placeholder: 'Type symbol...', value: symbol, onChange: e => setSymbol(e.target.value.toUpperCase()), list: 'sym-list' }),
+            React.createElement('datalist', { id: 'sym-list' }, symbols.slice(0, 200).map(s => React.createElement('option', { key: s.symbol, value: s.symbol })))
+          ),
+          React.createElement('div', { className: 'dt-quick-group' },
+            React.createElement('div', { className: 'dt-quick-label' }, 'Period'),
+            React.createElement('select', { className: 'dt-quick-select', value: period, onChange: e => setPeriod(+e.target.value) }, PERIODS.map(p => React.createElement('option', { key: p, value: p }, p, 'd')))
+          ),
+          React.createElement('div', { className: 'dt-quick-group' },
+            React.createElement('div', { className: 'dt-quick-label' }, 'Asset Class'),
+            React.createElement('select', { className: 'dt-quick-select', value: assetClass, onChange: e => setAssetClass(e.target.value) }, ASSET_CLASSES.map(c => React.createElement('option', { key: c, value: c }, c)))
+          ),
+          React.createElement('div', { className: 'dt-quick-group' },
+            React.createElement('div', { className: 'dt-quick-label' }, 'Days back'),
+            React.createElement('select', { className: 'dt-quick-select', value: daysBack, onChange: e => setDaysBack(+e.target.value) }, [30, 60, 90, 180, 365, 730].map(d => React.createElement('option', { key: d, value: d }, d, ' days')))
+          ),
+          React.createElement('div', { className: 'dt-divider' }),
+          React.createElement('button', { className: 'dt-btn dt-btn-primary', disabled: loading, onClick: fetchFilteredData }, loading ? 'Loading…' : '⟳ Apply Filters'),
+          React.createElement('button', { className: 'dt-btn dt-btn-secondary', onClick: () => setShowAdvancedFilters(!showAdvancedFilters) }, '🔍 ', showAdvancedFilters ? 'Hide' : 'Show', ' Advanced Filters ', activeFilterCount > 0 && `(${activeFilterCount})`)
+        ),
+        showAdvancedFilters && React.createElement('div', { className: 'dt-filters-panel' },
+          React.createElement('div', { className: 'dt-filters-header', onClick: () => setShowAdvancedFilters(false) },
+            React.createElement('span', null, '⚙️ Advanced Filters'),
+            React.createElement('span', null, '▼')
+          ),
+          React.createElement('div', { className: 'dt-filters-grid' },
+            NUMERIC_COLUMNS.map(col => React.createElement('div', { key: col.key, className: 'dt-filter-item' },
+              React.createElement('label', null, col.label, ' ', col.unit && `(${col.unit})`),
+              React.createElement('div', { className: 'dt-range-group' },
+                React.createElement('input', { type: 'number', placeholder: `Min ${col.min}`, step: col.step, value: numericFilters[col.key]?.min || '', onChange: e => handleNumericFilterChange(col.key, 'min', e.target.value) }),
+                React.createElement('span', null, 'to'),
+                React.createElement('input', { type: 'number', placeholder: `Max ${col.max}`, step: col.step, value: numericFilters[col.key]?.max || '', onChange: e => handleNumericFilterChange(col.key, 'max', e.target.value) })
+              )
+            )),
+            TEXT_COLUMNS.map(col => React.createElement('div', { key: col.key, className: 'dt-filter-item' },
+              React.createElement('label', null, col.label),
+              col.type === 'dropdown' ? React.createElement('select', { className: 'dt-filter-select', value: textFilters[col.key] || 'all', onChange: e => handleTextFilterChange(col.key, e.target.value) },
+                React.createElement('option', { value: 'all' }, 'All ', col.label, 's'),
+                getDropdownOptions(col.key).map(opt => React.createElement('option', { key: opt, value: opt }, opt))
+              ) : React.createElement('input', { className: 'dt-filter-input', type: 'text', placeholder: `Filter by ${col.label.toLowerCase()}...`, value: textFilters[col.key] || '', onChange: e => handleTextFilterChange(col.key, e.target.value) })
+            )),
+            React.createElement('div', { className: 'dt-filter-actions' },
+              React.createElement('button', { className: 'dt-btn-sm dt-btn-secondary', onClick: clearAllFilters }, 'Clear All Filters')
+            )
+          )
+        ),
+        activeFilterCount > 0 && React.createElement('div', { className: 'dt-active-filters' },
+          Object.entries(numericFilters).map(([key, range]) => {
+            const col = NUMERIC_COLUMNS.find(c => c.key === key);
+            const parts = [];
+            if (range.min) parts.push(`${col?.label} ≥ ${range.min}${col?.unit || ''}`);
+            if (range.max) parts.push(`${col?.label} ≤ ${range.max}${col?.unit || ''}`);
+            return parts.map(part => React.createElement('div', { key: `${key}-${part}`, className: 'dt-filter-tag' }, part, React.createElement('button', { onClick: () => { if (range.min) handleNumericFilterChange(key, 'min', ''); if (range.max) handleNumericFilterChange(key, 'max', ''); } }, '✕')));
+          }),
+          Object.entries(textFilters).map(([key, val]) => {
+            if (!val || val === 'all') return null;
+            const col = TEXT_COLUMNS.find(c => c.key === key);
+            return React.createElement('div', { key: key, className: 'dt-filter-tag' }, col?.label, ' = ', val, React.createElement('button', { onClick: () => clearFilter(key) }, '✕'));
+          }),
+          activeFilterCount > 1 && React.createElement('div', { className: 'dt-filter-tag', style: { background: 'var(--volatile)', color: 'white' } },
+            React.createElement('button', { onClick: clearAllFilters, style: { color: 'white' } }, 'Clear All ✕')
+          )
+        ),
+        React.createElement('div', { className: 'dt-column-controls' },
+          React.createElement('span', { style: { fontSize: '11px', fontWeight: 600 } }, '📋 Columns:'),
+          React.createElement('div', { className: 'dt-column-dropdown' },
+            React.createElement('button', { className: 'dt-btn-sm dt-btn-secondary' }, '☰ Toggle Columns ▼'),
+            React.createElement('div', { className: 'dt-column-dropdown-content' },
+              ALL_COLUMNS.map(col => React.createElement('label', { key: col.key, className: 'dt-column-checkbox' },
+                React.createElement('input', { type: 'checkbox', checked: !hiddenColumns.includes(col.key), onChange: () => toggleColumn(col.key) }),
+                col.label
+              ))
+            )
+          ),
+          React.createElement('button', { className: 'dt-btn-sm dt-btn-secondary', onClick: resetColumns }, '⟳ Reset Columns'),
+          compareSymbols.length < 8 && React.createElement('button', { className: 'dt-btn-sm dt-btn-primary', onClick: () => setCompareMode(true), disabled: compareMode }, '📊 Enter Compare Mode'),
+          compareSymbols.length > 0 && React.createElement('button', { className: 'dt-btn-sm dt-btn-secondary', onClick: clearCompare }, '🗑️ Clear Compare (', compareSymbols.length, ')')
+        ),
+        stats && React.createElement('div', { className: 'dt-stats' },
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Total Records'), React.createElement('div', { className: 'dt-stat-value' }, stats.total.toLocaleString())),
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Avg MSS'), React.createElement('div', { className: 'dt-stat-value', style: { color: mssColor(stats.avgMss) } }, stats.avgMss.toFixed(1))),
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Stable'), React.createElement('div', { className: 'dt-stat-value', style: { color: 'var(--stable)' } }, stats.stable), React.createElement('div', { className: 'dt-stat-sub' }, ((stats.stable / stats.total) * 100).toFixed(0), '%')),
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Choppy'), React.createElement('div', { className: 'dt-stat-value', style: { color: 'var(--choppy)' } }, stats.choppy), React.createElement('div', { className: 'dt-stat-sub' }, ((stats.choppy / stats.total) * 100).toFixed(0), '%')),
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Volatile'), React.createElement('div', { className: 'dt-stat-value', style: { color: 'var(--volatile)' } }, stats.volatile), React.createElement('div', { className: 'dt-stat-sub' }, ((stats.volatile / stats.total) * 100).toFixed(0), '%')),
+          React.createElement('div', { className: 'dt-stat-card' }, React.createElement('div', { className: 'dt-stat-label' }, 'Avg R²'), React.createElement('div', { className: 'dt-stat-value' }, stats.avgR2.toFixed(3)))
+        ),
+        activeTab === 'download' && React.createElement('div', { className: 'dt-dl-panel' },
+          React.createElement('div', { className: 'dt-dl-title' }, '⤓ Export Data'),
+          React.createElement('span', { style: { fontSize: 11 } }, React.createElement('strong', null, allData.length.toLocaleString(), ' records'), ' match current filters'),
+          React.createElement('button', { className: 'dt-dl-btn dt-dl-csv', onClick: () => handleDownload('csv') }, '📄 CSV'),
+          React.createElement('button', { className: 'dt-dl-btn dt-dl-xlsx', onClick: () => handleDownload('xlsx') }, '📊 Excel'),
+          React.createElement('button', { className: 'dt-dl-btn dt-dl-pdf', onClick: () => handleDownload('pdf') }, '📑 PDF'),
+          React.createElement('button', { className: 'dt-dl-btn dt-dl-json', onClick: () => handleDownload('json') }, '{ } JSON')
+        ),
+        React.createElement('div', { className: 'dt-table-wrap' },
+          React.createElement('div', { className: 'dt-table-scroll' },
+            loading ? React.createElement('div', { className: 'dt-loading' }, React.createElement('div', { className: 'dt-spinner' }), 'Fetching ', totalRecords.toLocaleString(), ' records…')
+            : error ? React.createElement('div', { className: 'dt-empty' }, '⚠ ', error)
+            : paginatedData.length === 0 ? React.createElement('div', { className: 'dt-empty' }, '📭 No records match your filters.')
+            : React.createElement('table', { className: 'dt-table' },
+              React.createElement('thead', null,
+                React.createElement('tr', null,
+                  visibleColumns.map(({ key, label }) => React.createElement('th', { key: key, onClick: () => handleSort(key) }, label, React.createElement(SortIcon, { k: key })))
+                )
+              ),
+              React.createElement('tbody', null,
+                paginatedData.map((row, i) => React.createElement('tr', { key: `${row.symbol}-${row.date_taken}-${i}` },
+                  visibleColumns.map(col => {
+                    if (col.key === 'symbol') return React.createElement('td', { key: col.key },
+                      React.createElement('span', { className: 'dt-symbol' }, row.symbol),
+                      React.createElement('div', { style: { display: 'flex', gap: '4px', marginTop: '4px' } },
+                        React.createElement('button', { className: 'chart-btn', style: { fontSize: '9px', padding: '2px 6px' }, onClick: (e) => { e.stopPropagation(); setSelectedChartSymbol(row.symbol); } }, '📈 Chart'),
+                        React.createElement('button', { className: 'chart-btn', style: { fontSize: '9px', padding: '2px 6px' }, onClick: (e) => { e.stopPropagation(); addToCompare(row.symbol); } }, '➕ Compare')
+                      )
+                    );
+                    if (col.key === 'mss') return React.createElement('td', { key: col.key, style: { minWidth: 130 } }, React.createElement(MSSBar, { val: row.mss }));
+                    if (col.key === 'category') return React.createElement('td', { key: col.key }, categoryBadge(row.category));
+                    if (col.key === 'analyst_bias' || col.key === 'put_call_bias') return React.createElement('td', { key: col.key }, biasBadge(row[col.key]));
+                    if (col.key === 'price_change') return React.createElement('td', { key: col.key, style: { color: row.price_change >= 0 ? 'var(--stable)' : 'var(--volatile)', fontWeight: 600 } }, row.price_change >= 0 ? '+' : '', fmt(row.price_change, 2), '%');
+                    if (col.key === 'current_price') return React.createElement('td', { key: col.key }, '$', fmt(row.current_price, 2));
+                    if (col.key === 'date_taken') return React.createElement('td', { key: col.key, style: { color: 'var(--text-secondary)', fontSize: 11 } }, row.date_taken);
+                    if (col.key === 'period_days') return React.createElement('td', { key: col.key, style: { color: 'var(--text-secondary)' } }, row.period_days, 'd');
+                    return React.createElement('td', { key: col.key }, fmt(row[col.key], col.key === 'r_squared' ? 4 : col.key === 'volatility' ? 5 : 3));
+                  })
+                ))
+              )
+            )
+          ),
+          !loading && allData.length > 0 && React.createElement('div', { className: 'dt-pagination' },
+            React.createElement('div', { className: 'dt-pag-info' }, 'Showing ', ((currentPage - 1) * PAGE_SIZE) + 1, '–', Math.min(currentPage * PAGE_SIZE, totalRecords), ' of ', totalRecords.toLocaleString()),
+            React.createElement('div', { className: 'dt-pag-btns' },
+              React.createElement('button', { className: 'dt-pag-btn', disabled: currentPage <= 1, onClick: () => setCurrentPage(1) }, '«'),
+              React.createElement('button', { className: 'dt-pag-btn', disabled: currentPage <= 1, onClick: () => setCurrentPage(currentPage - 1) }, '‹ Prev'),
+              Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const p = Math.max(1, currentPage - 3) + i;
+                if (p > totalPages) return null;
+                return React.createElement('button', { key: p, className: `dt-pag-btn ${p === currentPage ? 'active' : ''}`, onClick: () => setCurrentPage(p) }, p);
+              }),
+              React.createElement('button', { className: 'dt-pag-btn', disabled: currentPage >= totalPages, onClick: () => setCurrentPage(currentPage + 1) }, 'Next ›'),
+              React.createElement('button', { className: 'dt-pag-btn', disabled: currentPage >= totalPages, onClick: () => setCurrentPage(totalPages) }, '»')
+            )
+          )
+        )
+      )
+    ),
+    selectedChartSymbol && React.createElement(AssetChart, { symbol: selectedChartSymbol, onClose: () => setSelectedChartSymbol(null), initialTheme: globalTheme })
   );
 }
