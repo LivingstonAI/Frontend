@@ -1074,29 +1074,28 @@ function useDebounce(value, delay) {
 }
 
 // ── Lightweight Charts loader ─────────────────────────────────────────────────
-// Force v3.8 which has stable addCandlestickSeries API
-function useLWC() {
-  const [lwc, setLwc] = useState(null);
-  useEffect(() => {
-    // Remove any existing LWC to avoid version conflicts
-    const existing = document.querySelector('script[data-lwc]');
-    if (window.__lwcLoaded && window.LightweightCharts) {
-      setLwc(window.LightweightCharts);
-      return;
-    }
-    if (existing) return; // already loading
-
+// Singleton load — v3.8 stable API (addCandlestickSeries etc.)
+const LWC_SRC = 'https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js';
+let _lwcPromise = null;
+function loadLWC() {
+  if (_lwcPromise) return _lwcPromise;
+  _lwcPromise = new Promise((resolve) => {
+    if (window.LightweightCharts) { resolve(window.LightweightCharts); return; }
     const s = document.createElement('script');
-    s.setAttribute('data-lwc', '1');
-    // Use v3.8 — stable API with addCandlestickSeries, addHistogramSeries, addLineSeries
-    s.src = 'https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js';
-    s.async = true;
-    s.onload = () => {
-      window.__lwcLoaded = true;
-      setLwc(window.LightweightCharts);
-    };
+    s.src = LWC_SRC;
+    s.onload = () => resolve(window.LightweightCharts);
+    s.onerror = () => resolve(null);
     document.head.appendChild(s);
-  }, []);
+  });
+  return _lwcPromise;
+}
+
+function useLWC() {
+  const [lwc, setLwc] = useState(() => window.LightweightCharts || null);
+  useEffect(() => {
+    if (lwc) return;
+    loadLWC().then(lib => { if (lib) setLwc(lib); });
+  }, []); // eslint-disable-line
   return lwc;
 }
 
