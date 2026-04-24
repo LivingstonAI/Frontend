@@ -492,6 +492,7 @@ const CSS = `
   .snw-chartgrid-grid {
     display: grid;
     gap: 10px;
+    align-items: start; /* prevent grid rows from stretching tiles */
   }
   .snw-chartgrid-grid.cols-1 { grid-template-columns: 1fr; }
   .snw-chartgrid-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
@@ -505,6 +506,7 @@ const CSS = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0; /* never let the tile grow */
   }
   .snw-chart-tile-header {
     display: flex;
@@ -955,7 +957,13 @@ const CSS = `
     overflow: hidden;
     min-height: 0;
   }
-  .snw-chart-canvas-wrap > div { width: 100% !important; height: 100% !important; }
+  /* The inner div LWC renders into must fill the wrap */
+  .snw-chart-canvas-wrap > div:last-child {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
 
   .snw-chart-controls {
     display: flex;
@@ -1120,106 +1128,98 @@ function getChartThemeOptions(theme) {
 }
 
 // ── Single Chart Tile (used in the grid) ─────────────────────────────────────
+// FIXED height — never let ResizeObserver feed clientHeight back into chart.resize()
+const TILE_CANVAS_H = 160;
+
 const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
   const lwc = useLWC();
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const candleRef = useRef(null);
-  const volRef = useRef(null);
   const createdRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create chart
+  // Create chart with explicit fixed pixel dimensions
   useEffect(() => {
     if (!lwc || !containerRef.current || createdRef.current) return;
-    const h = containerRef.current.clientHeight || 200;
-    const w = containerRef.current.clientWidth || 300;
-
-    const chart = lwc.createChart(containerRef.current, {
-      width: w,
-      height: h,
-      ...getChartThemeOptions('tile'),
-      rightPriceScale: { visible: true, borderVisible: false },
-      timeScale: { timeVisible: false, secondsVisible: false, borderVisible: false },
-      crosshair: { mode: 1 },
-      handleScroll: false,
-      handleScale: false,
-    });
-
-    candleRef.current = chart.addCandlestickSeries({
-      upColor: '#1BA86D',
-      downColor: '#D63B3B',
-      borderUpColor: '#1BA86D',
-      borderDownColor: '#D63B3B',
-      wickUpColor: '#1BA86D',
-      wickDownColor: '#D63B3B',
-    });
-
-    volRef.current = chart.addHistogramSeries({
-      color: '#7BA9C455',
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
-      scaleMargins: { top: 0.85, bottom: 0 },
-    });
-
-    chartRef.current = chart;
     createdRef.current = true;
 
-    const ro = new ResizeObserver(() => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-      }
+    // Use rAF so the container has a real clientWidth after first paint
+    const raf = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const w = containerRef.current.getBoundingClientRect().width || 280;
+
+      const chart = lwc.createChart(containerRef.current, {
+        width: Math.floor(w),
+        height: TILE_CANVAS_H,
+        ...getChartThemeOptions('tile'),
+        rightPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: 0.05, bottom: 0.05 } },
+        timeScale: { visible: false },
+        crosshair: { mode: 0 },
+        handleScroll: false,
+        handleScale: false,
+      });
+
+      candleRef.current = chart.addCandlestickSeries({
+        upColor: '#1BA86D', downColor: '#D63B3B',
+        borderUpColor: '#1BA86D', borderDownColor: '#D63B3B',
+        wickUpColor: '#1BA86D', wickDownColor: '#D63B3B',
+      });
+
+      chartRef.current = chart;
+
+      // Only resize WIDTH — never feed clientHeight back in
+      const ro = new ResizeObserver((entries) => {
+        const newW = Math.floor(entries[0].contentRect.width);
+        if (newW > 10) chartRef.current?.resize(newW, TILE_CANVAS_H);
+      });
+      ro.observe(containerRef.current);
+      containerRef.current._ro = ro;
     });
-    ro.observe(containerRef.current);
-    return () => { ro.disconnect(); };
+
+    return () => {
+      cancelAnimationFrame(raf);
+      containerRef.current?._ro?.disconnect();
+      chartRef.current?.remove();
+      chartRef.current = null;
+      candleRef.current = null;
+      createdRef.current = false;
+    };
   }, [lwc]);
 
-  // Fetch data
+  // Fetch + set data — waits for candleRef to be populated by rAF chart creation
   useEffect(() => {
-    if (!createdRef.current || !candleRef.current) return;
+    if (!lwc) return;
     let cancelled = false;
+    setLoading(true); setError('');
 
-    const load = async () => {
-      setLoading(true);
-      setError('');
+    (async () => {
+      // Poll until candleRef is ready (chart created in rAF, so brief wait needed)
+      let waited = 0;
+      while (!candleRef.current && waited < 3000) {
+        await new Promise(r => setTimeout(r, 50));
+        waited += 50;
+      }
+      if (cancelled || !candleRef.current) { setLoading(false); return; }
+
       try {
         const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${symbol}/?period=${tf.period}&interval=${tf.interval}`);
         const json = await res.json();
-        if (cancelled) return;
+        if (cancelled || !candleRef.current) return;
         if (json.success && json.data.length) {
-          // Ensure data is sorted ascending and time is a number
           const sorted = [...json.data].sort((a, b) => a.time - b.time);
-          candleRef.current.setData(sorted.map(d => ({
-            time: d.time,
-            open: d.open,
-            high: d.high,
-            low: d.low,
-            close: d.close,
-          })));
-          if (volRef.current) {
-            volRef.current.setData(sorted.map(d => ({
-              time: d.time,
-              value: d.volume || 0,
-              color: d.close >= d.open ? '#1BA86D44' : '#D63B3B44',
-            })));
-          }
+          candleRef.current.setData(sorted.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close })));
           chartRef.current?.timeScale().fitContent();
-        } else {
-          setError('No data');
-        }
-      } catch (e) {
-        if (!cancelled) setError('Error');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
+        } else { setError('—'); }
+      } catch { if (!cancelled) setError('err'); }
+      finally { if (!cancelled) setLoading(false); }
+    })();
 
-    const t = setTimeout(load, 100);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [symbol, tf]);
+    return () => { cancelled = true; };
+  }, [symbol, tf, lwc]);
 
-  const mssColor = mss >= 47 ? '#1BA86D' : mss >= 30 ? '#E89C2A' : '#D63B3B';
+  const tileMssColor = mss >= 47 ? '#1BA86D' : mss >= 30 ? '#E89C2A' : '#D63B3B';
 
   return (
     <div className="snw-chart-tile">
@@ -1230,20 +1230,24 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {mss != null && (
-            <span className="snw-chart-tile-mss" style={{ background: `${mssColor}22`, color: mssColor }}>
+            <span className="snw-chart-tile-mss" style={{ background: `${tileMssColor}22`, color: tileMssColor }}>
               {mss?.toFixed(1)}
             </span>
           )}
           <button className="snw-chart-tile-expand" onClick={() => onExpand(symbol)} title="Open full chart">⤢</button>
         </div>
       </div>
-      <div className="snw-chart-tile-canvas" style={{ height: 160 }}>
-        {(loading || error) && (
-          <div className="snw-chart-tile-loading">
-            {loading ? <><span className="snw-chart-tile-spinner" />{symbol}</> : <span style={{ color: '#D63B3B55' }}>—</span>}
+      {/* Wrapper has explicit height so the tile card never grows */}
+      <div style={{ position: 'relative', height: TILE_CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
+        {loading && (
+          <div className="snw-chart-tile-loading" style={{ position: 'absolute', inset: 0 }}>
+            <span className="snw-chart-tile-spinner" />{symbol}
           </div>
         )}
-        <div ref={containerRef} style={{ width: '100%', height: '100%', visibility: loading || error ? 'hidden' : 'visible' }} />
+        {error && !loading && (
+          <div className="snw-chart-tile-loading" style={{ position: 'absolute', inset: 0, color: '#D63B3B66' }}>no data</div>
+        )}
+        <div ref={containerRef} style={{ width: '100%', height: TILE_CANVAS_H, opacity: loading ? 0 : 1, transition: 'opacity 0.3s' }} />
       </div>
     </div>
   );
@@ -1354,68 +1358,85 @@ const AssetChart = ({ symbol, onClose }) => {
   // Create chart once LWC is ready
   useEffect(() => {
     if (!lwc || !containerRef.current || chartCreated.current) return;
-
-    const chart = lwc.createChart(containerRef.current, {
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
-      ...getChartThemeOptions(theme),
-      rightPriceScale: { visible: true },
-      timeScale: { timeVisible: true, secondsVisible: false },
-    });
-
-    candleRef.current = chart.addCandlestickSeries({
-      upColor: '#1BA86D',
-      downColor: '#D63B3B',
-      borderUpColor: '#1BA86D',
-      borderDownColor: '#D63B3B',
-      wickUpColor: '#1BA86D',
-      wickDownColor: '#D63B3B',
-    });
-
-    volRef.current = chart.addHistogramSeries({
-      color: '#7BA9C4',
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-
-    mssRef.current = chart.addLineSeries({
-      color: '#3A9FD5',
-      lineWidth: 2,
-      priceLineVisible: false,
-      title: 'MSS',
-      priceScaleId: 'mss',
-      scaleMargins: { top: 0, bottom: 0.7 },
-    });
-
-    chartRef.current = chart;
     chartCreated.current = true;
 
-    const ro = new ResizeObserver(() => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-      }
+    // rAF so the flex container has real dimensions before we read them
+    const raf = requestAnimationFrame(() => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const w = rect.width || window.innerWidth;
+      const h = rect.height || window.innerHeight - 200;
+
+      const chart = lwc.createChart(containerRef.current, {
+        width: Math.floor(w),
+        height: Math.floor(h),
+        ...getChartThemeOptions(theme),
+        rightPriceScale: { visible: true, scaleMargins: { top: 0.05, bottom: 0.2 } },
+        timeScale: { timeVisible: true, secondsVisible: false },
+      });
+
+      candleRef.current = chart.addCandlestickSeries({
+        upColor: '#1BA86D', downColor: '#D63B3B',
+        borderUpColor: '#1BA86D', borderDownColor: '#D63B3B',
+        wickUpColor: '#1BA86D', wickDownColor: '#D63B3B',
+      });
+
+      // Volume as overlay on main pane — NO custom priceScaleId
+      volRef.current = chart.addHistogramSeries({
+        color: '#7BA9C444',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',   // empty string = overlay on main scale, no separate pane
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      // MSS line also as overlay — same right scale
+      mssRef.current = chart.addLineSeries({
+        color: '#3A9FD5',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        title: 'MSS',
+        priceScaleId: 'right',
+        scaleMargins: { top: 0.0, bottom: 0.25 },
+      });
+
+      chartRef.current = chart;
+
+      // ResizeObserver: only pass clientWidth; get height from container (which is position:absolute fill)
+      const ro = new ResizeObserver(() => {
+        if (!containerRef.current || !chartRef.current) return;
+        const r = containerRef.current.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0) {
+          chartRef.current.resize(Math.floor(r.width), Math.floor(r.height));
+        }
+      });
+      ro.observe(containerRef.current);
+      containerRef.current._ro = ro;
     });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      containerRef.current?._ro?.disconnect();
+    };
   }, [lwc]); // eslint-disable-line
 
   // Fetch OHLCV data
   const fetchData = useCallback(async () => {
+    // Poll until rAF chart creation sets candleRef
+    let waited = 0;
+    while (!candleRef.current && waited < 3000) {
+      await new Promise(r => setTimeout(r, 50));
+      waited += 50;
+    }
     if (!candleRef.current) return;
     setLoading(true); setError('');
     try {
       const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${symbol}/?period=${tf.period}&interval=${tf.interval}`);
       const json = await res.json();
       if (json.success && json.data.length) {
-        // Sort ascending by time and ensure numeric timestamps
         const sorted = [...json.data].sort((a, b) => a.time - b.time);
         candleRef.current.setData(sorted.map(d => ({
-          time: d.time,
-          open: d.open,
-          high: d.high,
-          low: d.low,
-          close: d.close,
+          time: d.time, open: d.open, high: d.high, low: d.low, close: d.close,
         })));
         if (volRef.current) {
           volRef.current.setData(sorted.map(d => ({
