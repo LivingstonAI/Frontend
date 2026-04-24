@@ -33,7 +33,6 @@ const CSS = `
     --snw-font-head: 'Syne', sans-serif;
     --snw-font-mono: 'DM Mono', monospace;
 
-    /* Page-level theme tokens */
     --snw-bg-primary: #F5FAFE;
     --snw-bg-secondary: #FFFFFF;
     --snw-text-primary: #0D2D45;
@@ -42,7 +41,6 @@ const CSS = `
     --snw-card-bg: #FFFFFF;
   }
 
-  /* ── Page root ── */
   .snw-root {
     min-height: 100vh;
     background: var(--snw-bg-primary);
@@ -50,7 +48,6 @@ const CSS = `
     color: var(--snw-text-primary);
   }
 
-  /* ── Top nav ── */
   .snw-topnav {
     position: sticky;
     top: 0;
@@ -85,7 +82,6 @@ const CSS = `
     border-radius: 50%;
     background: var(--snw-blue);
   }
-  /* Only animate the brand dot, never status cards */
   @keyframes snw-dot-pulse {
     0%,100%{ opacity:1; transform:scale(1); }
     50%{ opacity:.4; transform:scale(1.5); }
@@ -115,14 +111,12 @@ const CSS = `
   .snw-nav-link:hover { background: var(--snw-ice); color: var(--snw-text-primary); }
   .snw-nav-link.snw-active { background: var(--snw-ice); color: var(--snw-text-primary); font-weight: 600; }
 
-  /* ── Body ── */
   .snw-body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 28px 24px 48px;
   }
 
-  /* ── Page header ── */
   .snw-page-header {
     display: flex;
     align-items: flex-end;
@@ -144,7 +138,6 @@ const CSS = `
     margin-top: 4px;
   }
 
-  /* ── Status panel ── */
   .snw-status-panel {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -240,7 +233,6 @@ const CSS = `
     animation: snw-spin .7s linear infinite;
   }
 
-  /* ── Quick bar ── */
   .snw-quick-bar {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -267,7 +259,6 @@ const CSS = `
   .snw-quick-input:focus, .snw-quick-select:focus { outline: none; border-color: var(--snw-blue); }
   .snw-divider { width: 1px; height: 36px; background: var(--snw-border-color); align-self: flex-end; }
 
-  /* ── Buttons ── */
   .snw-btn {
     padding: 8px 18px;
     border-radius: var(--snw-radius-sm);
@@ -286,7 +277,297 @@ const CSS = `
   .snw-btn-secondary:hover { background: var(--snw-sky); }
   .snw-btn-sm { padding: 6px 14px; font-size: 11px; }
 
-  /* ── Advanced filters ── */
+  /* ── View All Charts Button ── */
+  .snw-view-all-charts-bar {
+    background: linear-gradient(135deg, var(--snw-deep) 0%, #1A7AB5 100%);
+    border: none;
+    border-radius: var(--snw-radius);
+    margin-bottom: 22px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 4px 20px rgba(26,94,138,0.25);
+    cursor: default;
+  }
+  .snw-view-all-charts-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .snw-view-all-charts-title {
+    font-family: var(--snw-font-head);
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+  }
+  .snw-view-all-charts-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    font-family: var(--snw-font-mono);
+  }
+  .snw-view-all-charts-btn {
+    padding: 10px 22px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    border-radius: var(--snw-radius-sm);
+    font-family: var(--snw-font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+  .snw-view-all-charts-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.28);
+    border-color: rgba(255,255,255,0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .snw-view-all-charts-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ── Multi-Tile Chart Grid Modal ── */
+  .snw-chartgrid-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: #0D2D45;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .snw-chartgrid-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #0a2236;
+    border-bottom: 1.5px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .snw-chartgrid-title {
+    font-family: var(--snw-font-head);
+    font-size: 16px;
+    font-weight: 800;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .snw-chartgrid-badge {
+    background: var(--snw-blue);
+    color: white;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--snw-font-mono);
+    font-weight: 600;
+  }
+  .snw-chartgrid-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .snw-chartgrid-layout-btn {
+    padding: 5px 12px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--snw-radius-sm);
+    font-family: var(--snw-font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snw-chartgrid-layout-btn.active,
+  .snw-chartgrid-layout-btn:hover {
+    background: rgba(58,159,213,0.3);
+    color: white;
+    border-color: var(--snw-blue);
+  }
+  .snw-chartgrid-close {
+    background: rgba(214,59,59,0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(214,59,59,0.3);
+    border-radius: var(--snw-radius-sm);
+    padding: 5px 12px;
+    font-family: var(--snw-font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snw-chartgrid-close:hover { background: rgba(214,59,59,0.3); }
+
+  .snw-chartgrid-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .snw-chartgrid-nav-info {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    font-family: var(--snw-font-mono);
+  }
+  .snw-chartgrid-nav-btns { display: flex; gap: 6px; }
+  .snw-chartgrid-nav-btn {
+    padding: 4px 14px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: var(--snw-radius-sm);
+    font-family: var(--snw-font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snw-chartgrid-nav-btn:hover:not(:disabled) {
+    background: rgba(58,159,213,0.25);
+    color: white;
+  }
+  .snw-chartgrid-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .snw-chartgrid-tf-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .snw-chartgrid-tf-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    font-family: var(--snw-font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+  }
+  .snw-chartgrid-tf-btn {
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.55);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    font-family: var(--snw-font-mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snw-chartgrid-tf-btn.active,
+  .snw-chartgrid-tf-btn:hover {
+    background: rgba(58,159,213,0.25);
+    color: #7DD3F8;
+    border-color: rgba(58,159,213,0.4);
+  }
+
+  .snw-chartgrid-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    min-height: 0;
+  }
+  .snw-chartgrid-grid {
+    display: grid;
+    gap: 10px;
+  }
+  .snw-chartgrid-grid.cols-1 { grid-template-columns: 1fr; }
+  .snw-chartgrid-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .snw-chartgrid-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .snw-chartgrid-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .snw-chart-tile {
+    background: #0f1e2e;
+    border: 1px solid rgba(58,159,213,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .snw-chart-tile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .snw-chart-tile-symbol {
+    font-family: var(--snw-font-head);
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+  }
+  .snw-chart-tile-meta {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    font-family: var(--snw-font-mono);
+  }
+  .snw-chart-tile-mss {
+    font-size: 10px;
+    font-family: var(--snw-font-mono);
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .snw-chart-tile-expand {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    transition: color 0.15s;
+    margin-left: 6px;
+  }
+  .snw-chart-tile-expand:hover { color: white; }
+  .snw-chart-tile-canvas {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+  .snw-chart-tile-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+    font-family: var(--snw-font-mono);
+    gap: 8px;
+  }
+  .snw-chart-tile-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(58,159,213,0.2);
+    border-top-color: var(--snw-blue);
+    border-radius: 50%;
+    animation: snw-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
   .snw-filters-panel {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -332,7 +613,6 @@ const CSS = `
   }
   .snw-range-grp span { font-size: 10px; color: var(--snw-text-secondary); white-space: nowrap; }
 
-  /* ── Active filter tags ── */
   .snw-active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .snw-filter-tag {
     background: var(--snw-ice);
@@ -349,7 +629,6 @@ const CSS = `
   .snw-filter-tag-clear { background: var(--snw-volatile); color: white; }
   .snw-filter-tag-clear .snw-filter-tag-rm { color: white; }
 
-  /* ── Column controls ── */
   .snw-col-ctrl {
     display: flex;
     align-items: center;
@@ -390,7 +669,6 @@ const CSS = `
   }
   .snw-col-chk:hover { background: var(--snw-ice); }
 
-  /* ── Stats ── */
   .snw-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -408,7 +686,6 @@ const CSS = `
   .snw-stat-value { font-family: var(--snw-font-head); font-size: 22px; font-weight: 800; color: var(--snw-text-primary); margin-top: 4px; }
   .snw-stat-sub { font-size: 10px; color: var(--snw-text-secondary); margin-top: 2px; }
 
-  /* ── Compare panel ── */
   .snw-compare-panel {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -438,7 +715,6 @@ const CSS = `
   }
   .snw-compare-tag-rm { background: none; border: none; cursor: pointer; color: var(--snw-volatile); font-size: 14px; line-height: 1; }
 
-  /* ── Table ── */
   .snw-table-wrap {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -491,7 +767,6 @@ const CSS = `
   }
   .snw-symbol-btn:hover { background: var(--snw-blue); color: white; border-color: var(--snw-blue); }
 
-  /* ── Badges ── */
   .snw-badge {
     display: inline-flex;
     align-items: center;
@@ -509,13 +784,11 @@ const CSS = `
   .snw-badge-bearish  { background: #FBDEDE; color: #D63B3B; }
   .snw-badge-neutral  { background: var(--snw-ice); color: var(--snw-text-secondary); }
 
-  /* ── MSS bar ── */
   .snw-mss-bar { display: flex; align-items: center; gap: 8px; }
   .snw-mss-track { flex: 1; height: 5px; background: var(--snw-ice); border-radius: 3px; min-width: 50px; overflow: hidden; }
   .snw-mss-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
   .snw-mss-num { font-family: var(--snw-font-head); font-weight: 700; font-size: 13px; min-width: 36px; text-align: right; }
 
-  /* ── Pagination ── */
   .snw-pagination {
     display: flex;
     align-items: center;
@@ -541,7 +814,6 @@ const CSS = `
   .snw-pag-btn.snw-pag-active { background: var(--snw-deep); color: white; border-color: var(--snw-deep); }
   .snw-pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ── Download panel ── */
   .snw-dl-panel {
     background: var(--snw-card-bg);
     border: 1.5px solid var(--snw-border-color);
@@ -568,13 +840,11 @@ const CSS = `
   .snw-dl-pdf  { border-color: #D63B3B; color: #D63B3B; background: #FBDEDE; }
   .snw-dl-json { border-color: var(--snw-text-secondary); color: var(--snw-text-secondary); background: var(--snw-ice); }
 
-  /* ── Loading / empty ── */
   .snw-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; gap: 14px; }
   .snw-empty { text-align: center; padding: 60px 24px; color: var(--snw-text-secondary); font-size: 13px; }
 
   /* ═══════════════════════════════════════════════════════
      CHART MODAL — fully self-contained theming
-     theme is applied via data-snw-chart-theme on the overlay
   ═══════════════════════════════════════════════════════ */
   .snw-chart-overlay {
     position: fixed;
@@ -584,7 +854,6 @@ const CSS = `
     flex-direction: column;
     overflow: hidden;
 
-    /* default (light) */
     --cht-bg:        #F5FAFE;
     --cht-bg2:       #FFFFFF;
     --cht-text:      #0D2D45;
@@ -594,7 +863,7 @@ const CSS = `
     --cht-btn-bg:    #EAF4FB;
     --cht-active-bg: #3A9FD5;
     --cht-active-fg: #FFFFFF;
-    --cht-cv-bg:     #FFFFFF;   /* canvas background */
+    --cht-cv-bg:     #FFFFFF;
     --cht-cv-grid:   #EAF4FB;
     --cht-cv-text:   #0D2D45;
   }
@@ -705,17 +974,6 @@ const CSS = `
     margin: 0 4px;
   }
 
-  /* ── Expand row for inline chart ── */
-  .snw-inline-chart-row td {
-    padding: 0 !important;
-    background: var(--snw-bg-primary);
-  }
-  .snw-inline-chart-wrap {
-    width: 100%;
-    border-bottom: 2px solid var(--snw-border-color);
-  }
-
-  /* ── Mobile ── */
   @media (max-width: 700px) {
     .snw-body { padding: 14px 10px 32px; }
     .snw-page-title { font-size: 20px; }
@@ -729,10 +987,14 @@ const CSS = `
     .snw-stats { grid-template-columns: repeat(2, 1fr); }
     .snw-chart-topbar { gap: 6px; }
     .snw-cht-btn { font-size: 10px; padding: 4px 8px; }
+    .snw-chartgrid-grid.cols-3,
+    .snw-chartgrid-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 480px) {
     .snw-stats { grid-template-columns: 1fr 1fr; }
-    .snw-pag-btns .snw-pag-btn:not(.snw-pag-active):not(:first-child):not(:last-child) { display: none; }
+    .snw-chartgrid-grid.cols-2,
+    .snw-chartgrid-grid.cols-3,
+    .snw-chartgrid-grid.cols-4 { grid-template-columns: 1fr; }
   }
 `;
 
@@ -740,6 +1002,7 @@ const CSS = `
 const PERIODS = [10, 15, 20, 30, 45, 60, 90, 180];
 const ASSET_CLASSES = ['all', 'stocks', 'forex', 'indices', 'commodities', 'bonds'];
 const PAGE_SIZE = 50;
+const CHART_GRID_PAGE_SIZE = 12; // How many tiles to show per grid page
 
 const NUMERIC_COLUMNS = [
   { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1, unit: '' },
@@ -792,6 +1055,14 @@ const TIMEFRAMES = [
   { label: '5Y', period: '5y', interval: '1wk' },
 ];
 
+const GRID_TF = [
+  { label: '1D', period: '1d', interval: '5m' },
+  { label: '1W', period: '5d', interval: '15m' },
+  { label: '1M', period: '1mo', interval: '1h' },
+  { label: '3M', period: '3mo', interval: '1d' },
+  { label: '1Y', period: '1y', interval: '1d' },
+];
+
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 function useDebounce(value, delay) {
   const [deb, setDeb] = useState(value);
@@ -803,15 +1074,27 @@ function useDebounce(value, delay) {
 }
 
 // ── Lightweight Charts loader ─────────────────────────────────────────────────
-// We load via CDN (v4) to avoid bundler version issues
+// Force v3.8 which has stable addCandlestickSeries API
 function useLWC() {
   const [lwc, setLwc] = useState(null);
   useEffect(() => {
-    if (window.LightweightCharts) { setLwc(window.LightweightCharts); return; }
+    // Remove any existing LWC to avoid version conflicts
+    const existing = document.querySelector('script[data-lwc]');
+    if (window.__lwcLoaded && window.LightweightCharts) {
+      setLwc(window.LightweightCharts);
+      return;
+    }
+    if (existing) return; // already loading
+
     const s = document.createElement('script');
-    s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.development.js';
+    s.setAttribute('data-lwc', '1');
+    // Use v3.8 — stable API with addCandlestickSeries, addHistogramSeries, addLineSeries
+    s.src = 'https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js';
     s.async = true;
-    s.onload = () => setLwc(window.LightweightCharts);
+    s.onload = () => {
+      window.__lwcLoaded = true;
+      setLwc(window.LightweightCharts);
+    };
     document.head.appendChild(s);
   }, []);
   return lwc;
@@ -820,18 +1103,236 @@ function useLWC() {
 // ── Chart theme configs ───────────────────────────────────────────────────────
 function getChartThemeOptions(theme) {
   if (theme === 'dark') return {
-    layout: { background: { color: '#1e293b' }, textColor: '#e2e8f0' },
+    layout: { backgroundColor: '#1e293b', textColor: '#e2e8f0' },
     grid: { vertLines: { color: '#263548' }, horzLines: { color: '#263548' } },
   };
   if (theme === 'hud') return {
-    layout: { background: { color: 'rgba(0,0,20,0.97)' }, textColor: '#00ffff' },
+    layout: { backgroundColor: 'rgba(0,0,20,0.97)', textColor: '#00ffff' },
     grid: { vertLines: { color: 'rgba(0,255,255,0.12)' }, horzLines: { color: 'rgba(0,255,255,0.12)' } },
   };
+  if (theme === 'tile') return {
+    layout: { backgroundColor: '#0f1e2e', textColor: '#94a3b8' },
+    grid: { vertLines: { color: '#1a2d42' }, horzLines: { color: '#1a2d42' } },
+  };
   return {
-    layout: { background: { color: '#FFFFFF' }, textColor: '#0D2D45' },
+    layout: { backgroundColor: '#FFFFFF', textColor: '#0D2D45' },
     grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } },
   };
 }
+
+// ── Single Chart Tile (used in the grid) ─────────────────────────────────────
+const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
+  const lwc = useLWC();
+  const containerRef = useRef(null);
+  const chartRef = useRef(null);
+  const candleRef = useRef(null);
+  const volRef = useRef(null);
+  const createdRef = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Create chart
+  useEffect(() => {
+    if (!lwc || !containerRef.current || createdRef.current) return;
+    const h = containerRef.current.clientHeight || 200;
+    const w = containerRef.current.clientWidth || 300;
+
+    const chart = lwc.createChart(containerRef.current, {
+      width: w,
+      height: h,
+      ...getChartThemeOptions('tile'),
+      rightPriceScale: { visible: true, borderVisible: false },
+      timeScale: { timeVisible: false, secondsVisible: false, borderVisible: false },
+      crosshair: { mode: 1 },
+      handleScroll: false,
+      handleScale: false,
+    });
+
+    candleRef.current = chart.addCandlestickSeries({
+      upColor: '#1BA86D',
+      downColor: '#D63B3B',
+      borderUpColor: '#1BA86D',
+      borderDownColor: '#D63B3B',
+      wickUpColor: '#1BA86D',
+      wickDownColor: '#D63B3B',
+    });
+
+    volRef.current = chart.addHistogramSeries({
+      color: '#7BA9C455',
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'vol',
+      scaleMargins: { top: 0.85, bottom: 0 },
+    });
+
+    chartRef.current = chart;
+    createdRef.current = true;
+
+    const ro = new ResizeObserver(() => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => { ro.disconnect(); };
+  }, [lwc]);
+
+  // Fetch data
+  useEffect(() => {
+    if (!createdRef.current || !candleRef.current) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${symbol}/?period=${tf.period}&interval=${tf.interval}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (json.success && json.data.length) {
+          // Ensure data is sorted ascending and time is a number
+          const sorted = [...json.data].sort((a, b) => a.time - b.time);
+          candleRef.current.setData(sorted.map(d => ({
+            time: d.time,
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close,
+          })));
+          if (volRef.current) {
+            volRef.current.setData(sorted.map(d => ({
+              time: d.time,
+              value: d.volume || 0,
+              color: d.close >= d.open ? '#1BA86D44' : '#D63B3B44',
+            })));
+          }
+          chartRef.current?.timeScale().fitContent();
+        } else {
+          setError('No data');
+        }
+      } catch (e) {
+        if (!cancelled) setError('Error');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    const t = setTimeout(load, 100);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [symbol, tf]);
+
+  const mssColor = mss >= 47 ? '#1BA86D' : mss >= 30 ? '#E89C2A' : '#D63B3B';
+
+  return (
+    <div className="snw-chart-tile">
+      <div className="snw-chart-tile-header">
+        <div>
+          <div className="snw-chart-tile-symbol">{symbol}</div>
+          <div className="snw-chart-tile-meta">{category}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {mss != null && (
+            <span className="snw-chart-tile-mss" style={{ background: `${mssColor}22`, color: mssColor }}>
+              {mss?.toFixed(1)}
+            </span>
+          )}
+          <button className="snw-chart-tile-expand" onClick={() => onExpand(symbol)} title="Open full chart">⤢</button>
+        </div>
+      </div>
+      <div className="snw-chart-tile-canvas" style={{ height: 160 }}>
+        {(loading || error) && (
+          <div className="snw-chart-tile-loading">
+            {loading ? <><span className="snw-chart-tile-spinner" />{symbol}</> : <span style={{ color: '#D63B3B55' }}>—</span>}
+          </div>
+        )}
+        <div ref={containerRef} style={{ width: '100%', height: '100%', visibility: loading || error ? 'hidden' : 'visible' }} />
+      </div>
+    </div>
+  );
+};
+
+// ── AllChartsGrid — full-screen grid of chart tiles ──────────────────────────
+const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
+  const [cols, setCols] = useState(3);
+  const [gridPage, setGridPage] = useState(0);
+  const [tf, setTf] = useState(GRID_TF[2]); // default 1M
+
+  const totalPages = Math.ceil(assets.length / CHART_GRID_PAGE_SIZE);
+  const pageAssets = assets.slice(gridPage * CHART_GRID_PAGE_SIZE, (gridPage + 1) * CHART_GRID_PAGE_SIZE);
+  const start = gridPage * CHART_GRID_PAGE_SIZE + 1;
+  const end = Math.min((gridPage + 1) * CHART_GRID_PAGE_SIZE, assets.length);
+
+  // Close on Escape
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  return (
+    <div className="snw-chartgrid-overlay">
+      {/* Top bar */}
+      <div className="snw-chartgrid-topbar">
+        <div className="snw-chartgrid-title">
+          📈 All Charts
+          <span className="snw-chartgrid-badge">{assets.length} assets</span>
+        </div>
+        <div className="snw-chartgrid-controls">
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--snw-font-mono)', marginRight: 4 }}>LAYOUT</span>
+          {[1, 2, 3, 4].map(n => (
+            <button key={n} className={`snw-chartgrid-layout-btn${cols === n ? ' active' : ''}`} onClick={() => setCols(n)}>
+              {n === 1 ? '▬' : n === 2 ? '⊞²' : n === 3 ? '⊞³' : '⊞⁴'}
+            </button>
+          ))}
+          <button className="snw-chartgrid-close" onClick={onClose}>✕ Close</button>
+        </div>
+      </div>
+
+      {/* Timeframe bar */}
+      <div className="snw-chartgrid-tf-bar">
+        <span className="snw-chartgrid-tf-label">Timeframe:</span>
+        {GRID_TF.map(t => (
+          <button
+            key={t.label}
+            className={`snw-chartgrid-tf-btn${tf.period === t.period ? ' active' : ''}`}
+            onClick={() => setTf(t)}
+          >{t.label}</button>
+        ))}
+      </div>
+
+      {/* Pagination nav */}
+      <div className="snw-chartgrid-nav">
+        <div className="snw-chartgrid-nav-info">
+          Showing {start}–{end} of {assets.length} assets · Page {gridPage + 1} / {totalPages}
+        </div>
+        <div className="snw-chartgrid-nav-btns">
+          <button className="snw-chartgrid-nav-btn" disabled={gridPage === 0} onClick={() => setGridPage(0)}>«</button>
+          <button className="snw-chartgrid-nav-btn" disabled={gridPage === 0} onClick={() => setGridPage(p => p - 1)}>‹ Prev</button>
+          <button className="snw-chartgrid-nav-btn" disabled={gridPage >= totalPages - 1} onClick={() => setGridPage(p => p + 1)}>Next ›</button>
+          <button className="snw-chartgrid-nav-btn" disabled={gridPage >= totalPages - 1} onClick={() => setGridPage(totalPages - 1)}>»</button>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="snw-chartgrid-body">
+        <div className={`snw-chartgrid-grid cols-${cols}`}>
+          {pageAssets.map(asset => (
+            <ChartTile
+              key={`${asset.symbol}-${gridPage}-${tf.period}`}
+              symbol={asset.symbol}
+              mss={asset.mss}
+              category={asset.category}
+              tf={tf}
+              onExpand={(sym) => {
+                onClose();
+                onExpandSingle(sym);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── AssetChart — full-screen modal for single asset ──────────────────────────
 const AssetChart = ({ symbol, onClose }) => {
@@ -851,7 +1352,7 @@ const AssetChart = ({ symbol, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create chart once LWC is ready and container is mounted
+  // Create chart once LWC is ready
   useEffect(() => {
     if (!lwc || !containerRef.current || chartCreated.current) return;
 
@@ -863,57 +1364,37 @@ const AssetChart = ({ symbol, onClose }) => {
       timeScale: { timeVisible: true, secondsVisible: false },
     });
 
-    // v4 API: createSeriesMarkers replaced. Use addSeries with Series type refs.
-    // Fallback: try addCandlestickSeries (v3) first, then v4 pattern
-    try {
-      candleRef.current = chart.addCandlestickSeries({
-        upColor: '#1BA86D', downColor: '#D63B3B',
-        borderUpColor: '#1BA86D', borderDownColor: '#D63B3B',
-        wickUpColor: '#1BA86D', wickDownColor: '#D63B3B',
-      });
-      volRef.current = chart.addHistogramSeries({
-        color: '#7BA9C4',
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'vol',
-        scaleMargins: { top: 0.8, bottom: 0 },
-      });
-      mssRef.current = chart.addLineSeries({
-        color: '#3A9FD5',
-        lineWidth: 2,
-        priceLineVisible: false,
-        title: 'MSS',
-        priceScaleId: 'mss',
-        scaleMargins: { top: 0, bottom: 0.7 },
-      });
-    } catch (e) {
-      // v4 pattern
-      const { CandlestickSeries, HistogramSeries, LineSeries } = lwc;
-      if (CandlestickSeries) {
-        candleRef.current = chart.addSeries(CandlestickSeries, {
-          upColor: '#1BA86D', downColor: '#D63B3B',
-          borderUpColor: '#1BA86D', borderDownColor: '#D63B3B',
-          wickUpColor: '#1BA86D', wickDownColor: '#D63B3B',
-        });
-        volRef.current = chart.addSeries(HistogramSeries, {
-          color: '#7BA9C4',
-          priceFormat: { type: 'volume' },
-          priceScaleId: 'vol',
-        });
-        mssRef.current = chart.addSeries(LineSeries, {
-          color: '#3A9FD5', lineWidth: 2, priceLineVisible: false, title: 'MSS',
-        });
-      }
-    }
+    candleRef.current = chart.addCandlestickSeries({
+      upColor: '#1BA86D',
+      downColor: '#D63B3B',
+      borderUpColor: '#1BA86D',
+      borderDownColor: '#D63B3B',
+      wickUpColor: '#1BA86D',
+      wickDownColor: '#D63B3B',
+    });
+
+    volRef.current = chart.addHistogramSeries({
+      color: '#7BA9C4',
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'vol',
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    mssRef.current = chart.addLineSeries({
+      color: '#3A9FD5',
+      lineWidth: 2,
+      priceLineVisible: false,
+      title: 'MSS',
+      priceScaleId: 'mss',
+      scaleMargins: { top: 0, bottom: 0.7 },
+    });
 
     chartRef.current = chart;
     chartCreated.current = true;
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
+        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
       }
     });
     ro.observe(containerRef.current);
@@ -928,9 +1409,17 @@ const AssetChart = ({ symbol, onClose }) => {
       const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${symbol}/?period=${tf.period}&interval=${tf.interval}`);
       const json = await res.json();
       if (json.success && json.data.length) {
-        candleRef.current.setData(json.data);
+        // Sort ascending by time and ensure numeric timestamps
+        const sorted = [...json.data].sort((a, b) => a.time - b.time);
+        candleRef.current.setData(sorted.map(d => ({
+          time: d.time,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+        })));
         if (volRef.current) {
-          volRef.current.setData(json.data.map(d => ({
+          volRef.current.setData(sorted.map(d => ({
             time: d.time,
             value: d.volume || 0,
             color: d.close >= d.open ? '#1BA86D55' : '#D63B3B55',
@@ -951,30 +1440,29 @@ const AssetChart = ({ symbol, onClose }) => {
     try {
       const res = await fetch(`${BASE_URL}/api/mss-chart/v1/mss-overlay/${symbol}/?period=60&days=365`);
       const json = await res.json();
-      if (json.success) mssRef.current.setData(json.data.map(d => ({ time: d.time, value: d.value })));
+      if (json.success && json.data.length) {
+        const sorted = [...json.data].sort((a, b) => a.time - b.time);
+        mssRef.current.setData(sorted.map(d => ({ time: d.time, value: d.value })));
+      }
     } catch (_) {}
   }, [symbol, showMSS]);
 
-  // Re-fetch when series are ready + tf changes
   useEffect(() => {
     if (!chartCreated.current) return;
     const t = setTimeout(() => { fetchData(); fetchMSS(); }, 150);
     return () => clearTimeout(t);
   }, [fetchData, fetchMSS]);
 
-  // Apply theme changes
   useEffect(() => {
     if (chartRef.current) chartRef.current.applyOptions(getChartThemeOptions(theme));
   }, [theme]);
 
-  // Auto refresh
   useEffect(() => {
     if (!autoRefresh) return;
     const id = setInterval(() => { fetchData(); fetchMSS(); }, 60000);
     return () => clearInterval(id);
   }, [autoRefresh, fetchData, fetchMSS]);
 
-  // Close on Escape
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
@@ -984,14 +1472,12 @@ const AssetChart = ({ symbol, onClose }) => {
   return (
     <div className="snw-chart-overlay" data-snw-chart-theme={theme} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="snw-chart-inner">
-        {/* Top bar */}
         <div className="snw-chart-topbar">
           <div className="snw-chart-title-wrap">
             <h3>{symbol}{meta?.name && meta.name !== symbol ? ` — ${meta.name}` : ''}</h3>
             <small>{[meta?.sector, meta?.currency].filter(Boolean).join(' · ')}</small>
           </div>
           <div className="snw-chart-topbar-right">
-            {/* Theme toggle */}
             <button className={`snw-cht-btn${theme === 'light' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
             <button className={`snw-cht-btn${theme === 'dark' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
             <button className={`snw-cht-btn${theme === 'hud' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('hud')}>🖥 HUD</button>
@@ -999,7 +1485,6 @@ const AssetChart = ({ symbol, onClose }) => {
           </div>
         </div>
 
-        {/* Canvas */}
         <div className="snw-chart-canvas-wrap">
           {loading && !chartCreated.current && (
             <div className="snw-loading"><div className="snw-spinner-lg" /></div>
@@ -1008,7 +1493,6 @@ const AssetChart = ({ symbol, onClose }) => {
           <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
         </div>
 
-        {/* Controls */}
         <div className="snw-chart-controls">
           {TIMEFRAMES.map(t => (
             <button
@@ -1062,10 +1546,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
+        chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
       }
     });
     ro.observe(containerRef.current);
@@ -1081,16 +1562,17 @@ const MultiCompareChart = ({ symbols, onClose }) => {
         const res = await fetch(`${BASE_URL}/api/mss-chart/v1/data/${sym}/?period=${period}&interval=1d`);
         const json = await res.json();
         if (json.success && json.data.length) {
-          const priceData = json.data.map(d => ({ time: d.time, value: d.close }));
+          const sorted = [...json.data].sort((a, b) => a.time - b.time);
+          const priceData = sorted.map(d => ({ time: d.time, value: d.close }));
           if (seriesMap.current[sym]) {
             seriesMap.current[sym].setData(priceData);
           } else if (chartRef.current) {
-            let series;
-            try {
-              series = chartRef.current.addLineSeries({ color: COLORS[i % COLORS.length], lineWidth: 2, title: sym, priceLineVisible: false });
-            } catch (_) {
-              series = chartRef.current.addSeries(lwc.LineSeries, { color: COLORS[i % COLORS.length], lineWidth: 2, title: sym });
-            }
+            const series = chartRef.current.addLineSeries({
+              color: COLORS[i % COLORS.length],
+              lineWidth: 2,
+              title: sym,
+              priceLineVisible: false,
+            });
             series.setData(priceData);
             seriesMap.current[sym] = series;
           }
@@ -1099,7 +1581,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
     }
     chartRef.current?.timeScale().fitContent();
     setLoading(false);
-  }, [symbols, period, lwc]); // eslint-disable-line
+  }, [symbols, period]); // eslint-disable-line
 
   useEffect(() => {
     if (!chartCreated.current) return;
@@ -1208,10 +1690,17 @@ export default function DataTracker() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSymbols, setCompareSymbols] = useState([]);
   const [hiddenColumns, setHiddenColumns] = useState([]);
-  // Track which row is expanded for inline chart (future use)
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [showAllCharts, setShowAllCharts] = useState(false);
 
   const debouncedSymbol = useDebounce(symbol, 500);
+
+  // Unique symbols from current filtered data for the grid
+  const uniquePageAssets = React.useMemo(() => {
+    const seen = new Set();
+    return paginatedData
+      .filter(r => { if (seen.has(r.symbol)) return false; seen.add(r.symbol); return true; })
+      .map(r => ({ symbol: r.symbol, mss: r.mss, category: r.category }));
+  }, [paginatedData]);
 
   const fetchPeriodStatus = useCallback(async () => {
     try {
@@ -1580,6 +2069,29 @@ export default function DataTracker() {
             </div>
           )}
 
+          {/* ── VIEW ALL CHARTS BAR ── */}
+          {paginatedData.length > 0 && (
+            <div className="snw-view-all-charts-bar">
+              <div className="snw-view-all-charts-info">
+                <div className="snw-view-all-charts-title">📈 Chart View</div>
+                <div className="snw-view-all-charts-sub">
+                  View candlestick charts for all {uniquePageAssets.length} assets on this page in a grid layout
+                </div>
+              </div>
+              <button
+                className="snw-view-all-charts-btn"
+                onClick={() => setShowAllCharts(true)}
+                disabled={loading}
+              >
+                <span>⊞</span>
+                View All Charts
+                <span style={{ fontSize: 10, opacity: 0.7, background: 'rgba(255,255,255,0.15)', padding: '1px 6px', borderRadius: 4 }}>
+                  {uniquePageAssets.length}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Download panel */}
           {activeTab === 'download' && (
             <div className="snw-dl-panel">
@@ -1680,12 +2192,19 @@ export default function DataTracker() {
         </div>
       </div>
 
-      {/* ── Chart modals (rendered outside table to avoid stacking context issues) ── */}
+      {/* ── Chart modals ── */}
       {chartSymbol && (
         <AssetChart symbol={chartSymbol} onClose={() => setChartSymbol(null)} />
       )}
       {compareMode && compareSymbols.length >= 2 && (
         <MultiCompareChart symbols={compareSymbols} onClose={() => setCompareMode(false)} />
+      )}
+      {showAllCharts && uniquePageAssets.length > 0 && (
+        <AllChartsGrid
+          assets={uniquePageAssets}
+          onClose={() => setShowAllCharts(false)}
+          onExpandSingle={(sym) => { setShowAllCharts(false); setChartSymbol(sym); }}
+        />
       )}
     </div>
   );
