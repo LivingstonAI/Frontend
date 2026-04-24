@@ -1064,11 +1064,15 @@ const TIMEFRAMES = [
 ];
 
 const GRID_TF = [
-  { label: '1D', period: '1d', interval: '5m' },
-  { label: '1W', period: '5d', interval: '15m' },
-  { label: '1M', period: '1mo', interval: '1h' },
-  { label: '3M', period: '3mo', interval: '1d' },
-  { label: '1Y', period: '1y', interval: '1d' },
+  { label: '1H',  period: '1d',  interval: '1m'  },
+  { label: '4H',  period: '5d',  interval: '5m'  },
+  { label: '1D',  period: '1d',  interval: '5m'  },
+  { label: '3D',  period: '5d',  interval: '15m' },
+  { label: '1W',  period: '5d',  interval: '30m' },
+  { label: '1M',  period: '1mo', interval: '1h'  },
+  { label: '3M',  period: '3mo', interval: '1d'  },
+  { label: '6M',  period: '6mo', interval: '1d'  },
+  { label: '1Y',  period: '1y',  interval: '1d'  },
 ];
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -1129,7 +1133,7 @@ function getChartThemeOptions(theme) {
 
 // ── Single Chart Tile (used in the grid) ─────────────────────────────────────
 // FIXED height — never let ResizeObserver feed clientHeight back into chart.resize()
-const TILE_CANVAS_H = 160;
+const TILE_CANVAS_H = 200;
 
 const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
   const lwc = useLWC();
@@ -1155,10 +1159,10 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
         height: TILE_CANVAS_H,
         ...getChartThemeOptions('tile'),
         rightPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: 0.05, bottom: 0.05 } },
-        timeScale: { visible: false },
-        crosshair: { mode: 0 },
-        handleScroll: false,
-        handleScale: false,
+        timeScale: { visible: true, timeVisible: true, secondsVisible: false, borderVisible: false },
+        crosshair: { mode: 1 },
+        handleScroll: true,
+        handleScale: true,
       });
 
       candleRef.current = chart.addCandlestickSeries({
