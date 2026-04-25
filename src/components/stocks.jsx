@@ -1682,6 +1682,7 @@ function EarningsCalendar({ onSelectTicker }) {
     const [currentMonth,  setCurrentMonth]  = React.useState(() => new Date());
     const [selectedDay,   setSelectedDay]   = React.useState(null);
     const [showModal,     setShowModal]     = React.useState(false);
+    const [hoveredCell,   setHoveredCell]   = React.useState(null); // { dateStr, x, y }
     const [modalEarnings, setModalEarnings] = React.useState([]);
     const [search,        setSearch]        = React.useState('');
     const [sectorFilter,  setSectorFilter]  = React.useState('All');
@@ -1761,6 +1762,13 @@ function EarningsCalendar({ onSelectTicker }) {
         return `$${v}`;
     };
 
+    const fmtRev = (v) => {
+        if (!v) return '—';
+        if (Math.abs(v) >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+        if (Math.abs(v) >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+        if (Math.abs(v) >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
     const fmtDate = (d) => {
         if (!d) return '—';
         const dt = new Date(d + 'T12:00:00');
@@ -1847,8 +1855,17 @@ function EarningsCalendar({ onSelectTicker }) {
                                         opacity: past && !todayCell ? 0.6 : 1,
                                         transition:'background 0.1s',
                                     }}
-                                    onMouseEnter={e => { if (top.length > 0) e.currentTarget.style.backgroundColor = todayCell ? '#dbeafe' : '#f0f9ff'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff'; }}
+                                    onMouseEnter={e => {
+                                        if (top.length > 0) {
+                                            e.currentTarget.style.backgroundColor = todayCell ? '#dbeafe' : '#f0f9ff';
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setHoveredCell({ dateStr, rect });
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.backgroundColor = todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff';
+                                        setHoveredCell(null);
+                                    }}
                                 >
                                     {/* Day number */}
                                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' }}>
@@ -1876,6 +1893,88 @@ function EarningsCalendar({ onSelectTicker }) {
                             );
                         })}
                     </div>
+
+                    {/* ── Day hover popover ── */}
+                    {hoveredCell && (() => {
+                        const dayData = (byDate[hoveredCell.dateStr] || [])
+                            .sort((a, b) => (b.marketCap||0) - (a.marketCap||0));
+                        if (!dayData.length) return null;
+                        const today2 = new Date().toISOString().slice(0, 10);
+                        const isPastDay = hoveredCell.dateStr < today2;
+                        return (
+                            <div style={{
+                                position:'fixed',
+                                top: Math.min(hoveredCell.rect.bottom + 6, window.innerHeight - 320),
+                                left: Math.min(hoveredCell.rect.left, window.innerWidth - 320),
+                                width:'300px', zIndex:9800,
+                                backgroundColor:'#fff', borderRadius:'12px',
+                                boxShadow:'0 8px 40px rgba(0,0,0,0.18)',
+                                border:'1px solid #e2e8f0', overflow:'hidden',
+                                pointerEvents:'none',
+                            }}>
+                                <div style={{ padding:'10px 14px', backgroundColor:'#1e3a5f', color:'#fff' }}>
+                                    <div style={{ fontSize:'12px', fontWeight:'800' }}>{fmtDate(hoveredCell.dateStr)}</div>
+                                    <div style={{ fontSize:'11px', opacity:0.7, marginTop:'2px' }}>{dayData.length} companies reporting</div>
+                                </div>
+                                <div style={{ maxHeight:'260px', overflowY:'auto' }}>
+                                    {dayData.slice(0, 8).map(e => {
+                                        const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        const beat = e.beat;
+                                        const hasPastData = !e.isUpcoming && (e.epsActual != null || e.revenueActual != null);
+                                        return (
+                                            <div key={e.ticker} style={{ padding:'8px 14px', borderBottom:'1px solid #f1f5f9' }}>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom: hasPastData ? '5px' : 0 }}>
+                                                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>{e.ticker}</span>
+                                                    <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'10px', backgroundColor:sc.bg, color:sc.text, fontWeight:'700', border:`1px solid ${sc.border}40` }}>{SECTOR_MAP[e.ticker]}</span>
+                                                    {!e.isUpcoming && beat != null && (
+                                                        <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px',
+                                                            backgroundColor: beat ? '#f0fdf4' : '#fef2f2',
+                                                            color: beat ? '#10b981' : '#ef4444',
+                                                            border: `1px solid ${beat ? '#bbf7d0' : '#fecaca'}` }}>
+                                                            {beat ? '✓ Beat' : '✗ Miss'}
+                                                        </span>
+                                                    )}
+                                                    {e.isUpcoming && (
+                                                        <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#3b82f6', border:'1px solid #bfdbfe' }}>Upcoming</span>
+                                                    )}
+                                                </div>
+                                                {hasPastData && (
+                                                    <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
+                                                        {e.epsActual != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>
+                                                                EPS <strong style={{ color: beat ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                                {e.epsEstimate != null && <span style={{ color:'#94a3b8' }}> vs est ${e.epsEstimate}</span>}
+                                                                {e.surprisePct != null && (
+                                                                    <span style={{ fontWeight:'700', color: e.surprisePct >= 0 ? '#10b981' : '#ef4444', marginLeft:'3px' }}>
+                                                                        ({e.surprisePct >= 0 ? '+' : ''}{e.surprisePct}%)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {e.revenueActual != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>
+                                                                Rev <strong style={{ color:'#1e40af' }}>{fmtRev(e.revenueActual)}</strong>
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> vs est {fmtRev(e.revenueEstimate)}</span>}
+                                                            </div>
+                                                        )}
+                                                        {e.epsEstimate != null && e.epsActual == null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {e.isUpcoming && e.epsEstimate != null && (
+                                                    <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>
+                                                        EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
+                                                        {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* Sector legend */}
                     <div style={{ padding:'12px 20px', borderTop:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'6px', backgroundColor:'#f8fafc' }}>
@@ -1953,13 +2052,26 @@ function EarningsCalendar({ onSelectTicker }) {
                                                 <div style={{ fontSize:'12px', color:'#475569', fontWeight:'600', minWidth:'60px', textAlign:'right' }}>{fmtCap(e.marketCap)}</div>
                                                 {/* EPS */}
                                                 <div style={{ marginLeft:'auto', textAlign:'right', flexShrink:0 }}>
+                                                    {e.epsActual != null && e.beat != null && (
+                                                        <div style={{ fontSize:'11px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', marginBottom:'2px',
+                                                            backgroundColor: e.beat ? '#f0fdf4' : '#fef2f2',
+                                                            color: e.beat ? '#10b981' : '#ef4444',
+                                                            border:`1px solid ${e.beat ? '#bbf7d0':'#fecaca'}` }}>
+                                                            {e.beat ? '✓ Beat' : '✗ Missed'}
+                                                        </div>
+                                                    )}
                                                     {e.epsEstimate != null && (
-                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>Est. <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
                                                     )}
                                                     {e.epsActual != null && (
                                                         <div style={{ fontSize:'11px', color:'#64748b' }}>
-                                                            Act. <strong style={{ color: e.epsActual >= (e.epsEstimate||0) ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
-                                                            {surprise && <span style={{ marginLeft:'4px', fontSize:'10px', color: parseFloat(surprise)>=0?'#10b981':'#ef4444', fontWeight:'700' }}>({parseFloat(surprise)>=0?'+':''}{surprise}%)</span>}
+                                                            Act. <strong style={{ color: e.beat ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                            {e.surprisePct != null && <span style={{ marginLeft:'4px', fontSize:'10px', color: e.surprisePct>=0?'#10b981':'#ef4444', fontWeight:'700' }}>({e.surprisePct>=0?'+':''}{e.surprisePct}%)</span>}
+                                                        </div>
+                                                    )}
+                                                    {e.revenueActual != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>Rev <strong style={{ color:'#1e40af' }}>{fmtRev(e.revenueActual)}</strong>
+                                                            {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> vs {fmtRev(e.revenueEstimate)}</span>}
                                                         </div>
                                                     )}
                                                 </div>
