@@ -1962,10 +1962,15 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         )}
                                                     </div>
                                                 )}
-                                                {e.isUpcoming && e.epsEstimate != null && (
-                                                    <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>
-                                                        EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
-                                                        {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                {e.isUpcoming && (
+                                                    <div style={{ marginTop:'4px' }}>
+                                                        {e.epsEstimate != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569', marginBottom:'3px' }}>
+                                                                EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                            </div>
+                                                        )}
+                                                        <SentimentBadge e={e} compact={false} />
                                                     </div>
                                                 )}
                                             </div>
