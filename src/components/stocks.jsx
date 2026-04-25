@@ -2500,9 +2500,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const today = new Date().toISOString().slice(0, 10);
             const markers = (json.results || []).map(r => ({
                 date:     r.earningsDate?.slice(0, 10),
-                label:    r.earningsDate >= today ? '📅 Upcoming' : `E ${r.earningsDate?.slice(0,7)||''}`,
-                upcoming: r.earningsDate >= today,
+                // Trust isUpcoming flag from backend — it uses server-side today
+                label:    (r.isUpcoming ?? r.earningsDate >= today) ? '📅 E' : `E ${r.earningsDate?.slice(0,7)||''}`,
+                upcoming: r.isUpcoming ?? r.earningsDate >= today,
             })).filter(r => r.date);
+            console.log('[EarningsDate] markers parsed:', markers);
             console.log('[EarningsDate] parsed markers:', markers);
             earningsMarkersRef.current = markers;
             // Re-apply immediately with fresh data + current candles
