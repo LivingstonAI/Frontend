@@ -2431,6 +2431,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // Apply earnings date markers to the chart series
     // earnings = the quarterly array from props; also reads upcoming date from yfinance
     const applyEarningsMarkers = (series, candles, markersOverride) => {
+        console.log('🔔 applyEarningsMarkers CALLED — series:', !!series, 'candles:', candles?.length, 'override:', markersOverride?.length, 'ref:', earningsMarkersRef.current?.length, 'show:', showEarningsMarkersRef.current);
         if (!series || !candles?.length) return;
         // Use override if provided (e.g. from async fetch callback), else use ref
         const markerDates = markersOverride ?? earningsMarkersRef.current;
@@ -2486,6 +2487,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
 
     // Fetch upcoming earnings date for current ticker and cache it
     const fetchAndCacheEarningsDate = async (sym, candles) => {
+        console.log('🔔 fetchAndCacheEarningsDate CALLED for', sym, 'candles:', candles?.length);
         try {
             const BACKEND = 'https://backend-production-c0ab.up.railway.app';
             console.log('[EarningsDate] fetching for', sym);
@@ -2645,8 +2647,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 // Fetch upcoming earnings date async then re-apply markers
                 // Pass candles directly so fetchAndCacheEarningsDate can paint
                 // markers immediately when the async response comes back
+                console.log('🔔 About to call fetchAndCacheEarningsDate for', ticker, 'candles:', json.candles?.length);
                 fetchAndCacheEarningsDate(ticker, json.candles);
                 // First paint with whatever is already cached (empty on first load)
+                console.log('🔔 About to applyEarningsMarkers, series:', !!series, 'candles:', json.candles?.length);
                 applyEarningsMarkers(series, json.candles);
                 chart.timeScale().fitContent();
                 setLastRefreshed(new Date());
