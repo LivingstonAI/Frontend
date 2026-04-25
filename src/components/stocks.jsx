@@ -2032,7 +2032,8 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
     // ── Earnings markers on chart ──
     const [showEarningsMarkers, setShowEarningsMarkers] = useState(true);
-    const earningsMarkersRef = useRef([]); // cached for re-apply on refresh
+    const earningsMarkersRef       = useRef([]); // cached for re-apply on refresh
+    const showEarningsMarkersRef    = useRef(true); // ref mirror for closure safety
 
     // ── Drawing tools ──
     const LINE_COLORS = [
@@ -2080,6 +2081,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [optionsExpiry,      setOptionsExpiry]      = useState(null);
 
     useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
+    useEffect(() => { showEarningsMarkersRef.current = showEarningsMarkers; }, [showEarningsMarkers]);
     useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
 
     // Lower → Higher timeframes with smart default lookbacks
@@ -2428,96 +2430,85 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     // ── Helper: apply backend indicator data to chart ───────────────────────
     // Apply earnings date markers to the chart series
     // earnings = the quarterly array from props; also reads upcoming date from yfinance
-    const applyEarningsMarkers = (series, candles) => {
-        if (!series || !candles?.length || !showEarningsMarkers) {
-            series?.setMarkers?.([]);
+    const applyEarningsMarkers = (series, candles, markersOverride) => {
+        if (!series || !candles?.length) return;
+        // Use override if provided (e.g. from async fetch callback), else use ref
+        const markerDates = markersOverride ?? earningsMarkersRef.current;
+
+        if (!showEarningsMarkersRef.current || !markerDates.length) {
+            try { series.setMarkers([]); } catch {}
             return;
         }
-        // Build a set of YYYY-MM-DD strings from the candles for quick lookup
-        const candleDates = new Set(candles.map(c => {
-            // c.time can be unix timestamp (number) or 'YYYY-MM-DD' string
-            if (typeof c.time === 'number') {
-                return new Date(c.time * 1000).toISOString().slice(0, 10);
+
+        // Convert unix timestamp → YYYY-MM-DD using UTC to avoid timezone shifts
+        const unixToDate = (t) => {
+            if (typeof t === 'number') {
+                const d = new Date(t * 1000);
+                // Use UTC date parts — the backend stores midnight UTC for daily bars
+                return [
+                    d.getUTCFullYear(),
+                    String(d.getUTCMonth() + 1).padStart(2, '0'),
+                    String(d.getUTCDate()).padStart(2, '0'),
+                ].join('-');
             }
-            return String(c.time).slice(0, 10);
-        }));
+            return String(t).slice(0, 10);
+        };
+
+        // Map date string → candle for O(1) lookup
+        const dateToCandle = {};
+        candles.forEach(c => { dateToCandle[unixToDate(c.time)] = c; });
+
+        console.log('[Markers] candle date range:',
+            unixToDate(candles[0].time), '→', unixToDate(candles[candles.length-1].time));
+        console.log('[Markers] marker dates to place:', markerDates.map(m => m.date));
 
         const markers = [];
-
-        // Past earnings from props (quarterly history)
-        if (earnings?.length) {
-            earnings.forEach(e => {
-                if (!e.quarter) return;
-                // quarter is typically "Q1 2024" — try to find matching candle
-                // by scanning candles for the closest one to the quarter end
-                // Prefer exact date match if earningsDate field exists
-                const dateStr = e.earningsDate || null;
-                if (dateStr && candleDates.has(dateStr)) {
-                    const candle = candles.find(c => {
-                        const cd = typeof c.time === 'number'
-                            ? new Date(c.time * 1000).toISOString().slice(0, 10)
-                            : String(c.time).slice(0, 10);
-                        return cd === dateStr;
-                    });
-                    if (candle) {
-                        const beat = e.epsSurprise > 0;
-                        markers.push({
-                            time:     candle.time,
-                            position: 'belowBar',
-                            color:    beat ? '#10b981' : '#ef4444',
-                            shape:    'arrowUp',
-                            text:     `E ${e.quarter || ''}`,
-                            size:     1,
-                        });
-                    }
-                }
-            });
-        }
-
-        // Also place markers for any candle whose date matches a known earnings date
-        // from the earningsMarkersRef cache (populated by a lightweight fetch)
-        earningsMarkersRef.current.forEach(({ date, label, upcoming }) => {
-            // find matching candle
-            const candle = candles.find(c => {
-                const cd = typeof c.time === 'number'
-                    ? new Date(c.time * 1000).toISOString().slice(0, 10)
-                    : String(c.time).slice(0, 10);
-                return cd === date;
-            });
-            if (candle) {
-                markers.push({
-                    time:     candle.time,
-                    position: upcoming ? 'aboveBar' : 'belowBar',
-                    color:    upcoming ? '#3b82f6' : '#f59e0b',
-                    shape:    upcoming ? 'arrowDown' : 'arrowUp',
-                    text:     label || 'Earnings',
-                    size:     1,
-                });
+        markerDates.forEach(({ date, label, upcoming }) => {
+            const candle = dateToCandle[date];
+            if (!candle) {
+                console.log('[Markers] no candle found for', date, '(may be weekend/holiday or outside timeframe)');
+                return;
             }
+            markers.push({
+                time:     candle.time,
+                position: upcoming ? 'aboveBar' : 'belowBar',
+                color:    upcoming ? '#3b82f6' : '#f59e0b',
+                shape:    upcoming ? 'arrowDown' : 'arrowUp',
+                text:     label || 'E',
+                size:     2,
+            });
         });
 
-        // LWC requires markers sorted by time asc
-        markers.sort((a, b) => (a.time > b.time ? 1 : -1));
-        try { series.setMarkers(markers); } catch(e) { console.warn('[Markers]', e); }
+        markers.sort((a, b) => a.time - b.time);
+        console.log('[Markers] placing', markers.length, 'markers on chart');
+        try { series.setMarkers(markers); } catch(e) { console.error('[Markers] setMarkers failed:', e); }
     };
 
     // Fetch upcoming earnings date for current ticker and cache it
-    const fetchAndCacheEarningsDate = async (sym) => {
+    const fetchAndCacheEarningsDate = async (sym, candles) => {
         try {
             const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+            console.log('[EarningsDate] fetching for', sym);
             const res  = await fetch(`${BACKEND}/api/snowai_earnings_calendar_vault/`, {
                 method: 'POST', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ tickers: [sym] }),
             });
             const json = await res.json();
+            console.log('[EarningsDate] raw response:', json);
             const today = new Date().toISOString().slice(0, 10);
-            earningsMarkersRef.current = (json.results || []).map(r => ({
+            const markers = (json.results || []).map(r => ({
                 date:     r.earningsDate?.slice(0, 10),
-                label:    r.earningsDate >= today ? '📅 Upcoming' : `E ${r.earningsDate?.slice(0,7) || ''}`,
+                label:    r.earningsDate >= today ? '📅 Upcoming' : `E ${r.earningsDate?.slice(0,7)||''}`,
                 upcoming: r.earningsDate >= today,
             })).filter(r => r.date);
+            console.log('[EarningsDate] parsed markers:', markers);
+            earningsMarkersRef.current = markers;
+            // Re-apply immediately with fresh data + current candles
+            if (seriesRef.current && candles) {
+                applyEarningsMarkers(seriesRef.current, candles, markers);
+            }
         } catch(e) {
-            console.warn('[EarningsDate fetch]', e);
+            console.error('[EarningsDate] fetch failed:', e);
             earningsMarkersRef.current = [];
         }
     };
@@ -2652,9 +2643,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 seriesRef.current = series;
                 applyIndicators(chart, json, th2);
                 // Fetch upcoming earnings date async then re-apply markers
-                fetchAndCacheEarningsDate(ticker).then(() => {
-                    if (seriesRef.current) applyEarningsMarkers(seriesRef.current, json.candles);
-                });
+                // Pass candles directly so fetchAndCacheEarningsDate can paint
+                // markers immediately when the async response comes back
+                fetchAndCacheEarningsDate(ticker, json.candles);
+                // First paint with whatever is already cached (empty on first load)
                 applyEarningsMarkers(series, json.candles);
                 chart.timeScale().fitContent();
                 setLastRefreshed(new Date());
