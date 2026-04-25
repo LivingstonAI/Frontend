@@ -1762,6 +1762,70 @@ function EarningsCalendar({ onSelectTicker }) {
         return `$${v}`;
     };
 
+    const SENTIMENT_CONFIG = {
+        strongly_bullish: { label:'Strongly Bullish', icon:'🚀', bg:'#f0fdf4', border:'#10b981', text:'#065f46' },
+        bullish:          { label:'Bullish',           icon:'📈', bg:'#f0fdf4', border:'#34d399', text:'#065f46' },
+        in_line:          { label:'In Line',           icon:'➡️', bg:'#f8fafc', border:'#94a3b8', text:'#334155' },
+        bearish:          { label:'Bearish',           icon:'📉', bg:'#fef2f2', border:'#fca5a5', text:'#9f1239' },
+        strongly_bearish: { label:'Strongly Bearish',  icon:'🔻', bg:'#fef2f2', border:'#ef4444', text:'#7f1d1d' },
+    };
+
+    const SentimentBadge = ({ e, compact }) => {
+        if (!e.isUpcoming || !e.epsSentiment || !e.pastActuals?.length >= 2) return null;
+        const cfg = SENTIMENT_CONFIG[e.epsSentiment] || SENTIMENT_CONFIG.in_line;
+        return (
+            <div style={{ marginTop: compact ? '3px' : '6px' }}>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'3px 9px', borderRadius:'12px',
+                    backgroundColor:cfg.bg, border:`1px solid ${cfg.border}`, color:cfg.text, fontSize:'11px', fontWeight:'800' }}>
+                    {cfg.icon} {cfg.label}
+                    {e.epsVsTrendPct != null && (
+                        <span style={{ fontWeight:'500', opacity:0.8, marginLeft:'2px' }}>
+                            ({e.epsVsTrendPct >= 0 ? '+' : ''}{e.epsVsTrendPct}% vs trend)
+                        </span>
+                    )}
+                </div>
+                {!compact && e.epsTrendAvg != null && (
+                    <div style={{ marginTop:'4px', fontSize:'11px', color:'#64748b', lineHeight:'1.6' }}>
+                        Est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong> vs {e.pastActuals?.length}Q weighted avg <strong>${e.epsTrendAvg}</strong>
+                        {e.pastSurprises?.length > 0 && (
+                            <span style={{ marginLeft:'6px', color: (e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length) >= 0 ? '#10b981':'#ef4444' }}>
+                                · Avg beat {(e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length).toFixed(1)}%
+                            </span>
+                        )}
+                    </div>
+                )}
+                {!compact && e.pastActuals?.length >= 2 && (() => {
+                    const allVals = [...e.pastActuals, e.epsEstimate || 0];
+                    const maxAbs  = Math.max(...allVals.map(Math.abs), 0.01);
+                    return (
+                        <div style={{ marginTop:'6px' }}>
+                            <div style={{ display:'flex', gap:'3px', alignItems:'flex-end', height:'32px' }}>
+                                {e.pastActuals.map((v, i) => (
+                                    <div key={i} title={`Q-${e.pastActuals.length - i}: $${v}`}
+                                        style={{ flex:1, minWidth:'8px', borderRadius:'3px 3px 0 0',
+                                            height:`${Math.max(15, (Math.abs(v)/maxAbs)*100)}%`,
+                                            backgroundColor: v >= 0 ? '#93c5fd' : '#fca5a5' }} />
+                                ))}
+                                <div title={`Upcoming est: $${e.epsEstimate}`}
+                                    style={{ flex:1, minWidth:'8px', borderRadius:'3px 3px 0 0',
+                                        height:`${Math.max(15, (Math.abs(e.epsEstimate||0)/maxAbs)*100)}%`,
+                                        backgroundColor:cfg.border, border:`1.5px dashed ${cfg.text}` }} />
+                            </div>
+                            <div style={{ display:'flex', gap:'3px', marginTop:'2px' }}>
+                                {e.pastActuals.map((_, i) => (
+                                    <div key={i} style={{ flex:1, fontSize:'8px', color:'#94a3b8', textAlign:'center' }}>
+                                        Q-{e.pastActuals.length - i}
+                                    </div>
+                                ))}
+                                <div style={{ flex:1, fontSize:'8px', color:cfg.text, textAlign:'center', fontWeight:'800' }}>Est</div>
+                            </div>
+                        </div>
+                    );
+                })()}
+            </div>
+        );
+    };
+
     const fmtRev = (v) => {
         if (!v) return '—';
         if (Math.abs(v) >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
@@ -1962,10 +2026,15 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         )}
                                                     </div>
                                                 )}
-                                                {e.isUpcoming && e.epsEstimate != null && (
-                                                    <div style={{ fontSize:'11px', color:'#475569', marginTop:'2px' }}>
-                                                        EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
-                                                        {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                {e.isUpcoming && (
+                                                    <div style={{ marginTop:'4px' }}>
+                                                        {e.epsEstimate != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569', marginBottom:'3px' }}>
+                                                                EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                            </div>
+                                                        )}
+                                                        <SentimentBadge e={e} compact={false} />
                                                     </div>
                                                 )}
                                             </div>
