@@ -4,7 +4,7 @@ import Header from "./header";
 import SideNavs from "./side_navs";
 
 
-// ─── Hardcoded asset universe for comparison picker ───────────────────────────
+// --- Hardcoded asset universe for comparison picker ---------------------------
 const COMPARE_ASSETS = {
     forex: [
         'EURUSD=X','GBPUSD=X','USDJPY=X','AUDUSD=X','USDCAD=X','USDCHF=X',
@@ -108,7 +108,7 @@ const COMPARE_ASSETS = {
 };
 
 
-// ─── Earnings calendar — all monitored tickers with sector + name ─────────────
+// --- Earnings calendar -- all monitored tickers with sector + name -------------
 const SECTOR_MAP = {
     'AAPL':'Technology','MSFT':'Technology','GOOGL':'Technology','GOOG':'Technology',
     'AMZN':'Consumer Cyclical','NVDA':'Technology','TSLA':'Consumer Cyclical','META':'Technology',
@@ -239,7 +239,7 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
-// ─── Sabrina AI Chatbot Component ────────────────────────────────────────────
+// --- Sabrina AI Chatbot Component --------------------------------------------
 function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([{
@@ -260,7 +260,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
     const fileInputRef = useRef(null);
     const prevTickerRef = useRef(null);
 
-    // Load voices — browsers load them async, need retry + event
+    // Load voices -- browsers load them async, need retry + event
     useEffect(() => {
         const load = () => {
             const v = window.speechSynthesis.getVoices();
@@ -347,7 +347,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                 });
             }
         }
-        context += `\n\nBe concise but insightful. Use **bold** for key figures. Don't be overly cautious — give real analysis.`;
+        context += `\n\nBe concise but insightful. Use **bold** for key figures. Don't be overly cautious -- give real analysis.`;
         return context;
     };
 
@@ -356,7 +356,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
         if (!openaiKey) {
             setMessages(prev => [...prev,
                 { role: 'user', content: input, image: pendingImage?.dataUrl },
-                { role: 'assistant', content: "Can't reach my brain right now — OpenAI key not loaded yet. Try again in a sec 😅" }
+                { role: 'assistant', content: "Can't reach my brain right now -- OpenAI key not loaded yet. Try again in a sec 😅" }
             ]);
             setInput(''); setPendingImage(null);
             return;
@@ -369,7 +369,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
         setInput(''); setPendingImage(null);
         setLoading(true);
 
-        // Build OpenAI messages — include images where present
+        // Build OpenAI messages -- include images where present
         const apiMessages = [
             { role: 'system', content: buildSystemPrompt() },
             ...messages
@@ -411,7 +411,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
             const reply = data.choices?.[0]?.message?.content || "Hmm, lost my train of thought. Try again?";
             setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
         } catch {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Network hiccup — give me a sec 😼" }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Network hiccup -- give me a sec 😼" }]);
         } finally {
             setLoading(false);
         }
@@ -458,7 +458,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
 
     return (
         <>
-            {/* ── Orb ── */}
+            {/* -- Orb -- */}
             <div
                 onClick={() => { setIsOpen(o => !o); setOrbPulse(false); }}
                 title="Chat with Sabrina"
@@ -476,10 +476,10 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                 onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
-                {isOpen ? '✕' : '😼'}
+                {isOpen ? 'x' : '😼'}
             </div>
 
-            {/* ── Chat Panel ── */}
+            {/* -- Chat Panel -- */}
             {isOpen && (
                 <div className="sabrina-panel" style={{
                     position: 'fixed',
@@ -512,9 +512,9 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: 1.2 }}>Sabrina</div>
                             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px' }}>
-                                {ticker ? `Loaded: ${ticker}` : 'No stock loaded — ask anything'}
-                                {' · '}
-                                <span style={{ color: '#86efac' }}>● Online</span>
+                                {ticker ? `Loaded: ${ticker}` : 'No stock loaded -- ask anything'}
+                                {' . '}
+                                <span style={{ color: '#86efac' }}>o Online</span>
                             </div>
                         </div>
                         {/* Voice settings toggle */}
@@ -541,7 +541,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                                 <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '600' }}>🔊 Voice</span>
                                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>
-                                    {voices.length > 0 ? `${voices.length} available` : 'Loading…'}
+                                    {voices.length > 0 ? `${voices.length} available` : 'Loading...'}
                                 </span>
                                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginLeft: 'auto' }}>
                                     Click 🔊 on any reply to read it
@@ -561,13 +561,13 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                                 >
                                     {voices.map((v, i) => (
                                         <option key={i} value={v.name}>
-                                            {v.name} — {v.lang}{v.default ? ' ★' : ''}
+                                            {v.name} -- {v.lang}{v.default ? ' *' : ''}
                                         </option>
                                     ))}
                                 </select>
                             ) : (
                                 <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', padding: '6px 0' }}>
-                                    No voices loaded yet — try clicking the 🔊 button on a message first
+                                    No voices loaded yet -- try clicking the 🔊 button on a message first
                                 </div>
                             )}
                         </div>
@@ -616,7 +616,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                                             onMouseEnter={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
                                             onMouseLeave={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
                                         >
-                                            {speakingMsgIdx === idx ? '⏹ Stop' : '🔊'}
+                                            {speakingMsgIdx === idx ? 'Stop Stop' : '🔊'}
                                         </button>
                                     )}
                                 </div>
@@ -646,7 +646,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                         }}>
                             <img src={pendingImage.dataUrl} alt="pending" style={{ height: '48px', width: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
                             <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', flex: 1 }}>Image ready to send</span>
-                            <button onClick={() => setPendingImage(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '16px', cursor: 'pointer' }}>✕</button>
+                            <button onClick={() => setPendingImage(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '16px', cursor: 'pointer' }}>x</button>
                         </div>
                     )}
 
@@ -694,7 +694,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
                                 fontSize: '16px', cursor: loading || (!input.trim() && !pendingImage) ? 'not-allowed' : 'pointer',
                                 transition: 'background 0.15s',
                             }}
-                        >↑</button>
+                        >^</button>
                     </div>
                 </div>
             )}
@@ -735,7 +735,7 @@ function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey 
     );
 }
 
-// ─── AI News Analysis Modal ───────────────────────────────────────────────────
+// --- AI News Analysis Modal ---------------------------------------------------
 function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isAnalysing }) {
     if (!isOpen) return null;
 
@@ -824,7 +824,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                                 )}
                                 {analysis?.articleCount && (
                                     <span style={{ fontSize: '12px', color: '#999' }}>
-                                        · {analysis.articleCount} articles analysed
+                                        . {analysis.articleCount} articles analysed
                                     </span>
                                 )}
                             </div>
@@ -837,7 +837,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                         }}
                             onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.06)'}
-                        >✕</button>
+                        >x</button>
                     </div>
 
                     {/* Confidence bar */}
@@ -922,7 +922,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                     {analysis?.catalysts && analysis.catalysts.length > 0 && (
                         <div>
                             <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>
-                                {analysis.bias === 'BEARISH' ? '⚠️ RISK CATALYSTS' : '🚀 KEY CATALYSTS'}
+                                {analysis.bias === 'BEARISH' ? '!️ RISK CATALYSTS' : '🚀 KEY CATALYSTS'}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {analysis.catalysts.map((c, i) => (
@@ -950,7 +950,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                     {/* Risks */}
                     {analysis?.risks && analysis.risks.length > 0 && (
                         <div>
-                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>⚠️ WATCH-OUT RISKS</div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>!️ WATCH-OUT RISKS</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {analysis.risks.map((r, i) => (
                                     <div key={i} style={{
@@ -959,7 +959,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                                         borderRadius: '10px', padding: '12px 16px',
                                         border: '1px solid #fecaca',
                                     }}>
-                                        <div style={{ color: '#ef4444', fontSize: '16px', flexShrink: 0, marginTop: '1px', fontWeight: '700' }}>↘</div>
+                                        <div style={{ color: '#ef4444', fontSize: '16px', flexShrink: 0, marginTop: '1px', fontWeight: '700' }}>v</div>
                                         <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}
                                             dangerouslySetInnerHTML={{ __html: renderRich(r) }} />
                                     </div>
@@ -1028,7 +1028,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                         Close
                     </button>
                     <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#bbb' }}>
-                        Powered by Sabrina × GPT-4o mini
+                        Powered by Sabrina x GPT-4o mini
                     </div>
                 </div>
             </div>
@@ -1043,7 +1043,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
     );
 }
 
-// ─── News Section Component ───────────────────────────────────────────────────
+// --- News Section Component ---------------------------------------------------
 function EnhancedNewsSection({
     ticker, baseUrl, existingNews, openaiKey, stockData,
     hoistedMarketauxNews, setHoistedMarketauxNews,
@@ -1054,7 +1054,7 @@ function EnhancedNewsSection({
     hoistedCachedAnalyses, setHoistedCachedAnalyses,
     hoistedShowAnalysisModal, setHoistedShowAnalysisModal,
 }) {
-    // Use hoisted state — all persists across tab switches
+    // Use hoisted state -- all persists across tab switches
     const marketauxNews    = hoistedMarketauxNews  ?? [];
     const setMarketauxNews = setHoistedMarketauxNews  || useState([])[1];
     const fetchingNews     = hoistedFetchingNews   ?? false;
@@ -1067,7 +1067,7 @@ function EnhancedNewsSection({
     const setActiveNewsTab = setHoistedActiveNewsTab || useState('yahoo')[1];
     const [pendingArticle, setPendingArticle] = useState(null);
 
-    // Analysis states — use hoisted versions so they survive tab switches
+    // Analysis states -- use hoisted versions so they survive tab switches
     const showAnalysisModal    = hoistedShowAnalysisModal   ?? false;
     const setShowAnalysisModal = setHoistedShowAnalysisModal || useState(false)[1];
     const cachedAnalyses       = hoistedCachedAnalyses      ?? {};
@@ -1170,7 +1170,7 @@ Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${s
 P/E Ratio: ${stockData.trailingPE?.toFixed(2) || 'N/A'}` : `Stock: ${ticker}`;
 
         const articleDump = allArticles.slice(0, 12).map((a, i) =>
-            `[${i + 1}] "${a.title}" — ${a.source}\n${a.description || ''}${a.highlights ? '\nHighlight: ' + a.highlights : ''}`
+            `[${i + 1}] "${a.title}" -- ${a.source}\n${a.description || ''}${a.highlights ? '\nHighlight: ' + a.highlights : ''}`
         ).join('\n\n');
 
         const prompt = `You are Sabrina, a sharp AI stock analyst. Analyse these ${allArticles.length} news articles for ${ticker} and return a JSON object ONLY (no markdown, no backticks).
@@ -1250,7 +1250,7 @@ Return this exact JSON structure:
     return (
         <div style={{ width: '100%', boxSizing: 'border-box' }}>
 
-            {/* ── Top bar: tabs + AI button ── */}
+            {/* -- Top bar: tabs + AI button -- */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 {/* Yahoo tab */}
                 <button onClick={() => setActiveNewsTab('yahoo')} style={{
@@ -1360,13 +1360,13 @@ Return this exact JSON structure:
                     <span style={{ fontSize: '20px' }}>{biasIcons[currentAnalysis.bias]}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '13px', fontWeight: '700', color: biasColors[currentAnalysis.bias], marginBottom: '2px' }}>
-                            😼 Sabrina's Analysis — {currentAnalysis.bias} · {currentAnalysis.confidence}% confidence
+                            😼 Sabrina's Analysis -- {currentAnalysis.bias} . {currentAnalysis.confidence}% confidence
                         </div>
                         <div style={{ fontSize: '13px', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {currentAnalysis.tldr}
                         </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: '#999', flexShrink: 0 }}>Tap to expand ↗</div>
+                    <div style={{ fontSize: '12px', color: '#999', flexShrink: 0 }}>Tap to expand Go</div>
                 </div>
             )}
 
@@ -1377,7 +1377,7 @@ Return this exact JSON structure:
                     border: '1px solid #fecaca', color: '#b91c1c', marginBottom: '16px',
                     fontSize: '14px', display: 'flex', gap: '10px', alignItems: 'flex-start',
                 }}>
-                    <span style={{ fontSize: '18px', flexShrink: 0 }}>⚠️</span>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>!️</span>
                     <div><strong>{newsError ? "Couldn't load news:" : "Analysis error:"}</strong> {newsError || analysisError}</div>
                 </div>
             )}
@@ -1408,7 +1408,7 @@ Return this exact JSON structure:
                                         <div style={{ fontSize: '12px', color: '#888', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                                             {item.publisher && <span style={{ backgroundColor: '#fff', padding: '2px 8px', borderRadius: '10px', border: '1px solid #e0e0e0', fontWeight: '500' }}>{item.publisher}</span>}
                                             <span>{formatDate(item.providerPublishTime)}</span>
-                                            {item.link && <span style={{ color: '#2563eb' }}>↗ Read more</span>}
+                                            {item.link && <span style={{ color: '#2563eb' }}>Go Read more</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -1470,7 +1470,7 @@ Return this exact JSON structure:
                                                 return cleanText(raw.highlight || raw.text || raw.content || '');
                                             }
 
-                                            // Array — grab first item
+                                            // Array -- grab first item
                                             if (Array.isArray(raw)) {
                                                 if (raw.length === 0) return '';
                                                 const first = raw[0];
@@ -1481,7 +1481,7 @@ Return this exact JSON structure:
                                             // String handling
                                             const s = String(raw).trim();
 
-                                            // Pure plain string with no dict artifacts → use directly
+                                            // Pure plain string with no dict artifacts -> use directly
                                             if (!s.includes("'highlight'") && !s.includes('"highlight"') && !/\[\+?\d+ characters\]/.test(s)) {
                                                 return cleanText(s);
                                             }
@@ -1492,7 +1492,7 @@ Return this exact JSON structure:
                                             const pyMatch = s.match(/'highlight'\s*:\s*'([\s\S]*)',\s*'sentiment'/);
                                             if (pyMatch) return cleanText(pyMatch[1]);
 
-                                            // Truncated repr: text[+345 characters] — extract what came before
+                                            // Truncated repr: text[+345 characters] -- extract what came before
                                             const truncMatch = s.match(/^([\s\S]+?)\[\+?\d+ characters\]/);
                                             if (truncMatch) {
                                                 // Also strip leading dict key if present: {'highlight': 'ACTUAL TEXT
@@ -1513,7 +1513,7 @@ Return this exact JSON structure:
                                         };
 
                                         const hlText = extractHighlight(item.highlights);
-                                        const display = hlText.length > 280 ? hlText.substring(0, 280) + '…' : hlText;
+                                        const display = hlText.length > 280 ? hlText.substring(0, 280) + '...' : hlText;
 
                                         return display ? (
                                             <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '8px', padding: '10px 14px', borderLeft: `3px solid ${sentiment.dot}`, marginBottom: '10px' }}>
@@ -1522,7 +1522,7 @@ Return this exact JSON structure:
                                             </div>
                                         ) : null;
                                     })()}
-                                    {item.url && <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600' }}>↗ Read full article</div>}
+                                    {item.url && <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600' }}>Go Read full article</div>}
                                 </div>
                             );
                         })
@@ -1623,7 +1623,7 @@ Return this exact JSON structure:
                                     onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1d4ed8'}
                                     onMouseLeave={e => e.currentTarget.style.backgroundColor = '#2563eb'}
                                 >
-                                    <span>↗</span> Yes, open article
+                                    <span>Go</span> Yes, open article
                                 </button>
                                 <button
                                     onClick={() => setPendingArticle(null)}
@@ -1672,8 +1672,7 @@ function EmptyNewsState({ message }) {
     );
 }
 
-
-// ─── Earnings Calendar Component ──────────────────────────────────────────────
+// --- Earnings Calendar Component ----------------------------------------------
 function EarningsCalendar({ onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [earnings,      setEarnings]      = React.useState([]);
@@ -1683,16 +1682,16 @@ function EarningsCalendar({ onSelectTicker }) {
     const [selectedDay,   setSelectedDay]   = React.useState(null);
     const [showModal,     setShowModal]     = React.useState(false);
     const [hoveredCell,      setHoveredCell]      = React.useState(null);
-    const [reactionData,     setReactionData]     = React.useState(null);   // single reaction
+    const [reactionData,     setReactionData]     = React.useState(null);
     const [reactionLoading,  setReactionLoading]  = React.useState(false);
-    const [reactionTicker,   setReactionTicker]   = React.useState(null);   // which ticker
-    const [bulkReaction,     setBulkReaction]     = React.useState(null);   // bulk results
+    const [reactionTicker,   setReactionTicker]   = React.useState(null);
+    const [bulkReaction,     setBulkReaction]     = React.useState(null);
     const [bulkLoading,      setBulkLoading]      = React.useState(false);
     const [showBulk,         setShowBulk]         = React.useState(false);
     const [modalEarnings, setModalEarnings] = React.useState([]);
     const [search,        setSearch]        = React.useState('');
     const [sectorFilter,  setSectorFilter]  = React.useState('All');
-    const [sortBy,        setSortBy]        = React.useState('date'); // 'date' | 'marketcap' | 'sector'
+    const [sortBy,        setSortBy]        = React.useState('date');
 
     // Fetch all earnings on mount + month change
     React.useEffect(() => {
@@ -1716,16 +1715,16 @@ function EarningsCalendar({ onSelectTicker }) {
         }
     };
 
-    // ── Calendar helpers (no date-fns needed — pure JS) ──────────────────────
+    // -- Calendar helpers (no date-fns needed -- pure JS) ----------------------
     const year  = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-    const firstDay  = new Date(year, month, 1).getDay(); // 0=Sun
+    const firstDay  = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date().toISOString().slice(0, 10);
 
-    // Build date → earnings map
+    // Build date -> earnings map
     const byDate = {};
     earnings.forEach(e => {
         const d = e.earningsDate?.slice(0, 10);
@@ -1748,7 +1747,7 @@ function EarningsCalendar({ onSelectTicker }) {
         setShowModal(true);
     };
 
-    // ── Filter + sort for modal ───────────────────────────────────────────────
+    // -- Filter + sort for modal -----------------------------------------------
     const sectors = ['All', ...new Set(Object.values(SECTOR_MAP))].sort();
     const filtered = modalEarnings.filter(e => {
         const matchSearch = !search || e.ticker.includes(search.toUpperCase()) || (e.name||'').toUpperCase().includes(search.toUpperCase());
@@ -1761,14 +1760,12 @@ function EarningsCalendar({ onSelectTicker }) {
     });
 
     const fmtCap = (v) => {
-        if (!v) return '—';
+        if (!v) return '--';
         if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
         if (v >= 1e9)  return `$${(v/1e9).toFixed(1)}B`;
         if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
         return `$${v}`;
     };
-
-    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
     const fetchReaction = async (ticker, earningsDate) => {
         setReactionTicker(ticker);
@@ -1790,7 +1787,6 @@ function EarningsCalendar({ onSelectTicker }) {
     };
 
     const fetchBulkReaction = async () => {
-        // Collect all past earnings entries from our loaded data
         const pastItems = earnings
             .filter(e => !e.isUpcoming && e.earningsDate)
             .map(e => ({ ticker: e.ticker, earningsDate: e.earningsDate }))
@@ -1840,7 +1836,7 @@ function EarningsCalendar({ onSelectTicker }) {
                         Est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong> vs {e.pastActuals?.length}Q weighted avg <strong>${e.epsTrendAvg}</strong>
                         {e.pastSurprises?.length > 0 && (
                             <span style={{ marginLeft:'6px', color: (e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length) >= 0 ? '#10b981':'#ef4444' }}>
-                                · Avg beat {(e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length).toFixed(1)}%
+                                . Avg beat {(e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length).toFixed(1)}%
                             </span>
                         )}
                     </div>
@@ -1878,13 +1874,13 @@ function EarningsCalendar({ onSelectTicker }) {
     };
 
     const fmtRev = (v) => {
-        if (!v) return '—';
+        if (!v) return '--';
         if (Math.abs(v) >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
         if (Math.abs(v) >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
         if (Math.abs(v) >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
         return `$${v}`;
     };
-    // ── Reaction sparkline + stats panel ────────────────────────────────────
+
     const ReactionPanel = ({ data, onClose }) => {
         if (!data) return null;
         if (data.error) return (
@@ -1904,20 +1900,19 @@ function EarningsCalendar({ onSelectTicker }) {
         const area = `M0,${H} L${pts.split(' ').map((p,i) => i===0 ? `${p}` : p).join(' L')} L${W},${H} Z`;
 
         const col = v => !v ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
-        const fmt = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
+        const fmt = v => v == null ? '--' : `${v >= 0 ? '+' : ''}${v}%`;
         const earnIdx = sp.findIndex(p => p.dayN === 0);
 
         return (
             <div style={{ backgroundColor:'#fff', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'hidden', marginTop:'10px', boxShadow:'0 4px 16px rgba(0,0,0,0.08)' }}>
                 <div style={{ padding:'12px 16px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div>
-                        <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>📊 {data.ticker} — Post-Earnings Reaction</span>
+                        <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>📊 {data.ticker} -- Post-Earnings Reaction</span>
                         <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'1px' }}>Earnings: {data.earningsDate}</div>
                     </div>
                     <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer', lineHeight:1 }}>×</button>
                 </div>
 
-                {/* Sparkline */}
                 <div style={{ backgroundColor:'#0f172a', padding:'12px 16px 8px', position:'relative' }}>
                     <svg width="100%" viewBox={`0 0 ${W} ${H+4}`} style={{ display:'block' }}>
                         <defs>
@@ -1928,14 +1923,12 @@ function EarningsCalendar({ onSelectTicker }) {
                         </defs>
                         <path d={`M${area}`} fill="url(#rg)" />
                         <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinejoin="round"/>
-                        {/* Earnings day vertical line */}
                         {earnIdx >= 0 && (
                             <line
                                 x1={(earnIdx/(sp.length-1||1))*W} y1="0"
                                 x2={(earnIdx/(sp.length-1||1))*W} y2={H}
                                 stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,2" />
                         )}
-                        {/* Dots for key days */}
                         {sp.filter(p => [-1,0,1,3,5,10].includes(p.dayN)).map((p, i) => {
                             const xi = sp.indexOf(p);
                             const x  = (xi/(sp.length-1||1))*W;
@@ -1943,10 +1936,9 @@ function EarningsCalendar({ onSelectTicker }) {
                             return <circle key={i} cx={x} cy={y} r="3" fill="#fff" stroke="#3b82f6" strokeWidth="1.5"/>;
                         })}
                     </svg>
-                    <div style={{ fontSize:'9px', color:'#f59e0b', textAlign:'center', marginTop:'2px' }}>▲ earnings day</div>
+                    <div style={{ fontSize:'9px', color:'#f59e0b', textAlign:'center', marginTop:'2px' }}>^ earnings day</div>
                 </div>
 
-                {/* Stats grid */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'0', borderTop:'1px solid #f1f5f9' }}>
                     {[
                         { label:'Earn Day', val:data.pctEarnDay },
@@ -1962,16 +1954,15 @@ function EarningsCalendar({ onSelectTicker }) {
                     ))}
                 </div>
 
-                {/* Pre-close reference */}
                 <div style={{ padding:'8px 16px', backgroundColor:'#f8fafc', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#64748b' }}>
-                    Pre-earnings close: <strong>${data.preClose}</strong> · All % relative to that price
+                    Pre-earnings close: <strong>${data.preClose}</strong> . All % relative to that price
                 </div>
             </div>
         );
     };
 
     const fmtDate = (d) => {
-        if (!d) return '—';
+        if (!d) return '--';
         const dt = new Date(d + 'T12:00:00');
         return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
     };
@@ -1980,7 +1971,6 @@ function EarningsCalendar({ onSelectTicker }) {
     const isToday   = (d) => d === today;
     const isThisMonth = (d) => d?.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
 
-    // Calendar grid — 6 rows × 7 cols
     const cells = [];
     for (let i = 0; i < firstDay; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -2013,27 +2003,25 @@ function EarningsCalendar({ onSelectTicker }) {
 
             {error && (
                 <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#ef4444', fontSize:'13px', borderBottom:'1px solid #fecaca' }}>
-                    ⚠️ {error} — <button onClick={fetchEarnings} style={{ background:'none', border:'none', color:'#ef4444', textDecoration:'underline', cursor:'pointer' }}>retry</button>
+                    ⚠️ {error} -- <button onClick={fetchEarnings} style={{ background:'none', border:'none', color:'#ef4444', textDecoration:'underline', cursor:'pointer' }}>retry</button>
                 </div>
             )}
 
             {loading && !earnings.length && (
                 <div style={{ padding:'60px', textAlign:'center', color:'#64748b' }}>
                     <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'12px' }}>⏳</div>
-                    <div style={{ fontSize:'14px' }}>Fetching earnings dates for {ALL_CALENDAR_TICKERS.length} stocks…</div>
-                    <div style={{ fontSize:'12px', color:'#94a3b8', marginTop:'4px' }}>This takes ~15–30s the first time</div>
+                    <div style={{ fontSize:'14px' }}>Fetching earnings dates for {ALL_CALENDAR_TICKERS.length} stocks...</div>
+                    <div style={{ fontSize:'12px', color:'#94a3b8', marginTop:'4px' }}>This takes ~15-30s the first time</div>
                 </div>
             )}
 
-            {!loading || earnings.length > 0 ? (
+            {(!loading || earnings.length > 0) && (
                 <div style={{ padding:'0' }}>
-                    {/* Day headers */}
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid #e2e8f0' }}>
                         {DAYS.map(d => (
                             <div key={d} style={{ padding:'10px 0', textAlign:'center', fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.07em', backgroundColor:'#f8fafc' }}>{d}</div>
                         ))}
                     </div>
-                    {/* Calendar grid */}
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
                         {cells.map((day, idx) => {
                             if (!day) return <div key={`empty-${idx}`} style={{ minHeight:'90px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9', backgroundColor:'#fafbfc' }} />;
@@ -2068,7 +2056,6 @@ function EarningsCalendar({ onSelectTicker }) {
                                         setHoveredCell(null);
                                     }}
                                 >
-                                    {/* Day number */}
                                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' }}>
                                         <span style={{ fontSize:'12px', fontWeight: todayCell ? '800' : '500', color: todayCell ? '#2563eb' : isWknd ? '#94a3b8' : '#374151' }}>
                                             {day}
@@ -2079,7 +2066,6 @@ function EarningsCalendar({ onSelectTicker }) {
                                             </span>
                                         )}
                                     </div>
-                                    {/* Top 5 ticker chips */}
                                     <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
                                         {top.map(e => {
                                             const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
@@ -2095,7 +2081,6 @@ function EarningsCalendar({ onSelectTicker }) {
                         })}
                     </div>
 
-                    {/* ── Day hover popover ── */}
                     {hoveredCell && (() => {
                         const dayData = (byDate[hoveredCell.dateStr] || [])
                             .sort((a, b) => (b.marketCap||0) - (a.marketCap||0));
@@ -2168,7 +2153,7 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         {e.epsEstimate != null && (
                                                             <div style={{ fontSize:'11px', color:'#475569', marginBottom:'3px' }}>
                                                                 EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
-                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> · Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> . Rev est {fmtRev(e.revenueEstimate)}</span>}
                                                             </div>
                                                         )}
                                                         <SentimentBadge e={e} compact={false} />
@@ -2182,7 +2167,6 @@ function EarningsCalendar({ onSelectTicker }) {
                         );
                     })()}
 
-                    {/* Sector legend */}
                     <div style={{ padding:'12px 20px', borderTop:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'6px', backgroundColor:'#f8fafc' }}>
                         {Object.entries(SECTOR_COLORS).map(([sector, c]) => (
                             <div key={sector} style={{ display:'flex', alignItems:'center', gap:'4px', padding:'2px 8px', borderRadius:'12px', backgroundColor:c.bg, border:`1px solid ${c.border}40`, fontSize:'10px', fontWeight:'700', color:c.text }}>
@@ -2192,14 +2176,13 @@ function EarningsCalendar({ onSelectTicker }) {
                         ))}
                     </div>
                 </div>
-            ) : null}
+            )}
 
-            {/* ── Day detail modal ─────────────────────────────────────────────── */}
+            {/* Day detail modal */}
             {showModal && (
                 <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9600, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}
                     onClick={e => { if (e.target===e.currentTarget) setShowModal(false); }}>
                     <div style={{ backgroundColor:'#fff', borderRadius:'16px', width:'100%', maxWidth:'740px', maxHeight:'90vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.3)', overflow:'hidden' }}>
-
                         {/* Modal header */}
                         <div style={{ padding:'18px 24px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
                             <div>
@@ -2211,7 +2194,7 @@ function EarningsCalendar({ onSelectTicker }) {
 
                         {/* Controls */}
                         <div style={{ padding:'12px 20px', borderBottom:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', flexShrink:0 }}>
-                            <input type="text" placeholder="Search ticker or name…"
+                            <input type="text" placeholder="Search ticker or name..."
                                 value={search} onChange={e => setSearch(e.target.value)}
                                 style={{ flex:1, minWidth:'160px', padding:'7px 12px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', outline:'none' }} />
                             <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
@@ -2235,9 +2218,6 @@ function EarningsCalendar({ onSelectTicker }) {
                                     {filtered.map(e => {
                                         const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
                                         const past = e.earningsDate < today;
-                                        const surprise = e.epsActual != null && e.epsEstimate != null
-                                            ? ((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate) * 100).toFixed(1)
-                                            : null;
                                         return (
                                             <div key={e.ticker}
                                                 onClick={() => { setShowModal(false); if (onSelectTicker) onSelectTicker(e.ticker); }}
@@ -2245,18 +2225,14 @@ function EarningsCalendar({ onSelectTicker }) {
                                                 onMouseEnter={e2 => { e2.currentTarget.style.backgroundColor='#eff6ff'; e2.currentTarget.style.borderColor='#bfdbfe'; }}
                                                 onMouseLeave={e2 => { e2.currentTarget.style.backgroundColor='#f8fafc'; e2.currentTarget.style.borderColor='#e2e8f0'; }}
                                             >
-                                                {/* Ticker + name */}
                                                 <div style={{ minWidth:'55px' }}>
                                                     <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{e.ticker}</div>
                                                     <div style={{ fontSize:'10px', color:'#64748b', marginTop:'1px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'120px' }}>{e.name}</div>
                                                 </div>
-                                                {/* Sector badge */}
                                                 <div style={{ padding:'3px 8px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, border:`1px solid ${sc.border}40`, color:sc.text, whiteSpace:'nowrap', flexShrink:0 }}>
-                                                    {SECTOR_MAP[e.ticker] || '—'}
+                                                    {SECTOR_MAP[e.ticker] || '--'}
                                                 </div>
-                                                {/* Market cap */}
                                                 <div style={{ fontSize:'12px', color:'#475569', fontWeight:'600', minWidth:'60px', textAlign:'right' }}>{fmtCap(e.marketCap)}</div>
-                                                {/* EPS */}
                                                 <div style={{ marginLeft:'auto', textAlign:'right', flexShrink:0 }}>
                                                     {e.epsActual != null && e.beat != null && (
                                                         <div style={{ fontSize:'11px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', marginBottom:'2px',
@@ -2281,14 +2257,13 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         </div>
                                                     )}
                                                 </div>
-                                                {/* Status */}
                                                 <div style={{ flexShrink:0 }}>
                                                     {past
                                                         ? <span style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', backgroundColor:'#f1f5f9', padding:'2px 6px', borderRadius:'6px' }}>Reported</span>
                                                         : <span style={{ fontSize:'10px', fontWeight:'700', color:'#2563eb', backgroundColor:'#eff6ff', padding:'2px 6px', borderRadius:'6px' }}>Upcoming</span>
                                                     }
                                                 </div>
-                                                <div style={{ fontSize:'11px', color:'#2563eb', flexShrink:0 }}>↗</div>
+                                                <div style={{ fontSize:'11px', color:'#2563eb', flexShrink:0 }}>→</div>
                                             </div>
                                         );
                                     })}
@@ -2296,13 +2271,13 @@ function EarningsCalendar({ onSelectTicker }) {
                             )}
                         </div>
 
-                        {/* ── Reaction panel ── */}
+                        {/* Reaction panel */}
                         {(reactionLoading || reactionData) && (
                             <div style={{ padding:'0 20px 16px' }}>
                                 {reactionLoading && (
                                     <div style={{ padding:'20px', textAlign:'center', color:'#2563eb', backgroundColor:'#eff6ff', borderRadius:'12px', marginTop:'10px', fontSize:'13px' }}>
                                         <div style={{ fontSize:'22px', animation:'spin 0.8s linear infinite', display:'inline-block', marginBottom:'6px' }}>⏳</div>
-                                        <div>Fetching post-earnings reaction for <strong>{reactionTicker}</strong>…</div>
+                                        <div>Fetching post-earnings reaction for <strong>{reactionTicker}</strong>...</div>
                                         <div style={{ fontSize:'11px', color:'#64748b', marginTop:'3px' }}>Pulling ~2 weeks of price data around the earnings date</div>
                                     </div>
                                 )}
@@ -2312,90 +2287,76 @@ function EarningsCalendar({ onSelectTicker }) {
                             </div>
                         )}
                     </div>
-
-                    {/* ── Bulk reaction footer ── */}
-                    <div style={{ padding:'12px 20px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0, backgroundColor:'#f8fafc' }}>
-                        <div style={{ flex:1, fontSize:'11px', color:'#64748b' }}>
-                            <strong style={{ color:'#4c1d95' }}>⚡ Bulk Calculator</strong> — see how every stock here reacted post-earnings vs its pre-report price
-                        </div>
-                        <button onClick={fetchBulkReaction} disabled={bulkLoading}
-                            style={{ padding:'7px 14px', borderRadius:'9px', backgroundColor:'#7c3aed', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor: bulkLoading?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
-                            {bulkLoading
-                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Calculating…</>
-                                : '⚡ Bulk Reaction'}
-                        </button>
-                    </div>
                 </div>
-            </div>
             )}
 
-            {/* ── Bulk reaction results (below main calendar) ── */}
+            {/* Bulk reaction results */}
             {showBulk && (
                 <div style={{ margin:'0 0 20px', backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e2e8f0', overflow:'hidden' }}>
                     <div style={{ padding:'14px 20px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <div>
                             <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>⚡ Bulk Earnings Reaction</div>
-                            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Sorted by biggest D+1 move — all % from pre-earnings close</div>
+                            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Sorted by biggest D+1 move -- all % from pre-earnings close</div>
                         </div>
                         <button onClick={() => setShowBulk(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer' }}>×</button>
                     </div>
                     {bulkLoading && (
                         <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'13px' }}>
                             <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
-                            <div>Fetching post-earnings data for multiple stocks…</div>
-                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>~15–20s</div>
+                            <div>Fetching post-earnings data for multiple stocks...</div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>~15-20s</div>
                         </div>
                     )}
                     {!bulkLoading && bulkReaction?.length > 0 && (
                         <>
-                        <div style={{ overflowX:'auto' }}>
-                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
-                                <thead>
-                                    <tr style={{ backgroundColor:'#f8fafc' }}>
-                                        {['Ticker','Sector','Earnings Date','Earn Day','D+1','D+3','D+5','D+10'].map(h => (
-                                            <th key={h} style={{ padding:'9px 12px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {bulkReaction.map((r, i) => {
-                                        const col = v => v == null ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
-                                        const bg  = v => v == null ? 'transparent' : v > 2 ? 'rgba(16,185,129,0.07)' : v < -2 ? 'rgba(239,68,68,0.07)' : 'transparent';
-                                        const fmt = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
-                                        const sc  = SECTOR_COLORS[SECTOR_MAP[r.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
-                                        return (
-                                            <tr key={i} style={{ borderBottom:'1px solid #f8fafc' }}
-                                                onMouseEnter={e2=>e2.currentTarget.style.backgroundColor='#f8fafc'}
-                                                onMouseLeave={e2=>e2.currentTarget.style.backgroundColor=''}>
-                                                <td style={{ padding:'9px 12px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</td>
-                                                <td style={{ padding:'9px 12px' }}>
-                                                    <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'8px', backgroundColor:sc.bg, color:sc.text, border:`1px solid ${sc.border}40`, fontWeight:'700' }}>
-                                                        {SECTOR_MAP[r.ticker]||'—'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding:'9px 12px', color:'#475569', whiteSpace:'nowrap' }}>{r.earningsDate}</td>
-                                                {[r.pctEarnDay, r.pctD1, r.pctD3, r.pctD5, r.pctD10].map((v, j) => (
-                                                    <td key={j} style={{ padding:'9px 12px', fontWeight:'700', color:col(v), backgroundColor:bg(v), textAlign:'center' }}>{fmt(v)}</td>
-                                                ))}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                        {bulkReaction.length > 2 && (() => {
-                            const d1s = bulkReaction.filter(r=>r.pctD1!=null).map(r=>r.pctD1);
-                            const d5s = bulkReaction.filter(r=>r.pctD5!=null).map(r=>r.pctD5);
-                            const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '—';
-                            const up   = bulkReaction.filter(r=>r.pctD1>0).length;
-                            return (
-                                <div style={{ padding:'12px 20px', backgroundColor:'#f8fafc', borderTop:'1px solid #e2e8f0', display:'flex', gap:'20px', flexWrap:'wrap' }}>
-                                    <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+1: <strong style={{ color: parseFloat(mean(d1s))>=0?'#10b981':'#ef4444' }}>{mean(d1s)}%</strong></span>
-                                    <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+5: <strong style={{ color: parseFloat(mean(d5s))>=0?'#10b981':'#ef4444' }}>{mean(d5s)}%</strong></span>
-                                    <span style={{ fontSize:'12px', color:'#475569' }}>Positive D+1: <strong style={{ color:'#10b981' }}>{up}/{bulkReaction.length}</strong> ({((up/bulkReaction.length)*100).toFixed(0)}%)</span>
-                                </div>
-                            );
-                        })()}
+                            <div style={{ overflowX:'auto' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                                            {['Ticker','Sector','Earnings Date','Earn Day','D+1','D+3','D+5','D+10'].map(h => (
+                                                <th key={h} style={{ padding:'9px 12px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bulkReaction.map((r, i) => {
+                                            const col = v => v == null ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+                                            const bg  = v => v == null ? 'transparent' : v > 2 ? 'rgba(16,185,129,0.07)' : v < -2 ? 'rgba(239,68,68,0.07)' : 'transparent';
+                                            const fmt = v => v == null ? '--' : `${v >= 0 ? '+' : ''}${v}%`;
+                                            const sc  = SECTOR_COLORS[SECTOR_MAP[r.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                            return (
+                                                <tr key={i} style={{ borderBottom:'1px solid #f8fafc' }}
+                                                    onMouseEnter={e2=>e2.currentTarget.style.backgroundColor='#f8fafc'}
+                                                    onMouseLeave={e2=>e2.currentTarget.style.backgroundColor=''}>
+                                                    <td style={{ padding:'9px 12px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</td>
+                                                    <td style={{ padding:'9px 12px' }}>
+                                                        <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'8px', backgroundColor:sc.bg, color:sc.text, border:`1px solid ${sc.border}40`, fontWeight:'700' }}>
+                                                            {SECTOR_MAP[r.ticker]||'--'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding:'9px 12px', color:'#475569', whiteSpace:'nowrap' }}>{r.earningsDate}</td>
+                                                    {[r.pctEarnDay, r.pctD1, r.pctD3, r.pctD5, r.pctD10].map((v, j) => (
+                                                        <td key={j} style={{ padding:'9px 12px', fontWeight:'700', color:col(v), backgroundColor:bg(v), textAlign:'center' }}>{fmt(v)}</td>
+                                                    ))}
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {bulkReaction.length > 2 && (() => {
+                                const d1s = bulkReaction.filter(r=>r.pctD1!=null).map(r=>r.pctD1);
+                                const d5s = bulkReaction.filter(r=>r.pctD5!=null).map(r=>r.pctD5);
+                                const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '--';
+                                const up   = bulkReaction.filter(r=>r.pctD1>0).length;
+                                return (
+                                    <div style={{ padding:'12px 20px', backgroundColor:'#f8fafc', borderTop:'1px solid #e2e8f0', display:'flex', gap:'20px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+1: <strong style={{ color: parseFloat(mean(d1s))>=0?'#10b981':'#ef4444' }}>{mean(d1s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+5: <strong style={{ color: parseFloat(mean(d5s))>=0?'#10b981':'#ef4444' }}>{mean(d5s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Positive D+1: <strong style={{ color:'#10b981' }}>{up}/{bulkReaction.length}</strong> ({((up/bulkReaction.length)*100).toFixed(0)}%)</span>
+                                    </div>
+                                );
+                            })()}
                         </>
                     )}
                     {!bulkLoading && bulkReaction?.length === 0 && (
@@ -2403,11 +2364,29 @@ function EarningsCalendar({ onSelectTicker }) {
                     )}
                 </div>
             )}
+
+            {/* Bulk reaction footer */}
+            <div style={{ padding:'12px 20px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                <div style={{ flex:1, fontSize:'11px', color:'#64748b' }}>
+                    <strong style={{ color:'#4c1d95' }}>⚡ Bulk Calculator</strong> -- see how every stock here reacted post-earnings vs its pre-report price
+                </div>
+                <button onClick={fetchBulkReaction} disabled={bulkLoading}
+                    style={{ padding:'7px 14px', borderRadius:'9px', backgroundColor:'#7c3aed', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor: bulkLoading?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
+                    {bulkLoading
+                        ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Calculating...</>
+                        : '⚡ Bulk Reaction'}
+                </button>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     );
 }
 
-// ─── Chart & Insights Tab ─────────────────────────────────────────────────────
+
+// --- Chart & Insights Tab -----------------------------------------------------
 function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis, compactMode = false }) {
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
@@ -2432,7 +2411,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const bandBotRef     = useRef(null); // deviation band bottom
     const [showTWAP, setShowTWAP]   = useState(false);
     const [twapStats, setTwapStats] = useState(null);
-    // ── Extra indicator refs (backend-computed) ──
+    // -- Extra indicator refs (backend-computed) --
     const rsiSeriesRef  = useRef(null);
     const bbMidRef      = useRef(null);
     const bbTopRef      = useRef(null);
@@ -2448,17 +2427,17 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [rsiVal,    setRsiVal]    = useState(null);
     const [prePost,   setPrePost]   = useState(false);  // pre/post market toggle
     const [sessionNow, setSessionNow] = useState(null); // live session state
-    // ── Analyst ratings ──
+    // -- Analyst ratings --
     const [analystData,        setAnalystData]        = useState(null);
     const [analystLoading,     setAnalystLoading]     = useState(false);
     const [analystError,       setAnalystError]       = useState(null);
     const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
-    // ── Earnings markers on chart ──
+    // -- Earnings markers on chart --
     const [showEarningsMarkers, setShowEarningsMarkers] = useState(true);
     const earningsMarkersRef       = useRef([]); // cached for re-apply on refresh
     const showEarningsMarkersRef    = useRef(true); // ref mirror for closure safety
 
-    // ── Drawing tools ──
+    // -- Drawing tools --
     const LINE_COLORS = [
         { id:'amber',  hex:'#f59e0b', label:'Amber'  },
         { id:'red',    hex:'#ef4444', label:'Red'    },
@@ -2475,28 +2454,28 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [drawnLines,         setDrawnLines]         = useState([]);
     const [manualPrice,        setManualPrice]        = useState('');
     const [manualLabel,        setManualLabel]        = useState('');
-    // ── Video recording ──
+    // -- Video recording --
     const [isRecording,        setIsRecording]        = useState(false);
     const [videoBlob,          setVideoBlob]          = useState(null);
     const [videoUrl,           setVideoUrl]           = useState(null);
     const [recordingProgress,  setRecordingProgress]  = useState(0); // 0-100
     const mediaRecorderRef     = useRef(null);
     const videoChunksRef       = useRef([]);
-    // ── Price alerts ──
+    // -- Price alerts --
     const [alerts,             setAlerts]             = useState([]);
     const [showAlertForm,      setShowAlertForm]      = useState(false);
     const [alertPrice,         setAlertPrice]         = useState('');
     const [alertDir,           setAlertDir]           = useState('above');
     const [firedAlerts,        setFiredAlerts]        = useState([]);
-    // ── Annotations ──
+    // -- Annotations --
     const [annotations,        setAnnotations]        = useState({});
-    // ── Compare mode ──
+    // -- Compare mode --
     const [compareTicker,      setCompareTicker]      = useState(null);   // active compare ticker
     const [showComparePicker,  setShowComparePicker]  = useState(false);  // modal open
     const [compareSearch,      setCompareSearch]      = useState('');     // search input
     const [compareCategory,    setCompareCategory]    = useState('stocks');
     const [compareMode,        setCompareMode]        = useState('side'); // 'side' | 'stack'
-    // ── Options flow ──
+    // -- Options flow --
     const [optionsData,        setOptionsData]        = useState(null);
     const [optionsLoading,     setOptionsLoading]     = useState(false);
     const [optionsError,       setOptionsError]       = useState(null);
@@ -2507,7 +2486,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     useEffect(() => { showEarningsMarkersRef.current = showEarningsMarkers; }, [showEarningsMarkers]);
     useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
 
-    // Lower → Higher timeframes with smart default lookbacks
+    // Lower -> Higher timeframes with smart default lookbacks
     const intervalConfig = {
         '1m':  { label: '1m',  group: 'Intraday' },
         '5m':  { label: '5m',  group: 'Intraday' },
@@ -2525,7 +2504,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     };
     const intervals = Object.keys(intervalConfig);
 
-    // ── Load TradingView Lightweight Charts from CDN ──
+    // -- Load TradingView Lightweight Charts from CDN --
     useEffect(() => {
         if (window.LightweightCharts) { setChartLoaded(true); return; }
         const script = document.createElement('script');
@@ -2535,14 +2514,14 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         document.head.appendChild(script);
     }, []);
 
-    // ── TWAP + Deviation Band computation ──────────────────────────────────────
+    // -- TWAP + Deviation Band computation --------------------------------------
     // Uses trapezoidal integration of close price over time (unix seconds)
     // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
-    // Band = TWAP ± 1 stddev of (price - TWAP) over the whole dataset
-    // ── Live session tracker ─────────────────────────────────────────────────────
-    // Uses Intl.DateTimeFormat with America/New_York — handles DST automatically
+    // Band = TWAP +/- 1 stddev of (price - TWAP) over the whole dataset
+    // -- Live session tracker -----------------------------------------------------
+    // Uses Intl.DateTimeFormat with America/New_York -- handles DST automatically
     // regardless of where the user's browser is located (e.g. South Africa, UTC+2).
-    // This is the ONLY correct way to get NYC time — manual offset math breaks on
+    // This is the ONLY correct way to get NYC time -- manual offset math breaks on
     // DST transitions since getTimezoneOffset() reflects the LOCAL browser timezone.
     const getSessionState = () => {
         const now = new Date();
@@ -2558,7 +2537,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         }).formatToParts(now);
 
         const part = (type) => parseInt(nyParts.find(p => p.type === type)?.value ?? '0', 10);
-        const weekday = nyParts.find(p => p.type === 'weekday')?.value; // 'Mon','Tue'…
+        const weekday = nyParts.find(p => p.type === 'weekday')?.value; // 'Mon','Tue'...
         const h    = part('hour') % 24;   // formatToParts can return 24 for midnight
         const m    = part('minute');
         const mins = h * 60 + m;
@@ -2572,13 +2551,13 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         }).format(now);
 
         // Determine if NYC is currently on EDT (UTC-4) or EST (UTC-5)
-        // by comparing UTC offset — Intl handles the DST boundary precisely
+        // by comparing UTC offset -- Intl handles the DST boundary precisely
         const nyOffsetMins = (() => {
             // Trick: format the same instant in UTC and NYC, diff them
             const utcH = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:'UTC', hour:'numeric', hour12:false }).format(now), 10) % 24;
             const diff = ((h - utcH + 24) % 24);
             // diff will be 20 (= -4 mod 24) for EDT, 19 (= -5 mod 24) for EST
-            return diff >= 12 ? diff - 24 : diff; // → -4 or -5
+            return diff >= 12 ? diff - 24 : diff; // -> -4 or -5
         })();
         const tzLabel = nyOffsetMins === -4 ? 'EDT' : 'EST';
 
@@ -2607,11 +2586,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     useEffect(() => {
         const tick = () => setSessionNow(getSessionState());
         tick();
-        const id = setInterval(tick, 1000); // every second — live NYC clock
+        const id = setInterval(tick, 1000); // every second -- live NYC clock
         return () => clearInterval(id);
     }, []);
 
-    // ── Alerts persistence ───────────────────────────────────────────────────────
+    // -- Alerts persistence -------------------------------------------------------
     useEffect(() => {
         (async () => {
             try {
@@ -2638,13 +2617,13 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             if (hit) {
                 fired.push(al);
                 if (Notification.permission === 'granted')
-                    new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} — now $${latest.toFixed(2)}` });
+                    new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} -- now $${latest.toFixed(2)}` });
             } else { remaining.push(al); }
         });
         if (fired.length) {
             setFiredAlerts(prev => [...prev, ...fired]);
             saveAlerts(remaining);
-            // Browser notification — works if user previously granted permission.
+            // Browser notification -- works if user previously granted permission.
             // We don't ask for permission here; the toast is the primary alert.
             fired.forEach(al => {
                 try {
@@ -2659,7 +2638,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         }
     };
 
-    // ── Add a line at an exact price input ──────────────────────────────────────
+    // -- Add a line at an exact price input --------------------------------------
     const addManualLine = (priceStr, label, color) => {
         const price = parseFloat(priceStr);
         if (!price || isNaN(price) || !seriesRef.current) return;
@@ -2678,10 +2657,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         } catch(e) { console.error('[Draw] addManualLine failed', e); }
     };
 
-    // ── Chart Video Recording ────────────────────────────────────────────────────
+    // -- Chart Video Recording ----------------------------------------------------
     // Strategy: grab the chart container's canvas element, attach MediaRecorder to
     // its captureStream(), then animate the chart by scrolling through logical range.
-    // Each "frame" is the live canvas — all styling/theme/indicators preserved.
+    // Each "frame" is the live canvas -- all styling/theme/indicators preserved.
     const recordChartVideo = async (targetDurationSec = 30) => {
         if (!chartRef.current || !seriesRef.current) return;
         setIsRecording(true);
@@ -2694,7 +2673,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const canvas = chartContainerRef.current?.querySelector('canvas');
             if (!canvas) throw new Error('Chart canvas not found');
 
-            // ── Key insight: record at 24fps, control how long we WAIT per frame ──
+            // -- Key insight: record at 24fps, control how long we WAIT per frame --
             // frameDelay = targetDuration / totalBars  (ms per candle step)
             // This makes the recording take targetDuration seconds in real time.
             // Since we capture the canvas stream at 24fps, the resulting video
@@ -2726,7 +2705,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             if (totalBars === 0) { recorder.stop(); return; }
 
             // Window size = how many bars are visible at once during recording.
-            // Want ~120-150 bars — enough context to read structure/trends without
+            // Want ~120-150 bars -- enough context to read structure/trends without
             // being so zoomed out candles become invisible.
             // Cap at 60% of total so we don't show the whole dataset at once.
             const windowSize = Math.min(150, Math.max(80, Math.round(totalBars * 0.60)));
@@ -2736,10 +2715,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const barsPerStep    = frameDelay < 60 ? 2 : 1;
             const effectiveDelay = frameDelay * barsPerStep;
 
-            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms → est. ${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms -> est. ${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
 
-            // ── Hard reset to bar 0 regardless of where user navigated ──────────
-            // scrollToPosition(0) alone isn't enough — setVisibleLogicalRange is authoritative
+            // -- Hard reset to bar 0 regardless of where user navigated ----------
+            // scrollToPosition(0) alone isn't enough -- setVisibleLogicalRange is authoritative
             chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
 
             // Small delay so the chart actually renders frame 0 before recorder starts
@@ -2807,7 +2786,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         }
     };
 
-    // ── Fetch OHLCV + backend-computed indicators in one call ──────────────────
+    // -- Fetch OHLCV + backend-computed indicators in one call ------------------
     const fetchChartData = async (sym, interval, activeIndicators, includePrePost = false) => {
         const BACKEND = 'https://backend-production-c0ab.up.railway.app';
         const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
@@ -2823,7 +2802,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         return json;
     };
 
-    // ── Fetch analyst ratings (separate endpoint) ────────────────────────────
+    // -- Fetch analyst ratings (separate endpoint) ----------------------------
     const fetchAnalystRatings = async (sym) => {
         const BACKEND = 'https://backend-production-c0ab.up.railway.app';
         setAnalystLoading(true);
@@ -2845,16 +2824,16 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         }
     };
 
-    // ── Helper: remove a series safely ──────────────────────────────────────
+    // -- Helper: remove a series safely --------------------------------------
     const removeSeries = (chart, ref) => {
         if (ref.current && chart) { try { chart.removeSeries(ref.current); } catch {} ref.current = null; }
     };
 
-    // ── Helper: apply backend indicator data to chart ───────────────────────
+    // -- Helper: apply backend indicator data to chart -----------------------
     // Apply earnings date markers to the chart series
     // earnings = the quarterly array from props; also reads upcoming date from yfinance
     const applyEarningsMarkers = (series, candles, markersOverride) => {
-        console.log('🔔 applyEarningsMarkers CALLED — series:', !!series, 'candles:', candles?.length, 'override:', markersOverride?.length, 'ref:', earningsMarkersRef.current?.length, 'show:', showEarningsMarkersRef.current);
+        console.log('🔔 applyEarningsMarkers CALLED -- series:', !!series, 'candles:', candles?.length, 'override:', markersOverride?.length, 'ref:', earningsMarkersRef.current?.length, 'show:', showEarningsMarkersRef.current);
         if (!series || !candles?.length) return;
         // Use override if provided (e.g. from async fetch callback), else use ref
         const markerDates = markersOverride ?? earningsMarkersRef.current;
@@ -2864,11 +2843,11 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             return;
         }
 
-        // Convert unix timestamp → YYYY-MM-DD using UTC to avoid timezone shifts
+        // Convert unix timestamp -> YYYY-MM-DD using UTC to avoid timezone shifts
         const unixToDate = (t) => {
             if (typeof t === 'number') {
                 const d = new Date(t * 1000);
-                // Use UTC date parts — the backend stores midnight UTC for daily bars
+                // Use UTC date parts -- the backend stores midnight UTC for daily bars
                 return [
                     d.getUTCFullYear(),
                     String(d.getUTCMonth() + 1).padStart(2, '0'),
@@ -2878,12 +2857,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             return String(t).slice(0, 10);
         };
 
-        // Map date string → candle for O(1) lookup
+        // Map date string -> candle for O(1) lookup
         const dateToCandle = {};
         candles.forEach(c => { dateToCandle[unixToDate(c.time)] = c; });
 
         console.log('[Markers] candle date range:',
-            unixToDate(candles[0].time), '→', unixToDate(candles[candles.length-1].time));
+            unixToDate(candles[0].time), '->', unixToDate(candles[candles.length-1].time));
         console.log('[Markers] marker dates to place:', markerDates.map(m => m.date));
 
         const markers = [];
@@ -2923,7 +2902,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             const today = new Date().toISOString().slice(0, 10);
             const markers = (json.results || []).map(r => ({
                 date:     r.earningsDate?.slice(0, 10),
-                // Trust isUpcoming flag from backend — it uses server-side today
+                // Trust isUpcoming flag from backend -- it uses server-side today
                 label:    (r.isUpcoming ?? r.earningsDate >= today) ? '📅 E' : `E ${r.earningsDate?.slice(0,7)||''}`,
                 upcoming: r.isUpcoming ?? r.earningsDate >= today,
             })).filter(r => r.date);
@@ -3019,7 +2998,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
     };
 
-    // ── Effect A: Create/recreate chart instance (ticker · theme · chartType change) ──
+    // -- Effect A: Create/recreate chart instance (ticker . theme . chartType change) --
     // Destroys old chart, builds fresh, fits content on first load
     useEffect(() => {
         if (!chartLoaded || !chartContainerRef.current || !ticker) return;
@@ -3047,7 +3026,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         });
         ro.observe(container);
 
-        // Initial data load — fitContent on first load
+        // Initial data load -- fitContent on first load
         const activeIndicators = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
         const initialLoad = async () => {
             setLoadingChart(true);
@@ -3085,7 +3064,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 setLoadingChart(false);
             }
         };
-        // ── Drawing mode click handler ────────────────────────────────────────
+        // -- Drawing mode click handler ----------------------------------------
         const handleChartClick = (param) => {
             if (!drawingModeRef.current || !param.point || !seriesRef.current) return;
             // coordinateToPrice lives on the series in LWC v4, not on priceScale
@@ -3108,10 +3087,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
 
         initialLoad();
         return () => { ro.disconnect(); chart.unsubscribeClick(handleChartClick); };
-    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // ← NO chartInterval here
+    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // < NO chartInterval here
 
-    // ── Effect B: Refresh data only (interval change · manual refresh · auto-refresh) ──
-    // Preserves scroll/zoom position — does NOT recreate the chart instance
+    // -- Effect B: Refresh data only (interval change . manual refresh . auto-refresh) --
+    // Preserves scroll/zoom position -- does NOT recreate the chart instance
     useEffect(() => {
         if (!chartRef.current || !seriesRef.current || !ticker) return;
 
@@ -3123,7 +3102,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 const json = await fetchChartData(ticker, chartInterval, activeInd, prePost);
                 if (!seriesRef.current || !chartRef.current) return;
 
-                // ── Viewport preservation ────────────────────────────────────
+                // -- Viewport preservation ------------------------------------
                 // We use getVisibleLogicalRange() (bar-index based) NOT
                 // getVisibleRange() (time based). Reason: setData() triggers an
                 // internal fitContent() inside LightweightCharts which resets the
@@ -3132,7 +3111,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 // internal fit completes.
                 const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
 
-                // Update price series in-place — triggers LWC internal fitContent
+                // Update price series in-place -- triggers LWC internal fitContent
                 const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
                 seriesRef.current.setData(json.candles.map(mapData));
 
@@ -3141,12 +3120,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 applyEarningsMarkers(seriesRef.current, json.candles);
                 checkAlerts(json.candles);
 
-                // Restore logical position — this runs AFTER the internal fit
+                // Restore logical position -- this runs AFTER the internal fit
                 // so it wins. Only skip if we have no prior range (first load).
                 if (logicalRange && logicalRange.from != null && logicalRange.to != null) {
                     chartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
                 }
-                // If no prior range, leave whatever LWC fitted — it's correct for first load
+                // If no prior range, leave whatever LWC fitted -- it's correct for first load
                 setLastRefreshed(new Date());
             } catch (e) {
                 setChartError('Refresh failed. Check connection.');
@@ -3156,9 +3135,9 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         };
 
         refreshData();
-    }, [chartInterval, refreshTick, prePost]); // ← interval · manual refresh · prePost toggle
+    }, [chartInterval, refreshTick, prePost]); // < interval . manual refresh . prePost toggle
 
-    // ── Auto-refresh interval (30s) ──
+    // -- Auto-refresh interval (30s) --
     useEffect(() => {
         if (autoRefreshRef.current) { clearInterval(autoRefreshRef.current); autoRefreshRef.current = null; }
         if (autoRefresh && ticker) {
@@ -3169,7 +3148,7 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
     }, [autoRefresh, ticker]);
 
-    // ── Ask Sabrina for a full recommendation ──
+    // -- Ask Sabrina for a full recommendation --
     const askSabrinaForRec = async (imageDataUrl = null) => {
         if (!openaiKey) { setRecError('OpenAI key not loaded yet.'); return; }
         setSabrinaLoading(true);
@@ -3186,12 +3165,12 @@ Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}`
         ).join('\n') : '';
 
         const yahooArticles = (news?.filter(n => n?.title) || []).slice(0, 4).map(n => {
-            const parts = [`  • ${n.title}`];
+            const parts = [`  * ${n.title}`];
             if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
             return parts.join('\n');
         });
         const mktxArticles = (marketauxNews?.filter(n => n?.title) || []).slice(0, 4).map(n => {
-            const parts = [`  • [Marketaux] ${n.title}`];
+            const parts = [`  * [Marketaux] ${n.title}`];
             if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
             if (n.highlights && typeof n.highlights === 'string' && n.highlights.length > 10) {
                 parts.push(`    KEY QUOTE: "${n.highlights.substring(0, 200).trim()}"`);
@@ -3207,14 +3186,14 @@ Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}`
 
         const twapInfo = twapStats ? `\nTWAP Analysis (time-weighted avg price via integral):
   TWAP: $${twapStats.twap} | Current: $${twapStats.current}
-  Deviation from TWAP: ${twapStats.deviation > 0 ? '+' : ''}${twapStats.deviation}% (±1σ = $${twapStats.std})
-  Signal: ${twapStats.signal === 'EXTENDED_ABOVE' ? 'Price is EXTENDED above TWAP — mean reversion risk downward' : twapStats.signal === 'EXTENDED_BELOW' ? 'Price is EXTENDED below TWAP — potential mean reversion bounce' : 'Price is NEAR TWAP — no strong mean reversion pressure'}` : '';
+  Deviation from TWAP: ${twapStats.deviation > 0 ? '+' : ''}${twapStats.deviation}% (+/-1sigma = $${twapStats.std})
+  Signal: ${twapStats.signal === 'EXTENDED_ABOVE' ? 'Price is EXTENDED above TWAP -- mean reversion risk downward' : twapStats.signal === 'EXTENDED_BELOW' ? 'Price is EXTENDED below TWAP -- potential mean reversion bounce' : 'Price is NEAR TWAP -- no strong mean reversion pressure'}` : '';
 
         const textPrompt = `You are Sabrina, a sharp AI stock analyst. Give me a comprehensive trading recommendation for ${ticker}.
 
 AVAILABLE DATA:
 ${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}${twapInfo}
-${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided — base analysis on the fundamental data above.'}
+${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided -- base analysis on the fundamental data above.'}
 
 Respond ONLY with a JSON object (no markdown, no backticks):
 {
@@ -3258,7 +3237,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
         }
     };
 
-    // ── Capture chart as image then send to Sabrina ──
+    // -- Capture chart as image then send to Sabrina --
     const captureAndAnalyse = async () => {
         setScreenshotting(true);
         try {
@@ -3280,7 +3259,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
     const verdictConfig = {
         BUY:   { color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', icon: '📈', label: 'BUY' },
         SELL:  { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', icon: '📉', label: 'SELL' },
-        HOLD:  { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: '✋', label: 'HOLD' },
+        HOLD:  { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: '|', label: 'HOLD' },
         WATCH: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '👁', label: 'WATCH' },
     };
     const vc = verdictConfig[sabrinaRec?.verdict] || verdictConfig.WATCH;
@@ -3290,7 +3269,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
     return (
         <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif", backgroundColor: 'transparent' }}>
 
-            {/* ── Chart Card ── */}
+            {/* -- Chart Card -- */}
             {(() => {
             const th = getThemeConfig(chartTheme);
             const cardBg     = th.bg;
@@ -3299,7 +3278,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
             return (
             <div style={{ backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${cardBorder}`, boxShadow: cardShadow, marginBottom: '20px' }}>
 
-                {/* Chart toolbar — theme-aware, grouped intervals */}
+                {/* Chart toolbar -- theme-aware, grouped intervals */}
                 {(() => {
                     const th = getThemeConfig(chartTheme);
                     const toolbarBg     = chartTheme === 'light' ? '#fafafa' : chartTheme === 'dark' ? '#1a1a2e' : '#020f1f';
@@ -3317,10 +3296,10 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             {/* Row 1: title + chart type + theme */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                                 <div style={{ fontSize: '15px', fontWeight: '700', color: titleColor, marginRight: '4px' }}>
-                                    {chartTheme === 'hud' ? '⬡' : '📊'} {ticker}
+                                    {chartTheme === 'hud' ? 'HUD' : '📊'} {ticker}
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                    {[['candlestick','🕯 Candle'],['area','📉 Area'],['line','〰 Line']].map(([t, lbl]) => {
+                                    {[['candlestick','🕯 Candle'],['area','📉 Area'],['line','~ Line']].map(([t, lbl]) => {
                                         const active = chartType === t;
                                         return <button key={t} onClick={() => setChartType(t)} style={{
                                             padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
@@ -3333,7 +3312,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 </div>
                                 {/* Indicator toggles */}
                                 {[
-                                    { key: 'twap', label: '∫ TWAP',   active: showTWAP, toggle: () => setShowTWAP(s=>!s), color: '#f59e0b' },
+                                    { key: 'twap', label: 'TWAP TWAP',   active: showTWAP, toggle: () => setShowTWAP(s=>!s), color: '#f59e0b' },
                                     { key: 'bb',   label: 'BB',       active: showBB,   toggle: () => setShowBB(s=>!s),   color: '#8b5cf6' },
                                     { key: 'ema',  label: 'EMA',      active: showEMA,  toggle: () => setShowEMA(s=>!s),  color: '#10b981' },
                                     { key: 'rsi',  label: `RSI${rsiVal !== null ? ' ' + rsiVal.toFixed(0) : ''}`, active: showRSI, toggle: () => setShowRSI(s=>!s), color: rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa' },
@@ -3364,7 +3343,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                                 {/* Theme switcher */}
                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                    {[['light','☀️'],['dark','🌙'],['hud','⬡ HUD']].map(([t, lbl]) => {
+                                    {[['light','Sun️'],['dark','🌙'],['hud','HUD HUD']].map(([t, lbl]) => {
                                         const active = chartTheme === t;
                                         return <button key={t} onClick={() => setChartTheme(t)} style={{
                                             padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
@@ -3402,7 +3381,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                     }}>{intervalConfig[iv].label}</button>;
                                 })}
                                 <div style={{ width:'1px', height:'16px', backgroundColor:toolbarBorder, flexShrink:0, alignSelf:'center' }} />
-                                {/* Pre/Post market toggle — intraday only */}
+                                {/* Pre/Post market toggle -- intraday only */}
                                 {(() => {
                                     const isIntraday = intervalConfig[chartInterval]?.group === 'Intraday';
                                     const active = prePost && isIntraday;
@@ -3426,7 +3405,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     );
                 })()}
 
-                {/* Chart container — explicit height so LightweightCharts renders correctly */}
+                {/* Chart container -- explicit height so LightweightCharts renders correctly */}
                 <div style={{ position: 'relative', width: '100%', height: '360px' }}>
                     {(loadingChart || !chartLoaded) && (() => {
                         const th2 = getThemeConfig(chartTheme);
@@ -3436,7 +3415,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: overlayBg, zIndex: 2 }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
-                                <div style={{ color: overlayText, fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library…' : 'Fetching data…'}</div>
+                                <div style={{ color: overlayText, fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library...' : 'Fetching data...'}</div>
                             </div>
                         </div>
                         );
@@ -3446,7 +3425,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         const errBg = chartTheme === 'dark' ? 'rgba(15,15,20,0.95)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.95)' : 'rgba(255,255,255,0.97)';
                         return (
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px', backgroundColor: errBg }}>
-                            <div style={{ fontSize: '32px' }}>⚠️</div>
+                            <div style={{ fontSize: '32px' }}>!️</div>
                             <div style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
                             <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: chartTheme==='hud'?'#00d4ff':'#2563eb', color: chartTheme==='hud'?'#020b18':'#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
                         </div>
@@ -3455,7 +3434,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     <div ref={chartContainerRef} style={{ width: '100%', height: '100%', cursor: drawingMode ? 'crosshair' : 'default' }} />
                     {drawingMode && (
                         <div style={{ position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', backgroundColor:'rgba(245,158,11,0.9)', color:'#fff', fontSize:'11px', fontWeight:'700', padding:'4px 12px', borderRadius:'20px', pointerEvents:'none', whiteSpace:'nowrap', zIndex:10 }}>
-                            ✏️ Click on chart to drop a level line
+                            Edit️ Click on chart to drop a level line
                         </div>
                     )}
                 </div>
@@ -3467,13 +3446,13 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     const isAbove  = twapStats.signal === 'EXTENDED_ABOVE';
                     const isBelow  = twapStats.signal === 'EXTENDED_BELOW';
                     const sigColor = isAbove ? '#ef4444' : isBelow ? '#10b981' : '#f59e0b';
-                    const sigLabel = isAbove ? '↑ Extended Above — mean reversion risk ↓'
-                                   : isBelow ? '↓ Extended Below — potential bounce ↑'
-                                   : '↔ Near TWAP — balanced';
+                    const sigLabel = isAbove ? '^ Extended Above -- mean reversion risk v'
+                                   : isBelow ? 'v Extended Below -- potential bounce ^'
+                                   : '<-> Near TWAP -- balanced';
                     return (
                         <div style={{ padding: '9px 16px', borderTop: `1px solid ${stripBdr}`, backgroundColor: stripBg, display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.06em' }}>∫ TWAP</span>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.06em' }}>TWAP TWAP</span>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: chartTheme === 'light' ? '#333' : '#e0e0e0' }}>${twapStats.twap}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -3483,7 +3462,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 </span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '11px', color: '#aaa' }}>±1σ</span>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>+/-1sigma</span>
                                 <span style={{ fontSize: '13px', fontWeight: '600', color: chartTheme === 'light' ? '#555' : '#aaa' }}>${twapStats.std}</span>
                             </div>
                             <div style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: sigColor + '18', border: `1px solid ${sigColor}40`, fontSize: '11px', fontWeight: '700', color: sigColor }}>
@@ -3502,12 +3481,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     return (
                         <div style={{ padding: '7px 16px', borderTop:`1px solid ${stripBdr}`, backgroundColor: stripBg, display:'flex', gap:'16px', flexWrap:'wrap', alignItems:'center' }}>
                             {showEMA && <span style={{ fontSize:'11px', color: textC }}>
-                                <span style={{ color:'#10b981', fontWeight:'700' }}>─ EMA20</span>
-                                {'  '}<span style={{ color:'#3b82f6', fontWeight:'700' }}>─ EMA50</span>
-                                {'  '}<span style={{ color:'#ef4444', fontWeight:'700' }}>─ EMA200</span>
+                                <span style={{ color:'#10b981', fontWeight:'700' }}>- EMA20</span>
+                                {'  '}<span style={{ color:'#3b82f6', fontWeight:'700' }}>- EMA50</span>
+                                {'  '}<span style={{ color:'#ef4444', fontWeight:'700' }}>- EMA200</span>
                             </span>}
                             {showBB && <span style={{ fontSize:'11px', color:'#8b5cf6', fontWeight:'700' }}>
-                                ── BB(20,2)
+                                -- BB(20,2)
                             </span>}
                             {showRSI && rsiVal !== null && (
                                 <span style={{ fontSize:'11px', display:'flex', alignItems:'center', gap:'6px' }}>
@@ -3522,7 +3501,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     );
                 })()}
 
-                {/* Chart action bar — theme-aware */}
+                {/* Chart action bar -- theme-aware */}
                 <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
                     {/* Manual refresh */}
                     <button
@@ -3543,7 +3522,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     {/* Auto-refresh toggle */}
                     <button
                         onClick={() => setAutoRefresh(a => !a)}
-                        title={autoRefresh ? 'Auto-refresh ON (30s) — click to disable' : 'Enable auto-refresh every 30s'}
+                        title={autoRefresh ? 'Auto-refresh ON (30s) -- click to disable' : 'Enable auto-refresh every 30s'}
                         style={{
                             padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
                             border: `1px solid ${autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0')}`,
@@ -3616,16 +3595,16 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             backgroundColor: showEarningsMarkers?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
                             color: showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
                             cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
-                        💰 {showEarningsMarkers ? 'Earnings ✓' : 'Earnings'}
+                        💰 {showEarningsMarkers ? 'Earnings v' : 'Earnings'}
                     </button>
                     {/* Drawing tools toggle */}
-                    <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON — click chart to drop a line' : 'Enable drawing mode'}
+                    <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON -- click chart to drop a line' : 'Enable drawing mode'}
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${drawingMode?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
                             backgroundColor: drawingMode?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
                             color: drawingMode?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
                             cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
-                        ✏️ {drawingMode ? 'Drawing' : 'Draw'}
+                        Edit️ {drawingMode ? 'Drawing' : 'Draw'}
                     </button>
 
                     {/* Compare */}
@@ -3636,7 +3615,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             backgroundColor: compareTicker?'rgba(59,130,246,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
                             color: compareTicker?'#3b82f6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
                             cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
-                        ⊕ {compareTicker ? `vs ${compareTicker}` : 'Compare'}
+                        + {compareTicker ? `vs ${compareTicker}` : 'Compare'}
                     </button>
                     {/* Video record */}
                     <button
@@ -3663,7 +3642,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                     {/* Options flow */}
                     <button onClick={() => { console.log('[Options] clicked, ticker:', ticker); setShowOptionsPanel(true); fetchOptions(ticker); }} disabled={optionsLoading}
-                        title="Options flow — put/call ratio, key strikes"
+                        title="Options flow -- put/call ratio, key strikes"
                         style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
                             border:`1px solid ${showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
                             backgroundColor: showOptionsPanel&&optionsData?'rgba(139,92,246,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
@@ -3684,8 +3663,8 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             transition: 'opacity 0.2s',
                         }}
                     >
-                        {screenshotting ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>📸</span> Capturing…</> :
-                         sabrinaLoading ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing…</> :
+                        {screenshotting ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>📸</span> Capturing...</> :
+                         sabrinaLoading ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing...</> :
                          <>😼 Send Chart to Sabrina</>}
                     </button>
 
@@ -3705,19 +3684,19 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                     {sabrinaRec && (
                         <div style={{ marginLeft: 'auto', fontSize: '12px', color: chartTheme==='hud'?'rgba(0,212,255,0.5)':chartTheme==='dark'?'#555':'#aaa' }}>
-                            Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '· 📸 with chart' : '· 📋 fundamentals only'}
+                            Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '. 📸 with chart' : '. 📋 fundamentals only'}
                         </div>
                     )}
                 </div>
             </div>
             ); })()}
 
-            {/* ══ ALERT MODAL ══════════════════════════════════════════════════ */}
+            {/* == ALERT MODAL ================================================== */}
             {showAlertForm && (
                 <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
                     onClick={e => { if (e.target === e.currentTarget) setShowAlertForm(false); }}>
                     <div style={{ backgroundColor:'#fff', borderRadius:'16px', padding:'28px', width:'360px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
-                        <div style={{ fontSize:'18px', fontWeight:'800', marginBottom:'6px' }}>🔔 Price Alert — {ticker}</div>
+                        <div style={{ fontSize:'18px', fontWeight:'800', marginBottom:'6px' }}>🔔 Price Alert -- {ticker}</div>
                         <div style={{ fontSize:'12px', color:'#999', marginBottom:'20px' }}>
                             Auto-checks every 30s. Toast fires when level is breached.
                         </div>
@@ -3729,7 +3708,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         style={{ flex:1, padding:'9px', borderRadius:'8px', border:`2px solid ${alertDir===d?'#ef4444':'#e0e0e0'}`,
                                             backgroundColor: alertDir===d?'#fef2f2':'#fff',
                                             color: alertDir===d?'#ef4444':'#555', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>
-                                        {d === 'above' ? '↑ Goes above' : '↓ Drops below'}
+                                        {d === 'above' ? '^ Goes above' : 'v Drops below'}
                                     </button>
                                 ))}
                             </div>
@@ -3747,9 +3726,9 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
                                     {alerts.filter(a => a.ticker === ticker).map(a => (
                                         <div key={a.id} style={{ display:'flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'20px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c', fontWeight:'700' }}>
-                                            {a.dir === 'above' ? '↑' : '↓'} ${a.price}
+                                            {a.dir === 'above' ? '^' : 'v'} ${a.price}
                                             <button onClick={() => saveAlerts(alerts.filter(x => x.id !== a.id))}
-                                                style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'900', fontSize:'14px', lineHeight:1, padding:0 }}>×</button>
+                                                style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'900', fontSize:'14px', lineHeight:1, padding:0 }}>x</button>
                                         </div>
                                     ))}
                                 </div>
@@ -3775,7 +3754,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ══ FIRED ALERT TOASTS ════════════════════════════════════════════ */}
+            {/* == FIRED ALERT TOASTS ============================================ */}
             {firedAlerts.length > 0 && (
                 <div style={{ position:'fixed', bottom:'90px', right:'24px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
                     {firedAlerts.slice(-4).map((a, i) => (
@@ -3786,17 +3765,17 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 <div style={{ fontSize:'11px', opacity:0.8, marginTop:'2px' }}>{new Date().toLocaleTimeString()}</div>
                             </div>
                             <button onClick={() => setFiredAlerts(prev => prev.filter((_, j) => j !== i))}
-                                style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:'18px', fontWeight:'700', lineHeight:1 }}>×</button>
+                                style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:'18px', fontWeight:'700', lineHeight:1 }}>x</button>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* ══ DRAWING TOOLKIT ════════════════════════════════════════════ */}
+            {/* == DRAWING TOOLKIT ============================================ */}
             {(drawingMode || drawnLines.length > 0) && (
                 <div style={{ backgroundColor:'#fffbeb', borderRadius:'12px', border:'1px solid #fde68a', padding:'14px 16px', marginBottom:'16px' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
-                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>✏️ Level Lines</span>
+                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>Edit️ Level Lines</span>
                         {drawnLines.length > 0 && (
                             <button onClick={() => {
                                 drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch(e) { console.warn('[Draw]', e); } });
@@ -3841,7 +3820,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
 
                     {drawingMode && (
                         <div style={{ fontSize:'11px', color:'#b45309', marginBottom: drawnLines.length > 0 ? '10px' : '0' }}>
-                            Click anywhere on the chart to drop a line · or type an exact price above
+                            Click anywhere on the chart to drop a line . or type an exact price above
                         </div>
                     )}
 
@@ -3857,7 +3836,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         if (found) { try { seriesRef.current?.removePriceLine(found.priceLine); } catch(e) { console.warn('[Draw]', e); } }
                                         drawnLinesRef.current = drawnLinesRef.current.filter(x => x.id !== l.id);
                                         setDrawnLines(prev => prev.filter(x => x.id !== l.id));
-                                    }} style={{ background:'none', border:'none', cursor:'pointer', fontWeight:'900', fontSize:'13px', padding:0, lineHeight:1, color:'inherit', opacity:0.7 }}>×</button>
+                                    }} style={{ background:'none', border:'none', cursor:'pointer', fontWeight:'900', fontSize:'13px', padding:0, lineHeight:1, color:'inherit', opacity:0.7 }}>x</button>
                                 </span>
                             ))}
                         </div>
@@ -3866,18 +3845,18 @@ Respond ONLY with a JSON object (no markdown, no backticks):
             )}
 
 
-            {/* ══ OPTIONS FLOW PANEL ════════════════════════════════════════════ */}
+            {/* == OPTIONS FLOW PANEL ============================================ */}
             {showOptionsPanel && (
                 <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
                     {optionsLoading && (
                         <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'14px' }}>
                             <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
-                            <div>Fetching options chain…</div>
+                            <div>Fetching options chain...</div>
                         </div>
                     )}
                     {optionsError && !optionsLoading && (
                         <div style={{ padding:'24px 20px' }}>
-                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#b91c1c', marginBottom:'8px' }}>⚠️ Options Error</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#b91c1c', marginBottom:'8px' }}>!️ Options Error</div>
                             <div style={{ fontSize:'13px', color:'#ef4444', backgroundColor:'#fef2f2', padding:'12px', borderRadius:'8px', fontFamily:'monospace' }}>{optionsError}</div>
                             <div style={{ marginTop:'12px', display:'flex', gap:'8px' }}>
                                 <button onClick={() => fetchOptions(ticker)} style={{ padding:'8px 16px', borderRadius:'8px', backgroundColor:'#8b5cf6', color:'#fff', border:'none', fontWeight:'700', cursor:'pointer' }}>Retry</button>
@@ -3889,12 +3868,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         const o = optionsData;
                         const pcr = o.putCallRatio;
                         const pcrColor = !pcr ? '#aaa' : pcr > 1.2 ? '#ef4444' : pcr < 0.7 ? '#10b981' : '#f59e0b';
-                        const pcrLabel = !pcr ? 'N/A' : pcr > 1.2 ? 'Bearish — more puts than calls' : pcr < 0.7 ? 'Bullish — more calls than puts' : 'Neutral';
+                        const pcrLabel = !pcr ? 'N/A' : pcr > 1.2 ? 'Bearish -- more puts than calls' : pcr < 0.7 ? 'Bullish -- more calls than puts' : 'Neutral';
                         return (
                             <>
                                 <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#f5f3ff', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
                                     <div>
-                                        <div style={{ fontWeight:'800', fontSize:'15px', color:'#4c1d95' }}>🎯 Options Flow — {o.ticker} · {o.expiry}</div>
+                                        <div style={{ fontWeight:'800', fontSize:'15px', color:'#4c1d95' }}>🎯 Options Flow -- {o.ticker} . {o.expiry}</div>
                                         <div style={{ fontSize:'12px', color:'#7c3aed', marginTop:'2px' }}>What big money is positioning for</div>
                                     </div>
                                     <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
@@ -3904,7 +3883,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                                 {o.expiryDates.map(d => <option key={d} value={d}>{d}</option>)}
                                             </select>
                                         )}
-                                        <button onClick={() => setShowOptionsPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa' }}>×</button>
+                                        <button onClick={() => setShowOptionsPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa' }}>x</button>
                                     </div>
                                 </div>
                                 {/* Layman explainer */}
@@ -3938,12 +3917,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 </div>
                                 {o.notableStrikes?.length > 0 && (
                                     <div style={{ padding:'0 20px 20px' }}>
-                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>TOP STRIKES BY OPEN INTEREST (within ±25% of price)</div>
+                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>TOP STRIKES BY OPEN INTEREST (within +/-25% of price)</div>
                                         <div style={{ overflowX:'auto' }}>
                                             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                                                 <thead>
                                                     <tr style={{ backgroundColor:'#f8f9fa' }}>
-                                                        {['Type','Strike','OI','Volume','IV %','Δ from Price'].map(h => (
+                                                        {['Type','Strike','OI','Volume','IV %','Delta from Price'].map(h => (
                                                             <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#555', borderBottom:'1px solid #f0f0f0' }}>{h}</th>
                                                         ))}
                                                     </tr>
@@ -3962,8 +3941,8 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                                                 <td style={{ padding:'8px 10px', fontWeight:'700' }}>${s.strike}</td>
                                                                 <td style={{ padding:'8px 10px' }}>{s.openInterest?.toLocaleString()}</td>
                                                                 <td style={{ padding:'8px 10px' }}>{s.volume?.toLocaleString()}</td>
-                                                                <td style={{ padding:'8px 10px', color:s.impliedVolatility>0.6?'#ef4444':'#333' }}>{s.impliedVolatility?(s.impliedVolatility*100).toFixed(1):'–'}</td>
-                                                                <td style={{ padding:'8px 10px', fontWeight:'700', color:parseFloat(delta)>0?'#10b981':'#ef4444' }}>{delta!==null?`${parseFloat(delta)>0?'+':''}${delta}%`:'–'}</td>
+                                                                <td style={{ padding:'8px 10px', color:s.impliedVolatility>0.6?'#ef4444':'#333' }}>{s.impliedVolatility?(s.impliedVolatility*100).toFixed(1):'-'}</td>
+                                                                <td style={{ padding:'8px 10px', fontWeight:'700', color:parseFloat(delta)>0?'#10b981':'#ef4444' }}>{delta!==null?`${parseFloat(delta)>0?'+':''}${delta}%`:'-'}</td>
                                                             </tr>
                                                         );
                                                     })}
@@ -3978,26 +3957,26 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ══ VIDEO PLAYER ═══════════════════════════════════════════════ */}
+            {/* == VIDEO PLAYER =============================================== */}
             {(isRecording || videoUrl) && (
                 <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
                     <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#0f0f14', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                         <div>
-                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay — {ticker} · {chartInterval}</div>
+                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay -- {ticker} . {chartInterval}</div>
                             <div style={{ fontSize:'12px', color:'#aaa', marginTop:'2px' }}>
-                                {isRecording ? `Recording… ${recordingProgress}% — animating through data` : '▶ Playback ready · loops · download to keep'}
+                                {isRecording ? `Recording... ${recordingProgress}% -- animating through data` : '> Playback ready . loops . download to keep'}
                             </div>
                         </div>
                         <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
                             {videoUrl && !isRecording && (
                                 <button onClick={downloadVideo}
                                     style={{ padding:'7px 14px', borderRadius:'8px', backgroundColor:'#2563eb', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' }}>
-                                    ⬇ Download .webm
+                                    v Download .webm
                                 </button>
                             )}
                             {videoUrl && (
                                 <button onClick={() => { URL.revokeObjectURL(videoUrl); setVideoUrl(null); setVideoBlob(null); setRecordingProgress(0); }}
-                                    style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#666' }}>×</button>
+                                    style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#666' }}>x</button>
                             )}
                         </div>
                     </div>
@@ -4007,7 +3986,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 <div style={{ height:'100%', width:`${recordingProgress}%`, backgroundColor:'#ef4444', borderRadius:'3px', transition:'width 0.3s ease' }} />
                             </div>
                             <div style={{ fontSize:'12px', color:'#ef4444', fontWeight:'700', textAlign:'center' }}>
-                                🔴 Recording chart replay… {recordingProgress}% — chart is animating through {chartInterval} data
+                                🔴 Recording chart replay... {recordingProgress}% -- chart is animating through {chartInterval} data
                             </div>
                         </div>
                     )}
@@ -4025,7 +4004,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ══ COMPARE PICKER MODAL ════════════════════════════════════════ */}
+            {/* == COMPARE PICKER MODAL ======================================== */}
             {showComparePicker && (
                 <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9500, display:'flex', alignItems:'center', justifyContent:'center' }}
                     onClick={e => { if (e.target===e.currentTarget) setShowComparePicker(false); }}>
@@ -4033,12 +4012,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         <div style={{ padding:'20px 24px 0', flexShrink:0 }}>
                             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
                                 <div>
-                                    <div style={{ fontSize:'17px', fontWeight:'800', color:'#1a1a1a' }}>⊕ Compare with {ticker}</div>
-                                    <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Pick any asset — a full chart opens side by side</div>
+                                    <div style={{ fontSize:'17px', fontWeight:'800', color:'#1a1a1a' }}>+ Compare with {ticker}</div>
+                                    <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Pick any asset -- a full chart opens side by side</div>
                                 </div>
-                                <button onClick={()=>setShowComparePicker(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>×</button>
+                                <button onClick={()=>setShowComparePicker(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>x</button>
                             </div>
-                            <input autoFocus type="text" placeholder="Search ticker or name… e.g. NVDA, Gold, EUR/USD"
+                            <input autoFocus type="text" placeholder="Search ticker or name... e.g. NVDA, Gold, EUR/USD"
                                 value={compareSearch} onChange={e => setCompareSearch(e.target.value.toUpperCase())}
                                 style={{ width:'100%', padding:'10px 14px', borderRadius:'10px', border:'2px solid #e0e0e0', fontSize:'14px', boxSizing:'border-box', outline:'none', marginBottom:'12px' }} />
                             <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'12px' }}>
@@ -4083,7 +4062,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         </div>
                         <div style={{ padding:'12px 24px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
                             <span style={{ fontSize:'12px', color:'#999', fontWeight:'600' }}>Layout:</span>
-                            {[['side','⬛⬛ Side by side'],['stack','⬛↕ Stacked']].map(([m,lbl]) => (
+                            {[['side','[][] Side by side'],['stack','[]<> Stacked']].map(([m,lbl]) => (
                                 <button key={m} onClick={() => setCompareMode(m)}
                                     style={{ padding:'5px 12px', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer',
                                         border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
@@ -4097,7 +4076,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ══ COMPARE DUAL CHART ══════════════════════════════════════════════ */}
+            {/* == COMPARE DUAL CHART ============================================== */}
             {compareTicker && (
                 <div style={{ marginBottom:'20px' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
@@ -4106,7 +4085,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         </div>
                         <div style={{ display:'flex', gap:'6px', marginLeft:'auto' }}>
                             <span className="compare-layout-toggle" style={{ display:'contents' }}>
-                            {[['side','⬛⬛ Side'],['stack','⬛↕ Stack']].map(([m,lbl]) => (
+                            {[['side','[][] Side'],['stack','[]<> Stack']].map(([m,lbl]) => (
                                 <button key={m} onClick={() => setCompareMode(m)}
                                     style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
                                         border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
@@ -4118,11 +4097,11 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             </span>
                             <button onClick={() => setShowComparePicker(true)}
                                 style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', backgroundColor:'#fff', color:'#555' }}>
-                                ⊕ Swap
+                                + Swap
                             </button>
                             <button onClick={() => setCompareTicker(null)}
                                 style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444' }}>
-                                ✕ Close
+                                x Close
                             </button>
                         </div>
                     </div>
@@ -4132,12 +4111,12 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         gap: '14px', alignItems: 'start',
                     }}>
                         <div style={{ minWidth:0 }}>
-                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#888', marginBottom:'5px', paddingLeft:'2px' }}>📈 {ticker} — primary</div>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#888', marginBottom:'5px', paddingLeft:'2px' }}>📈 {ticker} -- primary</div>
                             <ChartInsightsTab ticker={ticker} stockData={stockData} earnings={earnings} news={news}
                                 marketauxNews={marketauxNews} openaiKey={openaiKey} cachedNewsAnalysis={cachedNewsAnalysis} compactMode={true} />
                         </div>
                         <div style={{ minWidth:0 }}>
-                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#3b82f6', marginBottom:'5px', paddingLeft:'2px' }}>📈 {compareTicker} — compare</div>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#3b82f6', marginBottom:'5px', paddingLeft:'2px' }}>📈 {compareTicker} -- compare</div>
                             <ChartInsightsTab ticker={compareTicker} stockData={null} earnings={[]} news={[]}
                                 marketauxNews={[]} openaiKey={openaiKey} cachedNewsAnalysis={null} compactMode={true} />
                         </div>
@@ -4145,7 +4124,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ── Analyst Ratings Panel ── */}
+            {/* -- Analyst Ratings Panel -- */}
             {showAnalystPanel && analystData && (() => {
                 const s = analystData.summary;
                 const pt = analystData.priceTarget;
@@ -4168,7 +4147,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         {/* Header */}
                         <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'10px' }}>
                             <div>
-                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>🏦 Analyst Ratings — {analystData.ticker}</div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>🏦 Analyst Ratings -- {analystData.ticker}</div>
                                 <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>{s.total} analysts covering this stock</div>
                             </div>
                             <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
@@ -4181,7 +4160,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                     <div style={{ fontSize:'22px', fontWeight:'800', color:'#10b981' }}>{s.bullishPct}%</div>
                                     <div style={{ fontSize:'10px', color:'#aaa', fontWeight:'600' }}>BULLISH</div>
                                 </div>
-                                <button onClick={() => setShowAnalystPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa', padding:'4px' }}>×</button>
+                                <button onClick={() => setShowAnalystPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa', padding:'4px' }}>x</button>
                             </div>
                         </div>
 
@@ -4218,7 +4197,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                                 <div style={{ fontSize: item.big?'20px':'15px', fontWeight:'800', color:item.color }}>{item.val}</div>
                                                 {item.label==='Mean Target' && pt.current && (
                                                     <div style={{ fontSize:'11px', color: pt.mean >= pt.current ? '#10b981' : '#ef4444', fontWeight:'700', marginTop:'2px' }}>
-                                                        {pt.mean >= pt.current ? '▲' : '▼'} {Math.abs(((pt.mean - pt.current)/pt.current)*100).toFixed(1)}% upside
+                                                        {pt.mean >= pt.current ? '^' : 'v'} {Math.abs(((pt.mean - pt.current)/pt.current)*100).toFixed(1)}% upside
                                                     </div>
                                                 )}
                                             </div>
@@ -4243,7 +4222,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                                     {r.action || 'Update'}
                                                 </span>
                                                 <span style={{ fontSize:'11px', color:'#555', flexShrink:0 }}>
-                                                    {r.fromGrade && r.toGrade ? `${r.fromGrade} → ${r.toGrade}` : r.toGrade || r.fromGrade || ''}
+                                                    {r.fromGrade && r.toGrade ? `${r.fromGrade} -> ${r.toGrade}` : r.toGrade || r.fromGrade || ''}
                                                 </span>
                                             </div>
                                         );
@@ -4252,18 +4231,18 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             </div>
                         )}
 
-                        {analystError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>⚠️ {analystError}</div>}
+                        {analystError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>!️ {analystError}</div>}
                     </div>
                 );
             })()}
 
             {recError && (
                 <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
-                    ⚠️ {recError}
+                    !️ {recError}
                 </div>
             )}
 
-            {/* ── Sabrina's Recommendation Card ── */}
+            {/* -- Sabrina's Recommendation Card -- */}
             {!compactMode && sabrinaRec && (
                 <div style={{ backgroundColor: vc.bg, border: `2px solid ${vc.border}`, borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
                     {/* Verdict header */}
@@ -4282,7 +4261,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                         </span>
                                     )}
                                     {sabrinaRec.timeframe && (
-                                        <span style={{ fontSize: '12px', color: '#888' }}>· {sabrinaRec.timeframe}</span>
+                                        <span style={{ fontSize: '12px', color: '#888' }}>. {sabrinaRec.timeframe}</span>
                                     )}
                                 </div>
                                 <div style={{ fontSize: '15px', color: '#333', lineHeight: '1.6' }}>{sabrinaRec.summary}</div>
@@ -4335,10 +4314,10 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                             )}
                             {sabrinaRec.risks?.length > 0 && (
                                 <div>
-                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>⚠️ RISKS</div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>!️ RISKS</div>
                                     {sabrinaRec.risks.map((r, i) => (
                                         <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
-                                            <span style={{ color: '#ef4444', fontWeight: '700', flexShrink: 0 }}>↘</span>{r}
+                                            <span style={{ color: '#ef4444', fontWeight: '700', flexShrink: 0 }}>v</span>{r}
                                         </div>
                                     ))}
                                 </div>
@@ -4348,7 +4327,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                 </div>
             )}
 
-            {/* ── Bottom context panels ── */}
+            {/* -- Bottom context panels -- */}
             {!compactMode && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
 
                 {/* News Insights */}
@@ -4366,7 +4345,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 return (
                                     <div style={{ padding: '10px 12px', backgroundColor: bc + '10', border: `1px solid ${bc}30`, borderLeft: `3px solid ${bc}`, borderRadius: '8px' }}>
                                         <div style={{ fontSize: '11px', fontWeight: '700', color: bc, marginBottom: '4px', letterSpacing: '0.07em' }}>
-                                            {bIcons[cachedNewsAnalysis.bias]} AI NEWS ANALYSIS · {cachedNewsAnalysis.bias} · {cachedNewsAnalysis.confidence}%
+                                            {bIcons[cachedNewsAnalysis.bias]} AI NEWS ANALYSIS . {cachedNewsAnalysis.bias} . {cachedNewsAnalysis.confidence}%
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{cachedNewsAnalysis.tldr}</div>
                                     </div>
@@ -4400,7 +4379,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                                 const rev = e.revenue ? (e.revenue / 1e9).toFixed(1) : null;
                                 const eps = e.earnings ? (e.earnings / 1e9).toFixed(2) : null;
                                 const prev = recentEarnings[i + 1];
-                                const revTrend = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '▲' : '▼') : '';
+                                const revTrend = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '^' : 'v') : '';
                                 const revColor = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '#10b981' : '#ef4444') : '#999';
                                 return (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < recentEarnings.length - 1 ? '1px solid #f4f4f4' : 'none' }}>
@@ -4452,7 +4431,7 @@ Respond ONLY with a JSON object (no markdown, no backticks):
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// --- Main Component -----------------------------------------------------------
 export default function SnowAIStockScreener() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
@@ -4542,13 +4521,13 @@ export default function SnowAIStockScreener() {
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
     const [mainCachedNewsAnalyses, setMainCachedNewsAnalyses] = useState({});
-    // ── Hoisted news state (persists across tab switches) ──
+    // -- Hoisted news state (persists across tab switches) --
     const [hoistedMarketauxNews, setHoistedMarketauxNews] = useState([]);
     const [hoistedFetchingNews, setHoistedFetchingNews] = useState(false);
     const [hoistedNewsError, setHoistedNewsError] = useState(null);
     const [hoistedHasFetched, setHoistedHasFetched] = useState(false);
     const [hoistedActiveNewsTab, setHoistedActiveNewsTab] = useState('yahoo');
-    // ── Hoisted news analysis state (so "View Analysis" button never disappears) ──
+    // -- Hoisted news analysis state (so "View Analysis" button never disappears) --
     const [hoistedCachedAnalyses, setHoistedCachedAnalyses] = useState({});
     const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
@@ -4919,7 +4898,7 @@ export default function SnowAIStockScreener() {
                         {showModal && (
                             <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
                                 <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-                                    <button style={styles.closeButton} onClick={() => setShowModal(false)}>×</button>
+                                    <button style={styles.closeButton} onClick={() => setShowModal(false)}>x</button>
                                     <div style={styles.modalHeader}>Select a Stock</div>
                                     <input type="text" placeholder="Search stocks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ ...styles.input, width: '100%', marginBottom: '15px' }} />
                                     <div style={styles.categoryFilter}>
@@ -4948,7 +4927,7 @@ export default function SnowAIStockScreener() {
                         {showAnalysisModal && aiAnalysisResults && (
                             <div style={styles.modalOverlay} onClick={() => setShowAnalysisModal(false)}>
                                 <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
-                                    <button style={styles.closeButton} onClick={() => setShowAnalysisModal(false)}>×</button>
+                                    <button style={styles.closeButton} onClick={() => setShowAnalysisModal(false)}>x</button>
                                     <div style={styles.modalHeader}>🤖 AI Stock Analysis Results</div>
                                     <p style={{ color: '#666', marginBottom: '20px' }}>Analysis completed at {aiAnalysisResults.timestamp}</p>
 
@@ -5049,7 +5028,7 @@ export default function SnowAIStockScreener() {
                             <>
                                 <div style={styles.companyHeader}>
                                     <div style={styles.companyName}>{stockData.longName || ticker}</div>
-                                    <div style={styles.companySymbol}>{stockData.symbol} • {stockData.sector} • {stockData.industry}</div>
+                                    <div style={styles.companySymbol}>{stockData.symbol} * {stockData.sector} * {stockData.industry}</div>
                                 </div>
 
                                 <div style={styles.tabContainer}>
@@ -5088,7 +5067,7 @@ export default function SnowAIStockScreener() {
                                             <h4>About</h4>
                                             <div style={styles.voiceControls}>
                                                 <button onClick={handleSpeak} style={{ ...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {}) }}>
-                                                    {isSpeaking ? '⏹ Stop Reading' : '🔊 Read Aloud'}
+                                                    {isSpeaking ? 'Stop Stop Reading' : '🔊 Read Aloud'}
                                                 </button>
                                                 <select value={selectedVoice?.name || ''} onChange={e => setSelectedVoice(voices.find(v => v.name === e.target.value))}>
                                                     {voices.map((voice, idx) => <option key={idx} value={voice.name}>{voice.name} ({voice.lang})</option>)}
@@ -5164,7 +5143,7 @@ export default function SnowAIStockScreener() {
                                     </div>
                                 )}
 
-                                {/* ── Chart & Insights Tab ── */}
+                                {/* -- Chart & Insights Tab -- */}
                                 {activeTab === 'chart' && (
                                     <div style={{ ...styles.contentCard, padding: 0, backgroundColor: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
                                         <ChartInsightsTab
@@ -5179,7 +5158,7 @@ export default function SnowAIStockScreener() {
                                     </div>
                                 )}
 
-                                {/* ── Enhanced News Tab ── */}
+                                {/* -- Enhanced News Tab -- */}
                                 {activeTab === 'news' && (
                                     <div style={styles.contentCard}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -5223,7 +5202,7 @@ export default function SnowAIStockScreener() {
                 </div>
             </div>
 
-            {/* Sabrina AI Chatbot — always available */}
+            {/* Sabrina AI Chatbot -- always available */}
             <SabrinaChat
                 stockData={stockData}
                 financials={financials}
