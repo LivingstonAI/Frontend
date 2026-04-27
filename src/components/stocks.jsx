@@ -1682,7 +1682,13 @@ function EarningsCalendar({ onSelectTicker }) {
     const [currentMonth,  setCurrentMonth]  = React.useState(() => new Date());
     const [selectedDay,   setSelectedDay]   = React.useState(null);
     const [showModal,     setShowModal]     = React.useState(false);
-    const [hoveredCell,   setHoveredCell]   = React.useState(null); // { dateStr, x, y }
+    const [hoveredCell,      setHoveredCell]      = React.useState(null);
+    const [reactionData,     setReactionData]     = React.useState(null);   // single reaction
+    const [reactionLoading,  setReactionLoading]  = React.useState(false);
+    const [reactionTicker,   setReactionTicker]   = React.useState(null);   // which ticker
+    const [bulkReaction,     setBulkReaction]     = React.useState(null);   // bulk results
+    const [bulkLoading,      setBulkLoading]      = React.useState(false);
+    const [showBulk,         setShowBulk]         = React.useState(false);
     const [modalEarnings, setModalEarnings] = React.useState([]);
     const [search,        setSearch]        = React.useState('');
     const [sectorFilter,  setSectorFilter]  = React.useState('All');
@@ -1762,6 +1768,51 @@ function EarningsCalendar({ onSelectTicker }) {
         return `$${v}`;
     };
 
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const fetchReaction = async (ticker, earningsDate) => {
+        setReactionTicker(ticker);
+        setReactionLoading(true);
+        setReactionData(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ ticker, earningsDate }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `${res.status}`);
+            setReactionData({ ...json, ticker, earningsDate });
+        } catch(e) {
+            setReactionData({ error: e.message, ticker, earningsDate });
+        } finally {
+            setReactionLoading(false);
+        }
+    };
+
+    const fetchBulkReaction = async () => {
+        // Collect all past earnings entries from our loaded data
+        const pastItems = earnings
+            .filter(e => !e.isUpcoming && e.earningsDate)
+            .map(e => ({ ticker: e.ticker, earningsDate: e.earningsDate }))
+            .slice(0, 40);
+        if (!pastItems.length) return;
+        setBulkLoading(true);
+        setBulkReaction(null);
+        setShowBulk(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ tickers: pastItems }),
+            });
+            const json = await res.json();
+            setBulkReaction(json.results || []);
+        } catch(e) {
+            setBulkReaction([]);
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     const SENTIMENT_CONFIG = {
         strongly_bullish: { label:'Strongly Bullish', icon:'🚀', bg:'#f0fdf4', border:'#10b981', text:'#065f46' },
         bullish:          { label:'Bullish',           icon:'📈', bg:'#f0fdf4', border:'#34d399', text:'#065f46' },
@@ -1771,7 +1822,7 @@ function EarningsCalendar({ onSelectTicker }) {
     };
 
     const SentimentBadge = ({ e, compact }) => {
-        if (!e.isUpcoming || !e.epsSentiment || !e.pastActuals?.length >= 2) return null;
+        if (!e.isUpcoming || !e.epsSentiment || !(e.pastActuals?.length >= 2)) return null;
         const cfg = SENTIMENT_CONFIG[e.epsSentiment] || SENTIMENT_CONFIG.in_line;
         return (
             <div style={{ marginTop: compact ? '3px' : '6px' }}>
@@ -1833,6 +1884,92 @@ function EarningsCalendar({ onSelectTicker }) {
         if (Math.abs(v) >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
         return `$${v}`;
     };
+    // ── Reaction sparkline + stats panel ────────────────────────────────────
+    const ReactionPanel = ({ data, onClose }) => {
+        if (!data) return null;
+        if (data.error) return (
+            <div style={{ padding:'16px 20px', backgroundColor:'#fef2f2', borderRadius:'10px', border:'1px solid #fecaca', color:'#b91c1c', fontSize:'13px', marginTop:'10px' }}>
+                ⚠️ {data.error}
+                <button onClick={onClose} style={{ float:'right', background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'700' }}>×</button>
+            </div>
+        );
+
+        const sp = data.sparkline || [];
+        const closes = sp.map(p => p.close).filter(Boolean);
+        const minC = Math.min(...closes);
+        const maxC = Math.max(...closes);
+        const norm = v => maxC > minC ? ((v - minC) / (maxC - minC)) : 0.5;
+        const W = 320, H = 80;
+        const pts = sp.map((p, i) => `${(i/(sp.length-1||1))*W},${H - norm(p.close)*H}`).join(' ');
+        const area = `M0,${H} L${pts.split(' ').map((p,i) => i===0 ? `${p}` : p).join(' L')} L${W},${H} Z`;
+
+        const col = v => !v ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+        const fmt = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
+        const earnIdx = sp.findIndex(p => p.dayN === 0);
+
+        return (
+            <div style={{ backgroundColor:'#fff', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'hidden', marginTop:'10px', boxShadow:'0 4px 16px rgba(0,0,0,0.08)' }}>
+                <div style={{ padding:'12px 16px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                        <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>📊 {data.ticker} — Post-Earnings Reaction</span>
+                        <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'1px' }}>Earnings: {data.earningsDate}</div>
+                    </div>
+                    <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer', lineHeight:1 }}>×</button>
+                </div>
+
+                {/* Sparkline */}
+                <div style={{ backgroundColor:'#0f172a', padding:'12px 16px 8px', position:'relative' }}>
+                    <svg width="100%" viewBox={`0 0 ${W} ${H+4}`} style={{ display:'block' }}>
+                        <defs>
+                            <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3"/>
+                                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02"/>
+                            </linearGradient>
+                        </defs>
+                        <path d={`M${area}`} fill="url(#rg)" />
+                        <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinejoin="round"/>
+                        {/* Earnings day vertical line */}
+                        {earnIdx >= 0 && (
+                            <line
+                                x1={(earnIdx/(sp.length-1||1))*W} y1="0"
+                                x2={(earnIdx/(sp.length-1||1))*W} y2={H}
+                                stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,2" />
+                        )}
+                        {/* Dots for key days */}
+                        {sp.filter(p => [-1,0,1,3,5,10].includes(p.dayN)).map((p, i) => {
+                            const xi = sp.indexOf(p);
+                            const x  = (xi/(sp.length-1||1))*W;
+                            const y  = H - norm(p.close)*H;
+                            return <circle key={i} cx={x} cy={y} r="3" fill="#fff" stroke="#3b82f6" strokeWidth="1.5"/>;
+                        })}
+                    </svg>
+                    <div style={{ fontSize:'9px', color:'#f59e0b', textAlign:'center', marginTop:'2px' }}>▲ earnings day</div>
+                </div>
+
+                {/* Stats grid */}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'0', borderTop:'1px solid #f1f5f9' }}>
+                    {[
+                        { label:'Earn Day', val:data.pctEarnDay },
+                        { label:'D+1',      val:data.pctD1 },
+                        { label:'D+3',      val:data.pctD3 },
+                        { label:'D+5',      val:data.pctD5 },
+                        { label:'D+10',     val:data.pctD10 },
+                    ].map(({ label, val }, i) => (
+                        <div key={i} style={{ padding:'10px 6px', textAlign:'center', borderRight: i < 4 ? '1px solid #f1f5f9' : 'none' }}>
+                            <div style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600', marginBottom:'3px' }}>{label}</div>
+                            <div style={{ fontSize:'13px', fontWeight:'800', color:col(val) }}>{fmt(val)}</div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Pre-close reference */}
+                <div style={{ padding:'8px 16px', backgroundColor:'#f8fafc', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#64748b' }}>
+                    Pre-earnings close: <strong>${data.preClose}</strong> · All % relative to that price
+                </div>
+            </div>
+        );
+    };
+
     const fmtDate = (d) => {
         if (!d) return '—';
         const dt = new Date(d + 'T12:00:00');
@@ -2158,7 +2295,112 @@ function EarningsCalendar({ onSelectTicker }) {
                                 </div>
                             )}
                         </div>
+
+                        {/* ── Reaction panel ── */}
+                        {(reactionLoading || reactionData) && (
+                            <div style={{ padding:'0 20px 16px' }}>
+                                {reactionLoading && (
+                                    <div style={{ padding:'20px', textAlign:'center', color:'#2563eb', backgroundColor:'#eff6ff', borderRadius:'12px', marginTop:'10px', fontSize:'13px' }}>
+                                        <div style={{ fontSize:'22px', animation:'spin 0.8s linear infinite', display:'inline-block', marginBottom:'6px' }}>⏳</div>
+                                        <div>Fetching post-earnings reaction for <strong>{reactionTicker}</strong>…</div>
+                                        <div style={{ fontSize:'11px', color:'#64748b', marginTop:'3px' }}>Pulling ~2 weeks of price data around the earnings date</div>
+                                    </div>
+                                )}
+                                {!reactionLoading && reactionData && (
+                                    <ReactionPanel data={reactionData} onClose={() => setReactionData(null)} />
+                                )}
+                            </div>
+                        )}
                     </div>
+
+                    {/* ── Bulk reaction footer ── */}
+                    <div style={{ padding:'12px 20px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                        <div style={{ flex:1, fontSize:'11px', color:'#64748b' }}>
+                            <strong style={{ color:'#4c1d95' }}>⚡ Bulk Calculator</strong> — see how every stock here reacted post-earnings vs its pre-report price
+                        </div>
+                        <button onClick={fetchBulkReaction} disabled={bulkLoading}
+                            style={{ padding:'7px 14px', borderRadius:'9px', backgroundColor:'#7c3aed', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor: bulkLoading?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
+                            {bulkLoading
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Calculating…</>
+                                : '⚡ Bulk Reaction'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            )}
+
+            {/* ── Bulk reaction results (below main calendar) ── */}
+            {showBulk && (
+                <div style={{ margin:'0 0 20px', backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e2e8f0', overflow:'hidden' }}>
+                    <div style={{ padding:'14px 20px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>⚡ Bulk Earnings Reaction</div>
+                            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Sorted by biggest D+1 move — all % from pre-earnings close</div>
+                        </div>
+                        <button onClick={() => setShowBulk(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer' }}>×</button>
+                    </div>
+                    {bulkLoading && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'13px' }}>
+                            <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
+                            <div>Fetching post-earnings data for multiple stocks…</div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>~15–20s</div>
+                        </div>
+                    )}
+                    {!bulkLoading && bulkReaction?.length > 0 && (
+                        <>
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Ticker','Sector','Earnings Date','Earn Day','D+1','D+3','D+5','D+10'].map(h => (
+                                            <th key={h} style={{ padding:'9px 12px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bulkReaction.map((r, i) => {
+                                        const col = v => v == null ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+                                        const bg  = v => v == null ? 'transparent' : v > 2 ? 'rgba(16,185,129,0.07)' : v < -2 ? 'rgba(239,68,68,0.07)' : 'transparent';
+                                        const fmt = v => v == null ? '—' : `${v >= 0 ? '+' : ''}${v}%`;
+                                        const sc  = SECTOR_COLORS[SECTOR_MAP[r.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        return (
+                                            <tr key={i} style={{ borderBottom:'1px solid #f8fafc' }}
+                                                onMouseEnter={e2=>e2.currentTarget.style.backgroundColor='#f8fafc'}
+                                                onMouseLeave={e2=>e2.currentTarget.style.backgroundColor=''}>
+                                                <td style={{ padding:'9px 12px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</td>
+                                                <td style={{ padding:'9px 12px' }}>
+                                                    <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'8px', backgroundColor:sc.bg, color:sc.text, border:`1px solid ${sc.border}40`, fontWeight:'700' }}>
+                                                        {SECTOR_MAP[r.ticker]||'—'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding:'9px 12px', color:'#475569', whiteSpace:'nowrap' }}>{r.earningsDate}</td>
+                                                {[r.pctEarnDay, r.pctD1, r.pctD3, r.pctD5, r.pctD10].map((v, j) => (
+                                                    <td key={j} style={{ padding:'9px 12px', fontWeight:'700', color:col(v), backgroundColor:bg(v), textAlign:'center' }}>{fmt(v)}</td>
+                                                ))}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        {bulkReaction.length > 2 && (() => {
+                            const d1s = bulkReaction.filter(r=>r.pctD1!=null).map(r=>r.pctD1);
+                            const d5s = bulkReaction.filter(r=>r.pctD5!=null).map(r=>r.pctD5);
+                            const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '—';
+                            const up   = bulkReaction.filter(r=>r.pctD1>0).length;
+                            return (
+                                <div style={{ padding:'12px 20px', backgroundColor:'#f8fafc', borderTop:'1px solid #e2e8f0', display:'flex', gap:'20px', flexWrap:'wrap' }}>
+                                    <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+1: <strong style={{ color: parseFloat(mean(d1s))>=0?'#10b981':'#ef4444' }}>{mean(d1s)}%</strong></span>
+                                    <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+5: <strong style={{ color: parseFloat(mean(d5s))>=0?'#10b981':'#ef4444' }}>{mean(d5s)}%</strong></span>
+                                    <span style={{ fontSize:'12px', color:'#475569' }}>Positive D+1: <strong style={{ color:'#10b981' }}>{up}/{bulkReaction.length}</strong> ({((up/bulkReaction.length)*100).toFixed(0)}%)</span>
+                                </div>
+                            );
+                        })()}
+                        </>
+                    )}
+                    {!bulkLoading && bulkReaction?.length === 0 && (
+                        <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No past earnings data found for the current calendar view</div>
+                    )}
                 </div>
             )}
         </div>
