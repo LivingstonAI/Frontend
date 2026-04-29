@@ -33,12 +33,12 @@ const CSS = `
     --snw-font-head: 'Syne', sans-serif;
     --snw-font-mono: 'DM Mono', monospace;
 
-    --snw-bg-primary: #F5FAFE;
+    --snw-bg-primary:   #F5FAFE;
     --snw-bg-secondary: #FFFFFF;
     --snw-text-primary: #0D2D45;
     --snw-text-secondary: #7BA9C4;
     --snw-border-color: #CBE4F2;
-    --snw-card-bg: #FFFFFF;
+    --snw-card-bg:    #FFFFFF;
   }
 
   .snw-root {
@@ -48,828 +48,418 @@ const CSS = `
     color: var(--snw-text-primary);
   }
 
+  /* ── Top nav — always light ── */
   .snw-topnav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    position: sticky; top: 0; z-index: 100;
     background: var(--snw-bg-secondary);
     border-bottom: 1.5px solid var(--snw-border-color);
-    display: flex;
-    align-items: center;
-    gap: 0;
-    padding: 0 28px;
-    height: 52px;
+    display: flex; align-items: center; gap: 0;
+    padding: 0 28px; height: 52px;
     box-shadow: var(--snw-shadow);
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: nowrap; overflow-x: auto;
   }
   .snw-topnav-brand {
-    font-family: var(--snw-font-head);
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--snw-text-primary);
-    letter-spacing: -0.02em;
-    margin-right: 24px;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    font-family: var(--snw-font-head); font-size: 15px; font-weight: 800;
+    color: var(--snw-text-primary); letter-spacing: -0.02em;
+    margin-right: 24px; white-space: nowrap;
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   }
   .snw-topnav-brand-dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--snw-blue);
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--snw-blue);
+    animation: snw-dot-pulse 2s ease-in-out infinite;
   }
   @keyframes snw-dot-pulse {
     0%,100%{ opacity:1; transform:scale(1); }
     50%{ opacity:.4; transform:scale(1.5); }
   }
-  .snw-topnav-brand-dot { animation: snw-dot-pulse 2s ease-in-out infinite; }
-
-  .snw-topnav-links {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: 1;
-    overflow-x: auto;
-  }
+  .snw-topnav-links { display:flex; align-items:center; gap:2px; flex:1; overflow-x:auto; }
   .snw-nav-link {
-    padding: 6px 14px;
-    font-family: var(--snw-font-mono);
-    font-size: 12px;
-    color: var(--snw-text-secondary);
-    background: none;
-    border: none;
-    border-radius: var(--snw-radius-sm);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all .18s;
-    font-weight: 500;
+    padding: 6px 14px; font-family: var(--snw-font-mono); font-size: 12px;
+    color: var(--snw-text-secondary); background: none; border: none;
+    border-radius: var(--snw-radius-sm); cursor: pointer; white-space: nowrap;
+    transition: all .18s; font-weight: 500;
   }
   .snw-nav-link:hover { background: var(--snw-ice); color: var(--snw-text-primary); }
   .snw-nav-link.snw-active { background: var(--snw-ice); color: var(--snw-text-primary); font-weight: 600; }
 
-  .snw-body {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 28px 24px 48px;
-  }
+  .snw-body { max-width: 1400px; margin: 0 auto; padding: 28px 24px 48px; }
 
   .snw-page-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
   }
   .snw-page-title {
-    font-family: var(--snw-font-head);
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--snw-text-primary);
-    letter-spacing: -0.03em;
+    font-family: var(--snw-font-head); font-size: 26px; font-weight: 800;
+    color: var(--snw-text-primary); letter-spacing: -0.03em;
   }
-  .snw-page-subtitle {
-    font-size: 12px;
-    color: var(--snw-text-secondary);
-    margin-top: 4px;
-  }
+  .snw-page-subtitle { font-size: 12px; color: var(--snw-text-secondary); margin-top: 4px; }
 
+  /* ── Status panel ── */
   .snw-status-panel {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    overflow: hidden;
+    background: var(--snw-card-bg); border: 1.5px solid var(--snw-border-color);
+    border-radius: var(--snw-radius); margin-bottom: 22px; overflow: hidden;
   }
   .snw-status-hdr {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 18px;
-    background: var(--snw-deep);
-    color: white;
-    font-weight: 600;
-    font-size: 12px;
-    cursor: pointer;
-    user-select: none;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 18px; background: var(--snw-deep); color: white;
+    font-weight: 600; font-size: 12px; cursor: pointer; user-select: none;
   }
   .snw-status-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    padding: 16px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px; padding: 16px;
   }
-  .snw-period-card {
-    background: var(--snw-ice);
-    border-radius: var(--snw-radius-sm);
-    padding: 12px;
-    border-left: 4px solid var(--snw-muted);
-  }
-  .snw-period-card-running  { border-left-color: var(--snw-blue); }
+  .snw-period-card { background:var(--snw-ice); border-radius:var(--snw-radius-sm); padding:12px; border-left:4px solid var(--snw-muted); }
+  .snw-period-card-running   { border-left-color: var(--snw-blue); }
   .snw-period-card-completed { border-left-color: var(--snw-stable); }
-  .snw-period-card-failed   { border-left-color: var(--snw-volatile); }
-  .snw-period-title {
-    font-family: var(--snw-font-head);
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 6px;
-    color: var(--snw-text-primary);
-  }
-  .snw-period-badge {
-    font-size: 10px;
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-  .snw-badge-pending   { background: var(--snw-border); color: var(--snw-text-secondary); }
-  .snw-badge-running   { background: var(--snw-blue); color: white; }
-  .snw-badge-completed { background: var(--snw-stable); color: white; }
-  .snw-badge-failed    { background: var(--snw-volatile); color: white; }
-  .snw-period-info { font-size: 10px; color: var(--snw-text-secondary); margin-top: 6px; line-height: 1.5; }
-  .snw-period-current { font-size: 9px; font-family: var(--snw-font-mono); color: var(--snw-text-primary); margin-top: 6px; word-break: break-all; }
-
+  .snw-period-card-failed    { border-left-color: var(--snw-volatile); }
+  .snw-period-title { font-family:var(--snw-font-head); font-weight:700; font-size:15px; margin-bottom:6px; color:var(--snw-text-primary); }
+  .snw-period-badge { font-size:10px; display:inline-block; padding:2px 8px; border-radius:12px; margin-bottom:8px; font-weight:600; }
+  .snw-badge-pending   { background:var(--snw-border); color:var(--snw-text-secondary); }
+  .snw-badge-running   { background:var(--snw-blue); color:white; }
+  .snw-badge-completed { background:var(--snw-stable); color:white; }
+  .snw-badge-failed    { background:var(--snw-volatile); color:white; }
+  .snw-period-info { font-size:10px; color:var(--snw-text-secondary); margin-top:6px; line-height:1.5; }
+  .snw-period-current { font-size:9px; font-family:var(--snw-font-mono); color:var(--snw-text-primary); margin-top:6px; word-break:break-all; }
   .snw-run-btn {
-    margin-top: 8px;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 600;
-    background: var(--snw-deep);
-    color: white;
-    border: none;
-    border-radius: var(--snw-radius-sm);
-    cursor: pointer;
-    width: 100%;
-    transition: opacity 0.2s, transform 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-family: var(--snw-font-mono);
+    margin-top:8px; padding:6px 12px; font-size:11px; font-weight:600;
+    background:var(--snw-deep); color:white; border:none;
+    border-radius:var(--snw-radius-sm); cursor:pointer; width:100%;
+    transition:opacity .2s,transform .2s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    font-family:var(--snw-font-mono);
   }
-  .snw-run-btn:hover:not(:disabled) { opacity: 0.8; transform: translateY(-1px); }
-  .snw-run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .snw-run-btn:hover:not(:disabled) { opacity:.8; transform:translateY(-1px); }
+  .snw-run-btn:disabled { opacity:.6; cursor:not-allowed; }
 
   @keyframes snw-spin { to { transform: rotate(360deg); } }
   .snw-spinner-sm {
-    width: 12px; height: 12px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: snw-spin 0.6s linear infinite;
-    display: inline-block;
-    flex-shrink: 0;
+    width:12px; height:12px; border:2px solid rgba(255,255,255,.3);
+    border-top-color:white; border-radius:50%;
+    animation:snw-spin .6s linear infinite; display:inline-block; flex-shrink:0;
   }
   .snw-spinner-lg {
-    width: 32px; height: 32px;
-    border: 3px solid var(--snw-border-color);
-    border-top-color: var(--snw-blue);
-    border-radius: 50%;
-    animation: snw-spin .7s linear infinite;
+    width:32px; height:32px; border:3px solid var(--snw-border-color);
+    border-top-color:var(--snw-blue); border-radius:50%;
+    animation:snw-spin .7s linear infinite;
   }
 
+  /* ── Quick bar ── */
   .snw-quick-bar {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 10px;
+    background: var(--snw-card-bg); border: 1.5px solid var(--snw-border-color);
+    border-radius: var(--snw-radius); margin-bottom: 22px; padding: 14px 18px;
+    display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px;
   }
-  .snw-quick-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 110px; }
-  .snw-quick-label { font-size: 10px; color: var(--snw-text-secondary); text-transform: uppercase; font-weight: 500; letter-spacing: 0.05em; }
+  .snw-quick-group { display:flex; flex-direction:column; gap:3px; flex:1; min-width:110px; }
+  .snw-quick-label { font-size:10px; color:var(--snw-text-secondary); text-transform:uppercase; font-weight:500; letter-spacing:.05em; }
   .snw-quick-input, .snw-quick-select {
-    padding: 7px 11px;
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 12px;
-    background: var(--snw-bg-primary);
-    color: var(--snw-text-primary);
-    width: 100%;
+    padding: 7px 11px; border: 1.5px solid var(--snw-border-color);
+    border-radius: var(--snw-radius-sm); font-family: var(--snw-font-mono); font-size: 12px;
+    background: var(--snw-bg-primary); color: var(--snw-text-primary); width: 100%;
   }
-  .snw-quick-input:focus, .snw-quick-select:focus { outline: none; border-color: var(--snw-blue); }
-  .snw-divider { width: 1px; height: 36px; background: var(--snw-border-color); align-self: flex-end; }
+  .snw-quick-input:focus, .snw-quick-select:focus { outline:none; border-color:var(--snw-blue); }
+  .snw-divider { width:1px; height:36px; background:var(--snw-border-color); align-self:flex-end; }
 
   .snw-btn {
-    padding: 8px 18px;
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all .18s;
+    padding:8px 18px; border-radius:var(--snw-radius-sm);
+    font-family:var(--snw-font-mono); font-size:12px; font-weight:600;
+    cursor:pointer; border:none; transition:all .18s; white-space:nowrap;
+  }
+  .snw-btn-primary { background:var(--snw-deep); color:white; }
+  .snw-btn-primary:hover:not(:disabled) { opacity:.8; }
+  .snw-btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+  .snw-btn-secondary { background:var(--snw-ice); color:var(--snw-text-primary); border:1.5px solid var(--snw-border-color); }
+  .snw-btn-secondary:hover { background:var(--snw-sky); }
+  .snw-btn-danger { background:#FBDEDE; color:#D63B3B; border:1.5px solid #D63B3B44; }
+  .snw-btn-danger:hover { background:#D63B3B; color:white; }
+  .snw-btn-sm { padding:6px 14px; font-size:11px; }
+
+  /* ── Multi-select chip filter bar ── */
+  .snw-chip-section {
+    background: var(--snw-card-bg); border: 1.5px solid var(--snw-border-color);
+    border-radius: var(--snw-radius); margin-bottom: 22px; overflow: hidden;
+  }
+  .snw-chip-section-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--snw-ice); flex-wrap: wrap; gap: 8px;
+  }
+  .snw-chip-section-title { font-size:11px; font-weight:700; color:var(--snw-text-primary); letter-spacing:.04em; text-transform:uppercase; }
+  .snw-chip-section-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .snw-chip-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .snw-chip-row-label { font-size:10px; color:var(--snw-text-secondary); text-transform:uppercase; font-weight:600; letter-spacing:.05em; min-width:80px; flex-shrink:0; }
+  .snw-chip {
+    padding: 5px 13px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid var(--snw-border-color);
+    background: var(--snw-bg-primary); color: var(--snw-text-secondary);
+    font-family: var(--snw-font-mono); transition: all .15s; white-space: nowrap;
+    user-select: none;
+  }
+  .snw-chip:hover { border-color: var(--snw-blue); color: var(--snw-blue); background: var(--snw-ice); }
+  .snw-chip.active-stable   { background:#D6F5E8; border-color:#1BA86D; color:#1BA86D; }
+  .snw-chip.active-choppy   { background:#FEF0D6; border-color:#C07A10; color:#C07A10; }
+  .snw-chip.active-volatile { background:#FBDEDE; border-color:#D63B3B; color:#D63B3B; }
+  .snw-chip.active-bullish  { background:#D6F5E8; border-color:#1BA86D; color:#1BA86D; }
+  .snw-chip.active-bearish  { background:#FBDEDE; border-color:#D63B3B; color:#D63B3B; }
+  .snw-chip.active-neutral  { background:var(--snw-ice); border-color:var(--snw-muted); color:var(--snw-muted); }
+  .snw-chip.active-generic  { background:var(--snw-deep); border-color:var(--snw-deep); color:white; }
+  .snw-chip-reset {
+    padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 600;
+    cursor: pointer; border: 1.5px solid #D63B3B44; background: #FBDEDE;
+    color: #D63B3B; font-family: var(--snw-font-mono); transition: all .15s;
     white-space: nowrap;
   }
-  .snw-btn-primary { background: var(--snw-deep); color: white; }
-  .snw-btn-primary:hover:not(:disabled) { opacity: 0.8; }
-  .snw-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .snw-btn-secondary { background: var(--snw-ice); color: var(--snw-text-primary); border: 1.5px solid var(--snw-border-color); }
-  .snw-btn-secondary:hover { background: var(--snw-sky); }
-  .snw-btn-sm { padding: 6px 14px; font-size: 11px; }
+  .snw-chip-reset:hover { background: #D63B3B; color: white; }
 
-  /* ── View All Charts Button ── */
+  /* ── View All Charts bar ── */
   .snw-view-all-charts-bar {
     background: linear-gradient(135deg, var(--snw-deep) 0%, #1A7AB5 100%);
-    border: none;
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    box-shadow: 0 4px 20px rgba(26,94,138,0.25);
-    cursor: default;
+    border: none; border-radius: var(--snw-radius); margin-bottom: 22px;
+    padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(26,94,138,.25);
   }
-  .snw-view-all-charts-info {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-  .snw-view-all-charts-title {
-    font-family: var(--snw-font-head);
-    font-size: 14px;
-    font-weight: 700;
-    color: #FFFFFF;
-    letter-spacing: -0.01em;
-  }
-  .snw-view-all-charts-sub {
-    font-size: 11px;
-    color: rgba(255,255,255,0.65);
-    font-family: var(--snw-font-mono);
-  }
+  .snw-view-all-charts-info { display:flex; flex-direction:column; gap:3px; }
+  .snw-view-all-charts-title { font-family:var(--snw-font-head); font-size:14px; font-weight:700; color:#fff; letter-spacing:-.01em; }
+  .snw-view-all-charts-sub  { font-size:11px; color:rgba(255,255,255,.65); font-family:var(--snw-font-mono); }
   .snw-view-all-charts-btn {
-    padding: 10px 22px;
-    background: rgba(255,255,255,0.15);
-    color: white;
-    border: 1.5px solid rgba(255,255,255,0.35);
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    backdrop-filter: blur(4px);
+    padding:10px 22px; background:rgba(255,255,255,.15); color:white;
+    border:1.5px solid rgba(255,255,255,.35); border-radius:var(--snw-radius-sm);
+    font-family:var(--snw-font-mono); font-size:12px; font-weight:600; cursor:pointer;
+    transition:all .18s; display:flex; align-items:center; gap:8px; white-space:nowrap;
+    backdrop-filter:blur(4px);
   }
   .snw-view-all-charts-btn:hover:not(:disabled) {
-    background: rgba(255,255,255,0.28);
-    border-color: rgba(255,255,255,0.6);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    background:rgba(255,255,255,.28); border-color:rgba(255,255,255,.6);
+    transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.15);
   }
-  .snw-view-all-charts-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  .snw-view-all-charts-btn:disabled { opacity:.5; cursor:not-allowed; }
 
-  /* ── Multi-Tile Chart Grid Modal ── */
+  /* ── Chart grid overlay — always dark ── */
   .snw-chartgrid-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 3000;
-    background: #0D2D45;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    position:fixed; inset:0; z-index:3000; background:#0D2D45;
+    display:flex; flex-direction:column; overflow:hidden;
   }
   .snw-chartgrid-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    background: #0a2236;
-    border-bottom: 1.5px solid rgba(255,255,255,0.1);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 8px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 20px; background:#0a2236;
+    border-bottom:1.5px solid rgba(255,255,255,.1);
+    flex-shrink:0; flex-wrap:wrap; gap:8px;
   }
-  .snw-chartgrid-title {
-    font-family: var(--snw-font-head);
-    font-size: 16px;
-    font-weight: 800;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .snw-chartgrid-badge {
-    background: var(--snw-blue);
-    color: white;
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-family: var(--snw-font-mono);
-    font-weight: 600;
-  }
-  .snw-chartgrid-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  .snw-chartgrid-title { font-family:var(--snw-font-head); font-size:16px; font-weight:800; color:white; display:flex; align-items:center; gap:10px; }
+  .snw-chartgrid-badge { background:var(--snw-blue); color:white; font-size:10px; padding:2px 8px; border-radius:20px; font-family:var(--snw-font-mono); font-weight:600; }
+  .snw-chartgrid-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .snw-chartgrid-layout-btn {
-    padding: 5px 12px;
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.7);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding:5px 12px; background:rgba(255,255,255,.08); color:rgba(255,255,255,.7);
+    border:1px solid rgba(255,255,255,.15); border-radius:var(--snw-radius-sm);
+    font-family:var(--snw-font-mono); font-size:11px; cursor:pointer; transition:all .15s;
   }
   .snw-chartgrid-layout-btn.active,
-  .snw-chartgrid-layout-btn:hover {
-    background: rgba(58,159,213,0.3);
-    color: white;
-    border-color: var(--snw-blue);
-  }
+  .snw-chartgrid-layout-btn:hover { background:rgba(58,159,213,.3); color:white; border-color:var(--snw-blue); }
   .snw-chartgrid-close {
-    background: rgba(214,59,59,0.15);
-    color: #ff6b6b;
-    border: 1px solid rgba(214,59,59,0.3);
-    border-radius: var(--snw-radius-sm);
-    padding: 5px 12px;
-    font-family: var(--snw-font-mono);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
+    background:rgba(214,59,59,.15); color:#ff6b6b;
+    border:1px solid rgba(214,59,59,.3); border-radius:var(--snw-radius-sm);
+    padding:5px 12px; font-family:var(--snw-font-mono); font-size:12px;
+    font-weight:600; cursor:pointer; transition:all .15s;
   }
-  .snw-chartgrid-close:hover { background: rgba(214,59,59,0.3); }
-
+  .snw-chartgrid-close:hover { background:rgba(214,59,59,.3); }
   .snw-chartgrid-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 20px;
-    background: rgba(0,0,0,0.2);
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 8px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 20px; background:rgba(0,0,0,.2);
+    border-bottom:1px solid rgba(255,255,255,.07);
+    flex-shrink:0; flex-wrap:wrap; gap:8px;
   }
-  .snw-chartgrid-nav-info {
-    font-size: 11px;
-    color: rgba(255,255,255,0.5);
-    font-family: var(--snw-font-mono);
-  }
-  .snw-chartgrid-nav-btns { display: flex; gap: 6px; }
+  .snw-chartgrid-nav-info { font-size:11px; color:rgba(255,255,255,.5); font-family:var(--snw-font-mono); }
+  .snw-chartgrid-nav-btns { display:flex; gap:6px; }
   .snw-chartgrid-nav-btn {
-    padding: 4px 14px;
-    background: rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.7);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding:4px 14px; background:rgba(255,255,255,.08); color:rgba(255,255,255,.7);
+    border:1px solid rgba(255,255,255,.12); border-radius:var(--snw-radius-sm);
+    font-family:var(--snw-font-mono); font-size:11px; cursor:pointer; transition:all .15s;
   }
-  .snw-chartgrid-nav-btn:hover:not(:disabled) {
-    background: rgba(58,159,213,0.25);
-    color: white;
-  }
-  .snw-chartgrid-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
+  .snw-chartgrid-nav-btn:hover:not(:disabled) { background:rgba(58,159,213,.25); color:white; }
+  .snw-chartgrid-nav-btn:disabled { opacity:.3; cursor:not-allowed; }
   .snw-chartgrid-tf-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 20px;
-    background: rgba(0,0,0,0.15);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    flex-shrink: 0;
-    flex-wrap: wrap;
+    display:flex; align-items:center; gap:6px;
+    padding:8px 20px; background:rgba(0,0,0,.15);
+    border-bottom:1px solid rgba(255,255,255,.05);
+    flex-shrink:0; flex-wrap:wrap;
   }
-  .snw-chartgrid-tf-label {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
-    font-family: var(--snw-font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-right: 4px;
-  }
+  .snw-chartgrid-tf-label { font-size:10px; color:rgba(255,255,255,.4); font-family:var(--snw-font-mono); text-transform:uppercase; letter-spacing:.05em; margin-right:4px; }
   .snw-chartgrid-tf-btn {
-    padding: 4px 10px;
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.55);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 4px;
-    font-family: var(--snw-font-mono);
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s;
+    padding:4px 10px; background:rgba(255,255,255,.06); color:rgba(255,255,255,.55);
+    border:1px solid rgba(255,255,255,.1); border-radius:4px;
+    font-family:var(--snw-font-mono); font-size:10px; cursor:pointer; transition:all .15s;
   }
   .snw-chartgrid-tf-btn.active,
-  .snw-chartgrid-tf-btn:hover {
-    background: rgba(58,159,213,0.25);
-    color: #7DD3F8;
-    border-color: rgba(58,159,213,0.4);
-  }
+  .snw-chartgrid-tf-btn:hover { background:rgba(58,159,213,.25); color:#7DD3F8; border-color:rgba(58,159,213,.4); }
+  .snw-chartgrid-body { flex:1; overflow-y:auto; padding:12px; min-height:0; }
+  .snw-chartgrid-grid { display:grid; gap:10px; align-items:start; }
+  .snw-chartgrid-grid.cols-1 { grid-template-columns:1fr; }
+  .snw-chartgrid-grid.cols-2 { grid-template-columns:repeat(2,1fr); }
+  .snw-chartgrid-grid.cols-3 { grid-template-columns:repeat(3,1fr); }
+  .snw-chartgrid-grid.cols-4 { grid-template-columns:repeat(4,1fr); }
 
-  .snw-chartgrid-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    min-height: 0;
-  }
-  .snw-chartgrid-grid {
-    display: grid;
-    gap: 10px;
-    align-items: start; /* prevent grid rows from stretching tiles */
-  }
-  .snw-chartgrid-grid.cols-1 { grid-template-columns: 1fr; }
-  .snw-chartgrid-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
-  .snw-chartgrid-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-  .snw-chartgrid-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-
+  /* ── Chart tile — always dark ── */
   .snw-chart-tile {
-    background: #0f1e2e;
-    border: 1px solid rgba(58,159,213,0.15);
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0; /* never let the tile grow */
+    background:#0f1e2e; border:1px solid rgba(58,159,213,.15);
+    border-radius:8px; overflow:hidden; display:flex; flex-direction:column; flex-shrink:0;
   }
   .snw-chart-tile-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(0,0,0,0.3);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    flex-shrink: 0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 12px; background:rgba(0,0,0,.3);
+    border-bottom:1px solid rgba(255,255,255,.06); flex-shrink:0;
   }
-  .snw-chart-tile-symbol {
-    font-family: var(--snw-font-head);
-    font-size: 13px;
-    font-weight: 700;
-    color: white;
-  }
-  .snw-chart-tile-meta {
-    font-size: 10px;
-    color: rgba(255,255,255,0.4);
-    font-family: var(--snw-font-mono);
-  }
-  .snw-chart-tile-mss {
-    font-size: 10px;
-    font-family: var(--snw-font-mono);
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 4px;
-  }
+  .snw-chart-tile-symbol { font-family:var(--snw-font-head); font-size:13px; font-weight:700; color:white; }
+  .snw-chart-tile-meta   { font-size:10px; color:rgba(255,255,255,.4); font-family:var(--snw-font-mono); }
+  .snw-chart-tile-mss    { font-size:10px; font-family:var(--snw-font-mono); font-weight:600; padding:2px 7px; border-radius:4px; }
   .snw-chart-tile-expand {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.4);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 0 4px;
-    transition: color 0.15s;
-    margin-left: 6px;
+    background:none; border:none; color:rgba(255,255,255,.4); cursor:pointer;
+    font-size:14px; padding:0 4px; transition:color .15s; margin-left:6px;
   }
-  .snw-chart-tile-expand:hover { color: white; }
-  .snw-chart-tile-canvas {
-    flex: 1;
-    position: relative;
-    min-height: 0;
-  }
+  .snw-chart-tile-expand:hover { color:white; }
   .snw-chart-tile-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: rgba(255,255,255,0.3);
-    font-size: 11px;
-    font-family: var(--snw-font-mono);
-    gap: 8px;
+    display:flex; align-items:center; justify-content:center;
+    height:100%; color:rgba(255,255,255,.3);
+    font-size:11px; font-family:var(--snw-font-mono); gap:8px;
   }
   .snw-chart-tile-spinner {
-    width: 16px; height: 16px;
-    border: 2px solid rgba(58,159,213,0.2);
-    border-top-color: var(--snw-blue);
-    border-radius: 50%;
-    animation: snw-spin 0.7s linear infinite;
-    flex-shrink: 0;
+    width:16px; height:16px; border:2px solid rgba(58,159,213,.2);
+    border-top-color:var(--snw-blue); border-radius:50%;
+    animation:snw-spin .7s linear infinite; flex-shrink:0;
   }
 
+  /* ── Filters panel ── */
   .snw-filters-panel {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    overflow: hidden;
+    background:var(--snw-card-bg); border:1.5px solid var(--snw-border-color);
+    border-radius:var(--snw-radius); margin-bottom:22px; overflow:hidden;
   }
-  .snw-filters-hdr {
-    padding: 14px 18px;
-    background: var(--snw-ice);
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 12px;
-    display: flex;
-    justify-content: space-between;
-    user-select: none;
-  }
+  .snw-filters-hdr { padding:14px 18px; background:var(--snw-ice); cursor:pointer; font-weight:600; font-size:12px; display:flex; justify-content:space-between; user-select:none; }
   .snw-filters-grid {
-    padding: 18px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
-    border-top: 1px solid var(--snw-border-color);
-    max-height: 500px;
-    overflow-y: auto;
+    padding:18px; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+    gap:16px; border-top:1px solid var(--snw-border-color);
+    max-height:500px; overflow-y:auto;
   }
-  .snw-filter-item { display: flex; flex-direction: column; gap: 5px; }
-  .snw-filter-item label { font-size: 10px; color: var(--snw-text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.05em; }
+  .snw-filter-item { display:flex; flex-direction:column; gap:5px; }
+  .snw-filter-item label { font-size:10px; color:var(--snw-text-secondary); text-transform:uppercase; font-weight:600; letter-spacing:.05em; }
   .snw-filter-input, .snw-filter-select {
-    padding: 7px 10px;
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 11px;
-    background: var(--snw-bg-primary);
-    color: var(--snw-text-primary);
+    padding:7px 10px; border:1.5px solid var(--snw-border-color);
+    border-radius:var(--snw-radius-sm); font-family:var(--snw-font-mono); font-size:11px;
+    background:var(--snw-bg-primary); color:var(--snw-text-primary);
   }
-  .snw-range-grp { display: flex; gap: 8px; align-items: center; }
+  .snw-range-grp { display:flex; gap:8px; align-items:center; }
   .snw-range-grp input {
-    flex: 1; padding: 7px 10px; border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius-sm); background: var(--snw-bg-primary);
-    color: var(--snw-text-primary); font-family: var(--snw-font-mono); font-size: 11px;
+    flex:1; padding:7px 10px; border:1.5px solid var(--snw-border-color);
+    border-radius:var(--snw-radius-sm); background:var(--snw-bg-primary);
+    color:var(--snw-text-primary); font-family:var(--snw-font-mono); font-size:11px;
   }
-  .snw-range-grp span { font-size: 10px; color: var(--snw-text-secondary); white-space: nowrap; }
+  .snw-range-grp span { font-size:10px; color:var(--snw-text-secondary); white-space:nowrap; }
 
-  .snw-active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .snw-active-filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
   .snw-filter-tag {
-    background: var(--snw-ice);
-    border: 1px solid var(--snw-border-color);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--snw-font-mono);
+    background:var(--snw-ice); border:1px solid var(--snw-border-color);
+    border-radius:20px; padding:4px 10px; font-size:10px;
+    display:flex; align-items:center; gap:6px; font-family:var(--snw-font-mono);
   }
-  .snw-filter-tag-rm { background: none; border: none; cursor: pointer; color: var(--snw-text-secondary); font-size: 12px; line-height: 1; }
-  .snw-filter-tag-clear { background: var(--snw-volatile); color: white; }
-  .snw-filter-tag-clear .snw-filter-tag-rm { color: white; }
+  .snw-filter-tag-rm { background:none; border:none; cursor:pointer; color:var(--snw-text-secondary); font-size:12px; line-height:1; }
+  .snw-filter-tag-clear { background:var(--snw-volatile); color:white; }
+  .snw-filter-tag-clear .snw-filter-tag-rm { color:white; }
 
+  /* ── Column controls ── */
   .snw-col-ctrl {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding: 10px 16px;
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    font-size: 11px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:16px; padding:10px 16px; background:var(--snw-card-bg);
+    border:1.5px solid var(--snw-border-color); border-radius:var(--snw-radius); font-size:11px;
   }
-  .snw-col-dropdown { position: relative; display: inline-block; }
+  .snw-col-dropdown { position:relative; display:inline-block; }
   .snw-col-dropdown-content {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: var(--snw-card-bg);
-    border: 1px solid var(--snw-border-color);
-    border-radius: var(--snw-radius-sm);
-    z-index: 200;
-    min-width: 200px;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: var(--snw-shadow-lg);
+    display:none; position:absolute; top:100%; left:0;
+    background:var(--snw-card-bg); border:1px solid var(--snw-border-color);
+    border-radius:var(--snw-radius-sm); z-index:200; min-width:200px;
+    max-height:300px; overflow-y:auto; box-shadow:var(--snw-shadow-lg);
   }
-  .snw-col-dropdown:hover .snw-col-dropdown-content { display: block; }
+  .snw-col-dropdown:hover .snw-col-dropdown-content { display:block; }
   .snw-col-chk {
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    font-size: 11px;
-    font-family: var(--snw-font-mono);
-    color: var(--snw-text-primary);
+    padding:8px 12px; display:flex; align-items:center; gap:8px;
+    cursor:pointer; font-size:11px; font-family:var(--snw-font-mono); color:var(--snw-text-primary);
   }
-  .snw-col-chk:hover { background: var(--snw-ice); }
+  .snw-col-chk:hover { background:var(--snw-ice); }
 
-  .snw-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 14px;
-    margin-bottom: 22px;
-  }
-  .snw-stat-card {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    padding: 16px 18px;
-    box-shadow: var(--snw-shadow);
-  }
-  .snw-stat-label { font-size: 10px; color: var(--snw-text-secondary); text-transform: uppercase; font-weight: 500; letter-spacing: 0.05em; }
-  .snw-stat-value { font-family: var(--snw-font-head); font-size: 22px; font-weight: 800; color: var(--snw-text-primary); margin-top: 4px; }
-  .snw-stat-sub { font-size: 10px; color: var(--snw-text-secondary); margin-top: 2px; }
+  /* ── Stats ── */
+  .snw-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:14px; margin-bottom:22px; }
+  .snw-stat-card { background:var(--snw-card-bg); border:1.5px solid var(--snw-border-color); border-radius:var(--snw-radius); padding:16px 18px; box-shadow:var(--snw-shadow); }
+  .snw-stat-label { font-size:10px; color:var(--snw-text-secondary); text-transform:uppercase; font-weight:500; letter-spacing:.05em; }
+  .snw-stat-value { font-family:var(--snw-font-head); font-size:22px; font-weight:800; color:var(--snw-text-primary); margin-top:4px; }
+  .snw-stat-sub   { font-size:10px; color:var(--snw-text-secondary); margin-top:2px; }
 
+  /* ── Compare panel ── */
   .snw-compare-panel {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    padding: 16px;
+    background:var(--snw-card-bg); border:1.5px solid var(--snw-border-color);
+    border-radius:var(--snw-radius); margin-bottom:22px; padding:16px;
   }
-  .snw-compare-hdr {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .snw-compare-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-  .snw-compare-tag {
-    background: var(--snw-ice);
-    border: 1px solid var(--snw-border-color);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--snw-font-mono);
-  }
-  .snw-compare-tag-rm { background: none; border: none; cursor: pointer; color: var(--snw-volatile); font-size: 14px; line-height: 1; }
+  .snw-compare-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+  .snw-compare-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .snw-compare-tag { background:var(--snw-ice); border:1px solid var(--snw-border-color); border-radius:20px; padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:6px; font-family:var(--snw-font-mono); }
+  .snw-compare-tag-rm { background:none; border:none; cursor:pointer; color:var(--snw-volatile); font-size:14px; line-height:1; }
 
-  .snw-table-wrap {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    overflow: hidden;
-  }
-  .snw-table-scroll {
-    overflow-x: auto;
-    max-height: 65vh;
-    overflow-y: auto;
-  }
-  table.snw-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .snw-table thead tr {
-    background: var(--snw-deep);
-    color: white;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .snw-table thead th {
-    padding: 11px 14px;
-    text-align: left;
-    font-family: var(--snw-font-head);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-  .snw-table thead th:hover { opacity: 0.85; }
-  .snw-table tbody tr { border-bottom: 1px solid var(--snw-border-color); }
-  .snw-table tbody tr:nth-child(even) { background: var(--snw-ice); }
-  .snw-table tbody tr:hover { background: var(--snw-sky) !important; }
-  .snw-table td { padding: 10px 14px; white-space: nowrap; color: var(--snw-text-primary); vertical-align: middle; }
-  .snw-symbol-name { font-family: var(--snw-font-head); font-weight: 700; font-size: 13px; }
-  .snw-symbol-btns { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  /* ── Table ── */
+  .snw-table-wrap { background:var(--snw-card-bg); border:1.5px solid var(--snw-border-color); border-radius:var(--snw-radius); overflow:hidden; }
+  .snw-table-scroll { overflow-x:auto; max-height:65vh; overflow-y:auto; }
+  table.snw-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .snw-table thead tr { background:var(--snw-deep); color:white; position:sticky; top:0; z-index:10; }
+  .snw-table thead th { padding:11px 14px; text-align:left; font-family:var(--snw-font-head); font-size:10px; font-weight:600; text-transform:uppercase; white-space:nowrap; cursor:pointer; user-select:none; }
+  .snw-table thead th:hover { opacity:.85; }
+  .snw-table tbody tr { border-bottom:1px solid var(--snw-border-color); }
+  .snw-table tbody tr:nth-child(even) { background:var(--snw-ice); }
+  .snw-table tbody tr:hover { background:var(--snw-sky) !important; }
+  .snw-table td { padding:10px 14px; white-space:nowrap; color:var(--snw-text-primary); vertical-align:middle; }
+  .snw-symbol-name { font-family:var(--snw-font-head); font-weight:700; font-size:13px; }
+  .snw-symbol-btns { display:flex; gap:4px; margin-top:4px; flex-wrap:wrap; }
   .snw-symbol-btn {
-    font-size: 9px;
-    padding: 2px 7px;
-    border-radius: 4px;
-    cursor: pointer;
-    background: var(--snw-ice);
-    border: 1px solid var(--snw-border-color);
-    color: var(--snw-text-primary);
-    font-family: var(--snw-font-mono);
-    font-weight: 600;
-    transition: all 0.15s;
-    white-space: nowrap;
+    font-size:9px; padding:2px 7px; border-radius:4px; cursor:pointer;
+    background:var(--snw-ice); border:1px solid var(--snw-border-color);
+    color:var(--snw-text-primary); font-family:var(--snw-font-mono); font-weight:600;
+    transition:all .15s; white-space:nowrap;
   }
-  .snw-symbol-btn:hover { background: var(--snw-blue); color: white; border-color: var(--snw-blue); }
+  .snw-symbol-btn:hover { background:var(--snw-blue); color:white; border-color:var(--snw-blue); }
 
-  .snw-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .snw-badge-stable   { background: #D6F5E8; color: #1BA86D; }
-  .snw-badge-choppy   { background: #FEF0D6; color: #C07A10; }
-  .snw-badge-volatile { background: #FBDEDE; color: #D63B3B; }
-  .snw-badge-bullish  { background: #D6F5E8; color: #1BA86D; }
-  .snw-badge-bearish  { background: #FBDEDE; color: #D63B3B; }
-  .snw-badge-neutral  { background: var(--snw-ice); color: var(--snw-text-secondary); }
+  .snw-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:20px; font-size:10px; font-weight:600; text-transform:uppercase; }
+  .snw-badge-stable   { background:#D6F5E8; color:#1BA86D; }
+  .snw-badge-choppy   { background:#FEF0D6; color:#C07A10; }
+  .snw-badge-volatile { background:#FBDEDE; color:#D63B3B; }
+  .snw-badge-bullish  { background:#D6F5E8; color:#1BA86D; }
+  .snw-badge-bearish  { background:#FBDEDE; color:#D63B3B; }
+  .snw-badge-neutral  { background:var(--snw-ice); color:var(--snw-text-secondary); }
 
-  .snw-mss-bar { display: flex; align-items: center; gap: 8px; }
-  .snw-mss-track { flex: 1; height: 5px; background: var(--snw-ice); border-radius: 3px; min-width: 50px; overflow: hidden; }
-  .snw-mss-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
-  .snw-mss-num { font-family: var(--snw-font-head); font-weight: 700; font-size: 13px; min-width: 36px; text-align: right; }
+  .snw-mss-bar { display:flex; align-items:center; gap:8px; }
+  .snw-mss-track { flex:1; height:5px; background:var(--snw-ice); border-radius:3px; min-width:50px; overflow:hidden; }
+  .snw-mss-fill  { height:100%; border-radius:3px; transition:width .5s ease; }
+  .snw-mss-num   { font-family:var(--snw-font-head); font-weight:700; font-size:13px; min-width:36px; text-align:right; }
 
-  .snw-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    border-top: 1.5px solid var(--snw-border-color);
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .snw-pag-info { font-size: 11px; color: var(--snw-text-secondary); }
-  .snw-pag-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-  .snw-pag-btn {
-    padding: 5px 12px;
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius-sm);
-    background: var(--snw-card-bg);
-    color: var(--snw-text-primary);
-    font-family: var(--snw-font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .snw-pag-btn.snw-pag-active { background: var(--snw-deep); color: white; border-color: var(--snw-deep); }
-  .snw-pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  /* ── Pagination ── */
+  .snw-pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-top:1.5px solid var(--snw-border-color); flex-wrap:wrap; gap:8px; }
+  .snw-pag-info { font-size:11px; color:var(--snw-text-secondary); }
+  .snw-pag-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .snw-pag-btn { padding:5px 12px; border:1.5px solid var(--snw-border-color); border-radius:var(--snw-radius-sm); background:var(--snw-card-bg); color:var(--snw-text-primary); font-family:var(--snw-font-mono); font-size:11px; cursor:pointer; transition:all .15s; }
+  .snw-pag-btn.snw-pag-active { background:var(--snw-deep); color:white; border-color:var(--snw-deep); }
+  .snw-pag-btn:disabled { opacity:.4; cursor:not-allowed; }
 
-  .snw-dl-panel {
-    background: var(--snw-card-bg);
-    border: 1.5px solid var(--snw-border-color);
-    border-radius: var(--snw-radius);
-    margin-bottom: 22px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .snw-dl-btn {
-    padding: 9px 16px;
-    border-radius: var(--snw-radius-sm);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid;
-    transition: all .18s;
-    font-family: var(--snw-font-mono);
-  }
-  .snw-dl-csv  { border-color: #1BA86D; color: #1BA86D; background: #D6F5E8; }
-  .snw-dl-xlsx { border-color: var(--snw-blue); color: var(--snw-deep); background: var(--snw-ice); }
-  .snw-dl-pdf  { border-color: #D63B3B; color: #D63B3B; background: #FBDEDE; }
-  .snw-dl-json { border-color: var(--snw-text-secondary); color: var(--snw-text-secondary); background: var(--snw-ice); }
+  /* ── Download panel ── */
+  .snw-dl-panel { background:var(--snw-card-bg); border:1.5px solid var(--snw-border-color); border-radius:var(--snw-radius); margin-bottom:22px; padding:14px 18px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+  .snw-dl-btn { padding:9px 16px; border-radius:var(--snw-radius-sm); font-size:11px; font-weight:600; cursor:pointer; border:1.5px solid; transition:all .18s; font-family:var(--snw-font-mono); }
+  .snw-dl-csv  { border-color:#1BA86D; color:#1BA86D; background:#D6F5E8; }
+  .snw-dl-xlsx { border-color:var(--snw-blue); color:var(--snw-deep); background:var(--snw-ice); }
+  .snw-dl-pdf  { border-color:#D63B3B; color:#D63B3B; background:#FBDEDE; }
+  .snw-dl-json { border-color:var(--snw-text-secondary); color:var(--snw-text-secondary); background:var(--snw-ice); }
 
-  .snw-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; gap: 14px; }
-  .snw-empty { text-align: center; padding: 60px 24px; color: var(--snw-text-secondary); font-size: 13px; }
+  .snw-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 24px; gap:14px; }
+  .snw-empty   { text-align:center; padding:60px 24px; color:var(--snw-text-secondary); font-size:13px; }
 
-  /* ═══════════════════════════════════════════════════════
-     CHART MODAL — fully self-contained theming
-  ═══════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════
+     SINGLE-ASSET CHART MODAL — always dark, self-contained
+  ═══════════════════════════════════════════════════ */
   .snw-chart-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    position:fixed; inset:0; z-index:2000;
+    display:flex; flex-direction:column; overflow:hidden;
 
-    --cht-bg:        #F5FAFE;
-    --cht-bg2:       #FFFFFF;
-    --cht-text:      #0D2D45;
-    --cht-text2:     #7BA9C4;
-    --cht-border:    #CBE4F2;
-    --cht-ice:       #EAF4FB;
-    --cht-btn-bg:    #EAF4FB;
-    --cht-active-bg: #3A9FD5;
-    --cht-active-fg: #FFFFFF;
-    --cht-cv-bg:     #FFFFFF;
-    --cht-cv-grid:   #EAF4FB;
-    --cht-cv-text:   #0D2D45;
-  }
-  .snw-chart-overlay[data-snw-chart-theme="dark"] {
+    /* dark-only CSS vars — these NEVER bleed into the page */
     --cht-bg:        #0f172a;
     --cht-bg2:       #1e293b;
     --cht-text:      #e2e8f0;
@@ -880,129 +470,82 @@ const CSS = `
     --cht-active-bg: #3A9FD5;
     --cht-active-fg: #FFFFFF;
     --cht-cv-bg:     #1e293b;
-    --cht-cv-grid:   #263548;
-    --cht-cv-text:   #e2e8f0;
   }
-  .snw-chart-overlay[data-snw-chart-theme="hud"] {
+  /* Theme overrides only apply inside the overlay */
+  .snw-chart-overlay[data-theme="light"] {
+    --cht-bg:        #F5FAFE;
+    --cht-bg2:       #FFFFFF;
+    --cht-text:      #0D2D45;
+    --cht-text2:     #7BA9C4;
+    --cht-border:    #CBE4F2;
+    --cht-ice:       #EAF4FB;
+    --cht-btn-bg:    #EAF4FB;
+    --cht-active-bg: #3A9FD5;
+    --cht-active-fg: #FFFFFF;
+    --cht-cv-bg:     #FFFFFF;
+  }
+  .snw-chart-overlay[data-theme="hud"] {
     --cht-bg:        #000a0f;
-    --cht-bg2:       rgba(0,255,255,0.06);
+    --cht-bg2:       rgba(0,255,255,.06);
     --cht-text:      #00ffff;
     --cht-text2:     #00fa9a;
     --cht-border:    #00ffff;
-    --cht-ice:       rgba(0,255,255,0.08);
-    --cht-btn-bg:    rgba(0,255,255,0.1);
+    --cht-ice:       rgba(0,255,255,.08);
+    --cht-btn-bg:    rgba(0,255,255,.1);
     --cht-active-bg: #00ffff;
     --cht-active-fg: #000a0f;
-    --cht-cv-bg:     rgba(0,0,20,0.97);
-    --cht-cv-grid:   rgba(0,255,255,0.12);
-    --cht-cv-text:   #00ffff;
+    --cht-cv-bg:     rgba(0,0,20,.97);
   }
 
-  .snw-chart-inner {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background: var(--cht-bg);
-  }
-
+  .snw-chart-inner { display:flex; flex-direction:column; height:100%; background:var(--cht-bg); }
   .snw-chart-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 18px;
-    background: var(--cht-bg2);
-    border-bottom: 1.5px solid var(--cht-border);
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    gap: 8px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 18px; background:var(--cht-bg2); border-bottom:1.5px solid var(--cht-border);
+    flex-shrink:0; flex-wrap:wrap; gap:8px;
   }
-  .snw-chart-title-wrap h3 { font-family: var(--snw-font-head); font-size: 17px; font-weight: 800; color: var(--cht-text); }
-  .snw-chart-title-wrap small { font-size: 11px; color: var(--cht-text2); }
-
-  .snw-chart-topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
+  .snw-chart-title-wrap h3 { font-family:var(--snw-font-head); font-size:17px; font-weight:800; color:var(--cht-text); }
+  .snw-chart-title-wrap small { font-size:11px; color:var(--cht-text2); }
+  .snw-chart-topbar-right { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .snw-cht-btn {
-    padding: 5px 11px;
-    border-radius: var(--snw-radius-sm);
-    font-family: var(--snw-font-mono);
-    font-size: 11px;
-    cursor: pointer;
-    background: var(--cht-btn-bg);
-    color: var(--cht-text);
-    border: 1px solid var(--cht-border);
-    transition: all 0.15s;
-    white-space: nowrap;
+    padding:5px 11px; border-radius:var(--snw-radius-sm); font-family:var(--snw-font-mono);
+    font-size:11px; cursor:pointer; background:var(--cht-btn-bg); color:var(--cht-text);
+    border:1px solid var(--cht-border); transition:all .15s; white-space:nowrap;
   }
-  .snw-cht-btn:hover { opacity: 0.8; }
-  .snw-cht-btn.snw-cht-active { background: var(--cht-active-bg); color: var(--cht-active-fg); border-color: var(--cht-active-bg); }
-  .snw-cht-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: var(--cht-text);
-    line-height: 1;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-  .snw-cht-close:hover { background: var(--cht-ice); }
-
-  .snw-chart-canvas-wrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    min-height: 0;
-  }
-  /* The inner div LWC renders into must fill the wrap */
-  .snw-chart-canvas-wrap > div:last-child {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-  }
-
+  .snw-cht-btn:hover { opacity:.8; }
+  .snw-cht-btn.snw-cht-active { background:var(--cht-active-bg); color:var(--cht-active-fg); border-color:var(--cht-active-bg); }
+  .snw-cht-close { background:none; border:none; font-size:22px; cursor:pointer; color:var(--cht-text); line-height:1; padding:2px 6px; border-radius:4px; }
+  .snw-cht-close:hover { background:var(--cht-ice); }
+  .snw-chart-canvas-wrap { flex:1; position:relative; overflow:hidden; min-height:0; }
+  .snw-chart-canvas-wrap > div:last-child { position:absolute !important; inset:0 !important; width:100% !important; height:100% !important; }
   .snw-chart-controls {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 10px 18px;
-    background: var(--cht-bg2);
-    border-top: 1.5px solid var(--cht-border);
-    flex-shrink: 0;
-    align-items: center;
+    display:flex; gap:6px; flex-wrap:wrap; padding:10px 18px;
+    background:var(--cht-bg2); border-top:1.5px solid var(--cht-border);
+    flex-shrink:0; align-items:center;
   }
-  .snw-chart-controls-sep {
-    width: 1px;
-    height: 20px;
-    background: var(--cht-border);
-    margin: 0 4px;
-  }
+  .snw-chart-controls-sep { width:1px; height:20px; background:var(--cht-border); margin:0 4px; }
 
+  /* ── Responsive ── */
   @media (max-width: 700px) {
-    .snw-body { padding: 14px 10px 32px; }
-    .snw-page-title { font-size: 20px; }
-    .snw-topnav { padding: 0 12px; height: 48px; }
-    .snw-topnav-brand { font-size: 13px; margin-right: 12px; }
-    .snw-filters-grid { grid-template-columns: 1fr; }
-    .snw-status-grid { grid-template-columns: 1fr; }
-    .snw-quick-bar { flex-direction: column; }
-    .snw-quick-group { min-width: 100%; }
-    .snw-divider { display: none; }
-    .snw-stats { grid-template-columns: repeat(2, 1fr); }
-    .snw-chart-topbar { gap: 6px; }
-    .snw-cht-btn { font-size: 10px; padding: 4px 8px; }
+    .snw-body { padding:14px 10px 32px; }
+    .snw-page-title { font-size:20px; }
+    .snw-topnav { padding:0 12px; height:48px; }
+    .snw-topnav-brand { font-size:13px; margin-right:12px; }
+    .snw-filters-grid { grid-template-columns:1fr; }
+    .snw-status-grid { grid-template-columns:1fr; }
+    .snw-quick-bar { flex-direction:column; }
+    .snw-quick-group { min-width:100%; }
+    .snw-divider { display:none; }
+    .snw-stats { grid-template-columns:repeat(2,1fr); }
+    .snw-chart-topbar { gap:6px; }
+    .snw-cht-btn { font-size:10px; padding:4px 8px; }
     .snw-chartgrid-grid.cols-3,
-    .snw-chartgrid-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .snw-chartgrid-grid.cols-4 { grid-template-columns:repeat(2,1fr); }
   }
   @media (max-width: 480px) {
-    .snw-stats { grid-template-columns: 1fr 1fr; }
+    .snw-stats { grid-template-columns:1fr 1fr; }
     .snw-chartgrid-grid.cols-2,
     .snw-chartgrid-grid.cols-3,
-    .snw-chartgrid-grid.cols-4 { grid-template-columns: 1fr; }
+    .snw-chartgrid-grid.cols-4 { grid-template-columns:1fr; }
   }
 `;
 
@@ -1010,7 +553,7 @@ const CSS = `
 const PERIODS = [10, 15, 20, 30, 45, 60, 90, 180];
 const ASSET_CLASSES = ['all', 'stocks', 'forex', 'indices', 'commodities', 'bonds'];
 const PAGE_SIZE = 50;
-const CHART_GRID_PAGE_SIZE = 12; // How many tiles to show per grid page
+const CHART_GRID_PAGE_SIZE = 12;
 
 const NUMERIC_COLUMNS = [
   { key: 'mss', label: 'MSS', min: 0, max: 100, step: 1, unit: '' },
@@ -1063,6 +606,7 @@ const TIMEFRAMES = [
   { label: '5Y', period: '5y', interval: '1wk' },
 ];
 
+// Grid timeframes — 1H now uses period=1d/interval=1m which backend resolves correctly
 const GRID_TF = [
   { label: '1H',  period: '1d',  interval: '1m'  },
   { label: '4H',  period: '5d',  interval: '5m'  },
@@ -1073,6 +617,25 @@ const GRID_TF = [
   { label: '3M',  period: '3mo', interval: '1d'  },
   { label: '6M',  period: '6mo', interval: '1d'  },
   { label: '1Y',  period: '1y',  interval: '1d'  },
+];
+
+// Multi-select chip filter definitions
+const CATEGORY_CHIPS = [
+  { value: 'stable',   label: '● Stable',   cls: 'active-stable' },
+  { value: 'choppy',   label: '◆ Choppy',   cls: 'active-choppy' },
+  { value: 'volatile', label: '▲ Volatile', cls: 'active-volatile' },
+];
+const ASSET_CLASS_CHIPS = [
+  { value: 'stocks',      label: 'Stocks',      cls: 'active-generic' },
+  { value: 'forex',       label: 'Forex',       cls: 'active-generic' },
+  { value: 'indices',     label: 'Indices',     cls: 'active-generic' },
+  { value: 'commodities', label: 'Commodities', cls: 'active-generic' },
+  { value: 'bonds',       label: 'Bonds',       cls: 'active-generic' },
+];
+const BIAS_CHIPS = [
+  { value: 'bullish', label: '▲ Bullish', cls: 'active-bullish' },
+  { value: 'neutral', label: '● Neutral', cls: 'active-neutral' },
+  { value: 'bearish', label: '▼ Bearish', cls: 'active-bearish' },
 ];
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -1086,7 +649,6 @@ function useDebounce(value, delay) {
 }
 
 // ── Lightweight Charts loader ─────────────────────────────────────────────────
-// Singleton load — v3.8 stable API (addCandlestickSeries etc.)
 const LWC_SRC = 'https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js';
 let _lwcPromise = null;
 function loadLWC() {
@@ -1111,11 +673,11 @@ function useLWC() {
   return lwc;
 }
 
-// ── Chart theme configs ───────────────────────────────────────────────────────
-function getChartThemeOptions(theme) {
-  if (theme === 'dark') return {
-    layout: { backgroundColor: '#1e293b', textColor: '#e2e8f0' },
-    grid: { vertLines: { color: '#263548' }, horzLines: { color: '#263548' } },
+// ── Chart theme configs — used INSIDE chart overlays only ────────────────────
+function getLWCTheme(theme) {
+  if (theme === 'light') return {
+    layout: { backgroundColor: '#FFFFFF', textColor: '#0D2D45' },
+    grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } },
   };
   if (theme === 'hud') return {
     layout: { backgroundColor: 'rgba(0,0,20,0.97)', textColor: '#00ffff' },
@@ -1125,14 +687,14 @@ function getChartThemeOptions(theme) {
     layout: { backgroundColor: '#0f1e2e', textColor: '#94a3b8' },
     grid: { vertLines: { color: '#1a2d42' }, horzLines: { color: '#1a2d42' } },
   };
+  // default dark
   return {
-    layout: { backgroundColor: '#FFFFFF', textColor: '#0D2D45' },
-    grid: { vertLines: { color: '#EAF4FB' }, horzLines: { color: '#EAF4FB' } },
+    layout: { backgroundColor: '#1e293b', textColor: '#e2e8f0' },
+    grid: { vertLines: { color: '#263548' }, horzLines: { color: '#263548' } },
   };
 }
 
-// ── Single Chart Tile (used in the grid) ─────────────────────────────────────
-// FIXED height — never let ResizeObserver feed clientHeight back into chart.resize()
+// ── Chart Tile ────────────────────────────────────────────────────────────────
 const TILE_CANVAS_H = 200;
 
 const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
@@ -1144,12 +706,10 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create chart with explicit fixed pixel dimensions
   useEffect(() => {
     if (!lwc || !containerRef.current || createdRef.current) return;
     createdRef.current = true;
 
-    // Use rAF so the container has a real clientWidth after first paint
     const raf = requestAnimationFrame(() => {
       if (!containerRef.current) return;
       const w = containerRef.current.getBoundingClientRect().width || 280;
@@ -1157,7 +717,7 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
       const chart = lwc.createChart(containerRef.current, {
         width: Math.floor(w),
         height: TILE_CANVAS_H,
-        ...getChartThemeOptions('tile'),
+        ...getLWCTheme('tile'),
         rightPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: 0.05, bottom: 0.05 } },
         timeScale: { visible: true, timeVisible: true, secondsVisible: false, borderVisible: false },
         crosshair: { mode: 1 },
@@ -1173,7 +733,6 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
 
       chartRef.current = chart;
 
-      // Only resize WIDTH — never feed clientHeight back in
       const ro = new ResizeObserver((entries) => {
         const newW = Math.floor(entries[0].contentRect.width);
         if (newW > 10) chartRef.current?.resize(newW, TILE_CANVAS_H);
@@ -1192,14 +751,12 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
     };
   }, [lwc]);
 
-  // Fetch + set data — waits for candleRef to be populated by rAF chart creation
   useEffect(() => {
     if (!lwc) return;
     let cancelled = false;
     setLoading(true); setError('');
 
     (async () => {
-      // Poll until candleRef is ready (chart created in rAF, so brief wait needed)
       let waited = 0;
       while (!candleRef.current && waited < 3000) {
         await new Promise(r => setTimeout(r, 50));
@@ -1241,7 +798,6 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
           <button className="snw-chart-tile-expand" onClick={() => onExpand(symbol)} title="Open full chart">⤢</button>
         </div>
       </div>
-      {/* Wrapper has explicit height so the tile card never grows */}
       <div style={{ position: 'relative', height: TILE_CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
         {loading && (
           <div className="snw-chart-tile-loading" style={{ position: 'absolute', inset: 0 }}>
@@ -1257,18 +813,17 @@ const ChartTile = ({ symbol, mss, category, tf, onExpand }) => {
   );
 };
 
-// ── AllChartsGrid — full-screen grid of chart tiles ──────────────────────────
+// ── AllChartsGrid ─────────────────────────────────────────────────────────────
 const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
   const [cols, setCols] = useState(3);
   const [gridPage, setGridPage] = useState(0);
-  const [tf, setTf] = useState(GRID_TF[2]); // default 1M
+  const [tf, setTf] = useState(GRID_TF[2]);
 
   const totalPages = Math.ceil(assets.length / CHART_GRID_PAGE_SIZE);
   const pageAssets = assets.slice(gridPage * CHART_GRID_PAGE_SIZE, (gridPage + 1) * CHART_GRID_PAGE_SIZE);
   const start = gridPage * CHART_GRID_PAGE_SIZE + 1;
   const end = Math.min((gridPage + 1) * CHART_GRID_PAGE_SIZE, assets.length);
 
-  // Close on Escape
   useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
@@ -1277,7 +832,6 @@ const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
 
   return (
     <div className="snw-chartgrid-overlay">
-      {/* Top bar */}
       <div className="snw-chartgrid-topbar">
         <div className="snw-chartgrid-title">
           📈 All Charts
@@ -1294,22 +848,20 @@ const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
         </div>
       </div>
 
-      {/* Timeframe bar */}
       <div className="snw-chartgrid-tf-bar">
         <span className="snw-chartgrid-tf-label">Timeframe:</span>
         {GRID_TF.map(t => (
           <button
             key={t.label}
-            className={`snw-chartgrid-tf-btn${tf.period === t.period ? ' active' : ''}`}
+            className={`snw-chartgrid-tf-btn${tf.label === t.label ? ' active' : ''}`}
             onClick={() => setTf(t)}
           >{t.label}</button>
         ))}
       </div>
 
-      {/* Pagination nav */}
       <div className="snw-chartgrid-nav">
         <div className="snw-chartgrid-nav-info">
-          Showing {start}–{end} of {assets.length} assets · Page {gridPage + 1} / {totalPages}
+          Showing {start}–{end} of {assets.length} · Page {gridPage + 1}/{totalPages}
         </div>
         <div className="snw-chartgrid-nav-btns">
           <button className="snw-chartgrid-nav-btn" disabled={gridPage === 0} onClick={() => setGridPage(0)}>«</button>
@@ -1319,20 +871,16 @@ const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
         </div>
       </div>
 
-      {/* Grid */}
       <div className="snw-chartgrid-body">
         <div className={`snw-chartgrid-grid cols-${cols}`}>
           {pageAssets.map(asset => (
             <ChartTile
-              key={`${asset.symbol}-${gridPage}-${tf.period}`}
+              key={`${asset.symbol}-${gridPage}-${tf.label}`}
               symbol={asset.symbol}
               mss={asset.mss}
               category={asset.category}
               tf={tf}
-              onExpand={(sym) => {
-                onClose();
-                onExpandSingle(sym);
-              }}
+              onExpand={(sym) => { onClose(); onExpandSingle(sym); }}
             />
           ))}
         </div>
@@ -1341,7 +889,7 @@ const AllChartsGrid = ({ assets, onClose, onExpandSingle }) => {
   );
 };
 
-// ── AssetChart — full-screen modal for single asset ──────────────────────────
+// ── AssetChart — full-screen single chart, always dark by default ─────────────
 const AssetChart = ({ symbol, onClose }) => {
   const lwc = useLWC();
   const containerRef = useRef(null);
@@ -1351,7 +899,7 @@ const AssetChart = ({ symbol, onClose }) => {
   const mssRef = useRef(null);
   const chartCreated = useRef(false);
 
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   const [tf, setTf] = useState({ period: '1mo', interval: '1h' });
   const [showMSS, setShowMSS] = useState(true);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -1359,12 +907,10 @@ const AssetChart = ({ symbol, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Create chart once LWC is ready
   useEffect(() => {
     if (!lwc || !containerRef.current || chartCreated.current) return;
     chartCreated.current = true;
 
-    // rAF so the flex container has real dimensions before we read them
     const raf = requestAnimationFrame(() => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
@@ -1374,7 +920,7 @@ const AssetChart = ({ symbol, onClose }) => {
       const chart = lwc.createChart(containerRef.current, {
         width: Math.floor(w),
         height: Math.floor(h),
-        ...getChartThemeOptions(theme),
+        ...getLWCTheme(theme),
         rightPriceScale: { visible: true, scaleMargins: { top: 0.05, bottom: 0.2 } },
         timeScale: { timeVisible: true, secondsVisible: false },
       });
@@ -1385,15 +931,13 @@ const AssetChart = ({ symbol, onClose }) => {
         wickUpColor: '#1BA86D', wickDownColor: '#D63B3B',
       });
 
-      // Volume as overlay on main pane — NO custom priceScaleId
       volRef.current = chart.addHistogramSeries({
         color: '#7BA9C444',
         priceFormat: { type: 'volume' },
-        priceScaleId: '',   // empty string = overlay on main scale, no separate pane
+        priceScaleId: '',
         scaleMargins: { top: 0.8, bottom: 0 },
       });
 
-      // MSS line also as overlay — same right scale
       mssRef.current = chart.addLineSeries({
         color: '#3A9FD5',
         lineWidth: 2,
@@ -1406,7 +950,6 @@ const AssetChart = ({ symbol, onClose }) => {
 
       chartRef.current = chart;
 
-      // ResizeObserver: only pass clientWidth; get height from container (which is position:absolute fill)
       const ro = new ResizeObserver(() => {
         if (!containerRef.current || !chartRef.current) return;
         const r = containerRef.current.getBoundingClientRect();
@@ -1424,9 +967,7 @@ const AssetChart = ({ symbol, onClose }) => {
     };
   }, [lwc]); // eslint-disable-line
 
-  // Fetch OHLCV data
   const fetchData = useCallback(async () => {
-    // Poll until rAF chart creation sets candleRef
     let waited = 0;
     while (!candleRef.current && waited < 3000) {
       await new Promise(r => setTimeout(r, 50));
@@ -1444,8 +985,7 @@ const AssetChart = ({ symbol, onClose }) => {
         })));
         if (volRef.current) {
           volRef.current.setData(sorted.map(d => ({
-            time: d.time,
-            value: d.volume || 0,
+            time: d.time, value: d.volume || 0,
             color: d.close >= d.open ? '#1BA86D55' : '#D63B3B55',
           })));
         }
@@ -1458,7 +998,6 @@ const AssetChart = ({ symbol, onClose }) => {
     finally { setLoading(false); }
   }, [symbol, tf]);
 
-  // Fetch MSS overlay
   const fetchMSS = useCallback(async () => {
     if (!mssRef.current || !showMSS) return;
     try {
@@ -1478,7 +1017,7 @@ const AssetChart = ({ symbol, onClose }) => {
   }, [fetchData, fetchMSS]);
 
   useEffect(() => {
-    if (chartRef.current) chartRef.current.applyOptions(getChartThemeOptions(theme));
+    if (chartRef.current) chartRef.current.applyOptions(getLWCTheme(theme));
   }, [theme]);
 
   useEffect(() => {
@@ -1494,7 +1033,7 @@ const AssetChart = ({ symbol, onClose }) => {
   }, [onClose]);
 
   return (
-    <div className="snw-chart-overlay" data-snw-chart-theme={theme} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="snw-chart-overlay" data-theme={theme} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="snw-chart-inner">
         <div className="snw-chart-topbar">
           <div className="snw-chart-title-wrap">
@@ -1502,9 +1041,9 @@ const AssetChart = ({ symbol, onClose }) => {
             <small>{[meta?.sector, meta?.currency].filter(Boolean).join(' · ')}</small>
           </div>
           <div className="snw-chart-topbar-right">
+            <button className={`snw-cht-btn${theme === 'dark'  ? ' snw-cht-active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
             <button className={`snw-cht-btn${theme === 'light' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
-            <button className={`snw-cht-btn${theme === 'dark' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
-            <button className={`snw-cht-btn${theme === 'hud' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('hud')}>🖥 HUD</button>
+            <button className={`snw-cht-btn${theme === 'hud'   ? ' snw-cht-active' : ''}`} onClick={() => setTheme('hud')}>🖥 HUD</button>
             <button className="snw-cht-close" onClick={onClose} title="Close (Esc)">✕</button>
           </div>
         </div>
@@ -1513,7 +1052,7 @@ const AssetChart = ({ symbol, onClose }) => {
           {loading && !chartCreated.current && (
             <div className="snw-loading"><div className="snw-spinner-lg" /></div>
           )}
-          {error && <div className="snw-empty">⚠ {error}</div>}
+          {error && <div className="snw-empty" style={{ color: '#D63B3B' }}>⚠ {error}</div>}
           <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
         </div>
 
@@ -1535,7 +1074,7 @@ const AssetChart = ({ symbol, onClose }) => {
   );
 };
 
-// ── MultiCompareChart — full-screen comparison modal ─────────────────────────
+// ── MultiCompareChart ─────────────────────────────────────────────────────────
 const MultiCompareChart = ({ symbols, onClose }) => {
   const lwc = useLWC();
   const containerRef = useRef(null);
@@ -1543,7 +1082,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
   const seriesMap = useRef({});
   const chartCreated = useRef(false);
 
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState('dark');
   const [period, setPeriod] = useState('1mo');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1558,16 +1097,14 @@ const MultiCompareChart = ({ symbols, onClose }) => {
 
   useEffect(() => {
     if (!lwc || !containerRef.current || chartCreated.current) return;
-
     const chart = lwc.createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
-      ...getChartThemeOptions(theme),
+      ...getLWCTheme(theme),
       timeScale: { timeVisible: true, secondsVisible: false },
     });
     chartRef.current = chart;
     chartCreated.current = true;
-
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.resize(containerRef.current.clientWidth, containerRef.current.clientHeight);
@@ -1591,12 +1128,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
           if (seriesMap.current[sym]) {
             seriesMap.current[sym].setData(priceData);
           } else if (chartRef.current) {
-            const series = chartRef.current.addLineSeries({
-              color: COLORS[i % COLORS.length],
-              lineWidth: 2,
-              title: sym,
-              priceLineVisible: false,
-            });
+            const series = chartRef.current.addLineSeries({ color: COLORS[i % COLORS.length], lineWidth: 2, title: sym, priceLineVisible: false });
             series.setData(priceData);
             seriesMap.current[sym] = series;
           }
@@ -1614,7 +1146,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
   }, [fetchAll]);
 
   useEffect(() => {
-    if (chartRef.current) chartRef.current.applyOptions(getChartThemeOptions(theme));
+    if (chartRef.current) chartRef.current.applyOptions(getLWCTheme(theme));
   }, [theme]);
 
   useEffect(() => {
@@ -1630,7 +1162,7 @@ const MultiCompareChart = ({ symbols, onClose }) => {
   }, [onClose]);
 
   return (
-    <div className="snw-chart-overlay" data-snw-chart-theme={theme}>
+    <div className="snw-chart-overlay" data-theme={theme}>
       <div className="snw-chart-inner">
         <div className="snw-chart-topbar">
           <div className="snw-chart-title-wrap">
@@ -1638,18 +1170,16 @@ const MultiCompareChart = ({ symbols, onClose }) => {
             <small>Normalized price lines · {symbols.length} assets</small>
           </div>
           <div className="snw-chart-topbar-right">
+            <button className={`snw-cht-btn${theme === 'dark'  ? ' snw-cht-active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
             <button className={`snw-cht-btn${theme === 'light' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('light')}>☀ Light</button>
-            <button className={`snw-cht-btn${theme === 'dark' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('dark')}>🌙 Dark</button>
-            <button className={`snw-cht-btn${theme === 'hud' ? ' snw-cht-active' : ''}`} onClick={() => setTheme('hud')}>🖥 HUD</button>
+            <button className={`snw-cht-btn${theme === 'hud'   ? ' snw-cht-active' : ''}`} onClick={() => setTheme('hud')}>🖥 HUD</button>
             <button className="snw-cht-close" onClick={onClose}>✕</button>
           </div>
         </div>
-
         <div className="snw-chart-canvas-wrap">
           {loading && <div className="snw-loading"><div className="snw-spinner-lg" /></div>}
           <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
         </div>
-
         <div className="snw-chart-controls">
           {CMP_TF.map(t => (
             <button key={t.label} className={`snw-cht-btn${period === t.period ? ' snw-cht-active' : ''}`} onClick={() => setPeriod(t.period)}>{t.label}</button>
@@ -1687,11 +1217,18 @@ const MSSBar = ({ val }) => (
 
 const fmt = (n, dec = 4) => n == null ? '—' : typeof n === 'number' ? n.toFixed(dec) : n;
 
+// ── Multi-select chip helper ──────────────────────────────────────────────────
+function toggleChip(set, value) {
+  const s = new Set(set);
+  if (s.has(value)) s.delete(value);
+  else s.add(value);
+  return s;
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function DataTracker() {
   const [symbol, setSymbol] = useState('');
   const [period, setPeriod] = useState(60);
-  const [assetClass, setAssetClass] = useState('all');
   const [daysBack, setDaysBack] = useState(365);
   const [activeTab, setActiveTab] = useState('history');
   const [sortKey, setSortKey] = useState('date_taken');
@@ -1700,6 +1237,12 @@ export default function DataTracker() {
   const [showStatusPanel, setShowStatusPanel] = useState(true);
   const [numericFilters, setNumericFilters] = useState({});
   const [textFilters, setTextFilters] = useState({});
+
+  // Multi-select chip filters (Sets of selected values)
+  const [selectedCategories, setSelectedCategories] = useState(new Set());
+  const [selectedAssetClasses, setSelectedAssetClasses] = useState(new Set());
+  const [selectedBiases, setSelectedBiases] = useState(new Set());
+
   const [allData, setAllData] = useState([]);
   const [paginatedData, setPaginatedData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1718,13 +1261,27 @@ export default function DataTracker() {
 
   const debouncedSymbol = useDebounce(symbol, 500);
 
-  // Unique symbols from current filtered data for the grid
   const uniquePageAssets = React.useMemo(() => {
     const seen = new Set();
     return paginatedData
       .filter(r => { if (seen.has(r.symbol)) return false; seen.add(r.symbol); return true; })
       .map(r => ({ symbol: r.symbol, mss: r.mss, category: r.category }));
   }, [paginatedData]);
+
+  // Check if any chip filters are active
+  const hasChipFilters = selectedCategories.size > 0 || selectedAssetClasses.size > 0 || selectedBiases.size > 0;
+
+  // Reset ALL filters
+  const resetAllFilters = () => {
+    setSelectedCategories(new Set());
+    setSelectedAssetClasses(new Set());
+    setSelectedBiases(new Set());
+    setNumericFilters({});
+    setTextFilters({});
+    setSymbol('');
+    setPeriod(60);
+    setDaysBack(365);
+  };
 
   const fetchPeriodStatus = useCallback(async () => {
     try {
@@ -1748,11 +1305,18 @@ export default function DataTracker() {
   const fetchFilteredData = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const filters = { numeric: numericFilters, text: textFilters };
+      // Build text filters including multi-select chip values
+      const mergedText = { ...textFilters };
+      if (selectedCategories.size > 0)   mergedText.category   = [...selectedCategories].join(',');
+      if (selectedAssetClasses.size > 0) mergedText.asset_class = [...selectedAssetClasses].join(',');
+      if (selectedBiases.size > 0)       mergedText.analyst_bias = [...selectedBiases].join(',');
+
+      const filters = { numeric: numericFilters, text: mergedText };
       const params = new URLSearchParams({
-        period, days: daysBack,
+        period,
+        days: daysBack,
         symbol: debouncedSymbol.trim().toUpperCase(),
-        asset_class: assetClass,
+        asset_class: selectedAssetClasses.size === 1 ? [...selectedAssetClasses][0] : 'all',
         filters: JSON.stringify(filters),
       });
       const r = await fetch(`${BASE_URL}/api/mss/filtered-data/?${params}`);
@@ -1761,7 +1325,7 @@ export default function DataTracker() {
       else throw new Error(json.error);
     } catch (e) { setError(e.message); setAllData([]); }
     finally { setLoading(false); }
-  }, [debouncedSymbol, period, daysBack, assetClass, numericFilters, textFilters]);
+  }, [debouncedSymbol, period, daysBack, numericFilters, textFilters, selectedCategories, selectedAssetClasses, selectedBiases]);
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/mss/symbols/`).then(r => r.json()).then(d => { if (d.success) setSymbols(d.data); }).catch(() => {});
@@ -1817,16 +1381,14 @@ export default function DataTracker() {
   };
 
   const addToCompare = (sym) => {
-    if (!compareSymbols.includes(sym) && compareSymbols.length < 8) {
-      setCompareSymbols(p => [...p, sym]);
-    }
+    if (!compareSymbols.includes(sym) && compareSymbols.length < 8) setCompareSymbols(p => [...p, sym]);
   };
   const removeFromCompare = (sym) => setCompareSymbols(p => p.filter(s => s !== sym));
   const clearCompare = () => { setCompareSymbols([]); setCompareMode(false); };
 
-  const activeFilterCount =
-    Object.values(numericFilters).filter(r => r.min || r.max).length +
-    Object.values(textFilters).filter(v => v && v !== 'all').length;
+  const activeNumericFilterCount = Object.values(numericFilters).filter(r => r.min || r.max).length;
+  const activeTextFilterCount = Object.values(textFilters).filter(v => v && v !== 'all').length;
+  const activeFilterCount = activeNumericFilterCount + activeTextFilterCount;
 
   const stats = allData.length ? (() => {
     const mss = allData.map(r => r.mss).filter(Boolean);
@@ -1853,7 +1415,6 @@ export default function DataTracker() {
       <div>
         <SideNavs />
 
-        {/* ── Top nav ── */}
         <nav className="snw-topnav">
           <div className="snw-topnav-brand">
             <span className="snw-topnav-brand-dot" /> SnowAI Tracker
@@ -1867,7 +1428,6 @@ export default function DataTracker() {
           </div>
         </nav>
 
-        {/* ── Body ── */}
         <div className="snw-body">
           <div className="snw-page-header">
             <div>
@@ -1909,9 +1469,8 @@ export default function DataTracker() {
               <div className="snw-status-grid">
                 {PERIODS.map(p => {
                   const st = periodStatus[p] || { status: 'pending', records: 0, current_asset: '' };
-                  const cardCls = `snw-period-card snw-period-card-${st.status}`;
                   return (
-                    <div key={p} className={cardCls}>
+                    <div key={p} className={`snw-period-card snw-period-card-${st.status}`}>
                       <div className="snw-period-title">{p}d Period</div>
                       <div className={`snw-period-badge snw-badge-${st.status}`}>
                         {st.status === 'running' ? '🔄 RUNNING' : st.status === 'completed' ? '✅ DONE' : st.status === 'failed' ? '❌ FAILED' : '⏳ PENDING'}
@@ -1953,12 +1512,6 @@ export default function DataTracker() {
               </select>
             </div>
             <div className="snw-quick-group">
-              <div className="snw-quick-label">Asset Class</div>
-              <select className="snw-quick-select" value={assetClass} onChange={e => setAssetClass(e.target.value)}>
-                {ASSET_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="snw-quick-group">
               <div className="snw-quick-label">Days Back</div>
               <select className="snw-quick-select" value={daysBack} onChange={e => setDaysBack(+e.target.value)}>
                 {[30, 60, 90, 180, 365, 730].map(d => <option key={d} value={d}>{d}d</option>)}
@@ -1969,13 +1522,71 @@ export default function DataTracker() {
             <button className="snw-btn snw-btn-secondary" onClick={() => setShowAdvFilter(v => !v)}>
               🔍 {showAdvFilter ? 'Hide' : 'Filters'}{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
+            <button className="snw-btn snw-btn-danger snw-btn-sm" onClick={resetAllFilters} title="Reset all filters to defaults">
+              ✕ Reset All
+            </button>
+          </div>
+
+          {/* ── Multi-select chip filter bar ── */}
+          <div className="snw-chip-section">
+            <div className="snw-chip-section-hdr">
+              <span className="snw-chip-section-title">
+                Quick Filters
+                {hasChipFilters && (
+                  <span style={{ marginLeft: 8, background: 'var(--snw-blue)', color: 'white', borderRadius: 10, padding: '1px 7px', fontSize: 9 }}>
+                    {selectedCategories.size + selectedAssetClasses.size + selectedBiases.size} active
+                  </span>
+                )}
+              </span>
+              {hasChipFilters && (
+                <button className="snw-chip-reset" onClick={() => {
+                  setSelectedCategories(new Set());
+                  setSelectedAssetClasses(new Set());
+                  setSelectedBiases(new Set());
+                }}>
+                  ✕ Clear chips
+                </button>
+              )}
+            </div>
+            <div className="snw-chip-section-body">
+              <div className="snw-chip-row">
+                <span className="snw-chip-row-label">Status</span>
+                {CATEGORY_CHIPS.map(c => (
+                  <button
+                    key={c.value}
+                    className={`snw-chip${selectedCategories.has(c.value) ? ` ${c.cls}` : ''}`}
+                    onClick={() => setSelectedCategories(prev => toggleChip(prev, c.value))}
+                  >{c.label}</button>
+                ))}
+              </div>
+              <div className="snw-chip-row">
+                <span className="snw-chip-row-label">Asset Class</span>
+                {ASSET_CLASS_CHIPS.map(c => (
+                  <button
+                    key={c.value}
+                    className={`snw-chip${selectedAssetClasses.has(c.value) ? ` ${c.cls}` : ''}`}
+                    onClick={() => setSelectedAssetClasses(prev => toggleChip(prev, c.value))}
+                  >{c.label}</button>
+                ))}
+              </div>
+              <div className="snw-chip-row">
+                <span className="snw-chip-row-label">Analyst Bias</span>
+                {BIAS_CHIPS.map(c => (
+                  <button
+                    key={c.value}
+                    className={`snw-chip${selectedBiases.has(c.value) ? ` ${c.cls}` : ''}`}
+                    onClick={() => setSelectedBiases(prev => toggleChip(prev, c.value))}
+                  >{c.label}</button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Advanced filters */}
           {showAdvFilter && (
             <div className="snw-filters-panel">
               <div className="snw-filters-hdr" onClick={() => setShowAdvFilter(false)}>
-                <span>⚙️ Advanced Filters</span><span>▼</span>
+                <span>⚙️ Advanced Numeric Filters</span><span>▼</span>
               </div>
               <div className="snw-filters-grid">
                 {NUMERIC_COLUMNS.map(col => (
@@ -1988,20 +1599,8 @@ export default function DataTracker() {
                     </div>
                   </div>
                 ))}
-                {TEXT_COLUMNS.map(col => (
-                  <div key={col.key} className="snw-filter-item">
-                    <label>{col.label}</label>
-                    {col.type === 'dropdown'
-                      ? <select className="snw-filter-select" value={textFilters[col.key] || 'all'} onChange={e => handleTxtChange(col.key, e.target.value)}>
-                          <option value="all">All {col.label}s</option>
-                          {getDropdownOpts(col.key).map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      : <input className="snw-filter-input" type="text" placeholder={`Filter ${col.label}…`} value={textFilters[col.key] || ''} onChange={e => handleTxtChange(col.key, e.target.value)} />
-                    }
-                  </div>
-                ))}
                 <div style={{ gridColumn: '1/-1' }}>
-                  <button className="snw-btn snw-btn-secondary snw-btn-sm" onClick={clearAllFilters}>Clear All Filters</button>
+                  <button className="snw-btn snw-btn-secondary snw-btn-sm" onClick={clearAllFilters}>Clear Numeric Filters</button>
                 </div>
               </div>
             </div>
@@ -2093,20 +1692,16 @@ export default function DataTracker() {
             </div>
           )}
 
-          {/* ── VIEW ALL CHARTS BAR ── */}
+          {/* View All Charts bar */}
           {paginatedData.length > 0 && (
             <div className="snw-view-all-charts-bar">
               <div className="snw-view-all-charts-info">
                 <div className="snw-view-all-charts-title">📈 Chart View</div>
                 <div className="snw-view-all-charts-sub">
-                  View candlestick charts for all {uniquePageAssets.length} assets on this page in a grid layout
+                  View candlestick charts for all {uniquePageAssets.length} assets on this page
                 </div>
               </div>
-              <button
-                className="snw-view-all-charts-btn"
-                onClick={() => setShowAllCharts(true)}
-                disabled={loading}
-              >
+              <button className="snw-view-all-charts-btn" onClick={() => setShowAllCharts(true)} disabled={loading}>
                 <span>⊞</span>
                 View All Charts
                 <span style={{ fontSize: 10, opacity: 0.7, background: 'rgba(255,255,255,0.15)', padding: '1px 6px', borderRadius: 4 }}>
@@ -2132,7 +1727,7 @@ export default function DataTracker() {
           <div className="snw-table-wrap">
             <div className="snw-table-scroll">
               {loading ? (
-                <div className="snw-loading"><div className="snw-spinner-lg" /><span>Fetching {totalRecords.toLocaleString()} records…</span></div>
+                <div className="snw-loading"><div className="snw-spinner-lg" /><span>Fetching records…</span></div>
               ) : error ? (
                 <div className="snw-empty">⚠ {error}</div>
               ) : paginatedData.length === 0 ? (
@@ -2191,7 +1786,6 @@ export default function DataTracker() {
               )}
             </div>
 
-            {/* Pagination */}
             {!loading && allData.length > 0 && (
               <div className="snw-pagination">
                 <div className="snw-pag-info">
@@ -2216,13 +1810,9 @@ export default function DataTracker() {
         </div>
       </div>
 
-      {/* ── Chart modals ── */}
-      {chartSymbol && (
-        <AssetChart symbol={chartSymbol} onClose={() => setChartSymbol(null)} />
-      )}
-      {compareMode && compareSymbols.length >= 2 && (
-        <MultiCompareChart symbols={compareSymbols} onClose={() => setCompareMode(false)} />
-      )}
+      {/* Chart modals */}
+      {chartSymbol && <AssetChart symbol={chartSymbol} onClose={() => setChartSymbol(null)} />}
+      {compareMode && compareSymbols.length >= 2 && <MultiCompareChart symbols={compareSymbols} onClose={() => setCompareMode(false)} />}
       {showAllCharts && uniquePageAssets.length > 0 && (
         <AllChartsGrid
           assets={uniquePageAssets}
