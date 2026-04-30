@@ -221,7 +221,9 @@ async function batchTranslate(texts, targetLang) {
   return results;
 }
 
-// The main hook — manages translation state globally
+
+// Replace the `usePageTranslator` hook with this fixed version:
+
 function usePageTranslator() {
   const [currentLang, setCurrentLang] = useState(() => {
     return localStorage.getItem('snowai_lang') || 'en';
@@ -230,38 +232,49 @@ function usePageTranslator() {
   const [translationProgress, setTranslationProgress] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   
-  // Cache: { langCode: Map<originalText, translatedText> }
-  const translationCache = useRef({});
-  // Original text backup: Map<textNode, originalValue>
-  const originalNodes = useRef(new Map());
-  // Whether we've already backed up originals
-  const originalsBackedUp = useRef(false);
+  // Store ORIGINAL English text permanently
+  const originalTexts = useRef(new Map()); // Map<textNode, originalEnglishText>
+  const isBackedUp = useRef(false);
 
-  // Back up all original text nodes once
+  // Backup original English texts once (never overwrite)
   const backupOriginals = useCallback(() => {
-    if (originalsBackedUp.current) return;
-    const nodes = collectTextNodes();
-    nodes.forEach(node => {
-      originalNodes.current.set(node, node.nodeValue);
-    });
-    originalsBackedUp.current = true;
+    if (isBackedUp.current) return;
+    
+    const walker = document.createTreeWalker(
+      document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          const text = node.nodeValue?.trim();
+          if (!text || text.length < 2) return NodeFilter.FILTER_SKIP;
+          if (shouldSkipNode(node)) return NodeFilter.FILTER_SKIP;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    let node;
+    while ((node = walker.nextNode())) {
+      // Store the original English text
+      originalTexts.current.set(node, node.nodeValue);
+    }
+    isBackedUp.current = true;
   }, []);
 
-  // Restore all text nodes to English
-  const restoreOriginals = useCallback(() => {
-    originalNodes.current.forEach((originalText, node) => {
-      if (node.parentElement) { // node still in DOM
+  // Restore all text to original English
+  const restoreToEnglish = useCallback(() => {
+    originalTexts.current.forEach((originalText, node) => {
+      if (node.parentElement && document.body.contains(node)) {
         node.nodeValue = originalText;
       }
     });
-    // Re-collect any new nodes added since last backup
-    originalsBackedUp.current = false;
   }, []);
 
-  // Main translate function
+  // Translate from ENGLISH to target language
   const translatePage = useCallback(async (targetLang) => {
+    // If target is English, just restore
     if (targetLang === 'en') {
-      restoreOriginals();
+      restoreToEnglish();
       setCurrentLang('en');
       localStorage.setItem('snowai_lang', 'en');
       return;
@@ -271,80 +284,100 @@ function usePageTranslator() {
     setTranslationProgress(0);
 
     try {
-      // Backup originals first
+      // First, ensure we have original English texts
       backupOriginals();
+      
+      // Then restore to English so we translate from clean source
+      restoreToEnglish();
 
-      // Collect current text nodes (may have changed since last backup)
-      const nodes = collectTextNodes();
-      const cache = translationCache.current[targetLang] || new Map();
-      translationCache.current[targetLang] = cache;
-
-      // Separate already-cached from needs-translation
-      const needsTranslation = [];
-      const needsTranslationNodes = [];
-
-      nodes.forEach(node => {
-        const text = node.nodeValue.trim();
-        if (!cache.has(text)) {
-          needsTranslation.push(text);
-          needsTranslationNodes.push(node);
+      // Collect ALL text nodes that need translation (from their original English)
+      const nodes = [];
+      const texts = [];
+      
+      originalTexts.current.forEach((originalText, node) => {
+        if (node.parentElement && document.body.contains(node)) {
+          nodes.push(node);
+          texts.push(originalText);
         }
       });
 
-      // Translate uncached texts
-      if (needsTranslation.length > 0) {
-        const CHUNK_SIZE = 20;
-        let translated = [];
+      // Batch translate all texts
+      const CHUNK_SIZE = 15;
+      const translatedTexts = [];
 
-        for (let i = 0; i < needsTranslation.length; i += CHUNK_SIZE) {
-          const chunk = needsTranslation.slice(i, i + CHUNK_SIZE);
-          const results = await batchTranslate(chunk, targetLang);
-          translated.push(...results);
-          setTranslationProgress(Math.round(((i + CHUNK_SIZE) / needsTranslation.length) * 100));
+      for (let i = 0; i < texts.length; i += CHUNK_SIZE) {
+        const chunk = texts.slice(i, i + CHUNK_SIZE);
+        
+        const translatedChunk = await Promise.all(
+          chunk.map(async (text) => {
+            if (!text.trim() || text.trim().length < 2) return text;
+            
+            try {
+              // MyMemory API - always from English
+              const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
+              const res = await fetch(url);
+              const data = await res.json();
+              
+              if (data.responseStatus === 200 && data.responseData?.translatedText) {
+                let translated = data.responseData.translatedText;
+                // Fix HTML entities that sometimes appear
+                translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+                return translated;
+              }
+              return text;
+            } catch (err) {
+              console.warn(`Translation failed for: "${text.substring(0, 50)}..."`);
+              return text;
+            }
+          })
+        );
+        
+        translatedTexts.push(...translatedChunk);
+        setTranslationProgress(Math.round(((i + CHUNK_SIZE) / texts.length) * 100));
+        
+        // Rate limiting delay
+        if (i + CHUNK_SIZE < texts.length) {
+          await new Promise(r => setTimeout(r, 150));
         }
-
-        // Store in cache
-        needsTranslation.forEach((text, idx) => {
-          cache.set(text, translated[idx]);
-        });
       }
 
-      // Apply translations to all nodes
-      nodes.forEach(node => {
-        const text = node.nodeValue.trim();
-        if (cache.has(text) && node.parentElement) {
-          node.nodeValue = cache.get(text);
+      // Apply translations
+      nodes.forEach((node, idx) => {
+        if (node.parentElement && document.body.contains(node)) {
+          node.nodeValue = translatedTexts[idx];
         }
       });
 
       setCurrentLang(targetLang);
       localStorage.setItem('snowai_lang', targetLang);
+      
     } catch (err) {
       console.error('Translation error:', err);
     } finally {
       setIsTranslating(false);
       setTranslationProgress(100);
     }
-  }, [backupOriginals, restoreOriginals]);
+  }, [backupOriginals, restoreToEnglish]);
 
   // Show banner on first load if lang != en
   useEffect(() => {
     const saved = localStorage.getItem('snowai_lang');
     if (saved && saved !== 'en') {
       setShowBanner(true);
+      // Auto-translate after a short delay
+      setTimeout(() => translatePage(saved), 500);
     }
-  }, []);
+  }, [translatePage]);
 
-  // Re-translate after navigation (SPA route changes render new text)
+  // Re-translate after navigation (SPA route changes)
   useEffect(() => {
     if (currentLang !== 'en') {
-      // Short delay to let new page render
       const timer = setTimeout(() => {
         translatePage(currentLang);
-      }, 800);
+      }, 600);
       return () => clearTimeout(timer);
     }
-  }, [currentLang, translatePage]);
+  }, [currentLang, translatePage, location?.pathname]);
 
   return {
     currentLang,
@@ -357,6 +390,7 @@ function usePageTranslator() {
   };
 }
 
+
 // ─── LANGUAGE SWITCHER UI COMPONENT ──────────────────────────────────────────
 function LanguageSwitcher({ translator }) {
   const { currentLang, isTranslating, translationProgress, translatePage, SUPPORTED_LANGUAGES } = translator;
@@ -367,10 +401,24 @@ function LanguageSwitcher({ translator }) {
   return (
     <div className="language-switcher-container" data-no-translate>
       <style>{`
-        .language-switcher-container {
-          margin-bottom: 12px;
-          position: relative;
-        }
+      /* Add to your global CSS or component style */
+      .language-switcher-container {
+        margin: 16px 12px;
+        position: relative;
+        z-index: 100;
+      }
+
+      .lang-trigger-btn {
+        background: rgba(128, 128, 128, 0.1);
+        border-radius: 12px !important;
+        font-weight: 500;
+      }
+
+      .lang-dropdown {
+        z-index: 10000 !important;
+        min-width: 160px;
+      }
+        
 
         .lang-trigger-btn {
           display: flex;
