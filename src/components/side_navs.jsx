@@ -222,7 +222,7 @@ async function batchTranslate(texts, targetLang) {
 }
 
 
-// Replace the `usePageTranslator` hook with this fixed version:
+// ─── COMPLETELY REWRITTEN PAGE TRANSLATOR HOOK ─────────────────────────────
 
 function usePageTranslator() {
   const [currentLang, setCurrentLang] = useState(() => {
@@ -232,13 +232,13 @@ function usePageTranslator() {
   const [translationProgress, setTranslationProgress] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   
-  // Store ORIGINAL English text permanently
-  const originalTexts = useRef(new Map()); // Map<textNode, originalEnglishText>
-  const isBackedUp = useRef(false);
+  // Store EVERY text node with its original English text permanently
+  const textNodeRegistry = useRef([]); // [{ node, originalText, currentTranslation }]
+  const isInitialized = useRef(false);
 
-  // Backup original English texts once (never overwrite)
-  const backupOriginals = useCallback(() => {
-    if (isBackedUp.current) return;
+  // Initialize - scan DOM once and store all text nodes
+  const initializeRegistry = useCallback(() => {
+    if (isInitialized.current) return;
     
     const walker = document.createTreeWalker(
       document.body,
@@ -246,138 +246,241 @@ function usePageTranslator() {
       {
         acceptNode(node) {
           const text = node.nodeValue?.trim();
-          if (!text || text.length < 2) return NodeFilter.FILTER_SKIP;
+          if (!text || text.length < 1) return NodeFilter.FILTER_SKIP;
           if (shouldSkipNode(node)) return NodeFilter.FILTER_SKIP;
           return NodeFilter.FILTER_ACCEPT;
         }
       }
     );
 
+    const nodes = [];
     let node;
     while ((node = walker.nextNode())) {
-      // Store the original English text
-      originalTexts.current.set(node, node.nodeValue);
+      nodes.push({
+        node: node,
+        originalText: node.nodeValue,
+        currentLanguage: 'en'
+      });
     }
-    isBackedUp.current = true;
+    
+    textNodeRegistry.current = nodes;
+    isInitialized.current = true;
+    console.log(`📝 Initialized translator with ${nodes.length} text nodes`);
   }, []);
 
-  // Restore all text to original English
+  // Restore everything to English
   const restoreToEnglish = useCallback(() => {
-    originalTexts.current.forEach((originalText, node) => {
-      if (node.parentElement && document.body.contains(node)) {
-        node.nodeValue = originalText;
+    textNodeRegistry.current.forEach(entry => {
+      if (entry.node.parentElement && document.body.contains(entry.node)) {
+        entry.node.nodeValue = entry.originalText;
+        entry.currentLanguage = 'en';
       }
     });
   }, []);
 
-  // Translate from ENGLISH to target language
+  // Translate with retry logic and multiple API fallbacks
+  const translateText = async (text, targetLang, retries = 2) => {
+    if (!text.trim() || text.trim().length < 2) return text;
+    
+    // Don't translate very short texts or numbers
+    if (text.trim().length < 3 && /^[\d\W]+$/.test(text)) return text;
+    
+    const encodeText = encodeURIComponent(text);
+    
+    // Try multiple translation APIs in order
+    const apis = [
+      // API 1: MyMemory (free, decent quality)
+      async () => {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeText}&langpair=en|${targetLang}&de=someone@email.com`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.responseStatus === 200 && data.responseData?.translatedText) {
+          let translated = data.responseData.translatedText;
+          // Clean up common issues
+          translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+          if (translated !== text && translated.length > 0) return translated;
+        }
+        throw new Error('MyMemory returned invalid translation');
+      },
+      
+      // API 2: LibreTranslate (free, no key needed)
+      async () => {
+        const url = 'https://translate.argosopentech.com/translate';
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            q: text,
+            source: 'en',
+            target: targetLang,
+            format: 'text'
+          })
+        });
+        const data = await res.json();
+        if (data.translatedText) return data.translatedText;
+        throw new Error('LibreTranslate failed');
+      },
+      
+      // API 3: Lingva (scrapes Google Translate)
+      async () => {
+        const url = `https://lingva.ml/api/v1/en/${targetLang}/${encodeText}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.translation) return data.translation;
+        throw new Error('Lingva failed');
+      }
+    ];
+    
+    for (let attempt = 0; attempt < retries; attempt++) {
+      for (const api of apis) {
+        try {
+          const result = await api();
+          if (result && result !== text) return result;
+        } catch (err) {
+          console.debug(`API failed:`, err.message);
+        }
+        // Small delay between API attempts
+        await new Promise(r => setTimeout(r, 100));
+      }
+      // Wait longer between retries
+      if (attempt < retries - 1) await new Promise(r => setTimeout(r, 1000));
+    }
+    
+    return text; // Return original if all fail
+  };
+
+  // Main translation function with batching and progress
   const translatePage = useCallback(async (targetLang) => {
+    // Validate target language
+    if (!SUPPORTED_LANGUAGES.some(l => l.code === targetLang)) {
+      console.error(`Unsupported language: ${targetLang}`);
+      return;
+    }
+    
     // If target is English, just restore
     if (targetLang === 'en') {
       restoreToEnglish();
       setCurrentLang('en');
       localStorage.setItem('snowai_lang', 'en');
+      setShowBanner(false);
       return;
     }
-
+    
+    // Don't retranslate if already in target language
+    if (currentLang === targetLang && !isTranslating) {
+      console.log(`Already in ${targetLang}, skipping...`);
+      return;
+    }
+    
     setIsTranslating(true);
     setTranslationProgress(0);
-
+    
     try {
-      // First, ensure we have original English texts
-      backupOriginals();
+      // Initialize registry if needed
+      initializeRegistry();
       
-      // Then restore to English so we translate from clean source
+      // Restore to English first (clean slate)
       restoreToEnglish();
-
-      // Collect ALL text nodes that need translation (from their original English)
-      const nodes = [];
-      const texts = [];
       
-      originalTexts.current.forEach((originalText, node) => {
-        if (node.parentElement && document.body.contains(node)) {
-          nodes.push(node);
-          texts.push(originalText);
+      // Get all unique texts that need translation
+      const textsToTranslate = [];
+      const entriesToTranslate = [];
+      
+      textNodeRegistry.current.forEach(entry => {
+        const text = entry.originalText.trim();
+        if (text && text.length >= 2) {
+          textsToTranslate.push(text);
+          entriesToTranslate.push(entry);
         }
       });
-
-      // Batch translate all texts
-      const CHUNK_SIZE = 15;
+      
+      console.log(`🔄 Translating ${textsToTranslate.length} text segments to ${targetLang}...`);
+      
+      // Translate in small batches to avoid rate limits
+      const BATCH_SIZE = 5;
       const translatedTexts = [];
-
-      for (let i = 0; i < texts.length; i += CHUNK_SIZE) {
-        const chunk = texts.slice(i, i + CHUNK_SIZE);
+      
+      for (let i = 0; i < textsToTranslate.length; i += BATCH_SIZE) {
+        const batch = textsToTranslate.slice(i, i + BATCH_SIZE);
         
-        const translatedChunk = await Promise.all(
-          chunk.map(async (text) => {
-            if (!text.trim() || text.trim().length < 2) return text;
-            
-            try {
-              // MyMemory API - always from English
-              const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
-              const res = await fetch(url);
-              const data = await res.json();
-              
-              if (data.responseStatus === 200 && data.responseData?.translatedText) {
-                let translated = data.responseData.translatedText;
-                // Fix HTML entities that sometimes appear
-                translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"');
-                return translated;
-              }
-              return text;
-            } catch (err) {
-              console.warn(`Translation failed for: "${text.substring(0, 50)}..."`);
-              return text;
-            }
-          })
-        );
+        // Translate batch sequentially to respect rate limits
+        const batchResults = [];
+        for (let j = 0; j < batch.length; j++) {
+          const text = batch[j];
+          const translated = await translateText(text, targetLang, 2);
+          batchResults.push(translated);
+          
+          // Update progress
+          const progress = Math.round(((i + j + 1) / textsToTranslate.length) * 100);
+          setTranslationProgress(progress);
+          
+          // Small delay between individual translations
+          if (j < batch.length - 1) await new Promise(r => setTimeout(r, 50));
+        }
         
-        translatedTexts.push(...translatedChunk);
-        setTranslationProgress(Math.round(((i + CHUNK_SIZE) / texts.length) * 100));
+        translatedTexts.push(...batchResults);
         
-        // Rate limiting delay
-        if (i + CHUNK_SIZE < texts.length) {
-          await new Promise(r => setTimeout(r, 150));
+        // Larger delay between batches
+        if (i + BATCH_SIZE < textsToTranslate.length) {
+          await new Promise(r => setTimeout(r, 300));
         }
       }
-
-      // Apply translations
-      nodes.forEach((node, idx) => {
-        if (node.parentElement && document.body.contains(node)) {
-          node.nodeValue = translatedTexts[idx];
+      
+      // Apply all translations
+      entriesToTranslate.forEach((entry, idx) => {
+        if (entry.node.parentElement && document.body.contains(entry.node)) {
+          const translated = translatedTexts[idx];
+          if (translated && translated !== entry.originalText) {
+            entry.node.nodeValue = translated;
+            entry.currentLanguage = targetLang;
+          }
         }
       });
-
+      
       setCurrentLang(targetLang);
       localStorage.setItem('snowai_lang', targetLang);
+      setShowBanner(true);
+      
+      console.log(`✅ Translation to ${targetLang} complete!`);
       
     } catch (err) {
       console.error('Translation error:', err);
     } finally {
       setIsTranslating(false);
       setTranslationProgress(100);
+      // Reset progress after a moment
+      setTimeout(() => setTranslationProgress(0), 2000);
     }
-  }, [backupOriginals, restoreToEnglish]);
+  }, [initializeRegistry, restoreToEnglish, currentLang, isTranslating]);
 
-  // Show banner on first load if lang != en
+  // Re-initialize and re-translate after route changes
+  useEffect(() => {
+    // Reset initialization flag on route change
+    isInitialized.current = false;
+    textNodeRegistry.current = [];
+    
+    // Small delay for DOM to settle
+    const timer = setTimeout(() => {
+      initializeRegistry();
+      
+      const savedLang = localStorage.getItem('snowai_lang');
+      if (savedLang && savedLang !== 'en' && savedLang !== currentLang) {
+        translatePage(savedLang);
+      } else if (savedLang && savedLang !== 'en' && currentLang === 'en') {
+        setShowBanner(true);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [window.location.pathname]); // Re-run on route change
+
+  // Show banner on first load if needed
   useEffect(() => {
     const saved = localStorage.getItem('snowai_lang');
     if (saved && saved !== 'en') {
       setShowBanner(true);
-      // Auto-translate after a short delay
-      setTimeout(() => translatePage(saved), 500);
     }
-  }, [translatePage]);
-
-  // Re-translate after navigation (SPA route changes)
-  useEffect(() => {
-    if (currentLang !== 'en') {
-      const timer = setTimeout(() => {
-        translatePage(currentLang);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [currentLang, translatePage, location?.pathname]);
+  }, []);
 
   return {
     currentLang,
@@ -391,71 +494,59 @@ function usePageTranslator() {
 }
 
 
-// ─── LANGUAGE SWITCHER UI COMPONENT ──────────────────────────────────────────
 function LanguageSwitcher({ translator }) {
   const { currentLang, isTranslating, translationProgress, translatePage, SUPPORTED_LANGUAGES } = translator;
   const [expanded, setExpanded] = useState(false);
 
   const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
+  // Debug log to verify languages are available
+  useEffect(() => {
+    console.log('Available languages:', SUPPORTED_LANGUAGES);
+  }, []);
+
   return (
     <div className="language-switcher-container" data-no-translate>
       <style>{`
-      /* Add to your global CSS or component style */
-      .language-switcher-container {
-        margin: 16px 12px;
-        position: relative;
-        z-index: 100;
-      }
-
-      .lang-trigger-btn {
-        background: rgba(128, 128, 128, 0.1);
-        border-radius: 12px !important;
-        font-weight: 500;
-      }
-
-      .lang-dropdown {
-        z-index: 10000 !important;
-        min-width: 160px;
-      }
-        
+        .language-switcher-container {
+          margin: 16px 12px;
+          position: relative;
+          z-index: 9999;
+        }
 
         .lang-trigger-btn {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           width: 100%;
-          padding: 8px 12px;
-          background: transparent;
-          border: 0.5px solid rgba(128,128,128,0.3);
-          border-radius: 8px;
+          padding: 10px 14px;
+          background: var(--color-background-secondary, #f8f9fa);
+          border: 1px solid rgba(128,128,128,0.2);
+          border-radius: 12px;
           cursor: pointer;
-          font-size: 13px;
-          color: inherit;
-          transition: background 0.15s;
+          font-size: 14px;
+          transition: all 0.2s ease;
         }
 
         .lang-trigger-btn:hover {
-          background: rgba(128,128,128,0.08);
+          background: rgba(59, 130, 246, 0.1);
+          border-color: #3b82f6;
         }
 
         .lang-flag {
-          font-size: 16px;
-          line-height: 1;
+          font-size: 20px;
         }
 
         .lang-name {
           flex: 1;
-          text-align: left;
-          font-weight: 500;
+          font-weight: 600;
         }
 
         .lang-status-dot {
-          width: 7px;
-          height: 7px;
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
           background: #22c55e;
-          flex-shrink: 0;
         }
 
         .lang-status-dot.translating {
@@ -464,54 +555,60 @@ function LanguageSwitcher({ translator }) {
         }
 
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.3; }
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
         }
 
         .lang-dropdown {
           position: absolute;
-          bottom: calc(100% + 6px);
+          top: 100%;
           left: 0;
           right: 0;
-          background: var(--color-background-primary, #fff);
-          border: 0.5px solid rgba(128,128,128,0.25);
-          border-radius: 10px;
+          margin-top: 8px;
+          background: var(--color-background-primary, #ffffff);
+          border: 1px solid rgba(128,128,128,0.2);
+          border-radius: 12px;
           overflow: hidden;
-          z-index: 9999;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+          z-index: 10000;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          max-height: 400px;
+          overflow-y: auto;
         }
 
         .lang-dropdown-header {
-          padding: 8px 12px 6px;
+          padding: 10px 14px 8px;
           font-size: 11px;
-          color: rgba(128,128,128,0.7);
-          font-weight: 500;
-          letter-spacing: 0.05em;
+          color: #6c757d;
+          font-weight: 600;
           text-transform: uppercase;
-          border-bottom: 0.5px solid rgba(128,128,128,0.15);
+          letter-spacing: 0.5px;
+          border-bottom: 1px solid rgba(128,128,128,0.1);
         }
 
         .lang-option {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 8px 12px;
+          gap: 12px;
+          padding: 10px 14px;
           cursor: pointer;
-          font-size: 13px;
-          transition: background 0.1s;
+          font-size: 14px;
+          transition: all 0.15s;
           border: none;
           background: transparent;
           width: 100%;
           text-align: left;
-          color: inherit;
         }
 
         .lang-option:hover {
-          background: rgba(128,128,128,0.07);
+          background: rgba(59, 130, 246, 0.08);
         }
 
         .lang-option.active {
-          background: rgba(59, 130, 246, 0.08);
+          background: rgba(59, 130, 246, 0.12);
+          color: #3b82f6;
+        }
+
+        .lang-option.active .lang-option-native {
           color: #3b82f6;
         }
 
@@ -522,60 +619,77 @@ function LanguageSwitcher({ translator }) {
 
         .lang-option-english {
           font-size: 11px;
-          opacity: 0.5;
+          color: #6c757d;
         }
 
         .lang-option-check {
-          font-size: 14px;
+          font-size: 16px;
           color: #3b82f6;
         }
 
         .translation-progress-bar {
-          height: 2px;
+          height: 3px;
           background: rgba(59, 130, 246, 0.15);
-          border-radius: 1px;
+          border-radius: 3px;
           overflow: hidden;
-          margin-top: 4px;
+          margin-top: 6px;
         }
 
         .translation-progress-fill {
           height: 100%;
-          background: #3b82f6;
-          border-radius: 1px;
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
+          border-radius: 3px;
           transition: width 0.3s ease;
         }
 
         .translate-status-text {
           font-size: 11px;
-          color: rgba(128,128,128,0.7);
-          margin-top: 3px;
+          color: #6c757d;
+          margin-top: 6px;
           text-align: center;
+        }
+
+        /* Scrollbar */
+        .lang-dropdown::-webkit-scrollbar {
+          width: 4px;
+        }
+        .lang-dropdown::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        .lang-dropdown::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
         }
       `}</style>
 
       <button
         className="lang-trigger-btn"
         onClick={() => setExpanded(!expanded)}
-        title="Translate page"
+        disabled={isTranslating}
       >
-        <FaGlobe style={{ fontSize: 13, opacity: 0.7 }} />
+        <FaGlobe style={{ fontSize: 14, opacity: 0.7 }} />
         <span className="lang-flag">{currentLangObj.flag}</span>
         <span className="lang-name">{currentLangObj.native}</span>
         <span className={`lang-status-dot ${isTranslating ? 'translating' : ''}`} />
       </button>
 
-      {isTranslating && (
+      {isTranslating && translationProgress > 0 && translationProgress < 100 && (
         <>
           <div className="translation-progress-bar">
             <div className="translation-progress-fill" style={{ width: `${translationProgress}%` }} />
           </div>
-          <div className="translate-status-text">Translating... {translationProgress}%</div>
+          <div className="translate-status-text">
+            Translating to {currentLangObj?.native}... {translationProgress}%
+          </div>
         </>
       )}
 
       {expanded && (
         <div className="lang-dropdown">
-          <div className="lang-dropdown-header">Translate page</div>
+          <div className="lang-dropdown-header">
+            🌐 Translate page to
+          </div>
           {SUPPORTED_LANGUAGES.map(lang => (
             <button
               key={lang.code}
@@ -586,7 +700,7 @@ function LanguageSwitcher({ translator }) {
               }}
               disabled={isTranslating}
             >
-              <span style={{ fontSize: 16 }}>{lang.flag}</span>
+              <span style={{ fontSize: 18 }}>{lang.flag}</span>
               <span className="lang-option-native">{lang.native}</span>
               <span className="lang-option-english">{lang.label}</span>
               {currentLang === lang.code && <span className="lang-option-check">✓</span>}
@@ -597,6 +711,7 @@ function LanguageSwitcher({ translator }) {
     </div>
   );
 }
+
 
 // ─── TRANSLATION BANNER (like Chrome's "Translate this page?") ───────────────
 function TranslateBanner({ translator }) {
