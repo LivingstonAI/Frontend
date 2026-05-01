@@ -1,6 +1,5 @@
 // side_navs.jsx — SnowAI SideNavs with Chrome-style page translator
-// No react-i18next needed. No changes to other components needed.
-// The translator walks the DOM and replaces text nodes in-place.
+// Fixed with email authentication + persistent cache
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -115,10 +114,7 @@ import kilometro from '../LOS COMUNISTAS DÓNDE ESTÁN_  AFROHOUSE  KILOMETRO.mp
 import chess_slowed from '../joyful - chess (slowed).mp3';
 import chess from '../Chess Type Beat.mp3';
 
-// ─── PAGE TRANSLATOR HOOK ─────────────────────────────────────────────────────
-// This is the core magic. It walks the entire document's text nodes,
-// stores originals, and replaces them — like Chrome's translate feature.
-// No changes needed to any other component ever.
+// ─── PAGE TRANSLATOR HOOK WITH CACHE AND EMAIL AUTH ─────────────────────────
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en',    label: 'English',    flag: '🇬🇧', native: 'English' },
@@ -133,19 +129,17 @@ const SUPPORTED_LANGUAGES = [
   { code: 'pt',    label: 'Portuguese', flag: '🇧🇷', native: 'Português' },
 ];
 
-// Nodes to skip during translation (scripts, styles, SVG text, input values)
 const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'META', 'LINK',
   'INPUT', 'TEXTAREA', 'SELECT', 'CODE', 'PRE',
   'SVG', 'MATH',
 ]);
 
-// Attributes that identify elements we should NOT translate
 const SKIP_SELECTORS = [
   '[data-no-translate]',
-  '[class*="side-nav"]',  // don't translate icon tooltips
-  '.timezones',           // clock digits
-  '.modal',               // handled separately if needed
+  '[class*="side-nav"]',
+  '.timezones',
+  '.modal',
 ];
 
 function shouldSkipNode(node) {
@@ -158,72 +152,6 @@ function shouldSkipNode(node) {
   return false;
 }
 
-// Collect all meaningful text nodes from the document
-function collectTextNodes() {
-  const walker = document.createTreeWalker(
-    document.body,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode(node) {
-        const text = node.nodeValue.trim();
-        if (!text || text.length < 2) return NodeFilter.FILTER_SKIP;
-        if (shouldSkipNode(node)) return NodeFilter.FILTER_SKIP;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
-
-  const nodes = [];
-  let node;
-  while ((node = walker.nextNode())) {
-    nodes.push(node);
-  }
-  return nodes;
-}
-
-// Batch translate via MyMemory API (free, no key needed, 5000 chars/day per IP)
-// Falls back to LibreTranslate if MyMemory quota exceeded
-async function batchTranslate(texts, targetLang) {
-  const BATCH_SIZE = 10; // MyMemory handles up to ~500 chars per request
-  const results = [];
-
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-
-    const translated = await Promise.all(
-      batch.map(async (text) => {
-        if (!text.trim() || text.trim().length < 2) return text;
-
-        try {
-          // MyMemory free API — no key needed
-          const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
-          const res = await fetch(url);
-          const data = await res.json();
-
-          if (data.responseStatus === 200 && data.responseData?.translatedText) {
-            return data.responseData.translatedText;
-          }
-          return text;
-        } catch {
-          return text; // fallback to original on error
-        }
-      })
-    );
-
-    results.push(...translated);
-
-    // Small delay to avoid rate limiting
-    if (i + BATCH_SIZE < texts.length) {
-      await new Promise(r => setTimeout(r, 200));
-    }
-  }
-
-  return results;
-}
-
-
-// ─── COMPLETELY REWRITTEN PAGE TRANSLATOR HOOK ─────────────────────────────
-
 function usePageTranslator() {
   const [currentLang, setCurrentLang] = useState(() => {
     return localStorage.getItem('snowai_lang') || 'en';
@@ -232,11 +160,33 @@ function usePageTranslator() {
   const [translationProgress, setTranslationProgress] = useState(0);
   const [showBanner, setShowBanner] = useState(false);
   
-  // Store EVERY text node with its original English text permanently
-  const textNodeRegistry = useRef([]); // [{ node, originalText, currentTranslation }]
+  const textNodeRegistry = useRef([]);
   const isInitialized = useRef(false);
+  
+  // FIXED: Properly initialize translation cache
+  const translationCache = useRef({});
+  
+  // Load cache from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedCache = localStorage.getItem('snowai_translation_cache');
+      if (savedCache) {
+        translationCache.current = JSON.parse(savedCache);
+        console.log(`📦 Loaded ${Object.keys(translationCache.current).length} cached translations`);
+      }
+    } catch (e) {
+      console.warn('Failed to load translation cache:', e);
+    }
+  }, []);
+  
+  const saveCacheToLocalStorage = useCallback(() => {
+    try {
+      localStorage.setItem('snowai_translation_cache', JSON.stringify(translationCache.current));
+    } catch (e) {
+      console.warn('Failed to save translation cache:', e);
+    }
+  }, []);
 
-  // Initialize - scan DOM once and store all text nodes
   const initializeRegistry = useCallback(() => {
     if (isInitialized.current) return;
     
@@ -268,7 +218,6 @@ function usePageTranslator() {
     console.log(`📝 Initialized translator with ${nodes.length} text nodes`);
   }, []);
 
-  // Restore everything to English
   const restoreToEnglish = useCallback(() => {
     textNodeRegistry.current.forEach(entry => {
       if (entry.node.parentElement && document.body.contains(entry.node)) {
@@ -278,86 +227,89 @@ function usePageTranslator() {
     });
   }, []);
 
-  // Translate with retry logic and multiple API fallbacks
   const translateText = async (text, targetLang, retries = 2) => {
     if (!text.trim() || text.trim().length < 2) return text;
-    
-    // Don't translate very short texts or numbers
     if (text.trim().length < 3 && /^[\d\W]+$/.test(text)) return text;
     
-    const encodeText = encodeURIComponent(text);
-    
-    // Try multiple translation APIs in order
-    const apis = [
-      // API 1: MyMemory (free, decent quality)
-      async () => {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeText}&langpair=en|${targetLang}&de=someone@email.com`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.responseStatus === 200 && data.responseData?.translatedText) {
-          let translated = data.responseData.translatedText;
-          // Clean up common issues
-          translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-          if (translated !== text && translated.length > 0) return translated;
-        }
-        throw new Error('MyMemory returned invalid translation');
-      },
-      
-      // API 2: LibreTranslate (free, no key needed)
-      async () => {
-        const url = 'https://translate.argosopentech.com/translate';
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            q: text,
-            source: 'en',
-            target: targetLang,
-            format: 'text'
-          })
-        });
-        const data = await res.json();
-        if (data.translatedText) return data.translatedText;
-        throw new Error('LibreTranslate failed');
-      },
-      
-      // API 3: Lingva (scrapes Google Translate)
-      async () => {
-        const url = `https://lingva.ml/api/v1/en/${targetLang}/${encodeText}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.translation) return data.translation;
-        throw new Error('Lingva failed');
-      }
-    ];
-    
-    for (let attempt = 0; attempt < retries; attempt++) {
-      for (const api of apis) {
-        try {
-          const result = await api();
-          if (result && result !== text) return result;
-        } catch (err) {
-          console.debug(`API failed:`, err.message);
-        }
-        // Small delay between API attempts
-        await new Promise(r => setTimeout(r, 100));
-      }
-      // Wait longer between retries
-      if (attempt < retries - 1) await new Promise(r => setTimeout(r, 1000));
+    // CHECK CACHE FIRST
+    const cacheKey = `${text}|${targetLang}`;
+    if (translationCache.current[cacheKey]) {
+      console.log(`✅ Cache hit for: "${text.substring(0, 30)}..."`);
+      return translationCache.current[cacheKey];
     }
     
-    return text; // Return original if all fail
+    console.log(`🌐 API call for: "${text.substring(0, 30)}..." (${text.length} chars)`);
+    
+    // YOUR EMAIL for higher rate limit (50k chars/day instead of 5k)
+    const YOUR_EMAIL = 'motingwetloto@yahoo.com';
+    const encodeText = encodeURIComponent(text);
+    
+    const tryMyMemory = async () => {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeText}&langpair=en|${targetLang}&de=${YOUR_EMAIL}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        let translated = data.responseData.translatedText;
+        translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+        
+        if (translated !== text && translated.length > 0) {
+          return translated;
+        }
+      }
+      throw new Error('MyMemory returned invalid translation');
+    };
+    
+    const tryLibreTranslate = async () => {
+      const url = 'https://translate.argosopentech.com/translate';
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          q: text,
+          source: 'en',
+          target: targetLang,
+          format: 'text'
+        })
+      });
+      const data = await res.json();
+      if (data.translatedText) return data.translatedText;
+      throw new Error('LibreTranslate failed');
+    };
+    
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const result = await tryMyMemory();
+        translationCache.current[cacheKey] = result;
+        saveCacheToLocalStorage();
+        return result;
+      } catch (err) {
+        console.warn(`MyMemory attempt ${attempt + 1} failed:`, err.message);
+        
+        try {
+          const result = await tryLibreTranslate();
+          translationCache.current[cacheKey] = result;
+          saveCacheToLocalStorage();
+          return result;
+        } catch (libreErr) {
+          console.warn(`LibreTranslate attempt ${attempt + 1} failed:`, libreErr.message);
+        }
+        
+        if (attempt < retries - 1) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
+    }
+    
+    return text;
   };
 
-  // Main translation function with batching and progress
   const translatePage = useCallback(async (targetLang) => {
-    // Validate target language
     if (!SUPPORTED_LANGUAGES.some(l => l.code === targetLang)) {
       console.error(`Unsupported language: ${targetLang}`);
       return;
     }
     
-    // If target is English, just restore
     if (targetLang === 'en') {
       restoreToEnglish();
       setCurrentLang('en');
@@ -366,7 +318,6 @@ function usePageTranslator() {
       return;
     }
     
-    // Don't retranslate if already in target language
     if (currentLang === targetLang && !isTranslating) {
       console.log(`Already in ${targetLang}, skipping...`);
       return;
@@ -376,13 +327,9 @@ function usePageTranslator() {
     setTranslationProgress(0);
     
     try {
-      // Initialize registry if needed
       initializeRegistry();
-      
-      // Restore to English first (clean slate)
       restoreToEnglish();
       
-      // Get all unique texts that need translation
       const textsToTranslate = [];
       const entriesToTranslate = [];
       
@@ -396,37 +343,31 @@ function usePageTranslator() {
       
       console.log(`🔄 Translating ${textsToTranslate.length} text segments to ${targetLang}...`);
       
-      // Translate in small batches to avoid rate limits
       const BATCH_SIZE = 5;
       const translatedTexts = [];
       
       for (let i = 0; i < textsToTranslate.length; i += BATCH_SIZE) {
         const batch = textsToTranslate.slice(i, i + BATCH_SIZE);
         
-        // Translate batch sequentially to respect rate limits
         const batchResults = [];
         for (let j = 0; j < batch.length; j++) {
           const text = batch[j];
           const translated = await translateText(text, targetLang, 2);
           batchResults.push(translated);
           
-          // Update progress
           const progress = Math.round(((i + j + 1) / textsToTranslate.length) * 100);
           setTranslationProgress(progress);
           
-          // Small delay between individual translations
           if (j < batch.length - 1) await new Promise(r => setTimeout(r, 50));
         }
         
         translatedTexts.push(...batchResults);
         
-        // Larger delay between batches
         if (i + BATCH_SIZE < textsToTranslate.length) {
           await new Promise(r => setTimeout(r, 300));
         }
       }
       
-      // Apply all translations
       entriesToTranslate.forEach((entry, idx) => {
         if (entry.node.parentElement && document.body.contains(entry.node)) {
           const translated = translatedTexts[idx];
@@ -448,18 +389,21 @@ function usePageTranslator() {
     } finally {
       setIsTranslating(false);
       setTranslationProgress(100);
-      // Reset progress after a moment
       setTimeout(() => setTranslationProgress(0), 2000);
     }
   }, [initializeRegistry, restoreToEnglish, currentLang, isTranslating]);
 
-  // Re-initialize and re-translate after route changes
+  const resetTranslationCache = useCallback(() => {
+    translationCache.current = {};
+    localStorage.removeItem('snowai_translation_cache');
+    console.log('🗑️ Translation cache cleared');
+  }, []);
+
+  // Re-initialize on route change
   useEffect(() => {
-    // Reset initialization flag on route change
     isInitialized.current = false;
     textNodeRegistry.current = [];
     
-    // Small delay for DOM to settle
     const timer = setTimeout(() => {
       initializeRegistry();
       
@@ -472,9 +416,8 @@ function usePageTranslator() {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [window.location.pathname]); // Re-run on route change
+  }, [window.location.pathname]);
 
-  // Show banner on first load if needed
   useEffect(() => {
     const saved = localStorage.getItem('snowai_lang');
     if (saved && saved !== 'en') {
@@ -489,214 +432,228 @@ function usePageTranslator() {
     showBanner,
     setShowBanner,
     translatePage,
+    resetTranslationCache,
     SUPPORTED_LANGUAGES,
   };
 }
 
-
+// ─── LANGUAGE SWITCHER UI COMPONENT ──────────────────────────────────────────
 function LanguageSwitcher({ translator }) {
-  const { currentLang, isTranslating, translationProgress, translatePage, SUPPORTED_LANGUAGES } = translator;
+  const { currentLang, isTranslating, translationProgress, translatePage, resetTranslationCache, SUPPORTED_LANGUAGES } = translator;
   const [expanded, setExpanded] = useState(false);
 
   const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
-  // Debug log to verify languages are available
-  useEffect(() => {
-    console.log('Available languages:', SUPPORTED_LANGUAGES);
-  }, []);
-
   return (
     <div className="language-switcher-container" data-no-translate>
+      <style>{`
+        .language-switcher-container {
+          margin: 16px 12px;
+          position: relative;
+          z-index: 9999;
+        }
 
-        <style>{`
-          .language-switcher-container {
-            margin: 16px 12px;
-            position: relative;
-            z-index: 9999;
-          }
+        .lang-trigger-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          padding: 10px 14px;
+          background: var(--color-background-secondary, #f8f9fa);
+          border: 1px solid rgba(128,128,128,0.2);
+          border-radius: 12px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s ease;
+          color: var(--color-text-primary, #333);
+        }
 
-          .lang-trigger-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--color-background-secondary, #f8f9fa);
-            border: 1px solid rgba(128,128,128,0.2);
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            color: var(--color-text-primary, #333);
-          }
+        .lang-trigger-btn:hover {
+          background: rgba(59, 130, 246, 0.1);
+          border-color: #3b82f6;
+        }
 
-          .lang-trigger-btn:hover {
-            background: rgba(59, 130, 246, 0.1);
-            border-color: #3b82f6;
-          }
+        .lang-flag {
+          font-size: 20px;
+        }
 
-          .lang-flag {
-            font-size: 20px;
-          }
+        .lang-name {
+          flex: 1;
+          font-weight: 600;
+        }
 
-          .lang-name {
-            flex: 1;
-            font-weight: 600;
-          }
+        .lang-status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #22c55e;
+        }
 
-          .lang-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-          }
+        .lang-status-dot.translating {
+          background: #f59e0b;
+          animation: pulse 1s infinite;
+        }
 
-          .lang-status-dot.translating {
-            background: #f59e0b;
-            animation: pulse 1s infinite;
-          }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
+        }
 
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.8); }
-          }
+        .lang-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          margin-top: 8px;
+          background: #ffffff !important;
+          border: 1px solid rgba(0,0,0,0.15);
+          border-radius: 12px;
+          overflow: hidden;
+          z-index: 10000;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          max-height: 400px;
+          overflow-y: auto;
+        }
 
-          .lang-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            margin-top: 8px;
-            background: #ffffff !important;
-            border: 1px solid rgba(0,0,0,0.15);
-            border-radius: 12px;
-            overflow: hidden;
-            z-index: 10000;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-            max-height: 400px;
-            overflow-y: auto;
-          }
+        body.dark .lang-dropdown {
+          background: #1e1e2f !important;
+          border-color: rgba(255,255,255,0.1);
+        }
 
-          /* Dark theme support - override with white background */
-          body.dark .lang-dropdown {
-            background: #1e1e2f !important;
-            border-color: rgba(255,255,255,0.1);
-          }
+        .lang-dropdown-header {
+          padding: 10px 14px 8px;
+          font-size: 11px;
+          color: #6c757d !important;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-bottom: 1px solid rgba(0,0,0,0.1);
+          background: inherit;
+        }
 
-          .lang-dropdown-header {
-            padding: 10px 14px 8px;
-            font-size: 11px;
-            color: #6c757d !important;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            background: inherit;
-          }
+        body.dark .lang-dropdown-header {
+          color: #a0a0b0 !important;
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
 
-          body.dark .lang-dropdown-header {
-            color: #a0a0b0 !important;
-            border-bottom-color: rgba(255,255,255,0.1);
-          }
+        .lang-option {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 14px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.15s;
+          border: none;
+          background: transparent;
+          width: 100%;
+          text-align: left;
+          color: #333333 !important;
+        }
 
-          .lang-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.15s;
-            border: none;
-            background: transparent;
-            width: 100%;
-            text-align: left;
-            color: #333333 !important;
-          }
+        body.dark .lang-option {
+          color: #e0e0e0 !important;
+        }
 
-          body.dark .lang-option {
-            color: #e0e0e0 !important;
-          }
+        .lang-option:hover {
+          background: rgba(59, 130, 246, 0.1);
+        }
 
-          .lang-option:hover {
-            background: rgba(59, 130, 246, 0.1);
-          }
+        .lang-option.active {
+          background: rgba(59, 130, 246, 0.15);
+          color: #3b82f6 !important;
+        }
 
-          .lang-option.active {
-            background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6 !important;
-          }
+        .lang-option.active .lang-option-native {
+          color: #3b82f6 !important;
+        }
 
-          .lang-option.active .lang-option-native {
-            color: #3b82f6 !important;
-          }
+        .lang-option-native {
+          font-weight: 500;
+          flex: 1;
+          color: inherit !important;
+        }
 
-          .lang-option-native {
-            font-weight: 500;
-            flex: 1;
-            color: inherit !important;
-          }
+        .lang-option-english {
+          font-size: 11px;
+          color: #888888 !important;
+        }
 
-          .lang-option-english {
-            font-size: 11px;
-            color: #888888 !important;
-          }
+        body.dark .lang-option-english {
+          color: #999999 !important;
+        }
 
-          body.dark .lang-option-english {
-            color: #999999 !important;
-          }
+        .lang-option-check {
+          font-size: 16px;
+          color: #3b82f6 !important;
+        }
 
-          .lang-option-check {
-            font-size: 16px;
-            color: #3b82f6 !important;
-          }
+        .translation-progress-bar {
+          height: 3px;
+          background: rgba(59, 130, 246, 0.15);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-top: 6px;
+        }
 
-          .translation-progress-bar {
-            height: 3px;
-            background: rgba(59, 130, 246, 0.15);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 6px;
-          }
+        .translation-progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
 
-          .translation-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa);
-            border-radius: 3px;
-            transition: width 0.3s ease;
-          }
+        .translate-status-text {
+          font-size: 11px;
+          color: #6c757d !important;
+          margin-top: 6px;
+          text-align: center;
+        }
 
-          .translate-status-text {
-            font-size: 11px;
-            color: #6c757d !important;
-            margin-top: 6px;
-            text-align: center;
-          }
+        body.dark .translate-status-text {
+          color: #a0a0b0 !important;
+        }
 
-          body.dark .translate-status-text {
-            color: #a0a0b0 !important;
-          }
+        .clear-cache-btn {
+          font-size: 10px;
+          background: transparent;
+          border: none;
+          color: #888;
+          cursor: pointer;
+          margin-top: 6px;
+          text-decoration: underline;
+          width: 100%;
+          text-align: center;
+          padding: 8px;
+        }
 
-          /* Scrollbar */
-          .lang-dropdown::-webkit-scrollbar {
-            width: 4px;
-          }
-          .lang-dropdown::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-          }
-          .lang-dropdown::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-          }
-          
-          body.dark .lang-dropdown::-webkit-scrollbar-track {
-            background: #2a2a3a;
-          }
-          body.dark .lang-dropdown::-webkit-scrollbar-thumb {
-            background: #555;
-          }
-        `}</style>
+        body.dark .clear-cache-btn {
+          color: #aaa;
+        }
+
+        .clear-cache-btn:hover {
+          color: #ef4444;
+        }
+
+        .lang-dropdown::-webkit-scrollbar {
+          width: 4px;
+        }
+        .lang-dropdown::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        .lang-dropdown::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 4px;
+        }
+        
+        body.dark .lang-dropdown::-webkit-scrollbar-track {
+          background: #2a2a3a;
+        }
+        body.dark .lang-dropdown::-webkit-scrollbar-thumb {
+          background: #555;
+        }
+      `}</style>
 
       <button
         className="lang-trigger-btn"
@@ -741,14 +698,22 @@ function LanguageSwitcher({ translator }) {
               {currentLang === lang.code && <span className="lang-option-check">✓</span>}
             </button>
           ))}
+          <button
+            className="clear-cache-btn"
+            onClick={() => {
+              resetTranslationCache();
+              setExpanded(false);
+            }}
+          >
+            🗑️ Clear translation cache
+          </button>
         </div>
       )}
     </div>
   );
 }
 
-
-// ─── TRANSLATION BANNER (like Chrome's "Translate this page?") ───────────────
+// ─── TRANSLATION BANNER ───────────────────────────────────────────────────────
 function TranslateBanner({ translator }) {
   const { currentLang, showBanner, setShowBanner, translatePage, SUPPORTED_LANGUAGES } = translator;
   const savedLang = SUPPORTED_LANGUAGES.find(l => l.code === currentLang);
@@ -812,7 +777,6 @@ export default function SideNavs() {
   const [touchFeedback, setTouchFeedback] = useState(null);
   const baseURL = 'https://backend-production-c0ab.up.railway.app';
 
-  // ── Initialize translator ──
   const translator = usePageTranslator();
 
   const navigationItems = [
@@ -1038,7 +1002,6 @@ export default function SideNavs() {
 
   return (
     <div className="all-side-navs">
-      {/* Chrome-style translation banner */}
       <TranslateBanner translator={translator} />
 
       <style jsx>{`
@@ -1268,7 +1231,6 @@ export default function SideNavs() {
         <Link to="/data_tracker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-book-half"></i></p></button></Link>
         </div>
 
-      {/* Mobile nav — identical structure, same links */}
       <div className="side-navs-cellphone">
         <Link to="/personal_info" className="side-nav"><i className="bi bi-person-fill"></i></Link>
         <Link to="/account_analytics" className="side-nav"><i className="bi bi-bar-chart-line-fill"></i></Link>
@@ -1347,7 +1309,6 @@ export default function SideNavs() {
         </div>
       </div>
 
-      {/* Asset Tracker Toggle */}
       <div className="card shadow-sm mb-3">
         <div
           className="card-header bg-light d-flex justify-content-between align-items-center"
@@ -1365,10 +1326,8 @@ export default function SideNavs() {
 
       {showAssetTracker && <AssetTracker />}
 
-      {/* ── LANGUAGE SWITCHER — the main new piece ── */}
       <LanguageSwitcher translator={translator} />
 
-      {/* Music Player */}
       <div className="music-color-mode">
         <div className="music-player">
           <button className="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sideNavsMusicModal">
@@ -1380,7 +1339,6 @@ export default function SideNavs() {
           {savingStatus && <div className="alert alert-info mt-2">{savingStatus}</div>}
         </div>
 
-        {/* Music Modal */}
         <div className="modal fade side-navs-modal" id="sideNavsMusicModal" tabIndex="-1" aria-labelledby="sideNavsMusicModalLabel" aria-hidden="true">
           <div className="modal-dialog">
             <div className="modal-content">
@@ -1424,7 +1382,6 @@ export default function SideNavs() {
           </div>
         </div>
 
-        {/* Theme Toggle */}
         <nav>
           <div className="container-fluid">
             <button className="btn btn-outline-secondary" onClick={toggleTheme}>
@@ -1436,14 +1393,12 @@ export default function SideNavs() {
 
       <br />
 
-      {/* Touch Feedback */}
       {touchFeedback && (
         <div className="touch-feedback-overlay">
           Navigating to {touchFeedback}
         </div>
       )}
 
-      {/* Virtual Keyboard Toggle */}
       <button
         className="keyboard-toggle-btn"
         onClick={toggleKeyboard}
@@ -1453,7 +1408,6 @@ export default function SideNavs() {
         <FaKeyboard />
       </button>
 
-      {/* Virtual Touch Keyboard */}
       <div className="virtual-keyboard-container">
         <div className="keyboard-header">
           <div>
