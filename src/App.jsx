@@ -93,6 +93,7 @@ import Valentine from './components/valentine.jsx';
 import DomainExpansion from './components/jjk.jsx';
 import SnowAIMoments from './components/moments.jsx';
 import DataTracker from './components/data_tracker.jsx';
+import SnowMeet from './components/snow_meet.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -620,6 +621,12 @@ function App() {
             <Route path='/data_tracker' element={
               <ProtectedRoute>
                 <DataTracker />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/snow_meet' element={
+              <ProtectedRoute>
+                <SnowMeet />
               </ProtectedRoute>
             } />
 

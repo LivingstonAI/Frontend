@@ -816,6 +816,8 @@ export default function SideNavs() {
     { route: "/ai_council_conversations", symbol: "𓊶", name: "Convos", description: "AI Conversations" },
     { route: "/firm_compliance", symbol: "𓊷", name: "Compliance", description: "Firm Compliance" },
     { route: "/esi", symbol: "𓊷", name: "ESI", description: "Economic Strength Index" },
+    { route: "/snow_meet", symbol: "𓊷", name: "Snow Meet", description: "SnowAI Meet" },
+
   ];
 
   const songs = [
