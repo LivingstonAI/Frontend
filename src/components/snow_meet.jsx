@@ -1,12 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CameraOff, Mic, MicOff, PhoneOff, Copy, Video, Users, Link as LinkIcon, AlertCircle, CheckCircle, FileText, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { Camera, CameraOff, Mic, MicOff, PhoneOff, Copy, Video, Users, Link as LinkIcon, AlertCircle, CheckCircle, FileText, ChevronDown, ChevronUp, Download, Globe } from 'lucide-react';
 
 // ─── PeerJS loaded from CDN ───────────────────────────────────────────────────
 // Add to your index.html:
 //   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 // ─────────────────────────────────────────────────────────────────────────────
 
-// --- Styles (Original Light Blue & White Theme — unchanged) ---
+// ─── Supported languages for transcription ───────────────────────────────────
+const LANGUAGES = [
+  { code: 'en-US', label: '🇺🇸 English (US)' },
+  { code: 'en-GB', label: '🇬🇧 English (UK)' },
+  { code: 'af-ZA', label: '🇿🇦 Afrikaans' },
+  { code: 'zh-CN', label: '🇨🇳 Chinese (Mandarin)' },
+  { code: 'fr-FR', label: '🇫🇷 French' },
+  { code: 'de-DE', label: '🇩🇪 German' },
+  { code: 'hi-IN', label: '🇮🇳 Hindi' },
+  { code: 'it-IT', label: '🇮🇹 Italian' },
+  { code: 'ja-JP', label: '🇯🇵 Japanese' },
+  { code: 'ko-KR', label: '🇰🇷 Korean' },
+  { code: 'pt-BR', label: '🇧🇷 Portuguese (BR)' },
+  { code: 'ru-RU', label: '🇷🇺 Russian' },
+  { code: 'es-ES', label: '🇪🇸 Spanish' },
+  { code: 'ar-SA', label: '🇸🇦 Arabic' },
+];
+
+// --- Responsive helper ---
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 600;
+
+// --- Styles (Original Light Blue & White Theme + mobile responsive) ---
 const styles = {
   appContainer: {
     fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -21,7 +42,7 @@ const styles = {
   },
   header: {
     backgroundColor: '#ffffff',
-    padding: '16px 32px',
+    padding: '12px 20px',
     boxShadow: '0 4px 20px rgba(0, 85, 255, 0.05)',
     display: 'flex',
     justifyContent: 'space-between',
@@ -29,26 +50,28 @@ const styles = {
     zIndex: 10
   },
   logo: {
-    fontSize: '22px',
+    fontSize: '20px',
     fontWeight: '700',
     color: '#0ea5e9',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '8px',
     letterSpacing: '-0.5px'
   },
   mainContent: {
     flex: 1,
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: '20px',
-    position: 'relative'
+    alignItems: 'flex-start',
+    padding: '16px',
+    paddingTop: '24px',
+    position: 'relative',
+    overflowY: 'auto',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: '24px',
-    padding: '48px',
+    borderRadius: '20px',
+    padding: '28px 24px',
     boxShadow: '0 20px 40px rgba(14, 165, 233, 0.08)',
     maxWidth: '480px',
     width: '100%',
@@ -56,16 +79,16 @@ const styles = {
     border: '1px solid #e0f2fe'
   },
   title: {
-    fontSize: '28px',
+    fontSize: '24px',
     fontWeight: '800',
     color: '#0f172a',
-    marginBottom: '12px',
+    marginBottom: '8px',
     marginTop: 0
   },
   subtitle: {
-    fontSize: '16px',
+    fontSize: '14px',
     color: '#64748b',
-    marginBottom: '32px',
+    marginBottom: '24px',
     lineHeight: '1.5'
   },
   buttonPrimary: {
@@ -73,8 +96,8 @@ const styles = {
     color: '#ffffff',
     border: 'none',
     borderRadius: '12px',
-    padding: '16px 24px',
-    fontSize: '16px',
+    padding: '15px 24px',
+    fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -84,7 +107,7 @@ const styles = {
     justifyContent: 'center',
     gap: '10px',
     boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)',
-    marginBottom: '16px'
+    marginBottom: '14px'
   },
   buttonPrimaryDisabled: {
     opacity: 0.6,
@@ -95,8 +118,8 @@ const styles = {
     color: '#0ea5e9',
     border: '1px solid #bae6fd',
     borderRadius: '12px',
-    padding: '16px 24px',
-    fontSize: '16px',
+    padding: '15px 24px',
+    fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -108,43 +131,43 @@ const styles = {
   },
   input: {
     width: '100%',
-    padding: '16px',
+    padding: '14px 16px',
     borderRadius: '12px',
     border: '1px solid #cbd5e1',
-    fontSize: '16px',
-    marginBottom: '16px',
+    fontSize: '15px',
+    marginBottom: '14px',
     boxSizing: 'border-box',
     outline: 'none',
     transition: 'border-color 0.2s',
     fontFamily: "'Inter', sans-serif",
   },
-  // ── Peer ID display box (new, matches card aesthetic) ──
   peerIdBox: {
-    marginTop: '24px',
+    marginTop: '20px',
     backgroundColor: '#f0f9ff',
     border: '1px solid #bae6fd',
     borderRadius: '12px',
-    padding: '14px 16px',
+    padding: '12px 14px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '12px',
+    gap: '10px',
     textAlign: 'left',
   },
   peerIdLabel: {
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#64748b',
-    marginBottom: '4px',
+    marginBottom: '3px',
     fontWeight: '500',
     letterSpacing: '0.03em',
     textTransform: 'uppercase',
   },
   peerIdValue: {
-    fontSize: '15px',
+    fontSize: '13px',
     fontWeight: '700',
     color: '#0ea5e9',
     fontFamily: "'Courier New', monospace",
-    letterSpacing: '0.05em',
+    letterSpacing: '0.04em',
+    wordBreak: 'break-all',
   },
   iconBtn: {
     background: 'none',
@@ -162,10 +185,7 @@ const styles = {
   // ── In-call screen ──────────────────────────────────────────────────────────
   videoContainer: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: '#0f172a',
     display: 'flex',
     justifyContent: 'center',
@@ -177,12 +197,26 @@ const styles = {
     height: '100%',
     objectFit: 'cover'
   },
+  // PiP: smaller on mobile, sits above control bar
   localVideoContainer: {
+    position: 'absolute',
+    bottom: '90px',
+    right: '12px',
+    width: '110px',
+    height: '80px',
+    backgroundColor: '#1e293b',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+    border: '2px solid #334155',
+    zIndex: 20
+  },
+  localVideoContainerDesktop: {
     position: 'absolute',
     bottom: '100px',
     right: '32px',
-    width: '240px',
-    height: '160px',
+    width: '220px',
+    height: '150px',
     backgroundColor: '#1e293b',
     borderRadius: '16px',
     overflow: 'hidden',
@@ -198,22 +232,23 @@ const styles = {
   },
   controlBar: {
     position: 'absolute',
-    bottom: '32px',
+    bottom: '20px',
     left: '50%',
     transform: 'translateX(-50%)',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
     backdropFilter: 'blur(10px)',
-    padding: '12px 24px',
+    padding: '10px 16px',
     borderRadius: '100px',
     display: 'flex',
-    gap: '16px',
+    gap: '10px',
     boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
     zIndex: 30,
-    alignItems: 'center'
+    alignItems: 'center',
+    whiteSpace: 'nowrap',
   },
   controlButton: {
-    width: '48px',
-    height: '48px',
+    width: '44px',
+    height: '44px',
     borderRadius: '50%',
     border: 'none',
     display: 'flex',
@@ -221,58 +256,72 @@ const styles = {
     alignItems: 'center',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    color: '#ffffff'
+    color: '#ffffff',
+    flexShrink: 0,
   },
-  controlButtonActive: {
-    backgroundColor: '#334155',
-  },
-  controlButtonInactive: {
-    backgroundColor: '#ef4444',
-  },
+  controlButtonActive: { backgroundColor: '#334155' },
+  controlButtonInactive: { backgroundColor: '#ef4444' },
   hangupButton: {
     backgroundColor: '#ef4444',
-    width: '64px',
-    height: '48px',
-    borderRadius: '24px',
+    width: '58px',
+    height: '44px',
+    borderRadius: '22px',
+    flexShrink: 0,
   },
+  // Share box: full-width strip on mobile, floating card on desktop
   shareBox: {
     position: 'absolute',
-    top: '32px',
-    left: '32px',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: '16px',
+    top: '12px',
+    left: '12px',
+    right: '12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    padding: '10px 14px',
+    borderRadius: '12px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+    zIndex: 30,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  shareBoxDesktop: {
+    position: 'absolute',
+    top: '28px',
+    left: '28px',
+    right: 'auto',
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    padding: '14px 16px',
     borderRadius: '12px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
     zIndex: 30,
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    maxWidth: '380px'
+    maxWidth: '340px',
   },
   linkText: {
-    fontSize: '13px',
+    fontSize: '12px',
     color: '#334155',
-    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    maxWidth: '220px',
+    whiteSpace: 'nowrap',
+    flex: 1,
     fontFamily: "'Courier New', monospace",
     fontWeight: '600',
   },
   statusMessage: {
     color: '#ffffff',
     position: 'absolute',
-    top: '50%',
-    left: '50%',
+    top: '50%', left: '50%',
     transform: 'translate(-50%, -50%)',
-    fontSize: '20px',
+    fontSize: '17px',
     fontWeight: '500',
     zIndex: 5,
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '12px'
+    gap: '12px',
+    width: '80%',
   },
   errorBox: {
     backgroundColor: '#fef2f2',
@@ -280,17 +329,31 @@ const styles = {
     padding: '12px',
     borderRadius: '8px',
     marginBottom: '16px',
-    fontSize: '14px',
+    fontSize: '13px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px'
   },
-  // ── Transcript panel ────────────────────────────────────────────────────────
+  // ── Transcript panel ── mobile: bottom sheet; desktop: side panel ──────────
   transcriptPanel: {
     position: 'absolute',
+    bottom: '80px',
+    left: '8px',
+    right: '8px',
+    backgroundColor: 'rgba(255, 255, 255, 0.97)',
+    borderRadius: '14px',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+    border: '1px solid #e0f2fe',
+    zIndex: 30,
+    overflow: 'hidden',
+    transition: 'all 0.25s ease',
+  },
+  transcriptPanelDesktop: {
+    position: 'absolute',
     bottom: '100px',
-    left: '32px',
-    width: '340px',
+    left: '28px',
+    right: 'auto',
+    width: '320px',
     backgroundColor: 'rgba(255, 255, 255, 0.97)',
     borderRadius: '16px',
     boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
@@ -303,7 +366,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 16px',
+    padding: '11px 14px',
     backgroundColor: '#f0f9ff',
     borderBottom: '1px solid #bae6fd',
     cursor: 'pointer',
@@ -312,7 +375,7 @@ const styles = {
   transcriptHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '7px',
     fontSize: '13px',
     fontWeight: '700',
     color: '#0ea5e9',
@@ -321,15 +384,15 @@ const styles = {
   transcriptHeaderRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '6px',
   },
   transcriptBody: {
-    maxHeight: '220px',
+    maxHeight: '180px',
     overflowY: 'auto',
-    padding: '14px 16px',
+    padding: '12px 14px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '8px',
   },
   transcriptLine: {
     fontSize: '13px',
@@ -337,7 +400,7 @@ const styles = {
     color: '#1e293b',
     backgroundColor: '#f8fafc',
     borderRadius: '8px',
-    padding: '8px 12px',
+    padding: '7px 10px',
     borderLeft: '3px solid #0ea5e9',
   },
   transcriptInterim: {
@@ -345,13 +408,13 @@ const styles = {
     lineHeight: '1.55',
     color: '#64748b',
     fontStyle: 'italic',
-    padding: '4px 12px',
+    padding: '4px 10px',
   },
   transcriptEmpty: {
     fontSize: '13px',
     color: '#94a3b8',
     textAlign: 'center',
-    padding: '16px 0',
+    padding: '14px 0',
     fontStyle: 'italic',
   },
   liveIndicator: {
@@ -384,6 +447,49 @@ const styles = {
     borderRadius: '4px',
     transition: 'color 0.15s',
   },
+  // ── Language picker ──────────────────────────────────────────────────────────
+  langPickerWrapper: {
+    position: 'relative',
+    display: 'inline-block',
+  },
+  langPickerBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#64748b',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '3px',
+    padding: '2px 4px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '600',
+    transition: 'color 0.15s',
+  },
+  langDropdown: {
+    position: 'absolute',
+    bottom: '28px',
+    right: 0,
+    backgroundColor: '#ffffff',
+    border: '1px solid #e0f2fe',
+    borderRadius: '10px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    zIndex: 50,
+    minWidth: '180px',
+    overflow: 'hidden',
+    maxHeight: '240px',
+    overflowY: 'auto',
+  },
+  langOption: {
+    padding: '9px 14px',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#1e293b',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'background 0.1s',
+  },
 };
 
 export default function SnowMeet() {
@@ -399,10 +505,13 @@ export default function SnowMeet() {
   const [isVideoOn, setIsVideoOn]       = useState(true);
 
   // ── Transcript state ───────────────────────────────────────────────────────
-  const [transcriptOpen, setTranscriptOpen]   = useState(true);
-  const [transcriptLines, setTranscriptLines] = useState([]);
-  const [interimText, setInterimText]         = useState('');
-  const [isListening, setIsListening]         = useState(false);
+  const [transcriptOpen, setTranscriptOpen]       = useState(true);
+  const [transcriptEnabled, setTranscriptEnabled] = useState(false);
+  const [transcriptLines, setTranscriptLines]     = useState([]);
+  const [interimText, setInterimText]             = useState('');
+  const [isListening, setIsListening]             = useState(false);
+  const [selectedLang, setSelectedLang]           = useState('en-US');
+  const [showLangPicker, setShowLangPicker]       = useState(false);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
   const localVideoRef  = useRef(null);
@@ -467,15 +576,19 @@ export default function SnowMeet() {
     if (transcriptOpen) transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcriptLines, interimText, transcriptOpen]);
 
-  // ── Start / stop speech recognition when entering/leaving call ────────────
+  // ── Stop transcription when leaving call ──────────────────────────────────
   useEffect(() => {
-    if (appState === 'incall') {
-      startTranscription();
-    } else {
-      stopTranscription();
-    }
+    if (appState !== 'incall') stopTranscription();
     return () => stopTranscription();
   }, [appState]);
+
+  // ── Restart recognition when language changes (only if already running) ───
+  useEffect(() => {
+    if (isListening) {
+      stopTranscription();
+      startTranscription();
+    }
+  }, [selectedLang]);
 
   const startTranscription = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -483,11 +596,10 @@ export default function SnowMeet() {
       console.warn('Web Speech API not supported in this browser.');
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    recognition.lang = selectedLang;
     recognitionRef.current = recognition;
 
     recognition.onstart = () => setIsListening(true);
@@ -498,7 +610,10 @@ export default function SnowMeet() {
         const transcript = event.results[i][0].transcript.trim();
         if (event.results[i].isFinal) {
           if (transcript) {
-            setTranscriptLines(prev => [...prev, { text: transcript, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setTranscriptLines(prev => [...prev, {
+              text: transcript,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
             setInterimText('');
           }
         } else {
@@ -509,12 +624,10 @@ export default function SnowMeet() {
     };
 
     recognition.onerror = (e) => {
-      // 'no-speech' is normal — just restart
       if (e.error !== 'no-speech') console.error('Speech recognition error:', e.error);
     };
 
     recognition.onend = () => {
-      // Auto-restart as long as we're still in a call
       if (recognitionRef.current) {
         try { recognitionRef.current.start(); } catch (_) {}
       }
@@ -525,12 +638,22 @@ export default function SnowMeet() {
 
   const stopTranscription = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // prevent auto-restart
+      recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
     setIsListening(false);
     setInterimText('');
+  };
+
+  const toggleTranscription = () => {
+    if (isListening) {
+      stopTranscription();
+      setTranscriptEnabled(false);
+    } else {
+      setTranscriptEnabled(true);
+      startTranscription();
+    }
   };
 
   const downloadTranscript = () => {
@@ -613,6 +736,7 @@ export default function SnowMeet() {
     setJoinId('');
     setTranscriptLines([]);
     setInterimText('');
+    setTranscriptEnabled(false);
     setAppState('home');
   };
 
@@ -639,58 +763,59 @@ export default function SnowMeet() {
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const mobile = isMobile();
+
   return (
     <div style={styles.appContainer}>
+      <style>{`
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
+        input:focus { border-color: #0ea5e9 !important; }
+      `}</style>
 
       {/* ════════════════ HOME SCREEN ════════════════ */}
       {appState !== 'incall' && (
         <>
           <header style={styles.header}>
             <div style={styles.logo}>
-              <Video color="#0ea5e9" size={28} />
+              <Video color="#0ea5e9" size={24} />
               SnowMeet
             </div>
-            <div style={{ fontSize: '14px', color: peerReady ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: peerReady ? '#10b981' : '#f59e0b' }} />
-              {peerReady ? 'System Ready' : 'Connecting…'}
+            <div style={{ fontSize: '13px', color: peerReady ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: peerReady ? '#10b981' : '#f59e0b', animation: peerReady ? 'none' : 'pulse 1.5s infinite' }} />
+              {peerReady ? 'Ready' : 'Connecting…'}
             </div>
           </header>
 
           <main style={styles.mainContent}>
             <div style={styles.card}>
               <h1 style={styles.title}>Premium Video Meetings</h1>
-              <p style={styles.subtitle}>
-                Connect seamlessly with your team using SnowMeet.
-                <br />Professional, secure, and free — no sign-up needed.
-              </p>
+              <p style={styles.subtitle}>Free, instant calls — no sign-up needed.</p>
 
               {errorMsg && (
                 <div style={styles.errorBox}>
-                  <AlertCircle size={18} />
+                  <AlertCircle size={16} />
                   {errorMsg}
                 </div>
               )}
 
-              {/* ── New Meeting ── */}
               <button
-                style={{
-                  ...styles.buttonPrimary,
-                  ...(!peerReady || appState === 'creating' ? styles.buttonPrimaryDisabled : {})
-                }}
+                style={{ ...styles.buttonPrimary, ...(!peerReady || appState === 'creating' ? styles.buttonPrimaryDisabled : {}) }}
                 onClick={startCall}
                 disabled={!peerReady || appState === 'creating'}
               >
-                <Video size={20} />
+                <Video size={19} />
                 {appState === 'creating' ? 'Starting…' : 'New Meeting'}
               </button>
 
-              <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8', fontSize: '14px' }}>
+              <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8', fontSize: '13px' }}>
                 <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
                 or join with a Peer ID
                 <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
               </div>
 
-              {/* ── Join Meeting ── */}
               <input
                 style={styles.input}
                 placeholder="Paste Peer ID here"
@@ -699,29 +824,22 @@ export default function SnowMeet() {
                 onKeyDown={e => e.key === 'Enter' && joinCall()}
               />
               <button
-                style={{
-                  ...styles.buttonSecondary,
-                  ...(!joinId || !peerReady || appState === 'joining' ? { opacity: 0.6, cursor: 'not-allowed' } : {})
-                }}
+                style={{ ...styles.buttonSecondary, ...(!joinId || !peerReady || appState === 'joining' ? { opacity: 0.6, cursor: 'not-allowed' } : {}) }}
                 onClick={joinCall}
                 disabled={!joinId || !peerReady || appState === 'joining'}
               >
-                <Users size={20} />
+                <Users size={19} />
                 {appState === 'joining' ? 'Joining…' : 'Join Meeting'}
               </button>
 
-              {/* ── Your Peer ID ── */}
               {myPeerId && (
                 <div style={styles.peerIdBox}>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={styles.peerIdLabel}>Your Peer ID — share to receive calls</div>
                     <div style={styles.peerIdValue}>{myPeerId}</div>
                   </div>
                   <button style={styles.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
-                    {copied
-                      ? <CheckCircle size={20} color="#10b981" />
-                      : <Copy size={20} />
-                    }
+                    {copied ? <CheckCircle size={20} color="#10b981" /> : <Copy size={20} />}
                   </button>
                 </div>
               )}
@@ -737,15 +855,9 @@ export default function SnowMeet() {
           {/* Waiting overlay */}
           {!remoteConnected && (
             <div style={styles.statusMessage}>
-              <div style={{
-                width: '40px', height: '40px',
-                border: '4px solid rgba(255,255,255,0.1)',
-                borderTopColor: '#0ea5e9',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
+              <div style={{ width: '38px', height: '38px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               Waiting for the other person to join…
-              <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+              <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>{myPeerId}</span>
             </div>
           )}
 
@@ -753,93 +865,88 @@ export default function SnowMeet() {
           <video
             ref={remoteVideoRef}
             style={{ ...styles.remoteVideo, display: remoteConnected ? 'block' : 'none' }}
-            autoPlay
-            playsInline
+            autoPlay playsInline
           />
 
-          {/* Share box — shows host's Peer ID */}
-          <div style={styles.shareBox}>
-            <LinkIcon size={18} color="#64748b" />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                Your Peer ID
-              </span>
+          {/* Share box — responsive */}
+          <div style={mobile ? styles.shareBox : styles.shareBoxDesktop}>
+            <LinkIcon size={15} color="#64748b" style={{ flexShrink: 0 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1px' }}>Your Peer ID</span>
               <span style={styles.linkText}>{myPeerId}</span>
             </div>
-            <button style={styles.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
-              {copied
-                ? <CheckCircle size={18} color="#10b981" />
-                : <Copy size={18} />
-              }
+            <button style={styles.iconBtn} onClick={copyPeerId} title="Copy">
+              {copied ? <CheckCircle size={15} color="#10b981" /> : <Copy size={15} />}
             </button>
           </div>
 
-          {/* Local PiP */}
-          <div style={styles.localVideoContainer}>
-            <video
-              ref={localVideoRef}
-              style={styles.localVideo}
-              autoPlay
-              playsInline
-              muted
-            />
+          {/* Local PiP — smaller on mobile */}
+          <div style={mobile ? styles.localVideoContainer : styles.localVideoContainerDesktop}>
+            <video ref={localVideoRef} style={styles.localVideo} autoPlay playsInline muted />
           </div>
 
           {/* ── Transcript Panel ── */}
-          <div style={styles.transcriptPanel}>
-            {/* Header — always visible, click to expand/collapse */}
+          <div style={mobile ? styles.transcriptPanel : styles.transcriptPanelDesktop}>
             <div style={styles.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
               <div style={styles.transcriptHeaderLeft}>
-                <FileText size={15} color="#0ea5e9" />
-                Live Transcript
+                <FileText size={14} color="#0ea5e9" />
+                Transcript
                 {isListening && (
                   <span style={styles.liveIndicator}>
-                    <span style={{
-                      width: '6px', height: '6px', borderRadius: '50%',
-                      backgroundColor: '#10b981',
-                      display: 'inline-block',
-                      animation: 'pulse 1.4s infinite'
-                    }} />
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', animation: 'pulse 1.4s infinite' }} />
                     Live
-                    <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
                   </span>
                 )}
               </div>
               <div style={styles.transcriptHeaderRight}>
+                {/* Language picker */}
+                <div style={styles.langPickerWrapper} onClick={e => e.stopPropagation()}>
+                  <button style={styles.langPickerBtn} onClick={() => setShowLangPicker(v => !v)} title="Change language">
+                    <Globe size={13} />
+                    {LANGUAGES.find(l => l.code === selectedLang)?.label.split(' ')[0]}
+                  </button>
+                  {showLangPicker && (
+                    <div style={styles.langDropdown}>
+                      {LANGUAGES.map(lang => (
+                        <div
+                          key={lang.code}
+                          style={{ ...styles.langOption, backgroundColor: lang.code === selectedLang ? '#f0f9ff' : 'transparent' }}
+                          onClick={() => { setSelectedLang(lang.code); setShowLangPicker(false); }}
+                        >
+                          {lang.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {transcriptLines.length > 0 && (
-                  <button
-                    style={styles.transcriptDownloadBtn}
-                    onClick={e => { e.stopPropagation(); downloadTranscript(); }}
-                    title="Download transcript"
-                  >
-                    <Download size={14} />
+                  <button style={styles.transcriptDownloadBtn} onClick={e => { e.stopPropagation(); downloadTranscript(); }} title="Download">
+                    <Download size={13} />
                   </button>
                 )}
-                <button style={styles.transcriptToggleBtn} title={transcriptOpen ? 'Collapse' : 'Expand'}>
-                  {transcriptOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                <button style={styles.transcriptToggleBtn}>
+                  {transcriptOpen ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                 </button>
               </div>
             </div>
 
-            {/* Body — collapsible */}
             {transcriptOpen && (
               <div style={styles.transcriptBody}>
-                {transcriptLines.length === 0 && !interimText && (
+                {!transcriptEnabled && !transcriptLines.length && (
                   <div style={styles.transcriptEmpty}>
-                    {isListening ? 'Listening… start speaking.' : 'Speech recognition not available.'}
+                    Press <strong style={{ color: '#0ea5e9' }}>CC</strong> in controls to start transcribing.
                   </div>
+                )}
+                {transcriptEnabled && isListening && !transcriptLines.length && !interimText && (
+                  <div style={styles.transcriptEmpty}>Listening… start speaking.</div>
                 )}
                 {transcriptLines.map((line, i) => (
                   <div key={i} style={styles.transcriptLine}>
-                    <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: '600' }}>
-                      {line.time}
-                    </span>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: '600' }}>{line.time}</span>
                     {line.text}
                   </div>
                 ))}
-                {interimText && (
-                  <div style={styles.transcriptInterim}>…{interimText}</div>
-                )}
+                {interimText && <div style={styles.transcriptInterim}>…{interimText}</div>}
                 <div ref={transcriptEndRef} />
               </div>
             )}
@@ -849,26 +956,38 @@ export default function SnowMeet() {
           <div style={styles.controlBar}>
             <button
               style={{ ...styles.controlButton, ...(isMicOn ? styles.controlButtonActive : styles.controlButtonInactive) }}
-              onClick={() => setIsMicOn(v => !v)}
-              title={isMicOn ? 'Mute mic' : 'Unmute mic'}
+              onClick={() => setIsMicOn(v => !v)} title={isMicOn ? 'Mute' : 'Unmute'}
             >
-              {isMicOn ? <Mic size={22} /> : <MicOff size={22} />}
+              {isMicOn ? <Mic size={20} /> : <MicOff size={20} />}
             </button>
 
             <button
               style={{ ...styles.controlButton, ...(isVideoOn ? styles.controlButtonActive : styles.controlButtonInactive) }}
-              onClick={() => setIsVideoOn(v => !v)}
-              title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
+              onClick={() => setIsVideoOn(v => !v)} title={isVideoOn ? 'Camera off' : 'Camera on'}
             >
-              {isVideoOn ? <Video size={22} /> : <CameraOff size={22} />}
+              {isVideoOn ? <Video size={20} /> : <CameraOff size={20} />}
+            </button>
+
+            {/* CC button — blue when active, grey when off */}
+            <button
+              style={{
+                ...styles.controlButton,
+                backgroundColor: isListening ? '#0ea5e9' : '#334155',
+                fontSize: '11px', fontWeight: '800', letterSpacing: '0.04em',
+                boxShadow: isListening ? '0 0 0 3px rgba(14,165,233,0.3)' : 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={toggleTranscription}
+              title={isListening ? 'Stop transcription' : 'Start transcription'}
+            >
+              CC
             </button>
 
             <button
               style={{ ...styles.controlButton, ...styles.hangupButton }}
-              onClick={hangup}
-              title="Leave call"
+              onClick={hangup} title="Leave call"
             >
-              <PhoneOff size={22} />
+              <PhoneOff size={20} />
             </button>
           </div>
         </div>
