@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CameraOff, Mic, MicOff, PhoneOff, Copy, Video, Users, Link as LinkIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { Camera, CameraOff, Mic, MicOff, PhoneOff, Copy, Video, Users, Link as LinkIcon, AlertCircle, CheckCircle, FileText, ChevronDown, ChevronUp, Download } from 'lucide-react';
 
 // ─── PeerJS loaded from CDN ───────────────────────────────────────────────────
 // Add to your index.html:
@@ -284,7 +284,106 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px'
-  }
+  },
+  // ── Transcript panel ────────────────────────────────────────────────────────
+  transcriptPanel: {
+    position: 'absolute',
+    bottom: '100px',
+    left: '32px',
+    width: '340px',
+    backgroundColor: 'rgba(255, 255, 255, 0.97)',
+    borderRadius: '16px',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+    border: '1px solid #e0f2fe',
+    zIndex: 30,
+    overflow: 'hidden',
+    transition: 'all 0.25s ease',
+  },
+  transcriptHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 16px',
+    backgroundColor: '#f0f9ff',
+    borderBottom: '1px solid #bae6fd',
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  transcriptHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#0ea5e9',
+    letterSpacing: '0.02em',
+  },
+  transcriptHeaderRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  transcriptBody: {
+    maxHeight: '220px',
+    overflowY: 'auto',
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  transcriptLine: {
+    fontSize: '13px',
+    lineHeight: '1.55',
+    color: '#1e293b',
+    backgroundColor: '#f8fafc',
+    borderRadius: '8px',
+    padding: '8px 12px',
+    borderLeft: '3px solid #0ea5e9',
+  },
+  transcriptInterim: {
+    fontSize: '13px',
+    lineHeight: '1.55',
+    color: '#64748b',
+    fontStyle: 'italic',
+    padding: '4px 12px',
+  },
+  transcriptEmpty: {
+    fontSize: '13px',
+    color: '#94a3b8',
+    textAlign: 'center',
+    padding: '16px 0',
+    fontStyle: 'italic',
+  },
+  liveIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#10b981',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  transcriptToggleBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#0ea5e9',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '2px',
+  },
+  transcriptDownloadBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#64748b',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '2px',
+    borderRadius: '4px',
+    transition: 'color 0.15s',
+  },
 };
 
 export default function SnowMeet() {
@@ -299,12 +398,20 @@ export default function SnowMeet() {
   const [isMicOn, setIsMicOn]           = useState(true);
   const [isVideoOn, setIsVideoOn]       = useState(true);
 
+  // ── Transcript state ───────────────────────────────────────────────────────
+  const [transcriptOpen, setTranscriptOpen]   = useState(true);
+  const [transcriptLines, setTranscriptLines] = useState([]);
+  const [interimText, setInterimText]         = useState('');
+  const [isListening, setIsListening]         = useState(false);
+
   // ── Refs ───────────────────────────────────────────────────────────────────
   const localVideoRef  = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef        = useRef(null);
   const localStreamRef = useRef(null);
   const currentCallRef = useRef(null);
+  const recognitionRef  = useRef(null);
+  const transcriptEndRef = useRef(null);
 
   // ── 1. Boot PeerJS once on mount ───────────────────────────────────────────
   useEffect(() => {
@@ -354,6 +461,89 @@ export default function SnowMeet() {
   useEffect(() => {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isVideoOn; });
   }, [isVideoOn]);
+
+  // ── Auto-scroll transcript to bottom ──────────────────────────────────────
+  useEffect(() => {
+    if (transcriptOpen) transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcriptLines, interimText, transcriptOpen]);
+
+  // ── Start / stop speech recognition when entering/leaving call ────────────
+  useEffect(() => {
+    if (appState === 'incall') {
+      startTranscription();
+    } else {
+      stopTranscription();
+    }
+    return () => stopTranscription();
+  }, [appState]);
+
+  const startTranscription = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('Web Speech API not supported in this browser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript.trim();
+        if (event.results[i].isFinal) {
+          if (transcript) {
+            setTranscriptLines(prev => [...prev, { text: transcript, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            setInterimText('');
+          }
+        } else {
+          interim += transcript;
+        }
+      }
+      setInterimText(interim);
+    };
+
+    recognition.onerror = (e) => {
+      // 'no-speech' is normal — just restart
+      if (e.error !== 'no-speech') console.error('Speech recognition error:', e.error);
+    };
+
+    recognition.onend = () => {
+      // Auto-restart as long as we're still in a call
+      if (recognitionRef.current) {
+        try { recognitionRef.current.start(); } catch (_) {}
+      }
+    };
+
+    try { recognition.start(); } catch (_) {}
+  };
+
+  const stopTranscription = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null; // prevent auto-restart
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setInterimText('');
+  };
+
+  const downloadTranscript = () => {
+    if (!transcriptLines.length) return;
+    const text = transcriptLines.map(l => `[${l.time}] ${l.text}`).join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `snowmeet-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   const initLocalMedia = async () => {
@@ -421,6 +611,8 @@ export default function SnowMeet() {
     setIsMicOn(true);
     setIsVideoOn(true);
     setJoinId('');
+    setTranscriptLines([]);
+    setInterimText('');
     setAppState('home');
   };
 
@@ -591,6 +783,66 @@ export default function SnowMeet() {
               playsInline
               muted
             />
+          </div>
+
+          {/* ── Transcript Panel ── */}
+          <div style={styles.transcriptPanel}>
+            {/* Header — always visible, click to expand/collapse */}
+            <div style={styles.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
+              <div style={styles.transcriptHeaderLeft}>
+                <FileText size={15} color="#0ea5e9" />
+                Live Transcript
+                {isListening && (
+                  <span style={styles.liveIndicator}>
+                    <span style={{
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      backgroundColor: '#10b981',
+                      display: 'inline-block',
+                      animation: 'pulse 1.4s infinite'
+                    }} />
+                    Live
+                    <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+                  </span>
+                )}
+              </div>
+              <div style={styles.transcriptHeaderRight}>
+                {transcriptLines.length > 0 && (
+                  <button
+                    style={styles.transcriptDownloadBtn}
+                    onClick={e => { e.stopPropagation(); downloadTranscript(); }}
+                    title="Download transcript"
+                  >
+                    <Download size={14} />
+                  </button>
+                )}
+                <button style={styles.transcriptToggleBtn} title={transcriptOpen ? 'Collapse' : 'Expand'}>
+                  {transcriptOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Body — collapsible */}
+            {transcriptOpen && (
+              <div style={styles.transcriptBody}>
+                {transcriptLines.length === 0 && !interimText && (
+                  <div style={styles.transcriptEmpty}>
+                    {isListening ? 'Listening… start speaking.' : 'Speech recognition not available.'}
+                  </div>
+                )}
+                {transcriptLines.map((line, i) => (
+                  <div key={i} style={styles.transcriptLine}>
+                    <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: '600' }}>
+                      {line.time}
+                    </span>
+                    {line.text}
+                  </div>
+                ))}
+                {interimText && (
+                  <div style={styles.transcriptInterim}>…{interimText}</div>
+                )}
+                <div ref={transcriptEndRef} />
+              </div>
+            )}
           </div>
 
           {/* Control bar */}
