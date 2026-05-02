@@ -571,6 +571,13 @@ export default function SnowMeet() {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isVideoOn; });
   }, [isVideoOn]);
 
+  // ── 3. Wire local stream to video element whenever ref or stream is ready ──
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  }, [appState]); // re-runs when incall screen mounts
+
   // ── Auto-scroll transcript to bottom ──────────────────────────────────────
   useEffect(() => {
     if (transcriptOpen) transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -852,16 +859,16 @@ export default function SnowMeet() {
       {appState === 'incall' && (
         <div style={styles.videoContainer}>
 
-          {/* Waiting overlay */}
+          {/* Waiting overlay — semi-transparent so local feed shows through */}
           {!remoteConnected && (
-            <div style={styles.statusMessage}>
+            <div style={{ ...styles.statusMessage, background: 'rgba(15,23,42,0.75)', inset: 0, position: 'absolute', zIndex: 10, justifyContent: 'center' }}>
               <div style={{ width: '38px', height: '38px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               Waiting for the other person to join…
-              <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>{myPeerId}</span>
+              <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'monospace' }}>{myPeerId}</span>
             </div>
           )}
 
-          {/* Remote video */}
+          {/* Remote video — only shown once connected */}
           <video
             ref={remoteVideoRef}
             style={{ ...styles.remoteVideo, display: remoteConnected ? 'block' : 'none' }}
@@ -880,10 +887,21 @@ export default function SnowMeet() {
             </button>
           </div>
 
-          {/* Local PiP — smaller on mobile */}
-          <div style={mobile ? styles.localVideoContainer : styles.localVideoContainerDesktop}>
-            <video ref={localVideoRef} style={styles.localVideo} autoPlay playsInline muted />
-          </div>
+          {/* Local video — full background when waiting, PiP when connected */}
+          {!remoteConnected && (
+            <video
+              ref={localVideoRef}
+              style={{ ...styles.remoteVideo, position: 'absolute', inset: 0, zIndex: 1, transform: 'scaleX(-1)' }}
+              autoPlay playsInline muted
+            />
+          )}
+
+          {/* Local PiP — only shown once remote is connected */}
+          {remoteConnected && (
+            <div style={mobile ? styles.localVideoContainer : styles.localVideoContainerDesktop}>
+              <video ref={localVideoRef} style={styles.localVideo} autoPlay playsInline muted />
+            </div>
+          )}
 
           {/* ── Transcript Panel ── */}
           <div style={mobile ? styles.transcriptPanel : styles.transcriptPanelDesktop}>
@@ -900,13 +918,17 @@ export default function SnowMeet() {
               </div>
               <div style={styles.transcriptHeaderRight}>
                 {/* Language picker */}
-                <div style={styles.langPickerWrapper} onClick={e => e.stopPropagation()}>
-                  <button style={styles.langPickerBtn} onClick={() => setShowLangPicker(v => !v)} title="Change language">
+                <div style={styles.langPickerWrapper}>
+                  <button
+                    style={styles.langPickerBtn}
+                    onClick={e => { e.stopPropagation(); setShowLangPicker(v => !v); }}
+                    title="Change language"
+                  >
                     <Globe size={13} />
                     {LANGUAGES.find(l => l.code === selectedLang)?.label.split(' ')[0]}
                   </button>
                   {showLangPicker && (
-                    <div style={styles.langDropdown}>
+                    <div style={styles.langDropdown} onClick={e => e.stopPropagation()}>
                       {LANGUAGES.map(lang => (
                         <div
                           key={lang.code}
