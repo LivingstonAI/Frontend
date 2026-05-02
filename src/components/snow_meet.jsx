@@ -514,12 +514,13 @@ export default function SnowMeet() {
   const [showLangPicker, setShowLangPicker]       = useState(false);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
-  const localVideoRef  = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const peerRef        = useRef(null);
-  const localStreamRef = useRef(null);
-  const currentCallRef = useRef(null);
-  const recognitionRef  = useRef(null);
+  const localVideoRef    = useRef(null);  // PiP (in-call)
+  const localBgVideoRef  = useRef(null);  // full-screen bg (waiting)
+  const remoteVideoRef   = useRef(null);
+  const peerRef          = useRef(null);
+  const localStreamRef   = useRef(null);
+  const currentCallRef   = useRef(null);
+  const recognitionRef   = useRef(null);
   const transcriptEndRef = useRef(null);
 
   // ── 1. Boot PeerJS once on mount ───────────────────────────────────────────
@@ -571,12 +572,12 @@ export default function SnowMeet() {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isVideoOn; });
   }, [isVideoOn]);
 
-  // ── 3. Wire local stream to video element whenever ref or stream is ready ──
+  // ── 3. Wire local stream to whichever video element is currently mounted ───
   useEffect(() => {
-    if (localVideoRef.current && localStreamRef.current) {
-      localVideoRef.current.srcObject = localStreamRef.current;
-    }
-  }, [appState]); // re-runs when incall screen mounts
+    if (!localStreamRef.current) return;
+    if (localVideoRef.current)   localVideoRef.current.srcObject   = localStreamRef.current;
+    if (localBgVideoRef.current) localBgVideoRef.current.srcObject = localStreamRef.current;
+  }, [appState, remoteConnected]);
 
   // ── Auto-scroll transcript to bottom ──────────────────────────────────────
   useEffect(() => {
@@ -887,16 +888,16 @@ export default function SnowMeet() {
             </button>
           </div>
 
-          {/* Local video — full background when waiting, PiP when connected */}
+          {/* Local video — full background while waiting */}
           {!remoteConnected && (
             <video
-              ref={localVideoRef}
+              ref={localBgVideoRef}
               style={{ ...styles.remoteVideo, position: 'absolute', inset: 0, zIndex: 1, transform: 'scaleX(-1)' }}
               autoPlay playsInline muted
             />
           )}
 
-          {/* Local PiP — only shown once remote is connected */}
+          {/* Local PiP — shown once remote is connected */}
           {remoteConnected && (
             <div style={mobile ? styles.localVideoContainer : styles.localVideoContainerDesktop}>
               <video ref={localVideoRef} style={styles.localVideo} autoPlay playsInline muted />
@@ -917,30 +918,15 @@ export default function SnowMeet() {
                 )}
               </div>
               <div style={styles.transcriptHeaderRight}>
-                {/* Language picker */}
-                <div style={styles.langPickerWrapper}>
-                  <button
-                    style={styles.langPickerBtn}
-                    onClick={e => { e.stopPropagation(); setShowLangPicker(v => !v); }}
-                    title="Change language"
-                  >
-                    <Globe size={13} />
-                    {LANGUAGES.find(l => l.code === selectedLang)?.label.split(' ')[0]}
-                  </button>
-                  {showLangPicker && (
-                    <div style={styles.langDropdown} onClick={e => e.stopPropagation()}>
-                      {LANGUAGES.map(lang => (
-                        <div
-                          key={lang.code}
-                          style={{ ...styles.langOption, backgroundColor: lang.code === selectedLang ? '#f0f9ff' : 'transparent' }}
-                          onClick={() => { setSelectedLang(lang.code); setShowLangPicker(false); }}
-                        >
-                          {lang.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Language picker — opens full modal */}
+                <button
+                  style={styles.langPickerBtn}
+                  onClick={e => { e.stopPropagation(); setShowLangPicker(true); }}
+                  title="Change language"
+                >
+                  <Globe size={13} />
+                  {LANGUAGES.find(l => l.code === selectedLang)?.label.split(' ')[0]}
+                </button>
                 {transcriptLines.length > 0 && (
                   <button style={styles.transcriptDownloadBtn} onClick={e => { e.stopPropagation(); downloadTranscript(); }} title="Download">
                     <Download size={13} />
@@ -1011,6 +997,77 @@ export default function SnowMeet() {
             >
               <PhoneOff size={20} />
             </button>
+          </div>
+        </div>
+      )}
+      {/* ════════════════ LANGUAGE MODAL ════════════════ */}
+      {showLangPicker && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setShowLangPicker(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              boxShadow: '0 25px 60px rgba(14,165,233,0.15)',
+              border: '1px solid #e0f2fe',
+              width: '100%',
+              maxWidth: '380px',
+              overflow: 'hidden',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div style={{
+              padding: '18px 20px 14px',
+              borderBottom: '1px solid #f0f9ff',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={18} color="#0ea5e9" />
+                <span style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>Transcription Language</span>
+              </div>
+              <button
+                onClick={() => setShowLangPicker(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '20px', lineHeight: 1, padding: '2px 6px', borderRadius: '6px' }}
+              >×</button>
+            </div>
+            {/* Language list */}
+            <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '8px' }}>
+              {LANGUAGES.map(lang => {
+                const isSelected = lang.code === selectedLang;
+                return (
+                  <div
+                    key={lang.code}
+                    onClick={() => { setSelectedLang(lang.code); setShowLangPicker(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? '#f0f9ff' : 'transparent',
+                      border: isSelected ? '1px solid #bae6fd' : '1px solid transparent',
+                      marginBottom: '4px',
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <span style={{ fontSize: '15px', color: isSelected ? '#0ea5e9' : '#1e293b', fontWeight: isSelected ? '600' : '400' }}>
+                      {lang.label}
+                    </span>
+                    {isSelected && (
+                      <CheckCircle size={16} color="#0ea5e9" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
