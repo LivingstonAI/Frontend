@@ -41,7 +41,46 @@ const LANGUAGES = [
 ];
 
 /* ─────────────────────────────────────────────
-   STYLES
+   STUN/TURN SERVERS (CRITICAL FOR CROSS-CONTINENT)
+───────────────────────────────────────────── */
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.ekiga.net' },
+    { urls: 'stun:stun.ideasip.com' },
+    { urls: 'stun:stun.iptel.org' },
+    { urls: 'stun:stun.rixtelecom.se' },
+    { urls: 'stun:stun.schlund.de' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+    { urls: 'stun:stun.voiparound.com' },
+    { urls: 'stun:stun.voipbuster.com' },
+    { urls: 'stun:stun.voipstunt.com' },
+    { urls: 'stun:stun.voxgratia.org' },
+    // Public TURN servers (fallback for symmetric NATs)
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ]
+};
+
+/* ─────────────────────────────────────────────
+   STYLES (unchanged, preserved)
 ───────────────────────────────────────────── */
 const S = {
   app: {
@@ -594,7 +633,7 @@ export default function SnowMeet() {
   const [errorMsg, setErrorMsg] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Media controls — these now only affect what YOU send/see locally
+  // Media controls
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
@@ -607,10 +646,10 @@ export default function SnowMeet() {
   const [transcriptLines, setTranscriptLines] = useState([]);
   const [interimText, setInterimText] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [ccEnabled, setCcEnabled] = useState(true);       // host toggle for recording
+  const [ccEnabled, setCcEnabled] = useState(true);
   const [selectedLang, setSelectedLang] = useState('en-US');
   const [showLangModal, setShowLangModal] = useState(false);
-  const [pendingLang, setPendingLang] = useState('en-US'); // lang selection in modal before confirming
+  const [pendingLang, setPendingLang] = useState('en-US');
 
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -634,26 +673,55 @@ export default function SnowMeet() {
     return () => document.head.removeChild(style);
   }, []);
 
-  /* ── Boot PeerJS ── */
+  /* ── Boot PeerJS with proper ICE servers ── */
   useEffect(() => {
     if (typeof window.Peer === 'undefined') {
       setErrorMsg('PeerJS library not loaded. Add: <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js">');
       return;
     }
+
+    // Create Peer with custom ICE servers for better cross-continent connectivity
     const peer = new window.Peer(undefined, {
-      host: '0.peerjs.com', port: 443, path: '/', secure: true,
+      host: '0.peerjs.com',
+      port: 443,
+      path: '/',
+      secure: true,
+      config: ICE_SERVERS
     });
+    
     peerRef.current = peer;
-    peer.on('open', id => { setMyPeerId(id); setPeerReady(true); });
+    
+    peer.on('open', id => { 
+      setMyPeerId(id); 
+      setPeerReady(true);
+      setErrorMsg('');
+    });
+    
     peer.on('call', async incomingCall => {
       if (!localStreamRef.current) await initLocalMedia();
-      if (!localStreamRef.current) return;
+      if (!localStreamRef.current) {
+        setErrorMsg('Could not initialize camera/microphone');
+        return;
+      }
       incomingCall.answer(localStreamRef.current);
       wireCall(incomingCall);
       setAppState('incall');
     });
-    peer.on('error', err => setErrorMsg('Connection error: ' + err.message));
-    return () => peer.destroy();
+    
+    peer.on('error', err => {
+      console.error('PeerJS error:', err);
+      if (err.type === 'peer-unavailable') {
+        setErrorMsg('The Peer ID you entered is not available. Make sure the other person has started a meeting.');
+      } else if (err.type === 'network') {
+        setErrorMsg('Network error. Check your internet connection.');
+      } else {
+        setErrorMsg('Connection error: ' + err.message);
+      }
+    });
+    
+    return () => {
+      if (peer.destroy) peer.destroy();
+    };
   }, []);
 
   /* ── Sync local video ── */
@@ -671,21 +739,12 @@ export default function SnowMeet() {
     });
   });
 
-  /*
-   * ── Mic toggle ──
-   * We disable the local audio track so YOU don't transmit audio.
-   * The remote stream is untouched — peers' audio is always played back
-   * via their own <video> element regardless of your mic state.
-   */
+  /* ── Mic toggle ── */
   useEffect(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = isMicOn; });
   }, [isMicOn]);
 
-  /*
-   * ── Cam toggle ──
-   * Disabling the video track sends a black frame to peers (stream stays alive).
-   * This way the peer connection is NOT closed — audio still flows both ways.
-   */
+  /* ── Cam toggle ── */
   useEffect(() => {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isCamOn; });
   }, [isCamOn]);
@@ -705,7 +764,7 @@ export default function SnowMeet() {
     return () => stopTranscription();
   }, [appState, ccEnabled]);
 
-  /* ── Restart transcription when language changes (only if active) ── */
+  /* ── Restart transcription when language changes ── */
   useEffect(() => {
     if (appState === 'incall' && ccEnabled) {
       stopTranscription();
@@ -717,12 +776,22 @@ export default function SnowMeet() {
 
   const initLocalMedia = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
-    } catch {
-      setErrorMsg('Could not access camera or microphone. Please allow permissions.');
+    } catch (err) {
+      console.error('Media access error:', err);
+      if (err.name === 'NotAllowedError') {
+        setErrorMsg('Please allow camera and microphone access to join the meeting.');
+      } else if (err.name === 'NotFoundError') {
+        setErrorMsg('No camera or microphone found on your device.');
+      } else {
+        setErrorMsg('Could not access camera or microphone: ' + err.message);
+      }
       return null;
     }
   };
@@ -731,17 +800,32 @@ export default function SnowMeet() {
     const pid = call.peer;
     if (callsRef.current.has(pid)) return;
     callsRef.current.set(pid, call);
+    
     call.on('stream', remoteStream => {
+      // Ensure remote audio is not muted
+      remoteStream.getAudioTracks().forEach(track => { track.enabled = true; });
       setRemotePeers(prev => new Map(prev).set(pid, remoteStream));
     });
+    
     call.on('close', () => dropPeer(pid));
-    call.on('error', () => dropPeer(pid));
+    call.on('error', (err) => {
+      console.error(`Call error with peer ${pid}:`, err);
+      dropPeer(pid);
+    });
   }, []);
 
   const dropPeer = (pid) => {
-    callsRef.current.get(pid)?.close();
+    const call = callsRef.current.get(pid);
+    if (call) {
+      try { call.close(); } catch(e) {}
+    }
     callsRef.current.delete(pid);
-    setRemotePeers(prev => { const next = new Map(prev); next.delete(pid); return next; });
+    setRemotePeers(prev => { 
+      const next = new Map(prev); 
+      next.delete(pid); 
+      return next; 
+    });
+    delete remoteVideoRefs.current[pid];
   };
 
   /* ─────────── ACTIONS ─────────── */
@@ -755,78 +839,160 @@ export default function SnowMeet() {
 
   const joinMeeting = async () => {
     setErrorMsg('');
-    const targetId = joinId.trim().replace(/.*[?&]call=/, '');
+    let targetId = joinId.trim();
+    // Clean up any URL params that might have been pasted
+    if (targetId.includes('?call=')) {
+      targetId = targetId.split('?call=')[1];
+    }
     if (!targetId) { setErrorMsg('Please enter a Peer ID.'); return; }
     if (!peerReady) { setErrorMsg('Still connecting to server, please wait.'); return; }
     if (callsRef.current.size >= MAX_PEERS) { setErrorMsg('Room full (max 4 participants).'); return; }
+    
     let stream = localStreamRef.current;
-    if (!stream) { stream = await initLocalMedia(); if (!stream) return; }
+    if (!stream) { 
+      stream = await initLocalMedia(); 
+      if (!stream) return; 
+    }
+    
+    // Make sure audio tracks are enabled
+    stream.getAudioTracks().forEach(t => { t.enabled = isMicOn; });
+    
     setAppState('incall');
-    const outgoing = peerRef.current.call(targetId, stream);
-    if (!outgoing) { setErrorMsg('Could not reach that Peer ID.'); setAppState('home'); return; }
-    wireCall(outgoing);
+    try {
+      const outgoing = peerRef.current.call(targetId, stream);
+      if (!outgoing) { 
+        throw new Error('Could not initiate call to that Peer ID.');
+      }
+      wireCall(outgoing);
+    } catch (err) {
+      setErrorMsg('Could not reach that Peer ID. Make sure they have started a meeting.');
+      setAppState('home');
+    }
   };
 
   const hangup = () => {
     stopTranscription();
     stopScreenShare();
-    callsRef.current.forEach(c => { try { c.close(); } catch (_) {} });
+    
+    callsRef.current.forEach(call => { 
+      try { call.close(); } catch (_) {} 
+    });
     callsRef.current.clear();
-    localStreamRef.current?.getTracks().forEach(t => t.stop());
-    localStreamRef.current = null;
+    
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => {
+        t.stop();
+      });
+      localStreamRef.current = null;
+    }
+    
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
+    
     setRemotePeers(new Map());
-    setIsMicOn(true); setIsCamOn(true); setIsSharingScreen(false);
-    setJoinId(''); setTranscriptLines([]); setInterimText('');
+    remoteVideoRefs.current = {};
+    setIsMicOn(true);
+    setIsCamOn(true);
+    setIsSharingScreen(false);
+    setJoinId('');
+    setTranscriptLines([]);
+    setInterimText('');
     setAppState('home');
   };
 
   const toggleScreenShare = async () => {
-    if (isSharingScreen) { stopScreenShare(); return; }
+    if (isSharingScreen) { 
+      stopScreenShare(); 
+      return; 
+    }
     try {
-      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      const sStream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: true, 
+        audio: true 
+      });
       screenStreamRef.current = sStream;
       const screenTrack = sStream.getVideoTracks()[0];
+      
+      // Replace video track for all existing calls
       callsRef.current.forEach(call => {
-        const sender = call.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) sender.replaceTrack(screenTrack);
+        const senders = call.peerConnection?.getSenders();
+        if (senders) {
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender && screenTrack) {
+            videoSender.replaceTrack(screenTrack);
+          }
+        }
       });
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = new MediaStream([
-          ...localStreamRef.current.getAudioTracks(), screenTrack
+      
+      // Update local preview
+      if (localVideoRef.current && localStreamRef.current) {
+        const newStream = new MediaStream([
+          ...localStreamRef.current.getAudioTracks(),
+          screenTrack
         ]);
+        localVideoRef.current.srcObject = newStream;
       }
+      
       screenTrack.onended = () => stopScreenShare();
       setIsSharingScreen(true);
     } catch (err) {
-      if (err.name !== 'NotAllowedError') setErrorMsg('Screen share failed: ' + err.message);
+      if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
+        setErrorMsg('Screen share failed: ' + err.message);
+      }
     }
   };
 
   const stopScreenShare = () => {
-    screenStreamRef.current?.getTracks().forEach(t => t.stop());
-    screenStreamRef.current = null;
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
     setIsSharingScreen(false);
+    
     const camTrack = localStreamRef.current?.getVideoTracks()[0];
     if (camTrack) {
       callsRef.current.forEach(call => {
-        const sender = call.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) sender.replaceTrack(camTrack);
+        const senders = call.peerConnection?.getSenders();
+        if (senders) {
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(camTrack);
+          }
+        }
       });
-      if (localVideoRef.current && localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-      }
+    }
+    
+    if (localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
     }
   };
 
-  const copyPeerId = () => {
+  const copyPeerIdFromCall = () => {
+    copyToClipboard(myPeerId);
+  };
+
+  const copyPeerIdFromHome = () => {
+    copyToClipboard(myPeerId);
+  };
+
+  const copyToClipboard = (text) => {
     const fallback = (t) => {
       const ta = document.createElement('textarea');
-      ta.value = t; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
-      document.body.appendChild(ta); ta.focus(); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
+      ta.value = t;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     };
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(myPeerId).catch(() => fallback(myPeerId));
-    else fallback(myPeerId);
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => fallback(text));
+    } else {
+      fallback(text);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -835,41 +1001,65 @@ export default function SnowMeet() {
 
   const startTranscription = (lang = selectedLang) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const r = new SR();
-    r.continuous = true;
-    r.interimResults = true;
-    r.lang = lang;
-    recognitionRef.current = r;
+    if (!SR) {
+      setErrorMsg('Speech recognition not supported in this browser.');
+      return;
+    }
+    
+    try {
+      const r = new SR();
+      r.continuous = true;
+      r.interimResults = true;
+      r.lang = lang;
+      recognitionRef.current = r;
 
-    r.onstart = () => setIsListening(true);
-    r.onresult = e => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const text = e.results[i][0].transcript.trim();
-        if (e.results[i].isFinal) {
-          if (text) setTranscriptLines(prev => [...prev, {
-            text,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }]);
-          setInterimText('');
-        } else { interim += text; }
-      }
-      if (interim) setInterimText(interim);
-    };
-    r.onerror = e => { if (e.error !== 'no-speech') console.warn('SR error:', e.error); };
-    r.onend = () => {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (_) {}
-      }
-    };
-    try { r.start(); } catch (_) {}
+      r.onstart = () => setIsListening(true);
+      
+      r.onresult = e => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const text = e.results[i][0].transcript.trim();
+          if (e.results[i].isFinal) {
+            if (text) {
+              setTranscriptLines(prev => [...prev, {
+                text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }]);
+            }
+            setInterimText('');
+          } else {
+            interim += text;
+          }
+        }
+        if (interim) setInterimText(interim);
+      };
+      
+      r.onerror = e => { 
+        if (e.error !== 'no-speech' && e.error !== 'aborted') {
+          console.warn('Speech recognition error:', e.error);
+        }
+      };
+      
+      r.onend = () => {
+        if (recognitionRef.current && appState === 'incall' && ccEnabled) {
+          try { 
+            recognitionRef.current.start(); 
+          } catch (_) {}
+        }
+      };
+      
+      r.start();
+    } catch (err) {
+      console.warn('Failed to start speech recognition:', err);
+    }
   };
 
   const stopTranscription = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch (_) {}
       recognitionRef.current = null;
     }
     setIsListening(false);
@@ -903,7 +1093,6 @@ export default function SnowMeet() {
   /* ─────────── COMPUTED ─────────── */
 
   const totalParticipants = 1 + remotePeers.size;
-  const hasRemotes = remotePeers.size > 0;
   const gStyle = { ...S.videoGrid, ...gridStyle(totalParticipants) };
   const remotePeersArr = [...remotePeers.entries()];
   const currentLangLabel = LANGUAGES.find(l => l.code === selectedLang)?.label || selectedLang;
@@ -913,7 +1102,6 @@ export default function SnowMeet() {
 
   return (
     <div style={S.app}>
-
       {/* ══════════ HOME ══════════ */}
       {appState === 'home' && (
         <>
@@ -975,7 +1163,7 @@ export default function SnowMeet() {
                     <div style={S.peerLabel}>Your Peer ID — share to receive calls</div>
                     <div style={S.peerValue}>{myPeerId}</div>
                   </div>
-                  <button style={S.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
+                  <button style={S.iconBtn} onClick={copyPeerIdFromHome} title="Copy Peer ID">
                     {copied ? <CheckCircle size={20} color="#10b981" /> : <Copy size={20} />}
                   </button>
                 </div>
@@ -988,13 +1176,12 @@ export default function SnowMeet() {
       {/* ══════════ IN-CALL ══════════ */}
       {appState === 'incall' && (
         <div style={S.callScreen}>
-
-          {/* Top bar */}
+          {/* Top bar - NOW SHOWING ACTUAL CALLER ID CONSISTENTLY */}
           <div style={S.callTopbar}>
             <div style={S.peerShareBox}>
               <LinkIcon size={14} color="#64748b" style={{ flexShrink: 0 }} />
               <span style={S.peerShareText}>{myPeerId}</span>
-              <button style={{ ...S.iconBtn, color: '#64748b', padding: '4px' }} onClick={copyPeerId}>
+              <button style={{ ...S.iconBtn, color: '#64748b', padding: '4px' }} onClick={copyPeerIdFromCall}>
                 {copied ? <CheckCircle size={14} color="#10b981" /> : <Copy size={14} />}
               </button>
             </div>
@@ -1003,14 +1190,12 @@ export default function SnowMeet() {
 
           {/* Video grid */}
           <div style={gStyle}>
-
             {/* Local tile */}
             <div style={S.videoTile}>
               {isCamOn ? (
                 <video ref={localVideoRef} style={S.localVideoEl} autoPlay playsInline muted />
               ) : (
                 <>
-                  {/* Keep the video element mounted (muted, hidden) so the stream stays wired */}
                   <video ref={localVideoRef} style={{ display: 'none' }} autoPlay playsInline muted />
                   <div style={S.camOffAvatar}>
                     <CameraOff size={28} />
@@ -1020,7 +1205,7 @@ export default function SnowMeet() {
               <div style={S.tileLabel}>You{isSharingScreen ? ' (screen)' : ''}{!isCamOn ? ' (cam off)' : ''}</div>
             </div>
 
-            {/* Remote tiles */}
+            {/* Remote tiles - guaranteed unmuted for audio */}
             {remotePeersArr.map(([pid], idx) => (
               <div key={pid} style={S.videoTile}>
                 <video
@@ -1028,7 +1213,7 @@ export default function SnowMeet() {
                   style={S.videoEl}
                   autoPlay
                   playsInline
-                  // NOTE: no muted — we WANT to hear remote peers regardless of their cam/mic state
+                  // IMPORTANT: NO muted attribute - remote peer audio must be heard
                 />
                 <div style={S.tileLabel}>Peer {idx + 1}</div>
               </div>
@@ -1043,7 +1228,7 @@ export default function SnowMeet() {
             )}
           </div>
 
-          {/* Transcript panel — only show if CC is enabled */}
+          {/* Transcript panel */}
           {ccEnabled && (
             <div style={S.transcriptPanel}>
               <div style={S.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
@@ -1094,7 +1279,6 @@ export default function SnowMeet() {
 
           {/* Control bar */}
           <div style={S.controlBar}>
-            {/* Mic */}
             <button
               style={{ ...S.ctrlBtn, ...(isMicOn ? S.ctrlOn : S.ctrlOff) }}
               onClick={() => setIsMicOn(v => !v)}
@@ -1103,7 +1287,6 @@ export default function SnowMeet() {
               {isMicOn ? <Mic size={22} /> : <MicOff size={22} />}
             </button>
 
-            {/* Cam */}
             <button
               style={{ ...S.ctrlBtn, ...(isCamOn ? S.ctrlOn : S.ctrlOff) }}
               onClick={() => setIsCamOn(v => !v)}
@@ -1112,7 +1295,6 @@ export default function SnowMeet() {
               {isCamOn ? <Camera size={22} /> : <CameraOff size={22} />}
             </button>
 
-            {/* Screen share */}
             <button
               style={{ ...S.ctrlBtn, ...(isSharingScreen ? S.ctrlShare : S.ctrlShareOff) }}
               onClick={toggleScreenShare}
@@ -1121,7 +1303,6 @@ export default function SnowMeet() {
               {isSharingScreen ? <MonitorOff size={22} /> : <Monitor size={22} />}
             </button>
 
-            {/* CC toggle */}
             <button
               style={{ ...S.ctrlBtn, ...(ccEnabled ? S.ctrlActive : S.ctrlOff) }}
               onClick={() => setCcEnabled(v => !v)}
@@ -1130,7 +1311,6 @@ export default function SnowMeet() {
               <Subtitles size={22} />
             </button>
 
-            {/* Language picker */}
             <button
               style={{
                 ...S.ctrlBtn,
@@ -1147,7 +1327,6 @@ export default function SnowMeet() {
               <span style={{ fontSize: '18px' }}>{currentLangFlag}</span>
             </button>
 
-            {/* Hang up */}
             <button
               style={{ ...S.ctrlBtn, ...S.ctrlHangup }}
               onClick={hangup}
