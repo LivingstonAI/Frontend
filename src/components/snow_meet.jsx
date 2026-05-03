@@ -1,126 +1,166 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Camera, CameraOff, Mic, MicOff, PhoneOff, Copy, Video, Users, Link as LinkIcon, AlertCircle, CheckCircle, FileText, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Camera, CameraOff, Mic, MicOff, PhoneOff, Copy,
+  Video, Users, Link as LinkIcon, AlertCircle, CheckCircle,
+  FileText, ChevronDown, ChevronUp, Download, Monitor, MonitorOff
+} from 'lucide-react';
 
-// ─── PeerJS loaded from CDN ───────────────────────────────────────────────────
-// Add to your index.html:
-//   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
-// ─────────────────────────────────────────────────────────────────────────────
-
-// --- Styles (Original Light Blue & White Theme — unchanged) ---
-const styles = {
-  appContainer: {
-    fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    backgroundColor: '#f4f9fd',
+/* ─────────────────────────────────────────────
+   STYLES
+───────────────────────────────────────────── */
+const S = {
+  /* Layout */
+  app: {
+    fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif",
+    backgroundColor: '#f0f8ff',
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    color: '#1e293b',
+    color: '#0f1c2e',
     margin: 0,
     padding: 0,
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
   },
+
+  /* Header */
   header: {
     backgroundColor: '#ffffff',
-    padding: '16px 32px',
-    boxShadow: '0 4px 20px rgba(0, 85, 255, 0.05)',
+    padding: '14px 24px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10
+    borderBottom: '1px solid #daeeff',
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
   },
   logo: {
-    fontSize: '22px',
-    fontWeight: '700',
-    color: '#0ea5e9',
+    fontSize: '20px',
+    fontWeight: 800,
+    color: '#0284c7',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
-    letterSpacing: '-0.5px'
+    gap: '8px',
+    letterSpacing: '-0.4px',
   },
-  mainContent: {
+  statusPill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '13px',
+    color: '#64748b',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '999px',
+    padding: '4px 12px',
+  },
+  statusDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+  },
+
+  /* Home */
+  homeMain: {
     flex: 1,
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: '20px',
-    position: 'relative'
+    alignItems: 'flex-start',
+    padding: '32px 16px 60px',
   },
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: '24px',
-    padding: '48px',
-    boxShadow: '0 20px 40px rgba(14, 165, 233, 0.08)',
-    maxWidth: '480px',
+    borderRadius: '20px',
+    padding: '36px 28px',
     width: '100%',
-    textAlign: 'center',
-    border: '1px solid #e0f2fe'
+    maxWidth: '440px',
+    border: '1px solid #bae6fd',
+    boxShadow: '0 12px 36px rgba(14,165,233,0.09)',
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '800',
+  cardTitle: {
+    fontSize: '26px',
+    fontWeight: 800,
     color: '#0f172a',
-    marginBottom: '12px',
-    marginTop: 0
+    marginBottom: '8px',
+    marginTop: 0,
+    letterSpacing: '-0.5px',
   },
-  subtitle: {
-    fontSize: '16px',
+  cardSub: {
+    fontSize: '15px',
     color: '#64748b',
-    marginBottom: '32px',
-    lineHeight: '1.5'
+    marginBottom: '28px',
+    lineHeight: 1.6,
   },
-  buttonPrimary: {
-    backgroundColor: '#0ea5e9',
+
+  /* Buttons */
+  btnPrimary: {
+    backgroundColor: '#0284c7',
     color: '#ffffff',
     border: 'none',
     borderRadius: '12px',
-    padding: '16px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
+    padding: '15px 20px',
+    fontSize: '15px',
+    fontWeight: 700,
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
     width: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '10px',
-    boxShadow: '0 4px 14px rgba(14, 165, 233, 0.3)',
-    marginBottom: '16px'
+    gap: '8px',
+    marginBottom: '12px',
+    minHeight: '52px',
+    boxShadow: '0 4px 14px rgba(2,132,199,0.28)',
+    transition: 'opacity .15s, transform .1s',
   },
-  buttonPrimaryDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  buttonSecondary: {
+  btnSecondary: {
     backgroundColor: '#f0f9ff',
-    color: '#0ea5e9',
+    color: '#0284c7',
     border: '1px solid #bae6fd',
     borderRadius: '12px',
-    padding: '16px 24px',
-    fontSize: '16px',
-    fontWeight: '600',
+    padding: '15px 20px',
+    fontSize: '15px',
+    fontWeight: 700,
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
     width: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '10px',
+    gap: '8px',
+    minHeight: '52px',
+    transition: 'opacity .15s, transform .1s',
   },
+  btnDisabled: { opacity: 0.5, cursor: 'not-allowed' },
+
+  /* Input */
   input: {
     width: '100%',
-    padding: '16px',
+    padding: '14px 16px',
     borderRadius: '12px',
     border: '1px solid #cbd5e1',
-    fontSize: '16px',
-    marginBottom: '16px',
+    fontSize: '15px',
+    marginBottom: '12px',
     boxSizing: 'border-box',
     outline: 'none',
-    transition: 'border-color 0.2s',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: 'inherit',
+    color: '#0f172a',
+    background: '#ffffff',
+    transition: 'border-color .15s',
   },
-  // ── Peer ID display box (new, matches card aesthetic) ──
-  peerIdBox: {
-    marginTop: '24px',
+
+  /* Divider */
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    color: '#94a3b8',
+    fontSize: '13px',
+    margin: '16px 0',
+  },
+  dividerLine: { flex: 1, height: '1px', backgroundColor: '#e2e8f0' },
+
+  /* Peer ID box */
+  peerBox: {
+    marginTop: '20px',
     backgroundColor: '#f0f9ff',
     border: '1px solid #bae6fd',
     borderRadius: '12px',
@@ -129,223 +169,262 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '12px',
-    textAlign: 'left',
   },
-  peerIdLabel: {
-    fontSize: '12px',
+  peerLabel: {
+    fontSize: '11px',
     color: '#64748b',
-    marginBottom: '4px',
-    fontWeight: '500',
-    letterSpacing: '0.03em',
+    fontWeight: 600,
     textTransform: 'uppercase',
-  },
-  peerIdValue: {
-    fontSize: '15px',
-    fontWeight: '700',
-    color: '#0ea5e9',
-    fontFamily: "'Courier New', monospace",
     letterSpacing: '0.05em',
+    marginBottom: '4px',
+  },
+  peerValue: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#0284c7',
+    fontFamily: 'monospace',
+    wordBreak: 'break-all',
   },
   iconBtn: {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#0ea5e9',
+    color: '#0284c7',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '6px',
+    padding: '8px',
     borderRadius: '8px',
-    transition: 'background 0.15s',
     flexShrink: 0,
   },
-  // ── In-call screen ──────────────────────────────────────────────────────────
-  videoContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#0f172a',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden'
-  },
-  remoteVideo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover'
-  },
-  localVideoContainer: {
-    position: 'absolute',
-    bottom: '100px',
-    right: '32px',
-    width: '240px',
-    height: '160px',
-    backgroundColor: '#1e293b',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-    border: '2px solid #334155',
-    zIndex: 20
-  },
-  localVideo: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    transform: 'scaleX(-1)'
-  },
-  controlBar: {
-    position: 'absolute',
-    bottom: '32px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    backdropFilter: 'blur(10px)',
-    padding: '12px 24px',
-    borderRadius: '100px',
-    display: 'flex',
-    gap: '16px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-    zIndex: 30,
-    alignItems: 'center'
-  },
-  controlButton: {
-    width: '48px',
-    height: '48px',
-    borderRadius: '50%',
-    border: 'none',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    color: '#ffffff'
-  },
-  controlButtonActive: {
-    backgroundColor: '#334155',
-  },
-  controlButtonInactive: {
-    backgroundColor: '#ef4444',
-  },
-  hangupButton: {
-    backgroundColor: '#ef4444',
-    width: '64px',
-    height: '48px',
-    borderRadius: '24px',
-  },
-  shareBox: {
-    position: 'absolute',
-    top: '32px',
-    left: '32px',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: '16px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-    zIndex: 30,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    maxWidth: '380px'
-  },
-  linkText: {
-    fontSize: '13px',
-    color: '#334155',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    maxWidth: '220px',
-    fontFamily: "'Courier New', monospace",
-    fontWeight: '600',
-  },
-  statusMessage: {
-    color: '#ffffff',
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    fontSize: '20px',
-    fontWeight: '500',
-    zIndex: 5,
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '12px'
-  },
+
+  /* Error */
   errorBox: {
     backgroundColor: '#fef2f2',
     color: '#991b1b',
-    padding: '12px',
-    borderRadius: '8px',
+    padding: '12px 14px',
+    borderRadius: '10px',
     marginBottom: '16px',
     fontSize: '14px',
     display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
+    alignItems: 'flex-start',
+    gap: '8px',
   },
-  // ── Transcript panel ────────────────────────────────────────────────────────
+
+  /* ── In-call ── */
+  callScreen: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: '#0b1120',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 200,
+  },
+
+  /* Top bar */
+  callTopbar: {
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    backdropFilter: 'blur(8px)',
+    padding: '10px 14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+  },
+  peerShareBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    background: 'rgba(255,255,255,0.08)',
+    borderRadius: '8px',
+    padding: '7px 12px',
+    flex: 1,
+    minWidth: 0,
+  },
+  peerShareText: {
+    fontSize: '12px',
+    color: '#cbd5e1',
+    fontFamily: 'monospace',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    flex: 1,
+    minWidth: 0,
+  },
+  participantsBadge: {
+    background: 'rgba(2,132,199,0.25)',
+    color: '#38bdf8',
+    borderRadius: '999px',
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    border: '1px solid rgba(56,189,248,0.3)',
+  },
+
+  /* Video grid */
+  videoGrid: {
+    flex: 1,
+    display: 'grid',
+    gap: '4px',
+    padding: '4px',
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: '#0b1120',
+    position: 'relative',
+  },
+
+  videoTile: {
+    position: 'relative',
+    background: '#1e293b',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoEl: { width: '100%', height: '100%', objectFit: 'cover' },
+  localVideoEl: { width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' },
+  tileLabel: {
+    position: 'absolute',
+    bottom: '8px',
+    left: '10px',
+    background: 'rgba(0,0,0,0.55)',
+    color: '#fff',
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '3px 9px',
+    borderRadius: '999px',
+  },
+
+  /* Waiting */
+  waitingOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    gap: '14px',
+    background: 'rgba(11,17,32,0.85)',
+    fontSize: '16px',
+    textAlign: 'center',
+    padding: '20px',
+    zIndex: 5,
+    borderRadius: '10px',
+  },
+  spinner: {
+    width: '36px',
+    height: '36px',
+    border: '4px solid rgba(255,255,255,0.12)',
+    borderTopColor: '#38bdf8',
+    borderRadius: '50%',
+    animation: 'spin 0.9s linear infinite',
+  },
+
+  /* Control bar */
+  controlBar: {
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    backdropFilter: 'blur(8px)',
+    padding: '12px 16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+  },
+  ctrlBtn: {
+    width: '52px',
+    height: '52px',
+    borderRadius: '50%',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#ffffff',
+    transition: 'transform .12s',
+    fontSize: '0',
+  },
+  ctrlOn: { backgroundColor: '#1e3a5f' },
+  ctrlOff: { backgroundColor: '#dc2626' },
+  ctrlShare: { backgroundColor: '#059669' },
+  ctrlShareOff: { backgroundColor: '#1e3a5f' },
+  ctrlHangup: {
+    backgroundColor: '#dc2626',
+    width: '64px',
+    borderRadius: '999px',
+  },
+
+  /* Transcript */
   transcriptPanel: {
     position: 'absolute',
-    bottom: '100px',
-    left: '32px',
-    width: '340px',
-    backgroundColor: 'rgba(255, 255, 255, 0.97)',
-    borderRadius: '16px',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-    border: '1px solid #e0f2fe',
-    zIndex: 30,
+    bottom: '90px',
+    left: '12px',
+    width: 'min(320px, calc(100vw - 24px))',
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderRadius: '14px',
+    border: '1px solid #bae6fd',
+    zIndex: 50,
     overflow: 'hidden',
-    transition: 'all 0.25s ease',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
   },
   transcriptHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 16px',
-    backgroundColor: '#f0f9ff',
+    padding: '10px 14px',
+    background: '#f0f9ff',
     borderBottom: '1px solid #bae6fd',
     cursor: 'pointer',
     userSelect: 'none',
   },
-  transcriptHeaderLeft: {
+  transcriptTitle: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '6px',
     fontSize: '13px',
-    fontWeight: '700',
-    color: '#0ea5e9',
-    letterSpacing: '0.02em',
+    fontWeight: 700,
+    color: '#0284c7',
   },
-  transcriptHeaderRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+  liveDot: {
+    width: '7px',
+    height: '7px',
+    borderRadius: '50%',
+    backgroundColor: '#10b981',
+    animation: 'pulse 1.3s infinite',
   },
   transcriptBody: {
-    maxHeight: '220px',
+    maxHeight: '200px',
     overflowY: 'auto',
-    padding: '14px 16px',
+    padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '8px',
   },
   transcriptLine: {
     fontSize: '13px',
-    lineHeight: '1.55',
     color: '#1e293b',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    padding: '8px 12px',
-    borderLeft: '3px solid #0ea5e9',
+    background: '#f8fafc',
+    borderRadius: '6px',
+    padding: '7px 10px',
+    borderLeft: '3px solid #0284c7',
+    lineHeight: 1.5,
+  },
+  transcriptTime: {
+    fontSize: '10px',
+    color: '#94a3b8',
+    fontWeight: 600,
+    marginRight: '5px',
   },
   transcriptInterim: {
     fontSize: '13px',
-    lineHeight: '1.55',
     color: '#64748b',
     fontStyle: 'italic',
-    padding: '4px 12px',
+    padding: '2px 10px',
   },
   transcriptEmpty: {
     fontSize: '13px',
@@ -354,374 +433,392 @@ const styles = {
     padding: '16px 0',
     fontStyle: 'italic',
   },
-  liveIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#10b981',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  },
-  transcriptToggleBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#0ea5e9',
-    display: 'flex',
-    alignItems: 'center',
-    padding: '2px',
-  },
-  transcriptDownloadBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#64748b',
-    display: 'flex',
-    alignItems: 'center',
-    padding: '2px',
-    borderRadius: '4px',
-    transition: 'color 0.15s',
-  },
 };
 
+/* ─────────────────────────────────────────────
+   GRID LAYOUT HELPER
+   returns gridTemplateColumns/Rows based on count
+───────────────────────────────────────────── */
+function gridStyle(count) {
+  // Detect narrow viewport (mobile)
+  const narrow = typeof window !== 'undefined' && window.innerWidth <= 500;
+  if (count === 1) return { gridTemplateColumns: '1fr' };
+  if (count === 2) return narrow
+    ? { gridTemplateColumns: '1fr', gridTemplateRows: '1fr 1fr' }
+    : { gridTemplateColumns: '1fr 1fr' };
+  if (count === 3) return narrow
+    ? { gridTemplateColumns: '1fr', gridTemplateRows: '1fr 1fr 1fr' }
+    : { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
+  // 4
+  return { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
+}
+
+/* ─────────────────────────────────────────────
+   MAIN COMPONENT
+───────────────────────────────────────────── */
 export default function SnowMeet() {
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [peerReady, setPeerReady]       = useState(false);
-  const [myPeerId, setMyPeerId]         = useState('');
-  const [appState, setAppState]         = useState('home'); // 'home' | 'creating' | 'joining' | 'incall'
-  const [joinId, setJoinId]             = useState('');
-  const [errorMsg, setErrorMsg]         = useState('');
-  const [copied, setCopied]             = useState(false);
-  const [remoteConnected, setRemoteConnected] = useState(false);
-  const [isMicOn, setIsMicOn]           = useState(true);
-  const [isVideoOn, setIsVideoOn]       = useState(true);
+  // ── Core state ──
+  const [peerReady, setPeerReady] = useState(false);
+  const [myPeerId, setMyPeerId] = useState('');
+  const [appState, setAppState] = useState('home'); // 'home' | 'incall'
+  const [joinId, setJoinId] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [copied, setCopied] = useState(false);
 
-  // ── Transcript state ───────────────────────────────────────────────────────
-  const [transcriptOpen, setTranscriptOpen]   = useState(true);
+  // ── Media controls ──
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isCamOn, setIsCamOn] = useState(true);
+  const [isSharingScreen, setIsSharingScreen] = useState(false);
+
+  // ── Remote peers: Map<peerId, { stream }> ──
+  const [remotePeers, setRemotePeers] = useState(new Map()); // peerId → stream
+
+  // ── Transcript ──
+  const [transcriptOpen, setTranscriptOpen] = useState(true);
   const [transcriptLines, setTranscriptLines] = useState([]);
-  const [interimText, setInterimText]         = useState('');
-  const [isListening, setIsListening]         = useState(false);
+  const [interimText, setInterimText] = useState('');
+  const [isListening, setIsListening] = useState(false);
 
-  // ── Refs ───────────────────────────────────────────────────────────────────
-  const localVideoRef  = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const peerRef        = useRef(null);
+  // ── Refs ──
+  const peerRef = useRef(null);
   const localStreamRef = useRef(null);
-  const currentCallRef = useRef(null);
-  const recognitionRef  = useRef(null);
+  const screenStreamRef = useRef(null);
+  const callsRef = useRef(new Map()); // peerId → PeerJS call object
+  const recognitionRef = useRef(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRefs = useRef({}); // peerId → <video> el
   const transcriptEndRef = useRef(null);
+  const MAX_PEERS = 3;
 
-  // ── 1. Boot PeerJS once on mount ───────────────────────────────────────────
+  /* ── Keyframe injection ── */
   useEffect(() => {
-    // PeerJS must be available on window (loaded via CDN script tag)
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap');
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
+  /* ── Boot PeerJS ── */
+  useEffect(() => {
     if (typeof window.Peer === 'undefined') {
-      setErrorMsg('PeerJS library not loaded. Add the CDN script to your index.html.');
+      setErrorMsg('PeerJS library not loaded. Add: <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js">');
       return;
     }
-
     const peer = new window.Peer(undefined, {
-      host: '0.peerjs.com',
-      port: 443,
-      path: '/',
-      secure: true,
+      host: '0.peerjs.com', port: 443, path: '/', secure: true,
     });
-
     peerRef.current = peer;
 
-    peer.on('open', (id) => {
-      setMyPeerId(id);
-      setPeerReady(true);
-    });
+    peer.on('open', id => { setMyPeerId(id); setPeerReady(true); });
 
-    // ── Receive incoming call ────────────────────────────────────────────────
-    peer.on('call', async (incomingCall) => {
-      const stream = await initLocalMedia();
-      if (!stream) return;
-      incomingCall.answer(stream);
-      currentCallRef.current = incomingCall;
-      wireCallEvents(incomingCall);
+    peer.on('call', async incomingCall => {
+      if (!localStreamRef.current) await initLocalMedia();
+      if (!localStreamRef.current) return;
+      incomingCall.answer(localStreamRef.current);
+      wireCall(incomingCall);
       setAppState('incall');
     });
 
-    peer.on('error', (err) => {
-      setErrorMsg('Connection error: ' + err.message);
-      console.error('PeerJS:', err);
-    });
-
-    return () => { peer.destroy(); };
+    peer.on('error', err => setErrorMsg('Connection error: ' + err.message));
+    return () => peer.destroy();
   }, []);
 
-  // ── 2. Mirror mic/cam toggles to live tracks ───────────────────────────────
+  /* ── Sync local video ref when stream changes ── */
+  useEffect(() => {
+    if (localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+  });
+
+  /* ── Sync remote video refs ── */
+  useEffect(() => {
+    remotePeers.forEach((stream, pid) => {
+      const el = remoteVideoRefs.current[pid];
+      if (el && el.srcObject !== stream) el.srcObject = stream;
+    });
+  });
+
+  /* ── Mic toggle ── */
   useEffect(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = isMicOn; });
   }, [isMicOn]);
 
+  /* ── Cam toggle ── */
   useEffect(() => {
-    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isVideoOn; });
-  }, [isVideoOn]);
+    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isCamOn; });
+  }, [isCamOn]);
 
-  // ── Auto-scroll transcript to bottom ──────────────────────────────────────
+  /* ── Transcript scroll ── */
   useEffect(() => {
     if (transcriptOpen) transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcriptLines, interimText, transcriptOpen]);
 
-  // ── Start / stop speech recognition when entering/leaving call ────────────
+  /* ── Start/stop transcription ── */
   useEffect(() => {
-    if (appState === 'incall') {
-      startTranscription();
-    } else {
-      stopTranscription();
-    }
+    if (appState === 'incall') startTranscription();
+    else stopTranscription();
     return () => stopTranscription();
   }, [appState]);
 
-  const startTranscription = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn('Web Speech API not supported in this browser.');
-      return;
-    }
+  /* ─────────── HELPERS ─────────── */
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    recognitionRef.current = recognition;
-
-    recognition.onstart = () => setIsListening(true);
-
-    recognition.onresult = (event) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript.trim();
-        if (event.results[i].isFinal) {
-          if (transcript) {
-            setTranscriptLines(prev => [...prev, { text: transcript, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-            setInterimText('');
-          }
-        } else {
-          interim += transcript;
-        }
-      }
-      setInterimText(interim);
-    };
-
-    recognition.onerror = (e) => {
-      // 'no-speech' is normal — just restart
-      if (e.error !== 'no-speech') console.error('Speech recognition error:', e.error);
-    };
-
-    recognition.onend = () => {
-      // Auto-restart as long as we're still in a call
-      if (recognitionRef.current) {
-        try { recognitionRef.current.start(); } catch (_) {}
-      }
-    };
-
-    try { recognition.start(); } catch (_) {}
-  };
-
-  const stopTranscription = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // prevent auto-restart
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    setIsListening(false);
-    setInterimText('');
-  };
-
-  const downloadTranscript = () => {
-    if (!transcriptLines.length) return;
-    const text = transcriptLines.map(l => `[${l.time}] ${l.text}`).join('\n');
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `snowmeet-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
   const initLocalMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
-    } catch (err) {
+    } catch {
       setErrorMsg('Could not access camera or microphone. Please allow permissions.');
-      console.error(err);
       return null;
     }
   };
 
-  const wireCallEvents = (call) => {
-    call.on('stream', (remoteStream) => {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
-      setRemoteConnected(true);
+  const wireCall = useCallback((call) => {
+    const pid = call.peer;
+    if (callsRef.current.has(pid)) return;
+    callsRef.current.set(pid, call);
+
+    call.on('stream', remoteStream => {
+      setRemotePeers(prev => new Map(prev).set(pid, remoteStream));
     });
-    call.on('close', () => hangup());
-    call.on('error', (e) => setErrorMsg('Call error: ' + e.message));
+    call.on('close', () => dropPeer(pid));
+    call.on('error', () => dropPeer(pid));
+  }, []);
+
+  const dropPeer = (pid) => {
+    callsRef.current.get(pid)?.close();
+    callsRef.current.delete(pid);
+    setRemotePeers(prev => {
+      const next = new Map(prev);
+      next.delete(pid);
+      return next;
+    });
   };
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  /* ─────────── ACTIONS ─────────── */
 
-  /** Host: get media, show call screen, wait for peer to call in */
-  const startCall = async () => {
-    if (!peerReady) { setErrorMsg('Still connecting to server, please wait.'); return; }
-    setAppState('creating');
+  const startMeeting = async () => {
+    setErrorMsg('');
     const stream = await initLocalMedia();
-    if (!stream) { setAppState('home'); return; }
+    if (!stream) return;
     setAppState('incall');
   };
 
-  /** Guest: get media, call the host by their Peer ID */
-  const joinCall = async () => {
-    const targetId = joinId.trim().replace(/.*[?&]call=/, ''); // handle pasted full URLs too
+  const joinMeeting = async () => {
+    setErrorMsg('');
+    const targetId = joinId.trim().replace(/.*[?&]call=/, '');
     if (!targetId) { setErrorMsg('Please enter a Peer ID.'); return; }
     if (!peerReady) { setErrorMsg('Still connecting to server, please wait.'); return; }
+    if (callsRef.current.size >= MAX_PEERS) { setErrorMsg('Room full (max 4 participants).'); return; }
 
-    setAppState('joining');
-    const stream = await initLocalMedia();
-    if (!stream) { setAppState('home'); return; }
+    let stream = localStreamRef.current;
+    if (!stream) { stream = await initLocalMedia(); if (!stream) return; }
 
-    const outgoingCall = peerRef.current.call(targetId, stream);
-    if (!outgoingCall) {
-      setErrorMsg('Could not reach that Peer ID. Please check it and try again.');
-      setAppState('home');
-      return;
-    }
-
-    currentCallRef.current = outgoingCall;
-    wireCallEvents(outgoingCall);
     setAppState('incall');
+
+    const outgoing = peerRef.current.call(targetId, stream);
+    if (!outgoing) { setErrorMsg('Could not reach that Peer ID.'); setAppState('home'); return; }
+    wireCall(outgoing);
   };
 
   const hangup = () => {
-    currentCallRef.current?.close();
-    currentCallRef.current = null;
+    stopTranscription();
+    stopScreenShare();
+    callsRef.current.forEach(c => { try { c.close(); } catch (_) {} });
+    callsRef.current.clear();
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    setRemoteConnected(false);
-    setIsMicOn(true);
-    setIsVideoOn(true);
-    setJoinId('');
-    setTranscriptLines([]);
-    setInterimText('');
+    setRemotePeers(new Map());
+    setIsMicOn(true); setIsCamOn(true); setIsSharingScreen(false);
+    setJoinId(''); setTranscriptLines([]); setInterimText('');
     setAppState('home');
   };
 
-  const copyPeerId = () => {
-    const text = myPeerId;
-    // Clipboard fallback for iframes / older browsers
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-    } else {
-      fallbackCopy(text);
+  const toggleScreenShare = async () => {
+    if (isSharingScreen) { stopScreenShare(); return; }
+    try {
+      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      screenStreamRef.current = sStream;
+      const screenTrack = sStream.getVideoTracks()[0];
+
+      // Replace video track in all active peer connections
+      callsRef.current.forEach(call => {
+        const sender = call.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(screenTrack);
+      });
+
+      // Update local preview
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = new MediaStream([
+          ...localStreamRef.current.getAudioTracks(), screenTrack
+        ]);
+      }
+
+      screenTrack.onended = () => stopScreenShare();
+      setIsSharingScreen(true);
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') setErrorMsg('Screen share failed: ' + err.message);
     }
+  };
+
+  const stopScreenShare = () => {
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    setIsSharingScreen(false);
+
+    const camTrack = localStreamRef.current?.getVideoTracks()[0];
+    if (camTrack) {
+      callsRef.current.forEach(call => {
+        const sender = call.peerConnection?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(camTrack);
+      });
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+    }
+  };
+
+  const copyPeerId = () => {
+    const fallback = (t) => {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(myPeerId).catch(() => fallback(myPeerId));
+    else fallback(myPeerId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const fallbackCopy = (text) => {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+  /* ─────────── TRANSCRIPT ─────────── */
+
+  const startTranscription = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const r = new SR();
+    r.continuous = true; r.interimResults = true; r.lang = 'en-US';
+    recognitionRef.current = r;
+
+    r.onstart = () => setIsListening(true);
+    r.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const text = e.results[i][0].transcript.trim();
+        if (e.results[i].isFinal) {
+          if (text) setTranscriptLines(prev => [...prev, {
+            text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }]);
+          setInterimText('');
+        } else { interim += text; }
+      }
+      if (interim) setInterimText(interim);
+    };
+    r.onerror = e => { if (e.error !== 'no-speech') console.warn('SR error:', e.error); };
+    r.onend = () => { if (recognitionRef.current) { try { recognitionRef.current.start(); } catch (_) {} } };
+    try { r.start(); } catch (_) {}
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div style={styles.appContainer}>
+  const stopTranscription = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false); setInterimText('');
+  };
 
-      {/* ════════════════ HOME SCREEN ════════════════ */}
-      {appState !== 'incall' && (
+  const downloadTranscript = () => {
+    if (!transcriptLines.length) return;
+    const text = transcriptLines.map(l => `[${l.time}] ${l.text}`).join('\n');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `snowmeet-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
+  /* ─────────── COMPUTED ─────────── */
+
+  const totalParticipants = 1 + remotePeers.size;
+  const hasRemotes = remotePeers.size > 0;
+  const gStyle = { ...S.videoGrid, ...gridStyle(totalParticipants) };
+  const remotePeersArr = [...remotePeers.entries()];
+
+  /* ─────────── RENDER ─────────── */
+
+  return (
+    <div style={S.app}>
+
+      {/* ══════════ HOME ══════════ */}
+      {appState === 'home' && (
         <>
-          <header style={styles.header}>
-            <div style={styles.logo}>
-              <Video color="#0ea5e9" size={28} />
+          <header style={S.header}>
+            <div style={S.logo}>
+              <Video size={22} color="#0284c7" />
               SnowMeet
             </div>
-            <div style={{ fontSize: '14px', color: peerReady ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: peerReady ? '#10b981' : '#f59e0b' }} />
-              {peerReady ? 'System Ready' : 'Connecting…'}
+            <div style={S.statusPill}>
+              <span style={{ ...S.statusDot, backgroundColor: peerReady ? '#10b981' : '#f59e0b' }} />
+              {peerReady ? 'Ready' : 'Connecting…'}
             </div>
           </header>
 
-          <main style={styles.mainContent}>
-            <div style={styles.card}>
-              <h1 style={styles.title}>Premium Video Meetings</h1>
-              <p style={styles.subtitle}>
-                Connect seamlessly with your team using SnowMeet.
-                <br />Professional, secure, and free — no sign-up needed.
-              </p>
+          <main style={S.homeMain}>
+            <div style={S.card}>
+              <h1 style={S.cardTitle}>Premium Video Meetings</h1>
+              <p style={S.cardSub}>No sign-up needed. Start a room and share your Peer ID — up to 4 people.</p>
 
               {errorMsg && (
-                <div style={styles.errorBox}>
-                  <AlertCircle size={18} />
-                  {errorMsg}
+                <div style={S.errorBox}>
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{errorMsg}</span>
                 </div>
               )}
 
-              {/* ── New Meeting ── */}
               <button
-                style={{
-                  ...styles.buttonPrimary,
-                  ...(!peerReady || appState === 'creating' ? styles.buttonPrimaryDisabled : {})
-                }}
-                onClick={startCall}
-                disabled={!peerReady || appState === 'creating'}
+                style={{ ...S.btnPrimary, ...(!peerReady ? S.btnDisabled : {}) }}
+                onClick={startMeeting}
+                disabled={!peerReady}
               >
-                <Video size={20} />
-                {appState === 'creating' ? 'Starting…' : 'New Meeting'}
+                <Video size={18} /> New Meeting
               </button>
 
-              <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', gap: '10px', color: '#94a3b8', fontSize: '14px' }}>
-                <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+              <div style={S.divider}>
+                <div style={S.dividerLine} />
                 or join with a Peer ID
-                <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+                <div style={S.dividerLine} />
               </div>
 
-              {/* ── Join Meeting ── */}
               <input
-                style={styles.input}
+                style={S.input}
                 placeholder="Paste Peer ID here"
                 value={joinId}
                 onChange={e => { setJoinId(e.target.value); setErrorMsg(''); }}
-                onKeyDown={e => e.key === 'Enter' && joinCall()}
+                onKeyDown={e => e.key === 'Enter' && joinMeeting()}
               />
               <button
-                style={{
-                  ...styles.buttonSecondary,
-                  ...(!joinId || !peerReady || appState === 'joining' ? { opacity: 0.6, cursor: 'not-allowed' } : {})
-                }}
-                onClick={joinCall}
-                disabled={!joinId || !peerReady || appState === 'joining'}
+                style={{ ...S.btnSecondary, ...(!joinId || !peerReady ? S.btnDisabled : {}) }}
+                onClick={joinMeeting}
+                disabled={!joinId || !peerReady}
               >
-                <Users size={20} />
-                {appState === 'joining' ? 'Joining…' : 'Join Meeting'}
+                <Users size={18} /> Join Meeting
               </button>
 
-              {/* ── Your Peer ID ── */}
               {myPeerId && (
-                <div style={styles.peerIdBox}>
-                  <div>
-                    <div style={styles.peerIdLabel}>Your Peer ID — share to receive calls</div>
-                    <div style={styles.peerIdValue}>{myPeerId}</div>
+                <div style={S.peerBox}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={S.peerLabel}>Your Peer ID — share to receive calls</div>
+                    <div style={S.peerValue}>{myPeerId}</div>
                   </div>
-                  <button style={styles.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
+                  <button style={S.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
                     {copied
                       ? <CheckCircle size={20} color="#10b981" />
-                      : <Copy size={20} />
-                    }
+                      : <Copy size={20} />}
                   </button>
                 </div>
               )}
@@ -730,141 +827,128 @@ export default function SnowMeet() {
         </>
       )}
 
-      {/* ════════════════ IN-CALL SCREEN ════════════════ */}
+      {/* ══════════ IN-CALL ══════════ */}
       {appState === 'incall' && (
-        <div style={styles.videoContainer}>
+        <div style={S.callScreen}>
 
-          {/* Waiting overlay */}
-          {!remoteConnected && (
-            <div style={styles.statusMessage}>
-              <div style={{
-                width: '40px', height: '40px',
-                border: '4px solid rgba(255,255,255,0.1)',
-                borderTopColor: '#0ea5e9',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }} />
-              Waiting for the other person to join…
-              <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+          {/* Top bar */}
+          <div style={S.callTopbar}>
+            <div style={S.peerShareBox}>
+              <LinkIcon size={14} color="#64748b" style={{ flexShrink: 0 }} />
+              <span style={S.peerShareText}>{myPeerId}</span>
+              <button style={{ ...S.iconBtn, color: '#64748b', padding: '4px' }} onClick={copyPeerId}>
+                {copied ? <CheckCircle size={14} color="#10b981" /> : <Copy size={14} />}
+              </button>
             </div>
-          )}
-
-          {/* Remote video */}
-          <video
-            ref={remoteVideoRef}
-            style={{ ...styles.remoteVideo, display: remoteConnected ? 'block' : 'none' }}
-            autoPlay
-            playsInline
-          />
-
-          {/* Share box — shows host's Peer ID */}
-          <div style={styles.shareBox}>
-            <LinkIcon size={18} color="#64748b" />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                Your Peer ID
-              </span>
-              <span style={styles.linkText}>{myPeerId}</span>
+            <div style={S.participantsBadge}>
+              {totalParticipants} of max 4
             </div>
-            <button style={styles.iconBtn} onClick={copyPeerId} title="Copy Peer ID">
-              {copied
-                ? <CheckCircle size={18} color="#10b981" />
-                : <Copy size={18} />
-              }
-            </button>
           </div>
 
-          {/* Local PiP */}
-          <div style={styles.localVideoContainer}>
-            <video
-              ref={localVideoRef}
-              style={styles.localVideo}
-              autoPlay
-              playsInline
-              muted
-            />
-          </div>
+          {/* Video grid */}
+          <div style={gStyle}>
 
-          {/* ── Transcript Panel ── */}
-          <div style={styles.transcriptPanel}>
-            {/* Header — always visible, click to expand/collapse */}
-            <div style={styles.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
-              <div style={styles.transcriptHeaderLeft}>
-                <FileText size={15} color="#0ea5e9" />
-                Live Transcript
-                {isListening && (
-                  <span style={styles.liveIndicator}>
-                    <span style={{
-                      width: '6px', height: '6px', borderRadius: '50%',
-                      backgroundColor: '#10b981',
-                      display: 'inline-block',
-                      animation: 'pulse 1.4s infinite'
-                    }} />
-                    Live
-                    <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
-                  </span>
-                )}
+            {/* Local tile — always visible */}
+            <div style={S.videoTile}>
+              <video
+                ref={localVideoRef}
+                style={S.localVideoEl}
+                autoPlay playsInline muted
+              />
+              <div style={S.tileLabel}>You{isSharingScreen ? ' (screen)' : ''}</div>
+            </div>
+
+            {/* Remote tiles */}
+            {remotePeersArr.map(([pid], idx) => (
+              <div key={pid} style={S.videoTile}>
+                <video
+                  ref={el => { if (el) remoteVideoRefs.current[pid] = el; }}
+                  style={S.videoEl}
+                  autoPlay playsInline
+                />
+                <div style={S.tileLabel}>Peer {idx + 1}</div>
               </div>
-              <div style={styles.transcriptHeaderRight}>
+            ))}
+
+            {/* Waiting overlay — shown until first remote joins */}
+            {!hasRemotes && (
+              <div style={S.waitingOverlay}>
+                <div style={S.spinner} />
+                <div>Waiting for others to join…</div>
+                <div style={{ fontSize: '13px', color: '#94a3b8' }}>Share your Peer ID above</div>
+              </div>
+            )}
+          </div>
+
+          {/* Transcript panel */}
+          <div style={S.transcriptPanel}>
+            <div style={S.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
+              <div style={S.transcriptTitle}>
+                <FileText size={14} color="#0284c7" />
+                Live Transcript
+                {isListening && <span style={S.liveDot} />}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {transcriptLines.length > 0 && (
                   <button
-                    style={styles.transcriptDownloadBtn}
+                    style={{ ...S.iconBtn, color: '#64748b', padding: '2px' }}
                     onClick={e => { e.stopPropagation(); downloadTranscript(); }}
-                    title="Download transcript"
+                    title="Download"
                   >
                     <Download size={14} />
                   </button>
                 )}
-                <button style={styles.transcriptToggleBtn} title={transcriptOpen ? 'Collapse' : 'Expand'}>
-                  {transcriptOpen ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                </button>
+                {transcriptOpen ? <ChevronDown size={16} color="#0284c7" /> : <ChevronUp size={16} color="#0284c7" />}
               </div>
             </div>
 
-            {/* Body — collapsible */}
             {transcriptOpen && (
-              <div style={styles.transcriptBody}>
+              <div style={S.transcriptBody}>
                 {transcriptLines.length === 0 && !interimText && (
-                  <div style={styles.transcriptEmpty}>
+                  <div style={S.transcriptEmpty}>
                     {isListening ? 'Listening… start speaking.' : 'Speech recognition not available.'}
                   </div>
                 )}
                 {transcriptLines.map((line, i) => (
-                  <div key={i} style={styles.transcriptLine}>
-                    <span style={{ fontSize: '10px', color: '#94a3b8', marginRight: '6px', fontWeight: '600' }}>
-                      {line.time}
-                    </span>
+                  <div key={i} style={S.transcriptLine}>
+                    <span style={S.transcriptTime}>{line.time}</span>
                     {line.text}
                   </div>
                 ))}
-                {interimText && (
-                  <div style={styles.transcriptInterim}>…{interimText}</div>
-                )}
+                {interimText && <div style={S.transcriptInterim}>…{interimText}</div>}
                 <div ref={transcriptEndRef} />
               </div>
             )}
           </div>
 
           {/* Control bar */}
-          <div style={styles.controlBar}>
+          <div style={S.controlBar}>
             <button
-              style={{ ...styles.controlButton, ...(isMicOn ? styles.controlButtonActive : styles.controlButtonInactive) }}
+              style={{ ...S.ctrlBtn, ...(isMicOn ? S.ctrlOn : S.ctrlOff) }}
               onClick={() => setIsMicOn(v => !v)}
-              title={isMicOn ? 'Mute mic' : 'Unmute mic'}
+              title={isMicOn ? 'Mute' : 'Unmute'}
             >
               {isMicOn ? <Mic size={22} /> : <MicOff size={22} />}
             </button>
 
             <button
-              style={{ ...styles.controlButton, ...(isVideoOn ? styles.controlButtonActive : styles.controlButtonInactive) }}
-              onClick={() => setIsVideoOn(v => !v)}
-              title={isVideoOn ? 'Turn off camera' : 'Turn on camera'}
+              style={{ ...S.ctrlBtn, ...(isCamOn ? S.ctrlOn : S.ctrlOff) }}
+              onClick={() => setIsCamOn(v => !v)}
+              title={isCamOn ? 'Stop camera' : 'Start camera'}
             >
-              {isVideoOn ? <Video size={22} /> : <CameraOff size={22} />}
+              {isCamOn ? <Camera size={22} /> : <CameraOff size={22} />}
             </button>
 
             <button
-              style={{ ...styles.controlButton, ...styles.hangupButton }}
+              style={{ ...S.ctrlBtn, ...(isSharingScreen ? S.ctrlShare : S.ctrlShareOff) }}
+              onClick={toggleScreenShare}
+              title={isSharingScreen ? 'Stop sharing' : 'Share screen'}
+            >
+              {isSharingScreen ? <MonitorOff size={22} /> : <Monitor size={22} />}
+            </button>
+
+            <button
+              style={{ ...S.ctrlBtn, ...S.ctrlHangup }}
               onClick={hangup}
               title="Leave call"
             >
