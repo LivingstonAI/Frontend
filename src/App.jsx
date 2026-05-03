@@ -625,9 +625,7 @@ function App() {
             } />
 
             <Route path='/snow_meet' element={
-              <ProtectedRoute>
                 <SnowMeet />
-              </ProtectedRoute>
             } />
 
 
