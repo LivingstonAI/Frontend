@@ -1095,9 +1095,9 @@ export default function SnowMeet() {
   const totalParticipants = 1 + remotePeers.size;
   const gStyle = { ...S.videoGrid, ...gridStyle(totalParticipants) };
   const remotePeersArr = [...remotePeers.entries()];
+  const hasRemotes = remotePeers.size > 0;  // <-- ADD THIS
   const currentLangLabel = LANGUAGES.find(l => l.code === selectedLang)?.label || selectedLang;
   const currentLangFlag = LANGUAGES.find(l => l.code === selectedLang)?.flag || '🌐';
-
   /* ─────────── RENDER ─────────── */
 
   return (
