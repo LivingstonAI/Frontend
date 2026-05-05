@@ -87,7 +87,7 @@ function gridStyle(count) {
 }
 
 /* ─────────────────────────────────────────────
-   STYLES
+   STYLES (Enhanced mobile + background overlays)
 ───────────────────────────────────────────── */
 const S = {
   app: {
@@ -323,12 +323,13 @@ const S = {
     border: '1px solid rgba(56,189,248,0.3)',
   },
 
-  /* Main call body — holds video + side panels */
+  /* Main call body */
   callBody: {
     flex: 1,
     display: 'flex',
     minHeight: 0,
     overflow: 'hidden',
+    position: 'relative',
   },
 
   videoGrid: {
@@ -349,6 +350,15 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    // Background gradient overlay for virtual background effect
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      background: 'radial-gradient(circle at 30% 20%, rgba(2,132,199,0.15), rgba(0,0,0,0.6))',
+      pointerEvents: 'none',
+      zIndex: 1,
+    }
   },
   videoEl: { width: '100%', height: '100%', objectFit: 'cover' },
   localVideoEl: { width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' },
@@ -362,6 +372,7 @@ const S = {
     fontWeight: 600,
     padding: '3px 9px',
     borderRadius: '999px',
+    zIndex: 2,
   },
   waitingOverlay: {
     position: 'absolute',
@@ -505,7 +516,7 @@ const S = {
     fontStyle: 'italic',
   },
 
-  /* ── Chat panel (right side) ── */
+  /* ── Chat panel (fullscreen on mobile, overlay on right on desktop) ── */
   chatPanel: {
     width: '280px',
     backgroundColor: 'rgba(11,17,32,0.97)',
@@ -513,6 +524,21 @@ const S = {
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
+    '@media (max-width: 768px)': {
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 'auto',
+      width: '100%',
+      height: '70vh',
+      borderLeft: 'none',
+      borderTopLeftRadius: '20px',
+      borderTopRightRadius: '20px',
+      zIndex: 300,
+      backgroundColor: 'rgba(15,23,42,0.98)',
+      backdropFilter: 'blur(20px)',
+    }
   },
   chatHeader: {
     padding: '12px 14px',
@@ -637,14 +663,14 @@ const S = {
     lineHeight: 1,
   },
 
-  /* ── Floating emoji reaction ── */
+  /* ── Floating emoji reaction (4 second animation) ── */
   floatingEmoji: {
     position: 'absolute',
     bottom: '100px',
     fontSize: '36px',
     pointerEvents: 'none',
     zIndex: 200,
-    animation: 'floatUp 2.5s ease-out forwards',
+    animation: 'floatUp 4s ease-out forwards',
     userSelect: 'none',
   },
 
@@ -735,7 +761,7 @@ const S = {
     flexShrink: 0,
   },
   modalConfirm: {
-    backgroundColor: '#0284c7',
+    backgroundColor: 'rgb(2, 132, 199)',
     color: '#ffffff',
     border: 'none',
     borderRadius: '10px',
@@ -754,6 +780,7 @@ const S = {
     alignItems: 'center',
     justifyContent: 'center',
     color: '#94a3b8',
+    zIndex: 2,
   },
 };
 
@@ -776,7 +803,7 @@ export default function SnowMeet() {
   // Remote peers
   const [remotePeers, setRemotePeers] = useState(new Map());
 
-  // Transcript — recording state lives in a ref so it never restarts from state changes
+  // Transcript
   const [transcriptOpen, setTranscriptOpen] = useState(true);
   const [transcriptLines, setTranscriptLines] = useState([]);
   const [interimText, setInterimText] = useState('');
@@ -796,11 +823,11 @@ export default function SnowMeet() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
 
+  // Refs
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
   const screenStreamRef = useRef(null);
   const callsRef = useRef(new Map());
-  // Data channels: pid -> RTCDataChannel
   const dataChannelsRef = useRef(new Map());
   const recognitionRef = useRef(null);
   const recognitionActiveRef = useRef(false);
@@ -811,7 +838,6 @@ export default function SnowMeet() {
   const chatInputRef = useRef(null);
   const MAX_PEERS = 3;
 
-  // Short display name for "me"
   const myShortId = myPeerId ? myPeerId.slice(0, 6) : 'Me';
 
   /* ── Keyframe injection ── */
@@ -822,10 +848,29 @@ export default function SnowMeet() {
       @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
       @keyframes floatUp {
         0%   { opacity: 1; transform: translateY(0) scale(1); }
-        80%  { opacity: 0.8; transform: translateY(-120px) scale(1.3); }
-        100% { opacity: 0; transform: translateY(-160px) scale(0.9); }
+        70%  { opacity: 0.8; transform: translateY(-120px) scale(1.2); }
+        100% { opacity: 0; transform: translateY(-180px) scale(0.8); }
       }
       @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap');
+      
+      /* Mobile responsive overrides for chat */
+      @media (max-width: 768px) {
+        .chat-panel-mobile {
+          position: fixed !important;
+          bottom: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          top: auto !important;
+          width: 100% !important;
+          height: 70vh !important;
+          border-left: none !important;
+          border-top-left-radius: 20px !important;
+          border-top-right-radius: 20px !important;
+          z-index: 300 !important;
+          background-color: rgba(15, 23, 42, 0.98) !important;
+          backdrop-filter: blur(20px) !important;
+        }
+      }
     `;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
@@ -860,12 +905,13 @@ export default function SnowMeet() {
         setErrorMsg('Could not initialize camera/microphone');
         return;
       }
+      // Ensure local audio track is enabled based on current mic state
+      localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = isMicOn; });
       incomingCall.answer(localStreamRef.current);
       wireCall(incomingCall);
       setAppState('incall');
     });
 
-    // Handle incoming data connections
     peer.on('connection', conn => {
       setupDataChannel(conn);
     });
@@ -906,9 +952,21 @@ export default function SnowMeet() {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = isMicOn; });
   }, [isMicOn]);
 
-  /* ── Cam toggle ── */
+  /* ── Cam toggle - ensures local video feed updates ── */
   useEffect(() => {
-    localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = isCamOn; });
+    const tracks = localStreamRef.current?.getVideoTracks();
+    if (tracks) {
+      tracks.forEach(t => { t.enabled = isCamOn; });
+    }
+    // Also update the local video element display
+    if (localVideoRef.current && localStreamRef.current) {
+      // Force a re-render of the local video element
+      const currentStream = localVideoRef.current.srcObject;
+      if (currentStream) {
+        localVideoRef.current.srcObject = null;
+        localVideoRef.current.srcObject = currentStream;
+      }
+    }
   }, [isCamOn]);
 
   /* ── Transcript scroll ── */
@@ -923,14 +981,17 @@ export default function SnowMeet() {
 
   /* ── Chat unread badge ── */
   useEffect(() => {
-    if (!chatOpen) {
-      // count only messages from others
+    if (!chatOpen && chatMessages.length > 0) {
+      const lastMessage = chatMessages[chatMessages.length - 1];
+      if (lastMessage && !lastMessage.mine && !lastMessage.system) {
+        // Increment unread count for incoming messages when chat closed
+        setUnreadCount(prev => prev + 1);
+      }
     }
   }, [chatMessages, chatOpen]);
 
   /*
-   * TRANSCRIPT: start on entering call. Use a stable ref to avoid
-   * the flickering caused by re-running effects on every state change.
+   * TRANSCRIPT
    */
   useEffect(() => {
     if (appState === 'incall' && ccEnabled) {
@@ -942,12 +1003,10 @@ export default function SnowMeet() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState, ccEnabled]);
 
-  /* ── Restart recognition when language changes (without touching ccEnabled) ── */
   const selectedLangRef = useRef(selectedLang);
   useEffect(() => {
     selectedLangRef.current = selectedLang;
     if (appState === 'incall' && ccEnabled && recognitionActiveRef.current) {
-      // Stop and restart with new lang; the onend handler will restart automatically
       try { recognitionRef.current?.stop(); } catch (_) {}
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -962,7 +1021,6 @@ export default function SnowMeet() {
   }, [showEmojiPicker]);
 
   /* ─────────── DATA CHANNEL HELPERS ─────────── */
-
   const setupDataChannel = useCallback((conn) => {
     conn.on('open', () => {
       dataChannelsRef.current.set(conn.peer, conn);
@@ -991,14 +1049,10 @@ export default function SnowMeet() {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setChatMessages(prev => [...prev, chatEntry]);
-        setChatOpen(prev => {
-          if (!prev) setUnreadCount(c => c + 1);
-          return prev;
-        });
+        if (!chatOpen) setUnreadCount(c => c + 1);
       } else if (msg.type === 'emoji') {
         spawnFloatingEmoji(msg.emoji);
       } else if (msg.type === 'peer_list') {
-        // Host sends the list of all peer IDs to a newly joined peer so they can connect
         if (Array.isArray(msg.peers)) {
           msg.peers.forEach(pid => {
             if (pid !== peerRef.current?.id && !callsRef.current.has(pid)) {
@@ -1010,7 +1064,7 @@ export default function SnowMeet() {
     } catch (e) {
       console.warn('Failed to parse data message:', e);
     }
-  }, []);
+  }, [chatOpen]);
 
   const broadcastData = useCallback((payload) => {
     const str = JSON.stringify(payload);
@@ -1023,7 +1077,7 @@ export default function SnowMeet() {
     });
   }, []);
 
-  /* ─────────── PEER MESH: connect to a specific peer ─────────── */
+  /* ─────────── PEER MESH ─────────── */
   const connectToPeer = useCallback(async (targetId) => {
     if (!peerRef.current || callsRef.current.has(targetId)) return;
 
@@ -1033,17 +1087,14 @@ export default function SnowMeet() {
       if (!stream) return;
     }
 
-    // Media call
     const outgoing = peerRef.current.call(targetId, stream);
     if (outgoing) wireCall(outgoing);
 
-    // Data connection
     const conn = peerRef.current.connect(targetId, { reliable: true });
     setupDataChannel(conn);
   }, [setupDataChannel]);
 
   /* ─────────── HELPERS ─────────── */
-
   const initLocalMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -1074,17 +1125,13 @@ export default function SnowMeet() {
       remoteStream.getAudioTracks().forEach(track => { track.enabled = true; });
       setRemotePeers(prev => new Map(prev).set(pid, remoteStream));
 
-      // NEW PEER JOINED: as host, send this newcomer the full peer list
-      // so they can connect to everyone else (mesh)
       const existingPeers = [...callsRef.current.keys()].filter(p => p !== pid);
       if (existingPeers.length > 0) {
-        // Small delay to let data channel open
         setTimeout(() => {
           const conn = dataChannelsRef.current.get(pid);
           if (conn?.open) {
             conn.send(JSON.stringify({ type: 'peer_list', peers: existingPeers }));
           } else {
-            // Try to open data channel first
             const dc = peerRef.current?.connect(pid, { reliable: true });
             if (dc) {
               setupDataChannel(dc);
@@ -1120,7 +1167,6 @@ export default function SnowMeet() {
   };
 
   /* ─────────── ACTIONS ─────────── */
-
   const startMeeting = async () => {
     setErrorMsg('');
     const stream = await initLocalMedia();
@@ -1253,7 +1299,6 @@ export default function SnowMeet() {
   };
 
   /* ─────────── TRANSCRIPT ─────────── */
-
   const startTranscription = (lang) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
@@ -1296,10 +1341,8 @@ export default function SnowMeet() {
 
       r.onend = () => {
         setIsListening(false);
-        // Only auto-restart if we should still be recording
         if (recognitionActiveRef.current) {
           try {
-            // Use current lang ref so language changes take effect
             r.lang = selectedLangRef.current;
             r.start();
             setIsListening(true);
@@ -1343,7 +1386,6 @@ export default function SnowMeet() {
   };
 
   /* ─────────── CHAT ─────────── */
-
   const sendChat = () => {
     const text = chatInput.trim();
     if (!text) return;
@@ -1373,14 +1415,13 @@ export default function SnowMeet() {
   };
 
   /* ─────────── EMOJI REACTIONS ─────────── */
-
   const spawnFloatingEmoji = (emoji) => {
     const id = Date.now() + Math.random();
-    const left = 20 + Math.random() * 60; // % of screen width
+    const left = 20 + Math.random() * 60;
     setFloatingEmojis(prev => [...prev, { id, emoji, left }]);
     setTimeout(() => {
       setFloatingEmojis(prev => prev.filter(e => e.id !== id));
-    }, 2600);
+    }, 4000);
   };
 
   const sendEmoji = (emoji) => {
@@ -1390,21 +1431,19 @@ export default function SnowMeet() {
   };
 
   /* ─────────── LANGUAGE MODAL ─────────── */
-
   const openLangModal = () => { setPendingLang(selectedLang); setShowLangModal(true); };
   const confirmLang = () => { setSelectedLang(pendingLang); setShowLangModal(false); };
 
   /* ─────────── COMPUTED ─────────── */
-
   const totalParticipants = 1 + remotePeers.size;
   const gStyle = { ...S.videoGrid, ...gridStyle(totalParticipants) };
   const remotePeersArr = [...remotePeers.entries()];
   const hasRemotes = remotePeers.size > 0;
   const currentLangLabel = LANGUAGES.find(l => l.code === selectedLang)?.label || selectedLang;
   const currentLangFlag = LANGUAGES.find(l => l.code === selectedLang)?.flag || '🌐';
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   /* ─────────── RENDER ─────────── */
-
   return (
     <div style={S.app}>
       {/* ══════════ HOME ══════════ */}
@@ -1495,10 +1534,9 @@ export default function SnowMeet() {
 
           {/* Main body: video + optional chat */}
           <div style={S.callBody}>
-
             {/* Video grid (relative so transcript panel overlays it) */}
             <div style={{ ...gStyle, position: 'relative' }}>
-              {/* Local tile */}
+              {/* Local tile with virtual background feel */}
               <div style={S.videoTile}>
                 {isCamOn ? (
                   <video ref={localVideoRef} style={S.localVideoEl} autoPlay playsInline muted />
@@ -1513,7 +1551,7 @@ export default function SnowMeet() {
                 </div>
               </div>
 
-              {/* Remote tiles */}
+              {/* Remote tiles with subtle gradient overlay for background effect */}
               {remotePeersArr.map(([pid], idx) => (
                 <div key={pid} style={S.videoTile}>
                   <video
@@ -1534,7 +1572,7 @@ export default function SnowMeet() {
                 </div>
               )}
 
-              {/* Floating emoji reactions — rendered over the video grid */}
+              {/* Floating emoji reactions */}
               {floatingEmojis.map(fe => (
                 <div
                   key={fe.id}
@@ -1544,7 +1582,7 @@ export default function SnowMeet() {
                 </div>
               ))}
 
-              {/* Transcript panel — overlays bottom-left of video grid */}
+              {/* Transcript panel */}
               {ccEnabled && (
                 <div style={S.transcriptPanel}>
                   <div style={S.transcriptHeader} onClick={() => setTranscriptOpen(v => !v)}>
@@ -1610,9 +1648,9 @@ export default function SnowMeet() {
               )}
             </div>
 
-            {/* Chat side panel */}
+            {/* Chat side panel - fullscreen on mobile */}
             {chatOpen && (
-              <div style={S.chatPanel}>
+              <div style={isMobile ? { ...S.chatPanel, position: 'fixed', bottom: 0, left: 0, right: 0, top: 'auto', width: '100%', height: '70vh', borderLeft: 'none', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', zIndex: 300, backgroundColor: 'rgba(15,23,42,0.98)', backdropFilter: 'blur(20px)' } : S.chatPanel}>
                 <div style={S.chatHeader}>
                   <div style={S.chatTitle}>
                     <MessageSquare size={14} />
@@ -1716,7 +1754,6 @@ export default function SnowMeet() {
               <span style={{ fontSize: '18px' }}>{currentLangFlag}</span>
             </button>
 
-            {/* Emoji button */}
             <button
               style={{ ...S.ctrlBtn, ...(showEmojiPicker ? S.ctrlHighlight : S.ctrlOn) }}
               onClick={e => { e.stopPropagation(); setShowEmojiPicker(v => !v); }}
@@ -1725,7 +1762,6 @@ export default function SnowMeet() {
               <Smile size={22} />
             </button>
 
-            {/* Chat button */}
             <button
               style={{
                 ...S.ctrlBtn,
@@ -1741,8 +1777,8 @@ export default function SnowMeet() {
                   position: 'absolute',
                   top: '4px',
                   right: '4px',
-                  width: '16px',
-                  height: '16px',
+                  width: '18px',
+                  height: '18px',
                   background: '#ef4444',
                   borderRadius: '50%',
                   fontSize: '10px',
