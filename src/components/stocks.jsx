@@ -1693,10 +1693,6 @@ function EarningsCalendar({ onSelectTicker }) {
     const [sectorFilter,  setSectorFilter]  = React.useState('All');
     const [sortBy,        setSortBy]        = React.useState('date');
 
-    const [selectedEarningsStock, setSelectedEarningsStock] = useState(null);
-    const [stockReaction,         setStockReaction]         = useState(null);
-    const [reactionLoading2,      setReactionLoading2]      = useState(false);
-
     // Fetch all earnings on mount + month change
     React.useEffect(() => {
         fetchEarnings();
@@ -2150,6 +2146,28 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         {e.epsEstimate != null && e.epsActual == null && (
                                                             <div style={{ fontSize:'11px', color:'#475569' }}>EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
                                                         )}
+
+                                                        {!e.isUpcoming && e.historicalQuarters?.length > 0 && (
+                                                            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                                                                <div style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                                                                    RECENT QUARTERS
+                                                                </div>
+                                                                {e.historicalQuarters.slice(0, 3).map((q, qi) => (
+                                                                    <div key={qi} style={{ fontSize: '10px', color: '#475569', marginBottom: '2px', display: 'flex', gap: '6px' }}>
+                                                                        <span style={{ color: '#94a3b8', minWidth: '70px' }}>{q.date?.slice(0, 7)}</span>
+                                                                        {q.epsActual != null && (
+                                                                            <span>EPS <strong style={{ color: q.beat ? '#10b981' : '#ef4444' }}>${q.epsActual}</strong></span>
+                                                                        )}
+                                                                        {q.surprisePct != null && (
+                                                                            <span style={{ color: q.surprisePct >= 0 ? '#10b981' : '#ef4444', fontWeight: '700' }}>
+                                                                                ({q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
                                                     </div>
                                                 )}
                                                 {e.isUpcoming && (
@@ -2170,27 +2188,6 @@ function EarningsCalendar({ onSelectTicker }) {
                             </div>
                         );
                     })()}
-
-                    {!e.isUpcoming && e.historicalQuarters?.length > 0 && (
-                        <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.06em', marginBottom: '4px' }}>
-                                RECENT QUARTERS
-                            </div>
-                            {e.historicalQuarters.slice(0, 3).map((q, qi) => (
-                                <div key={qi} style={{ fontSize: '10px', color: '#475569', marginBottom: '2px', display: 'flex', gap: '6px' }}>
-                                    <span style={{ color: '#94a3b8', minWidth: '70px' }}>{q.date?.slice(0, 7)}</span>
-                                    {q.epsActual != null && (
-                                        <span>EPS <strong style={{ color: q.beat ? '#10b981' : '#ef4444' }}>${q.epsActual}</strong></span>
-                                    )}
-                                    {q.surprisePct != null && (
-                                        <span style={{ color: q.surprisePct >= 0 ? '#10b981' : '#ef4444', fontWeight: '700' }}>
-                                            ({q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%)
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     <div style={{ padding:'12px 20px', borderTop:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'6px', backgroundColor:'#f8fafc' }}>
                         {Object.entries(SECTOR_COLORS).map(([sector, c]) => (
@@ -2302,6 +2299,7 @@ function EarningsCalendar({ onSelectTicker }) {
                                                             </div>
                                                         );
                                                     })()}
+
                                                 </div>
                                                 <div style={{ flexShrink:0 }}>
                                                     {past
