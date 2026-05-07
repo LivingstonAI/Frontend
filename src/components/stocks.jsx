@@ -3089,13 +3089,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         if (ref.current && chart) { try { chart.removeSeries(ref.current); } catch {} ref.current = null; }
     };
 
-    // -- Helper: apply backend indicator data to chart -----------------------
-    // Apply earnings date markers to the chart series
-    // earnings = the quarterly array from props; also reads upcoming date from yfinance
+    
+    // Replace the existing applyEarningsMarkers function:
     const applyEarningsMarkers = (series, candles, markersOverride) => {
-        console.log('🔔 applyEarningsMarkers CALLED -- series:', !!series, 'candles:', candles?.length, 'override:', markersOverride?.length, 'ref:', earningsMarkersRef.current?.length, 'show:', showEarningsMarkersRef.current);
         if (!series || !candles?.length) return;
-        // Use override if provided (e.g. from async fetch callback), else use ref
         const markerDates = markersOverride ?? earningsMarkersRef.current;
 
         if (!showEarningsMarkersRef.current || !markerDates.length) {
@@ -3103,11 +3100,9 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             return;
         }
 
-        // Convert unix timestamp -> YYYY-MM-DD using UTC to avoid timezone shifts
         const unixToDate = (t) => {
             if (typeof t === 'number') {
                 const d = new Date(t * 1000);
-                // Use UTC date parts -- the backend stores midnight UTC for daily bars
                 return [
                     d.getUTCFullYear(),
                     String(d.getUTCMonth() + 1).padStart(2, '0'),
@@ -3117,66 +3112,128 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
             return String(t).slice(0, 10);
         };
 
-        // Map date string -> candle for O(1) lookup
+        // Build date -> candle map — for intraday charts multiple candles
+        // share the same date, so we pick the LAST candle of that day
+        // (closing candle) which is the most meaningful anchor for earnings.
         const dateToCandle = {};
-        candles.forEach(c => { dateToCandle[unixToDate(c.time)] = c; });
-
-        console.log('[Markers] candle date range:',
-            unixToDate(candles[0].time), '->', unixToDate(candles[candles.length-1].time));
-        console.log('[Markers] marker dates to place:', markerDates.map(m => m.date));
+        candles.forEach(c => {
+            dateToCandle[unixToDate(c.time)] = c; // later candles overwrite earlier ones = last of day
+        });
 
         const markers = [];
-        markerDates.forEach(({ date, label, upcoming }) => {
-            const candle = dateToCandle[date];
+        markerDates.forEach(({ date, label, upcoming, beat }) => {
+            // For past earnings on daily+ charts: exact match.
+            // For intraday: walk forward up to 5 trading days to find a candle
+            // (earnings are often reported AH so the reaction shows next day).
+            let candle = dateToCandle[date];
             if (!candle) {
-                console.log('[Markers] no candle found for', date, '(may be weekend/holiday or outside timeframe)');
-                return;
+                // Try next 5 calendar days — handles weekends / holidays
+                for (let offset = 1; offset <= 5; offset++) {
+                    const d  = new Date(date + 'T12:00:00Z');
+                    d.setUTCDate(d.getUTCDate() + offset);
+                    const ds = d.toISOString().slice(0, 10);
+                    if (dateToCandle[ds]) { candle = dateToCandle[ds]; break; }
+                }
             }
+            if (!candle) return;
+
+            // Colour logic:
+            // upcoming  → blue  arrow down (from above)
+            // beat      → green arrow up   (from below)
+            // miss      → red   arrow up
+            // unknown   → amber arrow up
+            let color, shape, position;
+            if (upcoming) {
+                color    = '#3b82f6';
+                shape    = 'arrowDown';
+                position = 'aboveBar';
+            } else if (beat === true) {
+                color    = '#10b981';   // green = beat
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else if (beat === false) {
+                color    = '#ef4444';   // red = miss
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else {
+                color    = '#f59e0b';   // amber = no data
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            }
+
             markers.push({
                 time:     candle.time,
-                position: upcoming ? 'aboveBar' : 'belowBar',
-                color:    upcoming ? '#3b82f6' : '#f59e0b',
-                shape:    upcoming ? 'arrowDown' : 'arrowUp',
+                position,
+                color,
+                shape,
                 text:     label || 'E',
                 size:     2,
             });
         });
 
+        // LightweightCharts requires markers sorted by time ascending
         markers.sort((a, b) => a.time - b.time);
-        console.log('[Markers] placing', markers.length, 'markers on chart');
-        try { series.setMarkers(markers); } catch(e) { console.error('[Markers] setMarkers failed:', e); }
+        console.log('[Markers] placing', markers.length, 'markers');
+        try { series.setMarkers(markers); } catch (e) { console.error('[Markers] setMarkers failed:', e); }
     };
 
-    // Fetch upcoming earnings date for current ticker and cache it
+    
+    // Replace the existing fetchAndCacheEarningsDate function with this:
     const fetchAndCacheEarningsDate = async (sym, candles) => {
         console.log('🔔 fetchAndCacheEarningsDate CALLED for', sym, 'candles:', candles?.length);
         try {
             const BACKEND = 'https://backend-production-c0ab.up.railway.app';
-            console.log('[EarningsDate] fetching for', sym);
-            const res  = await fetch(`${BACKEND}/api/snowai_earnings_calendar_vault/`, {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ tickers: [sym] }),
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_history_chart_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
             });
             const json = await res.json();
-            console.log('[EarningsDate] raw response:', json);
-            const today = new Date().toISOString().slice(0, 10);
-            const markers = (json.results || []).map(r => ({
-                date:     r.earningsDate?.slice(0, 10),
-                // Trust isUpcoming flag from backend -- it uses server-side today
-                label:    (r.isUpcoming ?? r.earningsDate >= today) ? '📅 E' : `E ${r.earningsDate?.slice(0,7)||''}`,
-                upcoming: r.isUpcoming ?? r.earningsDate >= today,
-            })).filter(r => r.date);
-            console.log('[EarningsDate] markers parsed:', markers);
-            console.log('[EarningsDate] parsed markers:', markers);
-            earningsMarkersRef.current = markers;
-            // Re-apply immediately with fresh data + current candles
+            console.log('[EarningsHistory] raw response:', json);
+
+            const allMarkers = [
+                // Past earnings — colour by beat/miss
+                ...(json.markers || []).map(m => ({
+                    date:     m.date,
+                    label:    buildMarkerLabel(m),
+                    upcoming: false,
+                    beat:     m.beat,
+                    eps:      m.epsActual,
+                    surprise: m.surprisePct,
+                })),
+                // Upcoming earnings
+                ...(json.upcoming || []).map(m => ({
+                    date:     m.date,
+                    label:    `📅 E${m.epsEstimate != null ? ' est $' + m.epsEstimate : ''}`,
+                    upcoming: true,
+                    beat:     null,
+                    eps:      null,
+                    surprise: null,
+                })),
+            ];
+
+            console.log('[EarningsHistory] total markers:', allMarkers.length);
+            earningsMarkersRef.current = allMarkers;
+
             if (seriesRef.current && candles) {
-                applyEarningsMarkers(seriesRef.current, candles, markers);
+                applyEarningsMarkers(seriesRef.current, candles, allMarkers);
             }
-        } catch(e) {
-            console.error('[EarningsDate] fetch failed:', e);
+        } catch (e) {
+            console.error('[EarningsHistory] fetch failed:', e);
             earningsMarkersRef.current = [];
         }
+    };
+
+    // Add this helper near the top of ChartInsightsTab (outside the component or inside before fetchAndCacheEarningsDate):
+    const buildMarkerLabel = (m) => {
+        const parts = ['E'];
+        if (m.epsActual != null) {
+            parts.push(`$${m.epsActual}`);
+        }
+        if (m.surprisePct != null) {
+            parts.push(`(${m.surprisePct >= 0 ? '+' : ''}${m.surprisePct}%)`);
+        }
+        return parts.join(' ');
     };
 
     const applyIndicators = (chart, json, th) => {
