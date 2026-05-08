@@ -1697,6 +1697,12 @@ function EarningsCalendar({ onSelectTicker }) {
     const [stockReaction,         setStockReaction]         = useState(null);
     const [reactionLoading2,      setReactionLoading2]      = useState(false);
 
+    const [searchTicker,    setSearchTicker]    = React.useState('');
+    const [searchResults,   setSearchResults]   = React.useState(null);
+    const [searchLoading,   setSearchLoading]   = React.useState(false);
+    const [searchError,     setSearchError]     = React.useState(null);
+    const [showSearchPanel, setShowSearchPanel] = React.useState(false);
+
     // Fetch all earnings on mount + month change
     React.useEffect(() => {
         fetchEarnings();
@@ -1787,6 +1793,28 @@ function EarningsCalendar({ onSelectTicker }) {
             setReactionData({ error: e.message, ticker, earningsDate });
         } finally {
             setReactionLoading(false);
+        }
+    };
+
+    const searchEarnings = async (sym) => {
+        if (!sym?.trim()) return;
+        setSearchLoading(true);
+        setSearchError(null);
+        setSearchResults(null);
+        setShowSearchPanel(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_search_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ ticker: sym.trim().toUpperCase() }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setSearchResults(json);
+        } catch (e) {
+            setSearchError(e.message);
+        } finally {
+            setSearchLoading(false);
         }
     };
 
@@ -2008,6 +2036,399 @@ function EarningsCalendar({ onSelectTicker }) {
             {error && (
                 <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#ef4444', fontSize:'13px', borderBottom:'1px solid #fecaca' }}>
                     ⚠️ {error} -- <button onClick={fetchEarnings} style={{ background:'none', border:'none', color:'#ef4444', textDecoration:'underline', cursor:'pointer' }}>retry</button>
+                </div>
+            )}
+
+            {/* ── Earnings Search Bar ─────────────────────────────────────────── */}
+            <div style={{
+                padding: '12px 20px',
+                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap',
+            }}>
+                <div style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '240px' }}>
+                    <input
+                        type="text"
+                        value={searchTicker}
+                        onChange={e => setSearchTicker(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && searchEarnings(searchTicker)}
+                        placeholder="Search any ticker earnings history... e.g. AAPL"
+                        style={{
+                            flex: 1, padding: '9px 14px',
+                            borderRadius: '9px',
+                            border: '2px solid #e2e8f0',
+                            fontSize: '14px', fontWeight: '600',
+                            outline: 'none', color: '#1a1a1a',
+                            backgroundColor: '#fff',
+                        }}
+                        onFocus={e  => e.target.style.borderColor = '#3b82f6'}
+                        onBlur={e   => e.target.style.borderColor = '#e2e8f0'}
+                    />
+                    <button
+                        onClick={() => searchEarnings(searchTicker)}
+                        disabled={searchLoading || !searchTicker.trim()}
+                        style={{
+                            padding: '9px 20px', borderRadius: '9px',
+                            background: searchLoading ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                            color: '#fff', border: 'none',
+                            fontWeight: '700', fontSize: '14px',
+                            cursor: searchLoading ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {searchLoading
+                            ? <><span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span> Loading...</>
+                            : '🔍 Search'}
+                    </button>
+                    {showSearchPanel && (
+                        <button
+                            onClick={() => { setShowSearchPanel(false); setSearchResults(null); setSearchError(null); }}
+                            style={{
+                                padding: '9px 14px', borderRadius: '9px',
+                                backgroundColor: '#fff', border: '1px solid #e2e8f0',
+                                color: '#666', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                            }}
+                        >✕ Close</button>
+                    )}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    Search any stock for full earnings history — past & upcoming
+                </div>
+            </div>
+
+            {/* ── Search Results Panel ────────────────────────────────────────── */}
+            {showSearchPanel && (
+                <div style={{
+                    margin: '0',
+                    backgroundColor: '#fff',
+                    borderBottom: '2px solid #e2e8f0',
+                }}>
+                    {searchError && (
+                        <div style={{
+                            padding: '16px 20px',
+                            backgroundColor: '#fef2f2',
+                            color: '#b91c1c',
+                            fontSize: '14px',
+                            display: 'flex', gap: '10px', alignItems: 'center',
+                        }}>
+                            <span>⚠️</span> {searchError}
+                        </div>
+                    )}
+
+                    {searchLoading && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                            <div style={{ fontSize: '28px', animation: 'spin 1s linear infinite', display: 'inline-block', marginBottom: '10px' }}>⏳</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                                Fetching full earnings history for {searchTicker}...
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                                Pulling up to 10 years of quarterly data
+                            </div>
+                        </div>
+                    )}
+
+                    {searchResults && !searchLoading && (() => {
+                        const r        = searchResults;
+                        const stats    = r.stats || {};
+                        const info     = r.stockInfo || {};
+                        const past     = r.past     || [];
+                        const upcoming = r.upcoming || [];
+                        const trend    = r.epsTrend || [];
+
+                        const beatColor = '#10b981';
+                        const missColor = '#ef4444';
+                        const neutColor = '#f59e0b';
+
+                        // Mini sparkline dimensions
+                        const SW = 200, SH = 48;
+                        const epsVals  = trend.map(t => t.eps).filter(v => v != null);
+                        const minEPS   = Math.min(...epsVals);
+                        const maxEPS   = Math.max(...epsVals);
+                        const rangeEPS = maxEPS - minEPS || 1;
+                        const normEPS  = v => SH - ((v - minEPS) / rangeEPS) * (SH - 4) - 2;
+                        const sparkPts = trend.map((t, i) =>
+                            `${(i / Math.max(trend.length - 1, 1)) * SW},${normEPS(t.eps)}`
+                        ).join(' ');
+
+                        return (
+                            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                                {/* ── Stock header ── */}
+                                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#1a1a1a' }}>
+                                            {r.ticker} — {info.name || r.ticker}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
+                                            {info.sector}{info.industry ? ` · ${info.industry}` : ''}
+                                            {info.currentPrice ? ` · $${info.currentPrice?.toFixed(2)}` : ''}
+                                            {info.pe ? ` · P/E ${info.pe?.toFixed(1)}` : ''}
+                                        </div>
+                                    </div>
+                                    {/* Beat rate badge */}
+                                    {stats.beatRate != null && (
+                                        <div style={{
+                                            padding: '10px 18px',
+                                            borderRadius: '12px',
+                                            backgroundColor: stats.beatRate >= 70 ? '#f0fdf4' : stats.beatRate >= 50 ? '#fffbeb' : '#fef2f2',
+                                            border: `2px solid ${stats.beatRate >= 70 ? '#10b981' : stats.beatRate >= 50 ? '#f59e0b' : '#ef4444'}`,
+                                            textAlign: 'center',
+                                            flexShrink: 0,
+                                        }}>
+                                            <div style={{
+                                                fontSize: '24px', fontWeight: '800',
+                                                color: stats.beatRate >= 70 ? beatColor : stats.beatRate >= 50 ? neutColor : missColor,
+                                            }}>
+                                                {stats.beatRate}%
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                                BEAT RATE
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                                                {stats.beatCount}B / {stats.missCount}M / {stats.totalQuarters}Q
+                                            </div>
+                                        </div>
+                                    )}
+                                    {stats.avgSurprise != null && (
+                                        <div style={{
+                                            padding: '10px 18px', borderRadius: '12px',
+                                            backgroundColor: stats.avgSurprise >= 0 ? '#f0fdf4' : '#fef2f2',
+                                            border: `2px solid ${stats.avgSurprise >= 0 ? '#10b981' : '#ef4444'}`,
+                                            textAlign: 'center', flexShrink: 0,
+                                        }}>
+                                            <div style={{
+                                                fontSize: '24px', fontWeight: '800',
+                                                color: stats.avgSurprise >= 0 ? beatColor : missColor,
+                                            }}>
+                                                {stats.avgSurprise >= 0 ? '+' : ''}{stats.avgSurprise}%
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                                AVG SURPRISE
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                                                {stats.totalQuarters} quarters
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── EPS trend sparkline ── */}
+                                {trend.length >= 3 && (
+                                    <div style={{
+                                        padding: '14px 16px',
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '12px',
+                                        border: '1px solid #1e3a5f',
+                                    }}>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700',
+                                            color: '#64748b', letterSpacing: '0.07em',
+                                            marginBottom: '10px',
+                                        }}>
+                                            EPS TREND — LAST {trend.length} QUARTERS
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <svg width="100%" viewBox={`0 0 ${SW} ${SH}`} style={{ flex: 1, maxHeight: `${SH}px` }}>
+                                                <defs>
+                                                    <linearGradient id={`epsg_${r.ticker}`} x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25"/>
+                                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                {/* Fill area */}
+                                                {trend.length > 1 && (
+                                                    <path
+                                                        d={`M0,${SH} ${trend.map((t, i) =>
+                                                            `L${(i / (trend.length - 1)) * SW},${normEPS(t.eps)}`
+                                                        ).join(' ')} L${SW},${SH} Z`}
+                                                        fill={`url(#epsg_${r.ticker})`}
+                                                    />
+                                                )}
+                                                {/* Line */}
+                                                <polyline
+                                                    points={sparkPts}
+                                                    fill="none"
+                                                    stroke="#3b82f6"
+                                                    strokeWidth="1.5"
+                                                    strokeLinejoin="round"
+                                                />
+                                                {/* Beat/miss dots */}
+                                                {trend.map((t, i) => {
+                                                    const x = (i / Math.max(trend.length - 1, 1)) * SW;
+                                                    const y = normEPS(t.eps);
+                                                    return (
+                                                        <circle
+                                                            key={i}
+                                                            cx={x} cy={y} r="3"
+                                                            fill={t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#f59e0b'}
+                                                            stroke="#0f172a"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+                                            </svg>
+                                            {/* Quarter labels below */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+                                                {trend.slice(-3).reverse().map((t, i) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{
+                                                            width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                                                            backgroundColor: t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#f59e0b',
+                                                        }}/>
+                                                        <span style={{ fontSize: '11px', color: '#64748b' }}>{t.date}</span>
+                                                        <span style={{
+                                                            fontSize: '11px', fontWeight: '700',
+                                                            color: t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#94a3b8',
+                                                        }}>${t.eps}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Upcoming earnings ── */}
+                                {upcoming.length > 0 && (
+                                    <div>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700', color: '#3b82f6',
+                                            letterSpacing: '0.08em', marginBottom: '8px',
+                                        }}>
+                                            📅 UPCOMING ({upcoming.length})
+                                        </div>
+                                        {upcoming.map((q, i) => (
+                                            <div key={i} style={{
+                                                padding: '10px 14px', borderRadius: '10px',
+                                                backgroundColor: '#eff6ff',
+                                                border: '1px solid #bfdbfe',
+                                                marginBottom: '6px',
+                                                display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
+                                            }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af', minWidth: '90px' }}>
+                                                    {q.date}
+                                                </span>
+                                                {q.epsEstimate != null && (
+                                                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                                                        EPS est <strong>${q.epsEstimate}</strong>
+                                                    </span>
+                                                )}
+                                                {q.revenueFmt && (
+                                                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                                                        Rev est <strong>{q.revenueFmt}</strong>
+                                                    </span>
+                                                )}
+                                                <span style={{
+                                                    marginLeft: 'auto', fontSize: '11px', fontWeight: '700',
+                                                    backgroundColor: '#dbeafe', color: '#1d4ed8',
+                                                    padding: '2px 8px', borderRadius: '10px',
+                                                }}>Upcoming</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* ── Past earnings table ── */}
+                                {past.length > 0 && (
+                                    <div>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700', color: '#64748b',
+                                            letterSpacing: '0.08em', marginBottom: '8px',
+                                        }}>
+                                            📊 PAST EARNINGS ({past.length} quarters)
+                                        </div>
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                                <thead>
+                                                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                                                        {['Date', 'EPS Actual', 'EPS Est', 'Surprise', 'Revenue', 'Result'].map(h => (
+                                                            <th key={h} style={{
+                                                                padding: '8px 12px', textAlign: 'left',
+                                                                fontWeight: '700', color: '#64748b',
+                                                                borderBottom: '2px solid #e2e8f0',
+                                                                whiteSpace: 'nowrap',
+                                                            }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {past.map((q, i) => (
+                                                        <tr key={i}
+                                                            style={{ borderBottom: '1px solid #f1f5f9' }}
+                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
+                                                        >
+                                                            <td style={{ padding: '9px 12px', fontWeight: '600', color: '#475569', whiteSpace: 'nowrap' }}>
+                                                                {q.date}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', fontWeight: '800',
+                                                                color: q.beat === true ? beatColor : q.beat === false ? missColor : '#94a3b8' }}>
+                                                                {q.epsActual != null ? `$${q.epsActual}` : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', color: '#64748b' }}>
+                                                                {q.epsEstimate != null ? `$${q.epsEstimate}` : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px' }}>
+                                                                {q.surprisePct != null ? (
+                                                                    <span style={{
+                                                                        padding: '2px 8px', borderRadius: '10px', fontWeight: '700',
+                                                                        fontSize: '12px',
+                                                                        backgroundColor: q.surprisePct >= 0 ? '#f0fdf4' : '#fef2f2',
+                                                                        color: q.surprisePct >= 0 ? beatColor : missColor,
+                                                                        border: `1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}`,
+                                                                    }}>
+                                                                        {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
+                                                                    </span>
+                                                                ) : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', color: '#475569' }}>
+                                                                {q.revenueFmt || '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px' }}>
+                                                                {q.beat === true  && <span style={{ fontSize: '12px', fontWeight: '800', color: beatColor }}>✓ Beat</span>}
+                                                                {q.beat === false && <span style={{ fontSize: '12px', fontWeight: '800', color: missColor }}>✗ Miss</span>}
+                                                                {q.beat === null  && <span style={{ fontSize: '12px', color: '#94a3b8' }}>—</span>}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {past.length === 0 && upcoming.length === 0 && (
+                                    <div style={{
+                                        padding: '40px', textAlign: 'center',
+                                        backgroundColor: '#f8fafc', borderRadius: '12px',
+                                        border: '2px dashed #e2e8f0',
+                                    }}>
+                                        <div style={{ fontSize: '32px', marginBottom: '10px' }}>📭</div>
+                                        <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                            No earnings data found for {r.ticker}.
+                                            This may be an ETF, index, or newly listed stock.
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Open in screener CTA */}
+                                <button
+                                    onClick={() => { if (onSelectTicker) onSelectTicker(r.ticker); }}
+                                    style={{
+                                        padding: '12px', borderRadius: '10px',
+                                        background: 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                        color: '#fff', border: 'none',
+                                        fontWeight: '700', fontSize: '14px',
+                                        cursor: 'pointer', width: '100%',
+                                        display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', gap: '8px',
+                                    }}
+                                >
+                                    → Open {r.ticker} in Full Stock Screener
+                                </button>
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
