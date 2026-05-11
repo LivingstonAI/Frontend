@@ -1703,6 +1703,8 @@ function EarningsCalendar({ onSelectTicker }) {
     const [searchError,     setSearchError]     = React.useState(null);
     const [showSearchPanel, setShowSearchPanel] = React.useState(false);
 
+    const [previewTicker, setPreviewTicker] = React.useState(null);
+
     // Fetch all earnings on mount + month change
     React.useEffect(() => {
         fetchEarnings();
@@ -1768,6 +1770,552 @@ function EarningsCalendar({ onSelectTicker }) {
         if (sortBy === 'sector') return (SECTOR_MAP[a.ticker]||'').localeCompare(SECTOR_MAP[b.ticker]||'');
         return (a.earningsDate||'').localeCompare(b.earningsDate||'');
     });
+
+    function SabrinaEarningsPreview({ ticker, openaiKey, onClose }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [step,     setStep]     = React.useState('idle'); // idle|fetching|thinking|done|error
+    const [rawData,  setRawData]  = React.useState(null);
+    const [preview,  setPreview]  = React.useState(null);
+    const [error,    setError]    = React.useState(null);
+
+    React.useEffect(() => { run(); }, [ticker]);
+
+    const run = async () => {
+        if (!ticker) return;
+        setStep('fetching');
+        setError(null);
+        setPreview(null);
+
+        // ── Step 1: fetch raw data ──────────────────────────────────────────
+        let data;
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_preview_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ ticker }),
+            });
+            data = await res.json();
+            if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
+            setRawData(data);
+        } catch (e) {
+            setError(e.message);
+            setStep('error');
+            return;
+        }
+
+        if (!openaiKey) {
+            // Show data without AI narrative
+            setStep('done');
+            return;
+        }
+
+        // ── Step 2: ask Sabrina ─────────────────────────────────────────────
+        setStep('thinking');
+
+        const fmt = (v, prefix = '$') =>
+            v != null ? `${prefix}${typeof v === 'number' ? v.toFixed(2) : v}` : 'N/A';
+
+        const fmtRev = (v) => {
+            if (!v) return 'N/A';
+            if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+            if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+            if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+            return `$${v}`;
+        };
+
+        const histSummary = (data.historical || []).slice(0, 6).map((q, i) =>
+            `Q-${i+1} (${q.date}): EPS ${fmt(q.epsActual)} vs est ${fmt(q.epsEstimate)} ` +
+            `${q.surprisePct != null ? `(${q.surprisePct >= 0 ? '+' : ''}${q.surprisePct}% surprise)` : ''} ` +
+            `→ ${q.beat === true ? 'BEAT' : q.beat === false ? 'MISS' : 'N/A'}`
+        ).join('\n');
+
+        const trendSummary = (data.earningsTrend || []).slice(0, 2).map(t =>
+            `${t.period}: EPS est $${t.epsAvg?.toFixed(2) || 'N/A'} ` +
+            `(was $${t.eps30dAgo?.toFixed(2) || 'N/A'} 30d ago, $${t.eps90dAgo?.toFixed(2) || 'N/A'} 90d ago) ` +
+            `growth: ${t.growth != null ? (t.growth * 100).toFixed(1) + '%' : 'N/A'}`
+        ).join('\n');
+
+        const prompt = `You are Sabrina, a sharp AI stock analyst. Generate a comprehensive earnings preview report for ${ticker}.
+
+STOCK CONTEXT:
+Name: ${data.stockInfo?.name}
+Price: ${fmt(data.stockInfo?.currentPrice)} | Market Cap: ${data.stockInfo?.marketCap ? fmtRev(data.stockInfo.marketCap) : 'N/A'}
+Sector: ${data.stockInfo?.sector} | Industry: ${data.stockInfo?.industry}
+P/E: ${data.stockInfo?.trailingPE?.toFixed(1) || 'N/A'} | Fwd P/E: ${data.stockInfo?.forwardPE?.toFixed(1) || 'N/A'}
+Beta: ${data.stockInfo?.beta?.toFixed(2) || 'N/A'} | Short Ratio: ${data.stockInfo?.shortRatio?.toFixed(1) || 'N/A'}
+52W High: ${fmt(data.stockInfo?.fiftyTwoWeekHigh)} | 52W Low: ${fmt(data.stockInfo?.fiftyTwoWeekLow)}
+
+UPCOMING EARNINGS:
+Date: ${data.upcomingDate || 'Unknown'} (${data.daysUntil != null ? data.daysUntil + ' days away' : 'N/A'})
+EPS Estimate: ${fmt(data.epsEstimate)}
+Revenue Estimate: ${fmtRev(data.revenueEstimate)}
+
+ESTIMATE REVISIONS (bullish if trending UP):
+${trendSummary || 'No revision data available'}
+
+OPTIONS / MARKET POSITIONING:
+Implied Move: ±${data.impliedMove || 'N/A'}% (what options market expects)
+ATM IV: ${data.atmIV || 'N/A'}%
+Historical Avg Move on Earnings Day: ±${data.avgHistMove || 'N/A'}%
+${data.impliedMove && data.avgHistMove
+    ? `Options are ${data.impliedMove > data.avgHistMove ? 'EXPENSIVE' : 'CHEAP'} vs history`
+    : ''}
+
+HISTORICAL BEAT RATE:
+Beat Rate: ${data.beatRate || 'N/A'}% (${data.beatCount}B / ${data.missCount}M over ${data.totalQuarters}Q)
+Avg EPS Surprise: ${data.avgSurprise != null ? (data.avgSurprise >= 0 ? '+' : '') + data.avgSurprise + '%' : 'N/A'}
+
+LAST 6 QUARTERS:
+${histSummary || 'No historical data'}
+
+Return ONLY a JSON object (no markdown, no backticks):
+{
+  "verdict": "BEAT_LIKELY" | "MISS_LIKELY" | "IN_LINE" | "HIGH_UNCERTAINTY",
+  "confidence": <0-100>,
+  "tldr": "<one punchy sentence — the single most important thing to know>",
+  "impliedMoveVerdict": "<are options cheap or expensive vs history — 1 sentence>",
+  "estimateRevisionSignal": "<are estimates going up or down lately — 1 sentence>",
+  "beatPatternSignal": "<what does beat history tell us — 1 sentence>",
+  "keyThings": ["<thing to watch 1>", "<thing to watch 2>", "<thing to watch 3>"],
+  "bullCase": "<why they beat and stock pops — 2 sentences>",
+  "bearCase": "<why they miss and stock drops — 2 sentences>",
+  "optionsPlay": "<how to think about positioning given the IV vs history data — 1-2 sentences>",
+  "sabrinaQuote": "<Sabrina's personal punchy take in 1 sentence, first person, with personality>"
+}`;
+
+        try {
+            const res  = await fetch('https://api.openai.com/v1/chat/completions', {
+                method:  'POST',
+                headers: {
+                    'Content-Type':  'application/json',
+                    'Authorization': `Bearer ${openaiKey}`,
+                },
+                body: JSON.stringify({
+                    model:       'gpt-4o-mini',
+                    messages:    [{ role: 'user', content: prompt }],
+                    max_tokens:  900,
+                    temperature: 0.65,
+                }),
+            });
+            const aiData = await res.json();
+            const raw    = aiData.choices?.[0]?.message?.content || '';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            setPreview(parsed);
+        } catch (e) {
+            console.error('[EarningsPreview] AI error:', e);
+            // Still show data panel without narrative
+        }
+        setStep('done');
+    };
+
+    // ── Verdict config ────────────────────────────────────────────────────────
+    const VERDICT = {
+        BEAT_LIKELY:      { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'Beat Likely'      },
+        MISS_LIKELY:      { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'⚠️', label:'Miss Likely'      },
+        IN_LINE:          { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'➡️', label:'In Line Expected'  },
+        HIGH_UNCERTAINTY: { color:'#8b5cf6', bg:'#faf5ff', border:'#ddd6fe', icon:'🎲', label:'High Uncertainty'  },
+    };
+
+    const fmtRev = (v) => {
+        if (!v) return null;
+        if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+        if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
+
+    const vc = VERDICT[preview?.verdict] || VERDICT.HIGH_UNCERTAINTY;
+
+    return (
+        <div style={{
+            position:  'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            zIndex:    10010,
+            display:   'flex', alignItems: 'center', justifyContent: 'center',
+            padding:   '16px',
+            backdropFilter: 'blur(4px)',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:           'min(720px, 100%)',
+                maxHeight:       '92vh',
+                borderRadius:    '18px',
+                overflow:        'hidden',
+                display:         'flex',
+                flexDirection:   'column',
+                backgroundColor: '#fff',
+                boxShadow:       '0 24px 80px rgba(0,0,0,0.22)',
+                fontFamily:      "'Segoe UI', system-ui, sans-serif",
+                animation:       'modalSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
+
+                {/* ── Header ──────────────────────────────────────────────── */}
+                <div style={{
+                    padding:    '20px 24px 16px',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                    flexShrink: 0,
+                }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px' }}>
+                                <span style={{ fontSize:'22px' }}>😼</span>
+                                <span style={{ fontSize:'13px', fontWeight:'700', color:'rgba(255,255,255,0.8)', letterSpacing:'0.06em' }}>
+                                    SABRINA'S EARNINGS PREVIEW
+                                </span>
+                            </div>
+                            <div style={{ fontSize:'22px', fontWeight:'800', color:'#fff', lineHeight:1.2 }}>
+                                {ticker} — {rawData?.stockInfo?.name || ticker}
+                            </div>
+                            {rawData?.upcomingDate && (
+                                <div style={{ marginTop:'6px', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                                    <span style={{
+                                        backgroundColor:'rgba(255,255,255,0.15)',
+                                        color:'#fff', fontSize:'12px', fontWeight:'700',
+                                        padding:'3px 10px', borderRadius:'20px',
+                                    }}>
+                                        📅 {rawData.upcomingDate}
+                                    </span>
+                                    {rawData.daysUntil != null && (
+                                        <span style={{ color:'rgba(255,255,255,0.75)', fontSize:'12px' }}>
+                                            {rawData.daysUntil === 0 ? '🔴 Today!' :
+                                             rawData.daysUntil === 1 ? '🟡 Tomorrow' :
+                                             `${rawData.daysUntil} days away`}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.15)', border:'none',
+                            borderRadius:'50%', width:'34px', height:'34px',
+                            color:'#fff', fontSize:'18px', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            flexShrink: 0,
+                        }}>×</button>
+                    </div>
+                </div>
+
+                {/* ── Body ────────────────────────────────────────────────── */}
+                <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:'18px', backgroundColor:'#fff' }}>
+
+                    {/* Loading states */}
+                    {(step === 'fetching' || step === 'thinking') && (
+                        <div style={{ padding:'40px 0', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'12px' }}>
+                                {step === 'fetching' ? '📡' : '🧠'}
+                            </div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#333', marginBottom:'4px' }}>
+                                {step === 'fetching' ? 'Gathering earnings data...' : 'Sabrina is thinking...'}
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#999' }}>
+                                {step === 'fetching'
+                                    ? 'Pulling estimates, options IV, and beat history'
+                                    : 'Synthesising estimates, options pricing, and patterns'}
+                            </div>
+                            {/* Animated dots */}
+                            <div style={{ display:'flex', justifyContent:'center', gap:'6px', marginTop:'16px' }}>
+                                {[0,1,2].map(i => (
+                                    <div key={i} style={{
+                                        width:'8px', height:'8px', borderRadius:'50%',
+                                        backgroundColor:'#7c3aed',
+                                        animation:`sabrnaTyping 1.2s ${i*0.2}s infinite`,
+                                    }}/>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'error' && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', borderRadius:'12px', border:'1px solid #fecaca', color:'#b91c1c' }}>
+                            <div style={{ fontWeight:'700', marginBottom:'6px' }}>⚠️ Couldn't load preview</div>
+                            <div style={{ fontSize:'13px' }}>{error}</div>
+                        </div>
+                    )}
+
+                    {step === 'done' && rawData && (
+                        <>
+                            {/* ── Verdict banner ── */}
+                            {preview && (
+                                <div style={{
+                                    backgroundColor: vc.bg,
+                                    border:`2px solid ${vc.border}`,
+                                    borderLeft:`5px solid ${vc.color}`,
+                                    borderRadius:'12px',
+                                    padding:'16px 18px',
+                                }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'24px' }}>{vc.icon}</span>
+                                        <span style={{ fontSize:'18px', fontWeight:'800', color:vc.color }}>{vc.label}</span>
+                                        <span style={{
+                                            backgroundColor:vc.color, color:'#fff',
+                                            fontSize:'12px', fontWeight:'700',
+                                            padding:'3px 10px', borderRadius:'20px',
+                                        }}>{preview.confidence}% confidence</span>
+                                    </div>
+                                    <div style={{ fontSize:'15px', color:'#1a1a1a', fontWeight:'600', lineHeight:1.55, marginBottom:'10px' }}>
+                                        {preview.tldr}
+                                    </div>
+                                    {/* Sabrina quote */}
+                                    <div style={{
+                                        padding:'10px 14px',
+                                        backgroundColor:'rgba(124,58,237,0.06)',
+                                        borderLeft:'3px solid #7c3aed',
+                                        borderRadius:'6px',
+                                        display:'flex', gap:'8px', alignItems:'flex-start',
+                                    }}>
+                                        <span style={{ fontSize:'16px', flexShrink:0 }}>😼</span>
+                                        <div style={{ fontSize:'13px', color:'#4c1d95', fontStyle:'italic', lineHeight:1.55 }}>
+                                            "{preview.sabrinaQuote}"
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Key numbers strip ── */}
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:'10px' }}>
+                                {[
+                                    {
+                                        label: 'EPS Estimate',
+                                        value: rawData.epsEstimate != null ? `$${rawData.epsEstimate}` : 'N/A',
+                                        color: '#2563eb',
+                                        sub:   'consensus',
+                                    },
+                                    {
+                                        label: 'Rev Estimate',
+                                        value: fmtRev(rawData.revenueEstimate) || 'N/A',
+                                        color: '#2563eb',
+                                        sub:   'consensus',
+                                    },
+                                    {
+                                        label: 'Implied Move',
+                                        value: rawData.impliedMove != null ? `±${rawData.impliedMove}%` : 'N/A',
+                                        color: '#8b5cf6',
+                                        sub:   'options market',
+                                    },
+                                    {
+                                        label: 'Hist Avg Move',
+                                        value: rawData.avgHistMove != null ? `±${rawData.avgHistMove}%` : 'N/A',
+                                        color: '#64748b',
+                                        sub:   `last ${rawData.histMoves?.length || 0} qtrs`,
+                                    },
+                                    {
+                                        label: 'Beat Rate',
+                                        value: rawData.beatRate != null ? `${rawData.beatRate}%` : 'N/A',
+                                        color: rawData.beatRate >= 70 ? '#10b981' : rawData.beatRate >= 50 ? '#f59e0b' : '#ef4444',
+                                        sub:   `${rawData.beatCount}B / ${rawData.missCount}M`,
+                                    },
+                                    {
+                                        label: 'Avg Surprise',
+                                        value: rawData.avgSurprise != null ? `${rawData.avgSurprise >= 0 ? '+' : ''}${rawData.avgSurprise}%` : 'N/A',
+                                        color: rawData.avgSurprise >= 0 ? '#10b981' : '#ef4444',
+                                        sub:   `${rawData.totalQuarters} quarters`,
+                                    },
+                                ].map((item, i) => (
+                                    <div key={i} style={{
+                                        padding:'12px 14px',
+                                        backgroundColor:'#f8fafc',
+                                        borderRadius:'10px',
+                                        borderLeft:`3px solid ${item.color}`,
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'4px' }}>
+                                            {item.label.toUpperCase()}
+                                        </div>
+                                        <div style={{ fontSize:'18px', fontWeight:'800', color:item.color }}>
+                                            {item.value}
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>{item.sub}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ── Options vs history comparison bar ── */}
+                            {rawData.impliedMove != null && rawData.avgHistMove != null && (
+                                <div style={{
+                                    padding:'14px 16px',
+                                    backgroundColor:'#faf5ff',
+                                    borderRadius:'10px',
+                                    border:'1px solid #ddd6fe',
+                                }}>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#7c3aed', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        OPTIONS PRICING vs HISTORY
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                        {[
+                                            { label:`Implied Move (options)`, val:rawData.impliedMove,  color:'#8b5cf6' },
+                                            { label:`Hist Avg Move`,          val:rawData.avgHistMove,  color:'#64748b' },
+                                        ].map((item, i) => {
+                                            const max = Math.max(rawData.impliedMove, rawData.avgHistMove, 1);
+                                            return (
+                                                <div key={i}>
+                                                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'3px' }}>
+                                                        <span style={{ color:'#555', fontWeight:'600' }}>{item.label}</span>
+                                                        <span style={{ color:item.color, fontWeight:'700' }}>±{item.val}%</span>
+                                                    </div>
+                                                    <div style={{ height:'6px', backgroundColor:'#ede9fe', borderRadius:'3px', overflow:'hidden' }}>
+                                                        <div style={{
+                                                            height:'100%',
+                                                            width:`${(item.val / max) * 100}%`,
+                                                            backgroundColor:item.color,
+                                                            borderRadius:'3px',
+                                                            transition:'width 0.8s ease',
+                                                        }}/>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {preview?.impliedMoveVerdict && (
+                                        <div style={{ marginTop:'10px', fontSize:'13px', color:'#5b21b6', fontStyle:'italic' }}>
+                                            {preview.impliedMoveVerdict}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── AI signal cards ── */}
+                            {preview && (
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'10px' }}>
+                                    {[
+                                        { label:'📊 ESTIMATE REVISIONS', text:preview.estimateRevisionSignal, borderColor:'#3b82f6' },
+                                        { label:'🏆 BEAT PATTERN',        text:preview.beatPatternSignal,       borderColor:'#10b981' },
+                                        { label:'🎯 OPTIONS PLAY',         text:preview.optionsPlay,             borderColor:'#8b5cf6' },
+                                    ].filter(c => c.text).map((card, i) => (
+                                        <div key={i} style={{
+                                            padding:'12px 14px',
+                                            backgroundColor:'#f8fafc',
+                                            borderRadius:'10px',
+                                            borderLeft:`3px solid ${card.borderColor}`,
+                                        }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'6px' }}>
+                                                {card.label}
+                                            </div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>
+                                                {card.text}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* ── Bull / Bear ── */}
+                            {preview && (preview.bullCase || preview.bearCase) && (
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'10px' }}>
+                                    {preview.bullCase && (
+                                        <div style={{ padding:'12px 14px', backgroundColor:'rgba(16,185,129,0.06)', borderRadius:'10px', border:'1px solid rgba(16,185,129,0.2)' }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#10b981', letterSpacing:'0.07em', marginBottom:'6px' }}>🐂 BULL CASE</div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>{preview.bullCase}</div>
+                                        </div>
+                                    )}
+                                    {preview.bearCase && (
+                                        <div style={{ padding:'12px 14px', backgroundColor:'rgba(239,68,68,0.06)', borderRadius:'10px', border:'1px solid rgba(239,68,68,0.18)' }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#ef4444', letterSpacing:'0.07em', marginBottom:'6px' }}>🐻 BEAR CASE</div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>{preview.bearCase}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── Things to watch ── */}
+                            {preview?.keyThings?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        👁 KEY THINGS TO WATCH
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'7px' }}>
+                                        {preview.keyThings.map((item, i) => (
+                                            <div key={i} style={{
+                                                display:'flex', gap:'10px', alignItems:'flex-start',
+                                                padding:'10px 14px',
+                                                backgroundColor:'#f8fafc',
+                                                borderRadius:'8px',
+                                                border:'1px solid #e2e8f0',
+                                            }}>
+                                                <div style={{
+                                                    width:'20px', height:'20px', borderRadius:'50%',
+                                                    backgroundColor:'#7c3aed',
+                                                    color:'#fff', fontSize:'11px', fontWeight:'800',
+                                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                                    flexShrink:0, marginTop:'1px',
+                                                }}>{i+1}</div>
+                                                <div style={{ fontSize:'13px', color:'#333', lineHeight:1.5 }}>{item}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Historical quarters mini-table ── */}
+                            {rawData.historical?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        📜 LAST {rawData.historical.length} QUARTERS
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                                        {rawData.historical.map((q, i) => (
+                                            <div key={i} style={{
+                                                display:'flex', alignItems:'center', gap:'10px',
+                                                padding:'8px 12px', borderRadius:'8px',
+                                                backgroundColor: q.beat === true ? 'rgba(16,185,129,0.05)' : q.beat === false ? 'rgba(239,68,68,0.05)' : '#f8fafc',
+                                                border:`1px solid ${q.beat === true ? 'rgba(16,185,129,0.2)' : q.beat === false ? 'rgba(239,68,68,0.15)' : '#e2e8f0'}`,
+                                                flexWrap:'wrap',
+                                            }}>
+                                                <span style={{ fontSize:'11px', color:'#64748b', minWidth:'75px', fontWeight:'600' }}>
+                                                    {q.date}
+                                                </span>
+                                                <span style={{ fontSize:'12px', fontWeight:'800',
+                                                    color: q.beat === true ? '#10b981' : q.beat === false ? '#ef4444' : '#94a3b8' }}>
+                                                    {q.epsActual != null ? `$${q.epsActual}` : '—'}
+                                                </span>
+                                                <span style={{ fontSize:'11px', color:'#94a3b8' }}>
+                                                    {q.epsEstimate != null ? `est $${q.epsEstimate}` : ''}
+                                                </span>
+                                                {q.surprisePct != null && (
+                                                    <span style={{
+                                                        fontSize:'11px', fontWeight:'700',
+                                                        padding:'1px 7px', borderRadius:'10px',
+                                                        backgroundColor: q.surprisePct >= 0 ? '#f0fdf4' : '#fef2f2',
+                                                        color: q.surprisePct >= 0 ? '#10b981' : '#ef4444',
+                                                        border:`1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}`,
+                                                    }}>
+                                                        {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
+                                                    </span>
+                                                )}
+                                                <span style={{ marginLeft:'auto', fontSize:'11px', fontWeight:'800',
+                                                    color: q.beat === true ? '#10b981' : q.beat === false ? '#ef4444' : '#94a3b8' }}>
+                                                    {q.beat === true ? '✓ Beat' : q.beat === false ? '✗ Miss' : '—'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Re-run */}
+                            <button onClick={run} style={{
+                                padding:'11px', borderRadius:'10px',
+                                background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                color:'#fff', border:'none',
+                                fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
+                            }}>
+                                🔄 Re-run Preview
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes modalSlideUp {
+                    from { opacity:0; transform:translateY(24px) scale(0.97); }
+                    to   { opacity:1; transform:translateY(0)     scale(1);    }
+                }
+                @keyframes spin         { from { transform:rotate(0deg);   } to { transform:rotate(360deg); } }
+                @keyframes sabrnaTyping { 0%,60%,100% { transform:translateY(0);    opacity:0.4; }
+                                          30%          { transform:translateY(-4px); opacity:1;   } }
+            `}</style>
+        </div>
+    );
+}
 
     const fmtCap = (v) => {
         if (!v) return '--';
@@ -1912,6 +2460,8 @@ function EarningsCalendar({ onSelectTicker }) {
         if (Math.abs(v) >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
         return `$${v}`;
     };
+
+    
 
     const ReactionPanel = ({ data, onClose }) => {
         if (!data) return null;
@@ -2166,6 +2716,20 @@ function EarningsCalendar({ onSelectTicker }) {
                                             {info.pe ? ` · P/E ${info.pe?.toFixed(1)}` : ''}
                                         </div>
                                     </div>
+                                    <button
+                                        onClick={() => setPreviewTicker(r.ticker)}
+                                        style={{
+                                            padding:'10px 18px', borderRadius:'10px',
+                                            background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                            color:'#fff', border:'none',
+                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'7px',
+                                            alignSelf:'flex-start', flexShrink: 0,
+                                        }}
+                                    >
+                                        😼 Sabrina's Earnings Preview
+                                    </button>
+
                                     {/* Beat rate badge */}
                                     {stats.beatRate != null && (
                                         <div style={{
@@ -2732,7 +3296,20 @@ function EarningsCalendar({ onSelectTicker }) {
                                                         : <span style={{ fontSize:'10px', fontWeight:'700', color:'#2563eb', backgroundColor:'#eff6ff', padding:'2px 6px', borderRadius:'6px' }}>Upcoming</span>
                                                     }
                                                 </div>
-                                                <div style={{ fontSize:'11px', color:'#2563eb', flexShrink:0 }}>→</div>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+                                                    {e.isUpcoming && (
+                                                        <button
+                                                            onClick={ev => { ev.stopPropagation(); setPreviewTicker(e.ticker); }}
+                                                            style={{
+                                                                padding:'3px 8px', borderRadius:'6px', fontSize:'11px',
+                                                                fontWeight:'700', border:'none',
+                                                                background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                color:'#fff', cursor:'pointer',
+                                                            }}
+                                                        >😼</button>
+                                                    )}
+                                                    <div style={{ fontSize:'11px', color:'#2563eb' }}>→</div>
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -3062,6 +3639,15 @@ function EarningsCalendar({ onSelectTicker }) {
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
+
+            {previewTicker && (
+                <SabrinaEarningsPreview
+                    ticker={previewTicker}
+                    openaiKey={openaiKey}  // pass this prop into EarningsCalendar
+                    onClose={() => setPreviewTicker(null)}
+                />
+            )}
+
         </div>
     );
 }
@@ -5623,6 +6209,9 @@ export default function SnowAIStockScreener() {
                         {showCalendar && (
                             <EarningsCalendar onSelectTicker={(sym) => {
                                 setTicker(sym);
+                                openaiKey={OPENAI_API_KEY}
+
+
                                 setShowCalendar(false);
                                 // Trigger a search for the selected ticker
                                 setTimeout(() => {
