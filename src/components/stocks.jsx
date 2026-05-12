@@ -239,6 +239,467 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
+function MomentumVelocityPanel({ ticker, openaiKey }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [data,     setData]     = React.useState(null);
+    const [loading,  setLoading]  = React.useState(false);
+    const [error,    setError]    = React.useState(null);
+    const [interval, setInterval] = React.useState('1D');
+    const [tab,      setTab]      = React.useState('overview'); // overview|roc|volume
+
+    React.useEffect(() => {
+        if (ticker) fetch_data();
+    }, [ticker, interval]);
+
+    const fetch_data = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_momentum_velocity_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ ticker, interval }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── State config ─────────────────────────────────────────────────────────
+    const STATE_CONFIG = {
+        HIGH_VELOCITY: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'High Velocity',  desc:'Strong momentum — stock is moving fast'         },
+        BUILDING:      { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'📈', label:'Building',       desc:'Momentum picking up — watch for breakout'        },
+        LOW_VELOCITY:  { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'🐢', label:'Low Velocity',   desc:'Weak momentum — moving but slowly'               },
+        IDLE:          { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'😴', label:'Idle',           desc:'No momentum — stock is going nowhere right now'  },
+        UNKNOWN:       { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'❓', label:'Unknown',        desc:'Not enough data'                                 },
+    };
+
+    const DIR_CONFIG = {
+        BULLISH: { color:'#10b981', icon:'▲', label:'Bullish' },
+        BEARISH: { color:'#ef4444', icon:'▼', label:'Bearish' },
+        NEUTRAL: { color:'#94a3b8', icon:'→', label:'Neutral' },
+    };
+
+    if (!ticker) return null;
+
+    const sc  = data ? (STATE_CONFIG[data.velocityState] || STATE_CONFIG.UNKNOWN) : null;
+    const dc  = data ? (DIR_CONFIG[data.direction]       || DIR_CONFIG.NEUTRAL)   : null;
+
+    // ── Mini sparkline helper ─────────────────────────────────────────────────
+    const Sparkline = ({ series, color, zeroLine = false, height = 48 }) => {
+        if (!series?.length) return null;
+        const W      = 300;
+        const H      = height;
+        const vals   = series.map(s => s.value);
+        const minV   = Math.min(...vals);
+        const maxV   = Math.max(...vals);
+        const range  = maxV - minV || 1;
+        const norm   = v => H - ((v - minV) / range) * (H - 4) - 2;
+        const pts    = series.map((s, i) => `${(i / (series.length - 1)) * W},${norm(s.value)}`).join(' ');
+        const zeroY  = zeroLine ? norm(0) : null;
+
+        return (
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:'block' }}>
+                {zeroLine && zeroY !== null && (
+                    <line x1="0" y1={zeroY} x2={W} y2={zeroY}
+                        stroke="rgba(0,0,0,0.15)" strokeWidth="1" strokeDasharray="3,2"/>
+                )}
+                <polyline points={pts} fill="none"
+                    stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+                {/* Colour dots for positive/negative */}
+                {zeroLine && series.map((s, i) => {
+                    if (i % 5 !== 0) return null;
+                    return (
+                        <circle key={i}
+                            cx={(i / (series.length - 1)) * W}
+                            cy={norm(s.value)}
+                            r="2"
+                            fill={s.value >= 0 ? '#10b981' : '#ef4444'}
+                        />
+                    );
+                })}
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{
+            backgroundColor: '#fff',
+            borderRadius:    '14px',
+            border:          '1px solid #e2e8f0',
+            boxShadow:       '0 4px 16px rgba(0,0,0,0.06)',
+            overflow:        'hidden',
+            marginBottom:    '20px',
+            fontFamily:      "'Segoe UI', system-ui, sans-serif",
+        }}>
+
+            {/* ── Header ─────────────────────────────────────────────────────── */}
+            <div style={{
+                padding:    '14px 18px',
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                display:    'flex', alignItems:'center',
+                justifyContent:'space-between', flexWrap:'wrap', gap:'10px',
+            }}>
+                <div>
+                    <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>
+                        ⚡ Momentum Velocity — {ticker}
+                    </div>
+                    <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', marginTop:'2px' }}>
+                        ADX · ROC · Volume Velocity · Relative Strength
+                    </div>
+                </div>
+                <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
+                    {/* Interval picker */}
+                    {['15m','1h','1D','1W'].map(iv => (
+                        <button key={iv} onClick={() => setInterval(iv)}
+                            style={{
+                                padding:'4px 10px', borderRadius:'6px', fontSize:'11px',
+                                fontWeight:'700', cursor:'pointer', border:'none',
+                                backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                color: interval === iv ? '#fff' : 'rgba(255,255,255,0.5)',
+                                transition:'all 0.15s',
+                            }}>{iv}</button>
+                    ))}
+                    <button onClick={fetch_data} disabled={loading}
+                        style={{
+                            padding:'4px 10px', borderRadius:'6px', fontSize:'11px',
+                            fontWeight:'700', cursor:'pointer', border:'none',
+                            backgroundColor:'rgba(255,255,255,0.1)',
+                            color:'rgba(255,255,255,0.6)',
+                        }}>
+                        <span style={{ display:'inline-block', animation: loading ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Loading ─────────────────────────────────────────────────────── */}
+            {loading && (
+                <div style={{ padding:'40px', textAlign:'center', color:'#64748b' }}>
+                    <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⚡</div>
+                    <div style={{ fontSize:'13px', fontWeight:'600' }}>Calculating momentum velocity...</div>
+                </div>
+            )}
+
+            {/* ── Error ──────────────────────────────────────────────────────── */}
+            {error && !loading && (
+                <div style={{ padding:'16px 18px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>
+                    ⚠️ {error}
+                </div>
+            )}
+
+            {/* ── Main content ────────────────────────────────────────────────── */}
+            {data && !loading && (
+                <>
+                    {/* ── Velocity score hero ── */}
+                    <div style={{
+                        padding:         '18px 20px',
+                        backgroundColor: sc.bg,
+                        borderBottom:    `3px solid ${sc.color}`,
+                        display:         'flex', gap:'16px',
+                        alignItems:      'center', flexWrap:'wrap',
+                    }}>
+                        {/* Big score circle */}
+                        <div style={{
+                            width:'80px', height:'80px', borderRadius:'50%',
+                            backgroundColor: sc.color,
+                            display:'flex', flexDirection:'column',
+                            alignItems:'center', justifyContent:'center',
+                            flexShrink:0,
+                            boxShadow:`0 4px 20px ${sc.color}44`,
+                        }}>
+                            <div style={{ fontSize:'24px', fontWeight:'900', color:'#fff', lineHeight:1 }}>
+                                {data.velocityScore ?? '—'}
+                            </div>
+                            <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.8)', fontWeight:'700', letterSpacing:'0.05em' }}>
+                                /100
+                            </div>
+                        </div>
+
+                        <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'20px' }}>{sc.icon}</span>
+                                <span style={{ fontSize:'18px', fontWeight:'800', color:sc.color }}>{sc.label}</span>
+                                <span style={{
+                                    padding:'3px 10px', borderRadius:'20px', fontSize:'12px',
+                                    fontWeight:'700',
+                                    backgroundColor: dc.color + '18',
+                                    color:           dc.color,
+                                    border:`1px solid ${dc.color}30`,
+                                }}>
+                                    {dc.icon} {dc.label}
+                                </span>
+                            </div>
+                            <div style={{ fontSize:'13px', color:'#475569', lineHeight:1.5 }}>
+                                {sc.desc}
+                            </div>
+                            {/* Velocity bar */}
+                            <div style={{ marginTop:'10px' }}>
+                                <div style={{ height:'6px', backgroundColor:'#e2e8f0', borderRadius:'3px', overflow:'hidden' }}>
+                                    <div style={{
+                                        height:'100%',
+                                        width:`${data.velocityScore ?? 0}%`,
+                                        backgroundColor: sc.color,
+                                        borderRadius:'3px',
+                                        transition:'width 1s ease',
+                                    }}/>
+                                </div>
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'9px', color:'#94a3b8', marginTop:'3px', fontWeight:'700' }}>
+                                    <span>IDLE</span>
+                                    <span>LOW</span>
+                                    <span>BUILDING</span>
+                                    <span>HIGH ⚡</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Tab switcher ── */}
+                    <div style={{
+                        display:'flex', borderBottom:'2px solid #f1f5f9',
+                        padding:'0 18px', backgroundColor:'#fafafa',
+                    }}>
+                        {[
+                            { id:'overview', label:'Overview'       },
+                            { id:'roc',      label:'ROC Chart'      },
+                            { id:'volume',   label:'Volume Velocity'},
+                        ].map(t => (
+                            <button key={t.id} onClick={() => setTab(t.id)}
+                                style={{
+                                    padding:'10px 16px', fontSize:'12px', fontWeight:'700',
+                                    border:'none', backgroundColor:'transparent',
+                                    borderBottom:`2px solid ${tab === t.id ? '#3b82f6' : 'transparent'}`,
+                                    color: tab === t.id ? '#3b82f6' : '#94a3b8',
+                                    cursor:'pointer', marginBottom:'-2px',
+                                    transition:'all 0.15s', whiteSpace:'nowrap',
+                                }}>{t.label}</button>
+                        ))}
+                    </div>
+
+                    {/* ── Overview tab ── */}
+                    {tab === 'overview' && (
+                        <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:'14px' }}>
+
+                            {/* Key metrics grid */}
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'10px' }}>
+                                {[
+                                    {
+                                        label: 'ADX',
+                                        value: data.adx != null ? data.adx.toFixed(1) : '—',
+                                        sub:   data.adx >= 25 ? 'Trending 🔥' : data.adx >= 20 ? 'Weak trend' : 'Ranging 😴',
+                                        color: data.adx >= 25 ? '#10b981' : data.adx >= 20 ? '#f59e0b' : '#94a3b8',
+                                        tip:   'ADX > 25 = trending. < 20 = idling.',
+                                    },
+                                    {
+                                        label: '+DI / -DI',
+                                        value: data.plusDI != null ? `${data.plusDI.toFixed(1)} / ${data.minusDI.toFixed(1)}` : '—',
+                                        sub:   data.plusDI > data.minusDI ? 'Bulls winning' : 'Bears winning',
+                                        color: data.plusDI > data.minusDI ? '#10b981' : '#ef4444',
+                                        tip:   '+DI > -DI = bullish pressure',
+                                    },
+                                    {
+                                        label: 'Vol Ratio',
+                                        value: data.volRatio != null ? `${data.volRatio}×` : '—',
+                                        sub:   data.volRatio >= 1.5 ? 'High activity' : data.volRatio >= 1.0 ? 'Normal' : 'Low activity',
+                                        color: data.volRatio >= 1.5 ? '#10b981' : data.volRatio >= 1.0 ? '#3b82f6' : '#94a3b8',
+                                        tip:   '5-day vs 20-day avg volume',
+                                    },
+                                    {
+                                        label: 'ROC 20d',
+                                        value: data.roc20 != null ? `${data.roc20 >= 0 ? '+' : ''}${data.roc20}%` : '—',
+                                        sub:   '20-day price change',
+                                        color: data.roc20 >= 5 ? '#10b981' : data.roc20 >= 0 ? '#3b82f6' : data.roc20 >= -5 ? '#f59e0b' : '#ef4444',
+                                        tip:   'Rate of change over 20 periods',
+                                    },
+                                    {
+                                        label: 'Acceleration',
+                                        value: data.acceleration != null ? `${data.acceleration >= 0 ? '+' : ''}${data.acceleration.toFixed(2)}` : '—',
+                                        sub:   data.acceleration > 0 ? '⚡ Speeding up' : data.acceleration < 0 ? '🐢 Slowing down' : 'Steady',
+                                        color: data.acceleration > 0.5 ? '#10b981' : data.acceleration < -0.5 ? '#ef4444' : '#f59e0b',
+                                        tip:   'Is momentum itself accelerating?',
+                                    },
+                                    {
+                                        label: 'vs SPY',
+                                        value: data.relStrength != null ? `${data.relStrength >= 0 ? '+' : ''}${data.relStrength}%` : '—',
+                                        sub:   data.relStrength > 0 ? 'Outperforming' : 'Underperforming',
+                                        color: data.relStrength > 0 ? '#10b981' : '#ef4444',
+                                        tip:   'Relative strength vs S&P 500',
+                                    },
+                                ].map((item, i) => (
+                                    <div key={i} title={item.tip} style={{
+                                        padding:'11px 13px',
+                                        backgroundColor:'#f8fafc',
+                                        borderRadius:'10px',
+                                        borderLeft:`3px solid ${item.color}`,
+                                        cursor:'help',
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'4px' }}>
+                                            {item.label}
+                                        </div>
+                                        <div style={{ fontSize:'17px', fontWeight:'800', color:item.color }}>
+                                            {item.value}
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>
+                                            {item.sub}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ROC multi-timeframe strip */}
+                            <div style={{
+                                padding:'12px 14px',
+                                backgroundColor:'#f8fafc',
+                                borderRadius:'10px',
+                                border:'1px solid #e2e8f0',
+                            }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                    RATE OF CHANGE — MULTI TIMEFRAME
+                                </div>
+                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                    {[
+                                        { label:'5-bar',  val: data.roc5  },
+                                        { label:'10-bar', val: data.roc10 },
+                                        { label:'20-bar', val: data.roc20 },
+                                        { label:'60-bar', val: data.roc60 },
+                                    ].filter(r => r.val != null).map((r, i) => {
+                                        const c = r.val >= 5 ? '#10b981' : r.val >= 0 ? '#3b82f6' : r.val >= -5 ? '#f59e0b' : '#ef4444';
+                                        return (
+                                            <div key={i} style={{
+                                                padding:'8px 14px', borderRadius:'20px',
+                                                backgroundColor: c + '15',
+                                                border:`1px solid ${c}30`,
+                                                display:'flex', flexDirection:'column', alignItems:'center',
+                                            }}>
+                                                <span style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600' }}>{r.label}</span>
+                                                <span style={{ fontSize:'15px', fontWeight:'800', color:c }}>
+                                                    {r.val >= 0 ? '+' : ''}{r.val}%
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Plain English summary */}
+                            <div style={{
+                                padding:'12px 14px',
+                                backgroundColor: sc.bg,
+                                borderRadius:'10px',
+                                border:`1px solid ${sc.border}`,
+                                borderLeft:`4px solid ${sc.color}`,
+                            }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:sc.color, letterSpacing:'0.07em', marginBottom:'6px' }}>
+                                    😼 WHAT THIS MEANS FOR YOU
+                                </div>
+                                <div style={{ fontSize:'13px', color:'#333', lineHeight:1.6 }}>
+                                    {data.velocityState === 'HIGH_VELOCITY' && `${ticker} is moving fast right now. ADX of ${data.adx?.toFixed(0)} confirms a strong trend. Volume is ${data.volRatio}× normal — real money is behind this move.`}
+                                    {data.velocityState === 'BUILDING' && `${ticker} is picking up steam. Momentum is ${data.acceleration > 0 ? 'accelerating' : 'present but not yet accelerating'}. ADX of ${data.adx?.toFixed(0)} suggests ${data.adx >= 20 ? 'a trend is forming' : 'still early — watch for confirmation'}.`}
+                                    {data.velocityState === 'LOW_VELOCITY' && `${ticker} is moving slowly. ADX of ${data.adx?.toFixed(0)} is below 25 — no strong trend. Volume ratio of ${data.volRatio}× is ${data.volRatio < 1 ? 'below average — low conviction' : 'normal'}. Wait for a catalyst.`}
+                                    {data.velocityState === 'IDLE' && `${ticker} is going nowhere right now. ADX of ${data.adx?.toFixed(0)} signals a ranging, trendless market. Trading this without a catalyst is a low-probability bet. Wait for velocity to build first.`}
+                                    {data.relStrength != null && ` It's ${data.relStrength > 0 ? `outperforming SPY by ${data.relStrength}%` : `underperforming SPY by ${Math.abs(data.relStrength)}%`} over 20 bars.`}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── ROC Chart tab ── */}
+                    {tab === 'roc' && (
+                        <div style={{ padding:'16px 18px' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                10-BAR RATE OF CHANGE — positive = accelerating up, negative = accelerating down
+                            </div>
+                            <div style={{
+                                padding:'14px',
+                                backgroundColor:'#0f172a',
+                                borderRadius:'10px',
+                                marginBottom:'12px',
+                            }}>
+                                <Sparkline
+                                    series={data.rocSeries}
+                                    color="#60a5fa"
+                                    zeroLine={true}
+                                    height={80}
+                                />
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'#475569', marginTop:'6px' }}>
+                                    <span>{data.rocSeries?.[0]?.date}</span>
+                                    <span style={{ color:'#60a5fa', fontWeight:'700' }}>
+                                        Now: {data.rocNow != null ? `${data.rocNow >= 0 ? '+' : ''}${data.rocNow}%` : '—'}
+                                    </span>
+                                    <span>{data.rocSeries?.[data.rocSeries.length-1]?.date}</span>
+                                </div>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, padding:'0 2px' }}>
+                                ROC above zero = price is higher than it was 10 bars ago (positive momentum).
+                                ROC crossing zero from below = momentum turning bullish.
+                                Bars where ROC is rising = acceleration. Bars where it's falling = deceleration.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Volume Velocity tab ── */}
+                    {tab === 'volume' && (
+                        <div style={{ padding:'16px 18px' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                VOLUME RATIO (daily vol ÷ 20-day avg) — above 1.0 = above average activity
+                            </div>
+                            <div style={{
+                                padding:'14px',
+                                backgroundColor:'#0f172a',
+                                borderRadius:'10px',
+                                marginBottom:'12px',
+                            }}>
+                                <Sparkline
+                                    series={data.volSeries}
+                                    color="#f59e0b"
+                                    zeroLine={false}
+                                    height={80}
+                                />
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'#475569', marginTop:'6px' }}>
+                                    <span>{data.volSeries?.[0]?.date}</span>
+                                    <span style={{ color:'#f59e0b', fontWeight:'700' }}>
+                                        Now: {data.volRatio != null ? `${data.volRatio}× avg` : '—'}
+                                    </span>
+                                    <span>{data.volSeries?.[data.volSeries.length-1]?.date}</span>
+                                </div>
+                            </div>
+
+                            {/* Volume context */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
+                                {[
+                                    { label:'Today\'s Vol',   value: data.currentVolume?.toLocaleString() || '—', color:'#f59e0b' },
+                                    { label:'5-day Avg',      value: data.volSma5?.toLocaleString()       || '—', color:'#94a3b8' },
+                                    { label:'20-day Avg',     value: data.volSma20?.toLocaleString()      || '—', color:'#94a3b8' },
+                                ].map((item, i) => (
+                                    <div key={i} style={{
+                                        padding:'10px 12px', backgroundColor:'#f8fafc',
+                                        borderRadius:'8px', border:'1px solid #e2e8f0',
+                                        textAlign:'center',
+                                    }}>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600', marginBottom:'4px' }}>{item.label}</div>
+                                        <div style={{ fontSize:'14px', fontWeight:'700', color:item.color }}>{item.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop:'10px', fontSize:'12px', color:'#64748b', lineHeight:1.6 }}>
+                                Volume confirms price moves. A price surge on {data.volRatio >= 1.5 ? 'high' : 'low'} volume like this ({data.volRatio}× average) is {data.volRatio >= 1.5 ? 'more likely to be sustained — real buyers/sellers are participating.' : 'less reliable — could be a false move without conviction behind it.'}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+    );
+}
+
 // --- Sabrina AI Chatbot Component --------------------------------------------
 function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -5649,6 +6110,13 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         </div>
                     )}
                 </div>
+            )}
+
+            {!compactMode && (
+                <MomentumVelocityPanel
+                    ticker={ticker}
+                    openaiKey={openaiKey}
+                />
             )}
 
             {/* -- Bottom context panels -- */}
