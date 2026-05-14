@@ -239,6 +239,518 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
+function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    // The full stock universe from COMPARE_ASSETS + SECTOR_MAP
+    const ALL_TICKERS = Object.keys(SECTOR_MAP);
+
+    const [loading,    setLoading]    = React.useState(false);
+    const [results,    setResults]    = React.useState(null);
+    const [error,      setError]      = React.useState(null);
+    const [minCap,     setMinCap]     = React.useState('10B');
+    const [filterSig,  setFilterSig]  = React.useState('ALL');
+    const [filterDir,  setFilterDir]  = React.useState('ALL');
+    const [sortBy,     setSortBy]     = React.useState('score');
+    const [expandedRow,setExpandedRow]= React.useState(null);
+
+    const CAP_OPTIONS = {
+        '1B':  1_000_000_000,
+        '10B': 10_000_000_000,
+        '50B': 50_000_000_000,
+        '100B':100_000_000_000,
+        '500B':500_000_000_000,
+    };
+
+    const run = async () => {
+        setLoading(true);
+        setError(null);
+        setResults(null);
+        setExpandedRow(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    tickers:      ALL_TICKERS,
+                    minMarketCap: CAP_OPTIONS[minCap],
+                    topN:         30,
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setResults(json);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    // ── Signal config ─────────────────────────────────────────────────────────
+    const SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', border:'#fed7aa', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', border:'#ddd6fe', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', border:'#a5f3fc', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'👁',  label:'Watch'            },
+    };
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+    };
+
+    const filtered = (results?.results || [])
+        .filter(r => filterSig === 'ALL' || r.signal === filterSig)
+        .filter(r => filterDir === 'ALL' || r.direction === filterDir)
+        .sort((a, b) => {
+            if (sortBy === 'score')   return b.score    - a.score;
+            if (sortBy === 'adx')     return b.adxNow   - a.adxNow;
+            if (sortBy === 'roc')     return (b.roc20||0) - (a.roc20||0);
+            if (sortBy === 'vol')     return (b.volRatio||0) - (a.volRatio||0);
+            if (sortBy === 'cap')     return (b.marketCap||0) - (a.marketCap||0);
+            return 0;
+        });
+
+    // Score ring component
+    const ScoreRing = ({ score }) => {
+        const c = score >= 70 ? '#10b981' : score >= 45 ? '#3b82f6' : score >= 25 ? '#f59e0b' : '#94a3b8';
+        return (
+            <div style={{
+                width:'42px', height:'42px', borderRadius:'50%',
+                backgroundColor: c,
+                display:'flex', flexDirection:'column',
+                alignItems:'center', justifyContent:'center',
+                boxShadow:`0 2px 8px ${c}44`, flexShrink:0,
+            }}>
+                <span style={{ fontSize:'13px', fontWeight:'900', color:'#fff', lineHeight:1 }}>{Math.round(score)}</span>
+            </div>
+        );
+    };
+
+    return (
+        <div style={{
+            position:  'fixed', inset:0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            zIndex:    10020,
+            display:   'flex', alignItems:'flex-start',
+            justifyContent:'center',
+            padding:   '16px',
+            backdropFilter:'blur(4px)',
+            overflowY: 'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:           '100%',
+                maxWidth:        '860px',
+                borderRadius:    '18px',
+                overflow:        'hidden',
+                backgroundColor: '#fff',
+                boxShadow:       '0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:      "'Segoe UI', system-ui, sans-serif",
+                marginTop:       '8px',
+                marginBottom:    '24px',
+                animation:       'modalSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
+
+                {/* ── Header ── */}
+                <div style={{
+                    padding:    '18px 20px 14px',
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #2563eb 100%)',
+                    position:   'relative',
+                }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>🔭</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>
+                                    Trend Reversal & Velocity Scanner
+                                </span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Detects ranging→trending transitions, rising momentum & volume confirmation
+                                across {ALL_TICKERS.length} stocks
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.12)', border:'none',
+                            borderRadius:'50%', width:'32px', height:'32px',
+                            color:'#fff', fontSize:'17px', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            flexShrink:0,
+                        }}>×</button>
+                    </div>
+
+                    {/* Controls row */}
+                    <div style={{
+                        display:'flex', gap:'8px', marginTop:'14px',
+                        flexWrap:'wrap', alignItems:'center',
+                    }}>
+                        {/* Min market cap */}
+                        <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', fontWeight:'700', whiteSpace:'nowrap' }}>
+                                MIN CAP
+                            </span>
+                            {Object.keys(CAP_OPTIONS).map(k => (
+                                <button key={k} onClick={() => setMinCap(k)}
+                                    style={{
+                                        padding:'4px 10px', borderRadius:'6px',
+                                        fontSize:'11px', fontWeight:'700',
+                                        cursor:'pointer', border:'none',
+                                        backgroundColor: minCap === k ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                        color: minCap === k ? '#fff' : 'rgba(255,255,255,0.5)',
+                                        transition:'all 0.15s',
+                                    }}>{k}</button>
+                            ))}
+                        </div>
+
+                        <div style={{ width:'1px', height:'20px', backgroundColor:'rgba(255,255,255,0.15)', flexShrink:0 }}/>
+
+                        {/* Run button */}
+                        <button
+                            onClick={run}
+                            disabled={loading}
+                            style={{
+                                padding:'8px 20px', borderRadius:'9px',
+                                background: loading
+                                    ? 'rgba(59,130,246,0.4)'
+                                    : 'linear-gradient(135deg,#3b82f6,#2563eb)',
+                                border:'none', color:'#fff',
+                                fontWeight:'800', fontSize:'13px',
+                                cursor: loading ? 'wait' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'7px',
+                                boxShadow: loading ? 'none' : '0 4px 14px rgba(59,130,246,0.4)',
+                                transition:'all 0.2s',
+                            }}
+                        >
+                            {loading
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block', fontSize:'15px' }}>⚡</span> Scanning...</>
+                                : <><span>🔭</span> Run Scanner</>}
+                        </button>
+
+                        {results && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
+                                {results.count} hits from {results.totalScanned} scanned · {results.scannedAt}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Filter bar (only when results exist) ── */}
+                {results && !loading && (
+                    <div style={{
+                        padding:'10px 16px',
+                        backgroundColor:'#f8fafc',
+                        borderBottom:'1px solid #e2e8f0',
+                        display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center',
+                    }}>
+                        {/* Signal filter */}
+                        <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
+                            {['ALL', ...Object.keys(SIG)].map(s => {
+                                const cfg = SIG[s];
+                                const active = filterSig === s;
+                                return (
+                                    <button key={s} onClick={() => setFilterSig(s)}
+                                        style={{
+                                            padding:'3px 10px', borderRadius:'20px',
+                                            fontSize:'11px', fontWeight:'700',
+                                            cursor:'pointer',
+                                            border:`1px solid ${active && cfg ? cfg.color : '#e2e8f0'}`,
+                                            backgroundColor: active && cfg ? cfg.bg : '#fff',
+                                            color: active && cfg ? cfg.color : '#94a3b8',
+                                            transition:'all 0.15s',
+                                        }}>
+                                        {s === 'ALL' ? 'All Signals' : (cfg?.icon + ' ' + cfg?.label)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
+
+                        {/* Direction filter */}
+                        {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
+                            <button key={d} onClick={() => setFilterDir(d)}
+                                style={{
+                                    padding:'3px 10px', borderRadius:'20px',
+                                    fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                    border:`1px solid ${filterDir===d ? '#3b82f6' : '#e2e8f0'}`,
+                                    backgroundColor: filterDir===d ? '#eff6ff' : '#fff',
+                                    color: filterDir===d ? '#3b82f6' : '#94a3b8',
+                                }}>{d === 'ALL' ? 'All Dirs' : d}</button>
+                        ))}
+
+                        <div style={{ marginLeft:'auto', display:'flex', gap:'5px', alignItems:'center' }}>
+                            <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600' }}>Sort:</span>
+                            {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Volume'],['cap','Mkt Cap']].map(([k,l]) => (
+                                <button key={k} onClick={() => setSortBy(k)}
+                                    style={{
+                                        padding:'3px 8px', borderRadius:'6px',
+                                        fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:'none',
+                                        backgroundColor: sortBy===k ? '#1e3a5f' : '#e2e8f0',
+                                        color: sortBy===k ? '#fff' : '#64748b',
+                                    }}>{l}</button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Body ── */}
+                <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
+
+                    {/* Empty / prompt state */}
+                    {!loading && !results && !error && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'48px', marginBottom:'14px' }}>🔭</div>
+                            <div style={{ fontSize:'16px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>
+                                Ready to scan
+                            </div>
+                            <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'380px', margin:'0 auto', lineHeight:1.6 }}>
+                                Set your minimum market cap filter above, then hit
+                                <strong> Run Scanner</strong>. We'll check all {ALL_TICKERS.length} stocks
+                                for ranging→trending transitions and rising velocity.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Loading */}
+                    {loading && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'40px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'14px' }}>⚡</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>
+                                Scanning {ALL_TICKERS.length} stocks...
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#94a3b8', lineHeight:1.6 }}>
+                                Calculating ADX, ROC, volume velocity & breakout patterns.<br/>
+                                This takes ~30-60 seconds. Grab a coffee ☕
+                            </div>
+                            <div style={{ display:'flex', justifyContent:'center', gap:'6px', marginTop:'18px' }}>
+                                {[0,1,2,3,4].map(i => (
+                                    <div key={i} style={{
+                                        width:'8px', height:'8px', borderRadius:'50%',
+                                        backgroundColor:'#3b82f6',
+                                        animation:`sabrnaTyping 1.2s ${i*0.15}s infinite`,
+                                    }}/>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error */}
+                    {error && !loading && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>
+                            ⚠️ {error}
+                        </div>
+                    )}
+
+                    {/* Results */}
+                    {!loading && filtered.length > 0 && (
+                        <div style={{ padding:'12px 14px', display:'flex', flexDirection:'column', gap:'8px' }}>
+                            {filtered.map((r, i) => {
+                                const sc  = SIG[r.signal] || SIG.WATCH;
+                                const isOpen = expandedRow === r.ticker;
+                                const dirColor = r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+
+                                return (
+                                    <div key={r.ticker} style={{
+                                        borderRadius:'12px',
+                                        border:`1px solid ${isOpen ? sc.color : '#e2e8f0'}`,
+                                        overflow:'hidden',
+                                        transition:'border-color 0.2s',
+                                        boxShadow: isOpen ? `0 4px 20px ${sc.color}22` : 'none',
+                                    }}>
+                                        {/* Main row */}
+                                        <div
+                                            onClick={() => setExpandedRow(isOpen ? null : r.ticker)}
+                                            style={{
+                                                padding:'11px 14px',
+                                                display:'flex', alignItems:'center',
+                                                gap:'10px', cursor:'pointer',
+                                                backgroundColor: isOpen ? sc.bg : '#fff',
+                                                transition:'background 0.15s',
+                                            }}
+                                            onMouseEnter={e => { if (!isOpen) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                                            onMouseLeave={e => { if (!isOpen) e.currentTarget.style.backgroundColor = '#fff'; }}
+                                        >
+                                            <ScoreRing score={r.score} />
+
+                                            {/* Ticker + name */}
+                                            <div style={{ flex:1, minWidth:0 }}>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'7px', flexWrap:'wrap' }}>
+                                                    <span style={{ fontSize:'15px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</span>
+                                                    <span style={{
+                                                        padding:'2px 8px', borderRadius:'10px',
+                                                        fontSize:'11px', fontWeight:'700',
+                                                        backgroundColor: sc.bg,
+                                                        color: sc.color,
+                                                        border:`1px solid ${sc.border}`,
+                                                        whiteSpace:'nowrap',
+                                                    }}>{sc.icon} {sc.label}</span>
+                                                    <span style={{
+                                                        padding:'2px 8px', borderRadius:'10px',
+                                                        fontSize:'11px', fontWeight:'700',
+                                                        backgroundColor: dirColor + '15',
+                                                        color: dirColor,
+                                                        border:`1px solid ${dirColor}30`,
+                                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}</span>
+                                                </div>
+                                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                                                    {r.name} · {r.sector}
+                                                </div>
+                                            </div>
+
+                                            {/* Key stats - hide on very small screens */}
+                                            <div style={{ display:'flex', gap:'12px', alignItems:'center', flexShrink:0 }}>
+                                                <div style={{ textAlign:'center', minWidth:'40px' }}>
+                                                    <div style={{ fontSize:'13px', fontWeight:'800', color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8' }}>
+                                                        {r.adxNow?.toFixed(0)}
+                                                    </div>
+                                                    <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'600' }}>ADX</div>
+                                                </div>
+                                                <div style={{ textAlign:'center', minWidth:'44px' }}>
+                                                    <div style={{ fontSize:'13px', fontWeight:'800', color: (r.roc20||0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                                        {r.roc20 != null ? `${r.roc20 >= 0 ? '+' : ''}${r.roc20}%` : '—'}
+                                                    </div>
+                                                    <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'600' }}>ROC20</div>
+                                                </div>
+                                                <div style={{ textAlign:'center', minWidth:'36px' }}>
+                                                    <div style={{ fontSize:'13px', fontWeight:'800', color: (r.volRatio||0) >= 1.3 ? '#10b981' : '#94a3b8' }}>
+                                                        {r.volRatio != null ? `${r.volRatio}×` : '—'}
+                                                    </div>
+                                                    <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'600' }}>VOL</div>
+                                                </div>
+                                                <div style={{ textAlign:'right', minWidth:'55px' }}>
+                                                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>
+                                                        {r.currentPrice != null ? `$${r.currentPrice}` : '—'}
+                                                    </div>
+                                                    <div style={{ fontSize:'10px', color:'#94a3b8' }}>{fmtCap(r.marketCap)}</div>
+                                                </div>
+                                            </div>
+
+                                            <div style={{ fontSize:'14px', color: isOpen ? sc.color : '#94a3b8', flexShrink:0, transition:'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</div>
+                                        </div>
+
+                                        {/* Expanded detail */}
+                                        {isOpen && (
+                                            <div style={{
+                                                padding:'14px 16px',
+                                                backgroundColor:'#fafafa',
+                                                borderTop:`1px solid ${sc.border}`,
+                                                display:'flex', flexDirection:'column', gap:'12px',
+                                            }}>
+                                                {/* Signal explanation */}
+                                                <div style={{
+                                                    padding:'10px 14px',
+                                                    backgroundColor: sc.bg,
+                                                    borderRadius:'8px',
+                                                    borderLeft:`3px solid ${sc.color}`,
+                                                }}>
+                                                    <div style={{ fontSize:'11px', fontWeight:'700', color:sc.color, letterSpacing:'0.07em', marginBottom:'4px' }}>
+                                                        WHY THIS SHOWED UP
+                                                    </div>
+                                                    <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>
+                                                        {r.rangeToTrend && `ADX moved from ${r.adx20Ago?.toFixed(0)} → ${r.adxNow?.toFixed(0)} over 20 bars — classic range-to-trend transition. `}
+                                                        {r.adxRising && !r.rangeToTrend && `ADX rising (was ${r.adx5Ago?.toFixed(0)}, now ${r.adxNow?.toFixed(0)}) — trend is strengthening. `}
+                                                        {r.rocAccelerating && `ROC accelerating (+${r.acceleration?.toFixed(2)} above recent avg) — momentum is speeding up. `}
+                                                        {r.volConfirming && `Volume is ${r.volRatio}× the 20-day average — real conviction behind the move. `}
+                                                        {r.breakingOut && `Price breaking above recent range highs. `}
+                                                        {r.earningsNearby && r.earningsBeat && `Recent earnings beat (${r.daysSinceEarnings}d ago) may be fuelling the move. `}
+                                                        {r.earningsNearby && r.earningsBeat === false && `Recent earnings miss (${r.daysSinceEarnings}d ago) — trend is despite bad earnings. `}
+                                                    </div>
+                                                </div>
+
+                                                {/* Metrics grid */}
+                                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'8px' }}>
+                                                    {[
+                                                        { label:'ADX Now',     value:r.adxNow?.toFixed(1),  color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8', sub: r.adxNow >= 25 ? 'Trending' : r.adxNow >= 20 ? 'Building' : 'Ranging' },
+                                                        { label:'ADX 20d Ago', value:r.adx20Ago?.toFixed(1) || '—', color:'#94a3b8', sub:'was' },
+                                                        { label:'+DI / -DI',   value:`${r.plusDI?.toFixed(0)} / ${r.minusDI?.toFixed(0)}`, color: r.plusDI > r.minusDI ? '#10b981' : '#ef4444', sub: r.plusDI > r.minusDI ? 'Bulls ▲' : 'Bears ▼' },
+                                                        { label:'ROC 5d',      value: r.roc5  != null ? `${r.roc5  >= 0 ? '+' : ''}${r.roc5}%`  : '—', color:(r.roc5||0)  >= 0 ? '#10b981' : '#ef4444', sub:'' },
+                                                        { label:'ROC 20d',     value: r.roc20 != null ? `${r.roc20 >= 0 ? '+' : ''}${r.roc20}%` : '—', color:(r.roc20||0) >= 0 ? '#10b981' : '#ef4444', sub:'' },
+                                                        { label:'Acceleration',value: r.acceleration != null ? `${r.acceleration >= 0 ? '+' : ''}${r.acceleration?.toFixed(2)}` : '—', color: (r.acceleration||0) > 0 ? '#10b981' : '#ef4444', sub:(r.acceleration||0) > 0 ? 'Speeding up ⚡' : 'Slowing 🐢' },
+                                                        { label:'Vol Ratio',   value: r.volRatio != null ? `${r.volRatio}×` : '—', color:(r.volRatio||0) >= 1.3 ? '#10b981' : '#94a3b8', sub:'5d/20d avg' },
+                                                        { label:'From 52W High',value: r.pctFromHigh != null ? `${r.pctFromHigh}%` : '—', color: (r.pctFromHigh||0) >= -5 ? '#10b981' : '#94a3b8', sub:'' },
+                                                        { label:'Mkt Cap',     value: fmtCap(r.marketCap), color:'#3b82f6', sub:r.sector },
+                                                    ].map((item, ii) => (
+                                                        <div key={ii} style={{
+                                                            padding:'8px 10px', backgroundColor:'#fff',
+                                                            borderRadius:'8px', border:'1px solid #e2e8f0',
+                                                            borderLeft:`2px solid ${item.color}`,
+                                                        }}>
+                                                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'3px' }}>{item.label}</div>
+                                                            <div style={{ fontSize:'14px', fontWeight:'800', color:item.color }}>{item.value}</div>
+                                                            {item.sub && <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'1px' }}>{item.sub}</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Earnings tag if relevant */}
+                                                {r.lastEarningsDate && (
+                                                    <div style={{
+                                                        display:'flex', gap:'8px', alignItems:'center',
+                                                        padding:'8px 12px', borderRadius:'8px',
+                                                        backgroundColor: r.earningsBeat ? 'rgba(16,185,129,0.08)' : r.earningsBeat === false ? 'rgba(239,68,68,0.08)' : '#f8fafc',
+                                                        border:`1px solid ${r.earningsBeat ? '#bbf7d0' : r.earningsBeat === false ? '#fecaca' : '#e2e8f0'}`,
+                                                        fontSize:'12px',
+                                                    }}>
+                                                        <span style={{ fontSize:'14px' }}>💰</span>
+                                                        <span style={{ color:'#64748b' }}>
+                                                            Last earnings: <strong>{r.lastEarningsDate}</strong>
+                                                            {r.daysSinceEarnings != null && ` (${r.daysSinceEarnings}d ago)`}
+                                                        </span>
+                                                        {r.earningsBeat === true  && <span style={{ color:'#10b981', fontWeight:'700', marginLeft:'4px' }}>✓ Beat</span>}
+                                                        {r.earningsBeat === false && <span style={{ color:'#ef4444', fontWeight:'700', marginLeft:'4px' }}>✗ Miss</span>}
+                                                        {r.earningsNearby && <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'700', color:'#f59e0b', backgroundColor:'#fffbeb', padding:'1px 7px', borderRadius:'10px', border:'1px solid #fde68a' }}>Recent</span>}
+                                                    </div>
+                                                )}
+
+                                                {/* Action buttons */}
+                                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                                    <button
+                                                        onClick={() => { onSelectTicker && onSelectTicker(r.ticker); onClose(); }}
+                                                        style={{
+                                                            flex:1, padding:'9px', borderRadius:'9px',
+                                                            background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                            color:'#fff', border:'none',
+                                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                                                        }}
+                                                    >→ Open in Screener</button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* No results after filter */}
+                    {!loading && results && filtered.length === 0 && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                            <div style={{ fontSize:'32px', marginBottom:'10px' }}>🔭</div>
+                            No stocks matched your current filters. Try loosening the signal or direction filter.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes modalSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes spin          { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes sabrnaTyping  { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-5px); opacity:1; } }
+            `}</style>
+        </div>
+    );
+}
+
 function MomentumVelocityPanel({ ticker, openaiKey }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [data,     setData]     = React.useState(null);
@@ -6323,6 +6835,8 @@ export default function SnowAIStockScreener() {
     const [hoistedCachedAnalyses, setHoistedCachedAnalyses] = useState({});
     const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [showScanner, setShowScanner] = React.useState(false);
+
 
     useEffect(() => {
         const loadVoices = () => {
@@ -6669,6 +7183,17 @@ export default function SnowAIStockScreener() {
                                         📊 View Results
                                     </button>
                                 )}
+                                <button
+                                    onClick={() => setShowScanner(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#0f172a',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🔭 Trend Scanner
+                                </button>
+
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
                         </div>
@@ -7004,6 +7529,13 @@ export default function SnowAIStockScreener() {
                 ticker={ticker}
                 openaiKey={OPENAI_API_KEY}
             />
+            <TrendReversalScanner
+                isOpen={showScanner}
+                onClose={() => setShowScanner(false)}
+                onSelectTicker={handleStockClick}
+                openaiKey={OPENAI_API_KEY}
+            />
+
         </div>
     );
 }
