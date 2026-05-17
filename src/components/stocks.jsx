@@ -239,27 +239,46 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
-function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
-    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
-    // The full stock universe from COMPARE_ASSETS + SECTOR_MAP
+function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND    = 'https://backend-production-c0ab.up.railway.app';
     const ALL_TICKERS = Object.keys(SECTOR_MAP);
 
-    const [loading,    setLoading]    = React.useState(false);
-    const [results,    setResults]    = React.useState(null);
-    const [error,      setError]      = React.useState(null);
-    const [minCap,     setMinCap]     = React.useState('10B');
-    const [filterSig,  setFilterSig]  = React.useState('ALL');
-    const [filterDir,  setFilterDir]  = React.useState('ALL');
-    const [sortBy,     setSortBy]     = React.useState('score');
-    const [expandedRow,setExpandedRow]= React.useState(null);
+    const [loading,     setLoading]     = React.useState(false);
+    const [results,     setResults]     = React.useState(null);
+    const [error,       setError]       = React.useState(null);
+    const [minCap,      setMinCap]      = React.useState('10B');
+    const [filterSig,   setFilterSig]   = React.useState('ALL');
+    const [filterDir,   setFilterDir]   = React.useState('ALL');
+    const [sortBy,      setSortBy]      = React.useState('score');
+    const [expandedRow, setExpandedRow] = React.useState(null);
+    const [search,      setSearch]      = React.useState('');
+    const [chartTicker, setChartTicker] = React.useState(null);
+    const [chartInterval, setChartInterval] = React.useState('1D');
 
     const CAP_OPTIONS = {
-        '1B':  1_000_000_000,
-        '10B': 10_000_000_000,
-        '50B': 50_000_000_000,
-        '100B':100_000_000_000,
-        '500B':500_000_000_000,
+        '1B':   1_000_000_000,
+        '10B':  10_000_000_000,
+        '50B':  50_000_000_000,
+        '100B': 100_000_000_000,
+        '500B': 500_000_000_000,
+    };
+
+    const SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', border:'#fed7aa', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', border:'#ddd6fe', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', border:'#a5f3fc', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'👁',  label:'Watch'            },
+    };
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
     };
 
     const run = async () => {
@@ -267,6 +286,8 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
         setError(null);
         setResults(null);
         setExpandedRow(null);
+        setChartTicker(null);
+        setSearch('');
         try {
             const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
                 method:  'POST',
@@ -287,83 +308,234 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
         }
     };
 
-    if (!isOpen) return null;
-
-    // ── Signal config ─────────────────────────────────────────────────────────
-    const SIG = {
-        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'Range Breakout ▲' },
-        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'🔻', label:'Range Breakout ▼' },
-        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'⚡', label:'Accelerating ▲'   },
-        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', border:'#fed7aa', icon:'⚡', label:'Accelerating ▼'   },
-        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', border:'#ddd6fe', icon:'📈', label:'Breakout'          },
-        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', border:'#a5f3fc', icon:'📊', label:'Trend Building'    },
-        WATCH:               { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'👁',  label:'Watch'            },
-    };
-
-    const fmtCap = (v) => {
-        if (!v) return '—';
-        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
-        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
-        return `$${(v/1e6).toFixed(0)}M`;
-    };
-
     const filtered = (results?.results || [])
+        .filter(r => !search || r.ticker.includes(search) || (r.name || '').toUpperCase().includes(search))
         .filter(r => filterSig === 'ALL' || r.signal === filterSig)
         .filter(r => filterDir === 'ALL' || r.direction === filterDir)
         .sort((a, b) => {
-            if (sortBy === 'score')   return b.score    - a.score;
-            if (sortBy === 'adx')     return b.adxNow   - a.adxNow;
-            if (sortBy === 'roc')     return (b.roc20||0) - (a.roc20||0);
-            if (sortBy === 'vol')     return (b.volRatio||0) - (a.volRatio||0);
-            if (sortBy === 'cap')     return (b.marketCap||0) - (a.marketCap||0);
+            if (sortBy === 'score') return b.score      - a.score;
+            if (sortBy === 'adx')   return b.adxNow     - a.adxNow;
+            if (sortBy === 'roc')   return (b.roc20||0) - (a.roc20||0);
+            if (sortBy === 'vol')   return (b.volRatio||0) - (a.volRatio||0);
+            if (sortBy === 'cap')   return (b.marketCap||0) - (a.marketCap||0);
             return 0;
         });
 
-    // Score ring component
+    // ── Inline chart component ────────────────────────────────────────────────
+    const ScannerChart = ({ ticker, interval, onClose: onChartClose }) => {
+        const containerRef = React.useRef(null);
+        const chartRef     = React.useRef(null);
+        const [chartLoading, setChartLoading] = React.useState(true);
+        const [chartError,   setChartError]   = React.useState(null);
+        const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
+
+        React.useEffect(() => {
+            if (window.LightweightCharts) { setChartReady(true); return; }
+            const s    = document.createElement('script');
+            s.src      = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+            s.onload   = () => setChartReady(true);
+            s.onerror  = () => setChartError('Failed to load chart library');
+            document.head.appendChild(s);
+        }, []);
+
+        React.useEffect(() => {
+            if (!chartReady || !containerRef.current) return;
+            const LC = window.LightweightCharts;
+
+            if (chartRef.current) {
+                try { chartRef.current.remove(); } catch {}
+                chartRef.current = null;
+            }
+
+            const container = containerRef.current;
+            const chart = LC.createChart(container, {
+                width:           container.clientWidth,
+                height:          280,
+                layout:          { background:{ color:'#0f172a' }, textColor:'#94a3b8' },
+                grid:            { vertLines:{ color:'#1e293b' }, horzLines:{ color:'#1e293b' } },
+                crosshair:       { mode: LC.CrosshairMode.Normal },
+                rightPriceScale: { borderColor:'#1e293b' },
+                timeScale:       { borderColor:'#1e293b', timeVisible:true, secondsVisible:false },
+            });
+            chartRef.current = chart;
+
+            const ro = new ResizeObserver(() => {
+                if (chartRef.current && container.clientWidth > 0)
+                    chartRef.current.applyOptions({ width: container.clientWidth });
+            });
+            ro.observe(container);
+
+            const load = async () => {
+                setChartLoading(true);
+                setChartError(null);
+                try {
+                    const res  = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ ticker, interval, indicators: ['ema'] }),
+                    });
+                    const json = await res.json();
+                    if (!res.ok) throw new Error(json.error || 'Failed');
+                    if (!chartRef.current) return;
+
+                    const series = chart.addCandlestickSeries({
+                        upColor:        '#10b981', downColor:       '#ef4444',
+                        borderUpColor:  '#10b981', borderDownColor: '#ef4444',
+                        wickUpColor:    '#10b981', wickDownColor:   '#ef4444',
+                    });
+                    series.setData(json.candles);
+
+                    if (json.ema20?.length) {
+                        const e20 = chart.addLineSeries({ color:'#10b981', lineWidth:1, title:'EMA20', lastValueVisible:false, priceLineVisible:false });
+                        e20.setData(json.ema20);
+                    }
+                    if (json.ema50?.length) {
+                        const e50 = chart.addLineSeries({ color:'#3b82f6', lineWidth:1, title:'EMA50', lastValueVisible:false, priceLineVisible:false });
+                        e50.setData(json.ema50);
+                    }
+                    if (json.ema200?.length) {
+                        const e200 = chart.addLineSeries({ color:'#ef4444', lineWidth:1, title:'EMA200', lastValueVisible:false, priceLineVisible:false });
+                        e200.setData(json.ema200);
+                    }
+
+                    chart.timeScale().fitContent();
+                } catch (e) {
+                    setChartError(e.message);
+                } finally {
+                    setChartLoading(false);
+                }
+            };
+
+            load();
+            return () => { ro.disconnect(); try { chart.remove(); } catch {} };
+        }, [chartReady, ticker, interval]);
+
+        return (
+            <div style={{ backgroundColor:'#0f172a', borderRadius:'12px', overflow:'hidden', border:'1px solid #1e293b', marginTop:'10px' }}>
+                {/* Toolbar */}
+                <div style={{
+                    padding:'10px 14px', backgroundColor:'#0f172a',
+                    borderBottom:'1px solid #1e293b',
+                    display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap',
+                }}>
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#fff', flex:1 }}>
+                        📊 {ticker}
+                    </span>
+                    {['15m','1h','1D','1W','1M','3M','1Y'].map(iv => (
+                        <button key={iv} onClick={() => setChartInterval(iv)}
+                            style={{
+                                padding:'3px 9px', borderRadius:'5px', fontSize:'11px',
+                                fontWeight:'700', cursor:'pointer', border:'none',
+                                backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.07)',
+                                color: interval === iv ? '#fff' : '#64748b',
+                                transition:'all 0.15s',
+                            }}>{iv}</button>
+                    ))}
+                    
+                        href={`https://www.tradingview.com/chart/?symbol=${ticker}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{
+                            padding:'3px 9px', borderRadius:'5px', fontSize:'11px',
+                            fontWeight:'700', textDecoration:'none',
+                            backgroundColor:'rgba(41,98,255,0.15)',
+                            color:'#2962ff', border:'1px solid rgba(41,98,255,0.3)',
+                            whiteSpace:'nowrap',
+                        }}
+                    >↗ TV</a>
+                    <button onClick={onChartClose} style={{
+                        background:'rgba(255,255,255,0.07)', border:'none',
+                        borderRadius:'5px', padding:'3px 9px',
+                        color:'#64748b', fontSize:'13px', cursor:'pointer',
+                    }}>×</button>
+                </div>
+
+                {/* Chart */}
+                <div style={{ position:'relative', height:'280px' }}>
+                    {(chartLoading || !chartReady) && (
+                        <div style={{
+                            position:'absolute', inset:0, zIndex:2,
+                            display:'flex', flexDirection:'column',
+                            alignItems:'center', justifyContent:'center',
+                            backgroundColor:'#0f172a', gap:'8px',
+                        }}>
+                            <div style={{ fontSize:'22px', animation:'spin 1s linear infinite', display:'inline-block' }}>⏳</div>
+                            <span style={{ fontSize:'12px', color:'#475569' }}>Loading {ticker}...</span>
+                        </div>
+                    )}
+                    {chartError && !chartLoading && (
+                        <div style={{
+                            position:'absolute', inset:0,
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            backgroundColor:'#0f172a', color:'#ef4444', fontSize:'12px',
+                        }}>⚠️ {chartError}</div>
+                    )}
+                    <div ref={containerRef} style={{ width:'100%', height:'280px' }} />
+                </div>
+
+                {/* EMA legend */}
+                <div style={{
+                    padding:'6px 14px', backgroundColor:'#0a1628',
+                    borderTop:'1px solid #1e293b',
+                    display:'flex', gap:'14px', flexWrap:'wrap',
+                }}>
+                    {[['#10b981','EMA20'],['#3b82f6','EMA50'],['#ef4444','EMA200']].map(([c,l]) => (
+                        <span key={l} style={{ fontSize:'10px', fontWeight:'700', color:c, display:'flex', alignItems:'center', gap:'4px' }}>
+                            <span style={{ width:'16px', height:'2px', backgroundColor:c, display:'inline-block', borderRadius:'1px' }}/>
+                            {l}
+                        </span>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // ── Score ring ────────────────────────────────────────────────────────────
     const ScoreRing = ({ score }) => {
         const c = score >= 70 ? '#10b981' : score >= 45 ? '#3b82f6' : score >= 25 ? '#f59e0b' : '#94a3b8';
         return (
             <div style={{
                 width:'42px', height:'42px', borderRadius:'50%',
-                backgroundColor: c,
+                backgroundColor: c, flexShrink:0,
                 display:'flex', flexDirection:'column',
                 alignItems:'center', justifyContent:'center',
-                boxShadow:`0 2px 8px ${c}44`, flexShrink:0,
+                boxShadow:`0 2px 8px ${c}44`,
             }}>
                 <span style={{ fontSize:'13px', fontWeight:'900', color:'#fff', lineHeight:1 }}>{Math.round(score)}</span>
             </div>
         );
     };
 
-    return (
-        <div style={{
-            position:  'fixed', inset:0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            zIndex:    10020,
-            display:   'flex', alignItems:'flex-start',
-            justifyContent:'center',
-            padding:   '16px',
-            backdropFilter:'blur(4px)',
-            overflowY: 'auto',
-        }} onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} style={{
-                width:           '100%',
-                maxWidth:        '860px',
-                borderRadius:    '18px',
-                overflow:        'hidden',
-                backgroundColor: '#fff',
-                boxShadow:       '0 24px 80px rgba(0,0,0,0.25)',
-                fontFamily:      "'Segoe UI', system-ui, sans-serif",
-                marginTop:       '8px',
-                marginBottom:    '24px',
-                animation:       'modalSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
-            }}>
+    if (!isOpen) return null;
 
+    return (
+        <div
+            style={{
+                position:'fixed', inset:0,
+                backgroundColor:'rgba(0,0,0,0.6)',
+                zIndex:10020,
+                display:'flex', alignItems:'flex-start', justifyContent:'center',
+                padding:'16px',
+                backdropFilter:'blur(4px)',
+                overflowY:'auto',
+            }}
+            onClick={onClose}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width:'100%', maxWidth:'860px',
+                    borderRadius:'18px', overflow:'hidden',
+                    backgroundColor:'#fff',
+                    boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                    fontFamily:"'Segoe UI', system-ui, sans-serif",
+                    marginTop:'8px', marginBottom:'24px',
+                    animation:'modalSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+                }}
+            >
                 {/* ── Header ── */}
                 <div style={{
-                    padding:    '18px 20px 14px',
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #2563eb 100%)',
-                    position:   'relative',
+                    padding:'18px 20px 14px',
+                    background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #2563eb 100%)',
                 }}>
                     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
                         <div>
@@ -374,8 +546,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                 </span>
                             </div>
                             <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
-                                Detects ranging→trending transitions, rising momentum & volume confirmation
-                                across {ALL_TICKERS.length} stocks
+                                Detects ranging→trending transitions, rising momentum & volume confirmation across {ALL_TICKERS.length} stocks
                             </div>
                         </div>
                         <button onClick={onClose} style={{
@@ -388,39 +559,28 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                     </div>
 
                     {/* Controls row */}
-                    <div style={{
-                        display:'flex', gap:'8px', marginTop:'14px',
-                        flexWrap:'wrap', alignItems:'center',
-                    }}>
-                        {/* Min market cap */}
-                        <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', fontWeight:'700', whiteSpace:'nowrap' }}>
-                                MIN CAP
-                            </span>
-                            {Object.keys(CAP_OPTIONS).map(k => (
-                                <button key={k} onClick={() => setMinCap(k)}
-                                    style={{
-                                        padding:'4px 10px', borderRadius:'6px',
-                                        fontSize:'11px', fontWeight:'700',
-                                        cursor:'pointer', border:'none',
-                                        backgroundColor: minCap === k ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                                        color: minCap === k ? '#fff' : 'rgba(255,255,255,0.5)',
-                                        transition:'all 0.15s',
-                                    }}>{k}</button>
-                            ))}
-                        </div>
-
+                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                        <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', fontWeight:'700', whiteSpace:'nowrap' }}>
+                            MIN CAP
+                        </span>
+                        {Object.keys(CAP_OPTIONS).map(k => (
+                            <button key={k} onClick={() => setMinCap(k)}
+                                style={{
+                                    padding:'4px 10px', borderRadius:'6px',
+                                    fontSize:'11px', fontWeight:'700',
+                                    cursor:'pointer', border:'none',
+                                    backgroundColor: minCap === k ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                    color: minCap === k ? '#fff' : 'rgba(255,255,255,0.5)',
+                                    transition:'all 0.15s',
+                                }}>{k}</button>
+                        ))}
                         <div style={{ width:'1px', height:'20px', backgroundColor:'rgba(255,255,255,0.15)', flexShrink:0 }}/>
-
-                        {/* Run button */}
                         <button
                             onClick={run}
                             disabled={loading}
                             style={{
                                 padding:'8px 20px', borderRadius:'9px',
-                                background: loading
-                                    ? 'rgba(59,130,246,0.4)'
-                                    : 'linear-gradient(135deg,#3b82f6,#2563eb)',
+                                background: loading ? 'rgba(59,130,246,0.4)' : 'linear-gradient(135deg,#3b82f6,#2563eb)',
                                 border:'none', color:'#fff',
                                 fontWeight:'800', fontSize:'13px',
                                 cursor: loading ? 'wait' : 'pointer',
@@ -433,40 +593,56 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                 ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block', fontSize:'15px' }}>⚡</span> Scanning...</>
                                 : <><span>🔭</span> Run Scanner</>}
                         </button>
-
                         {results && (
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
-                                {results.count} hits from {results.totalScanned} scanned · {results.scannedAt}
+                                {results.count} hits · {results.totalScanned} scanned · {results.scannedAt}
                             </span>
                         )}
                     </div>
                 </div>
 
-                {/* ── Filter bar (only when results exist) ── */}
+                {/* ── Filter bar ── */}
                 {results && !loading && (
                     <div style={{
-                        padding:'10px 16px',
+                        padding:'10px 14px',
                         backgroundColor:'#f8fafc',
                         borderBottom:'1px solid #e2e8f0',
                         display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center',
                     }}>
-                        {/* Signal filter */}
-                        <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
+                        {/* Search */}
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={e => setSearch(e.target.value.toUpperCase())}
+                            placeholder="Filter... e.g. NVDA"
+                            style={{
+                                padding:'5px 11px', borderRadius:'8px',
+                                border:'2px solid #e2e8f0', fontSize:'12px',
+                                fontWeight:'600', outline:'none', width:'130px',
+                                color:'#1a1a1a', backgroundColor:'#fff',
+                            }}
+                            onFocus={e  => e.target.style.borderColor = '#3b82f6'}
+                            onBlur={e   => e.target.style.borderColor = '#e2e8f0'}
+                        />
+
+                        <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
+
+                        {/* Signal filters */}
+                        <div style={{ display:'flex', gap:'4px', flexWrap:'wrap' }}>
                             {['ALL', ...Object.keys(SIG)].map(s => {
-                                const cfg = SIG[s];
+                                const cfg    = SIG[s];
                                 const active = filterSig === s;
                                 return (
                                     <button key={s} onClick={() => setFilterSig(s)}
                                         style={{
-                                            padding:'3px 10px', borderRadius:'20px',
-                                            fontSize:'11px', fontWeight:'700',
-                                            cursor:'pointer',
+                                            padding:'3px 9px', borderRadius:'20px',
+                                            fontSize:'11px', fontWeight:'700', cursor:'pointer',
                                             border:`1px solid ${active && cfg ? cfg.color : '#e2e8f0'}`,
                                             backgroundColor: active && cfg ? cfg.bg : '#fff',
                                             color: active && cfg ? cfg.color : '#94a3b8',
-                                            transition:'all 0.15s',
+                                            transition:'all 0.15s', whiteSpace:'nowrap',
                                         }}>
-                                        {s === 'ALL' ? 'All Signals' : (cfg?.icon + ' ' + cfg?.label)}
+                                        {s === 'ALL' ? 'All' : (cfg?.icon + ' ' + cfg?.label)}
                                     </button>
                                 );
                             })}
@@ -474,28 +650,29 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
 
                         <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
 
-                        {/* Direction filter */}
+                        {/* Direction filters */}
                         {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
                             <button key={d} onClick={() => setFilterDir(d)}
                                 style={{
-                                    padding:'3px 10px', borderRadius:'20px',
+                                    padding:'3px 9px', borderRadius:'20px',
                                     fontSize:'11px', fontWeight:'700', cursor:'pointer',
-                                    border:`1px solid ${filterDir===d ? '#3b82f6' : '#e2e8f0'}`,
-                                    backgroundColor: filterDir===d ? '#eff6ff' : '#fff',
-                                    color: filterDir===d ? '#3b82f6' : '#94a3b8',
+                                    border:`1px solid ${filterDir === d ? '#3b82f6' : '#e2e8f0'}`,
+                                    backgroundColor: filterDir === d ? '#eff6ff' : '#fff',
+                                    color: filterDir === d ? '#3b82f6' : '#94a3b8',
+                                    transition:'all 0.15s',
                                 }}>{d === 'ALL' ? 'All Dirs' : d}</button>
                         ))}
 
-                        <div style={{ marginLeft:'auto', display:'flex', gap:'5px', alignItems:'center' }}>
+                        {/* Sort */}
+                        <div style={{ marginLeft:'auto', display:'flex', gap:'4px', alignItems:'center', flexWrap:'wrap' }}>
                             <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600' }}>Sort:</span>
-                            {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Volume'],['cap','Mkt Cap']].map(([k,l]) => (
+                            {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Vol'],['cap','Cap']].map(([k,l]) => (
                                 <button key={k} onClick={() => setSortBy(k)}
                                     style={{
                                         padding:'3px 8px', borderRadius:'6px',
-                                        fontSize:'11px', fontWeight:'700', cursor:'pointer',
-                                        border:'none',
-                                        backgroundColor: sortBy===k ? '#1e3a5f' : '#e2e8f0',
-                                        color: sortBy===k ? '#fff' : '#64748b',
+                                        fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'none',
+                                        backgroundColor: sortBy === k ? '#1e3a5f' : '#e2e8f0',
+                                        color: sortBy === k ? '#fff' : '#64748b',
                                     }}>{l}</button>
                             ))}
                         </div>
@@ -505,7 +682,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                 {/* ── Body ── */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
 
-                    {/* Empty / prompt state */}
+                    {/* Empty prompt */}
                     {!loading && !results && !error && (
                         <div style={{ padding:'60px 20px', textAlign:'center' }}>
                             <div style={{ fontSize:'48px', marginBottom:'14px' }}>🔭</div>
@@ -513,9 +690,9 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                 Ready to scan
                             </div>
                             <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'380px', margin:'0 auto', lineHeight:1.6 }}>
-                                Set your minimum market cap filter above, then hit
-                                <strong> Run Scanner</strong>. We'll check all {ALL_TICKERS.length} stocks
-                                for ranging→trending transitions and rising velocity.
+                                Set your minimum market cap above then hit <strong>Run Scanner</strong>.
+                                We'll check all {ALL_TICKERS.length} stocks for ranging→trending
+                                transitions and rising velocity.
                             </div>
                         </div>
                     )}
@@ -547,49 +724,54 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                     {error && !loading && (
                         <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>
                             ⚠️ {error}
+                            <button onClick={run} style={{ marginLeft:'12px', color:'#b91c1c', background:'none', border:'1px solid #fecaca', borderRadius:'6px', padding:'2px 8px', cursor:'pointer', fontSize:'12px' }}>
+                                Retry
+                            </button>
                         </div>
                     )}
 
                     {/* Results */}
                     {!loading && filtered.length > 0 && (
                         <div style={{ padding:'12px 14px', display:'flex', flexDirection:'column', gap:'8px' }}>
-                            {filtered.map((r, i) => {
-                                const sc  = SIG[r.signal] || SIG.WATCH;
-                                const isOpen = expandedRow === r.ticker;
-                                const dirColor = r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+                            {filtered.map((r) => {
+                                const sc      = SIG[r.signal] || SIG.WATCH;
+                                const isExpanded = expandedRow === r.ticker;
+                                const dirColor   = r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
 
                                 return (
                                     <div key={r.ticker} style={{
                                         borderRadius:'12px',
-                                        border:`1px solid ${isOpen ? sc.color : '#e2e8f0'}`,
+                                        border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`,
                                         overflow:'hidden',
                                         transition:'border-color 0.2s',
-                                        boxShadow: isOpen ? `0 4px 20px ${sc.color}22` : 'none',
+                                        boxShadow: isExpanded ? `0 4px 20px ${sc.color}22` : 'none',
                                     }}>
                                         {/* Main row */}
                                         <div
-                                            onClick={() => setExpandedRow(isOpen ? null : r.ticker)}
+                                            onClick={() => {
+                                                setExpandedRow(isExpanded ? null : r.ticker);
+                                                if (isExpanded) setChartTicker(null);
+                                            }}
                                             style={{
                                                 padding:'11px 14px',
-                                                display:'flex', alignItems:'center',
-                                                gap:'10px', cursor:'pointer',
-                                                backgroundColor: isOpen ? sc.bg : '#fff',
+                                                display:'flex', alignItems:'center', gap:'10px',
+                                                cursor:'pointer',
+                                                backgroundColor: isExpanded ? sc.bg : '#fff',
                                                 transition:'background 0.15s',
                                             }}
-                                            onMouseEnter={e => { if (!isOpen) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                                            onMouseLeave={e => { if (!isOpen) e.currentTarget.style.backgroundColor = '#fff'; }}
+                                            onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                                            onMouseLeave={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = '#fff'; }}
                                         >
                                             <ScoreRing score={r.score} />
 
                                             {/* Ticker + name */}
                                             <div style={{ flex:1, minWidth:0 }}>
-                                                <div style={{ display:'flex', alignItems:'center', gap:'7px', flexWrap:'wrap' }}>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
                                                     <span style={{ fontSize:'15px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</span>
                                                     <span style={{
                                                         padding:'2px 8px', borderRadius:'10px',
                                                         fontSize:'11px', fontWeight:'700',
-                                                        backgroundColor: sc.bg,
-                                                        color: sc.color,
+                                                        backgroundColor: sc.bg, color: sc.color,
                                                         border:`1px solid ${sc.border}`,
                                                         whiteSpace:'nowrap',
                                                     }}>{sc.icon} {sc.label}</span>
@@ -599,16 +781,18 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                         backgroundColor: dirColor + '15',
                                                         color: dirColor,
                                                         border:`1px solid ${dirColor}30`,
-                                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}</span>
+                                                    }}>
+                                                        {r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}
+                                                    </span>
                                                 </div>
                                                 <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                                                     {r.name} · {r.sector}
                                                 </div>
                                             </div>
 
-                                            {/* Key stats - hide on very small screens */}
+                                            {/* Stats */}
                                             <div style={{ display:'flex', gap:'12px', alignItems:'center', flexShrink:0 }}>
-                                                <div style={{ textAlign:'center', minWidth:'40px' }}>
+                                                <div style={{ textAlign:'center', minWidth:'36px' }}>
                                                     <div style={{ fontSize:'13px', fontWeight:'800', color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8' }}>
                                                         {r.adxNow?.toFixed(0)}
                                                     </div>
@@ -634,23 +818,26 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                 </div>
                                             </div>
 
-                                            <div style={{ fontSize:'14px', color: isOpen ? sc.color : '#94a3b8', flexShrink:0, transition:'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</div>
+                                            <div style={{
+                                                fontSize:'14px',
+                                                color: isExpanded ? sc.color : '#94a3b8',
+                                                flexShrink:0, transition:'transform 0.2s',
+                                                transform: isExpanded ? 'rotate(90deg)' : 'none',
+                                            }}>›</div>
                                         </div>
 
                                         {/* Expanded detail */}
-                                        {isOpen && (
+                                        {isExpanded && (
                                             <div style={{
                                                 padding:'14px 16px',
                                                 backgroundColor:'#fafafa',
                                                 borderTop:`1px solid ${sc.border}`,
                                                 display:'flex', flexDirection:'column', gap:'12px',
                                             }}>
-                                                {/* Signal explanation */}
+                                                {/* Why it showed up */}
                                                 <div style={{
-                                                    padding:'10px 14px',
-                                                    backgroundColor: sc.bg,
-                                                    borderRadius:'8px',
-                                                    borderLeft:`3px solid ${sc.color}`,
+                                                    padding:'10px 14px', backgroundColor: sc.bg,
+                                                    borderRadius:'8px', borderLeft:`3px solid ${sc.color}`,
                                                 }}>
                                                     <div style={{ fontSize:'11px', fontWeight:'700', color:sc.color, letterSpacing:'0.07em', marginBottom:'4px' }}>
                                                         WHY THIS SHOWED UP
@@ -661,7 +848,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                         {r.rocAccelerating && `ROC accelerating (+${r.acceleration?.toFixed(2)} above recent avg) — momentum is speeding up. `}
                                                         {r.volConfirming && `Volume is ${r.volRatio}× the 20-day average — real conviction behind the move. `}
                                                         {r.breakingOut && `Price breaking above recent range highs. `}
-                                                        {r.earningsNearby && r.earningsBeat && `Recent earnings beat (${r.daysSinceEarnings}d ago) may be fuelling the move. `}
+                                                        {r.earningsNearby && r.earningsBeat === true  && `Recent earnings beat (${r.daysSinceEarnings}d ago) may be fuelling this. `}
                                                         {r.earningsNearby && r.earningsBeat === false && `Recent earnings miss (${r.daysSinceEarnings}d ago) — trend is despite bad earnings. `}
                                                     </div>
                                                 </div>
@@ -669,15 +856,15 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                 {/* Metrics grid */}
                                                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'8px' }}>
                                                     {[
-                                                        { label:'ADX Now',     value:r.adxNow?.toFixed(1),  color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8', sub: r.adxNow >= 25 ? 'Trending' : r.adxNow >= 20 ? 'Building' : 'Ranging' },
-                                                        { label:'ADX 20d Ago', value:r.adx20Ago?.toFixed(1) || '—', color:'#94a3b8', sub:'was' },
-                                                        { label:'+DI / -DI',   value:`${r.plusDI?.toFixed(0)} / ${r.minusDI?.toFixed(0)}`, color: r.plusDI > r.minusDI ? '#10b981' : '#ef4444', sub: r.plusDI > r.minusDI ? 'Bulls ▲' : 'Bears ▼' },
-                                                        { label:'ROC 5d',      value: r.roc5  != null ? `${r.roc5  >= 0 ? '+' : ''}${r.roc5}%`  : '—', color:(r.roc5||0)  >= 0 ? '#10b981' : '#ef4444', sub:'' },
-                                                        { label:'ROC 20d',     value: r.roc20 != null ? `${r.roc20 >= 0 ? '+' : ''}${r.roc20}%` : '—', color:(r.roc20||0) >= 0 ? '#10b981' : '#ef4444', sub:'' },
-                                                        { label:'Acceleration',value: r.acceleration != null ? `${r.acceleration >= 0 ? '+' : ''}${r.acceleration?.toFixed(2)}` : '—', color: (r.acceleration||0) > 0 ? '#10b981' : '#ef4444', sub:(r.acceleration||0) > 0 ? 'Speeding up ⚡' : 'Slowing 🐢' },
-                                                        { label:'Vol Ratio',   value: r.volRatio != null ? `${r.volRatio}×` : '—', color:(r.volRatio||0) >= 1.3 ? '#10b981' : '#94a3b8', sub:'5d/20d avg' },
-                                                        { label:'From 52W High',value: r.pctFromHigh != null ? `${r.pctFromHigh}%` : '—', color: (r.pctFromHigh||0) >= -5 ? '#10b981' : '#94a3b8', sub:'' },
-                                                        { label:'Mkt Cap',     value: fmtCap(r.marketCap), color:'#3b82f6', sub:r.sector },
+                                                        { label:'ADX Now',      value: r.adxNow?.toFixed(1),   color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8', sub: r.adxNow >= 25 ? 'Trending' : r.adxNow >= 20 ? 'Building' : 'Ranging' },
+                                                        { label:'ADX 20d Ago',  value: r.adx20Ago?.toFixed(1) || '—', color:'#94a3b8', sub:'was' },
+                                                        { label:'+DI / -DI',    value: `${r.plusDI?.toFixed(0)} / ${r.minusDI?.toFixed(0)}`, color: r.plusDI > r.minusDI ? '#10b981' : '#ef4444', sub: r.plusDI > r.minusDI ? 'Bulls ▲' : 'Bears ▼' },
+                                                        { label:'ROC 5d',       value: r.roc5  != null ? `${r.roc5  >= 0 ? '+' : ''}${r.roc5}%`  : '—', color:(r.roc5||0)  >= 0 ? '#10b981':'#ef4444', sub:'' },
+                                                        { label:'ROC 20d',      value: r.roc20 != null ? `${r.roc20 >= 0 ? '+' : ''}${r.roc20}%` : '—', color:(r.roc20||0) >= 0 ? '#10b981':'#ef4444', sub:'' },
+                                                        { label:'Acceleration', value: r.acceleration != null ? `${r.acceleration >= 0 ? '+' : ''}${r.acceleration?.toFixed(2)}` : '—', color:(r.acceleration||0) > 0 ? '#10b981':'#ef4444', sub:(r.acceleration||0) > 0 ? '⚡ Speeding up':'🐢 Slowing' },
+                                                        { label:'Vol Ratio',    value: r.volRatio != null ? `${r.volRatio}×` : '—', color:(r.volRatio||0) >= 1.3 ? '#10b981':'#94a3b8', sub:'5d / 20d avg' },
+                                                        { label:'From 52W High',value: r.pctFromHigh != null ? `${r.pctFromHigh}%` : '—', color:(r.pctFromHigh||0) >= -5 ? '#10b981':'#94a3b8', sub:'' },
+                                                        { label:'Mkt Cap',      value: fmtCap(r.marketCap), color:'#3b82f6', sub: r.sector },
                                                     ].map((item, ii) => (
                                                         <div key={ii} style={{
                                                             padding:'8px 10px', backgroundColor:'#fff',
@@ -691,28 +878,46 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                     ))}
                                                 </div>
 
-                                                {/* Earnings tag if relevant */}
+                                                {/* Earnings */}
                                                 {r.lastEarningsDate && (
                                                     <div style={{
                                                         display:'flex', gap:'8px', alignItems:'center',
-                                                        padding:'8px 12px', borderRadius:'8px',
-                                                        backgroundColor: r.earningsBeat ? 'rgba(16,185,129,0.08)' : r.earningsBeat === false ? 'rgba(239,68,68,0.08)' : '#f8fafc',
-                                                        border:`1px solid ${r.earningsBeat ? '#bbf7d0' : r.earningsBeat === false ? '#fecaca' : '#e2e8f0'}`,
-                                                        fontSize:'12px',
+                                                        padding:'8px 12px', borderRadius:'8px', fontSize:'12px',
+                                                        backgroundColor: r.earningsBeat === true ? 'rgba(16,185,129,0.08)' : r.earningsBeat === false ? 'rgba(239,68,68,0.08)' : '#f8fafc',
+                                                        border:`1px solid ${r.earningsBeat === true ? '#bbf7d0' : r.earningsBeat === false ? '#fecaca' : '#e2e8f0'}`,
+                                                        flexWrap:'wrap',
                                                     }}>
                                                         <span style={{ fontSize:'14px' }}>💰</span>
                                                         <span style={{ color:'#64748b' }}>
                                                             Last earnings: <strong>{r.lastEarningsDate}</strong>
                                                             {r.daysSinceEarnings != null && ` (${r.daysSinceEarnings}d ago)`}
                                                         </span>
-                                                        {r.earningsBeat === true  && <span style={{ color:'#10b981', fontWeight:'700', marginLeft:'4px' }}>✓ Beat</span>}
-                                                        {r.earningsBeat === false && <span style={{ color:'#ef4444', fontWeight:'700', marginLeft:'4px' }}>✗ Miss</span>}
-                                                        {r.earningsNearby && <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'700', color:'#f59e0b', backgroundColor:'#fffbeb', padding:'1px 7px', borderRadius:'10px', border:'1px solid #fde68a' }}>Recent</span>}
+                                                        {r.earningsBeat === true  && <span style={{ color:'#10b981', fontWeight:'700' }}>✓ Beat</span>}
+                                                        {r.earningsBeat === false && <span style={{ color:'#ef4444', fontWeight:'700' }}>✗ Miss</span>}
+                                                        {r.earningsNearby && (
+                                                            <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'700', color:'#f59e0b', backgroundColor:'#fffbeb', padding:'1px 7px', borderRadius:'10px', border:'1px solid #fde68a' }}>
+                                                                Recent
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 )}
 
                                                 {/* Action buttons */}
                                                 <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                                    <button
+                                                        onClick={() => setChartTicker(chartTicker === r.ticker ? null : r.ticker)}
+                                                        style={{
+                                                            flex:1, padding:'9px', borderRadius:'9px',
+                                                            background: chartTicker === r.ticker
+                                                                ? '#0f172a'
+                                                                : 'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                                            color:'#fff', border:`1px solid ${chartTicker === r.ticker ? '#3b82f6' : 'transparent'}`,
+                                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                                                        }}
+                                                    >
+                                                        {chartTicker === r.ticker ? '📊 Hide Chart' : '📊 Show Chart'}
+                                                    </button>
                                                     <button
                                                         onClick={() => { onSelectTicker && onSelectTicker(r.ticker); onClose(); }}
                                                         style={{
@@ -724,6 +929,15 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                                                         }}
                                                     >→ Open in Screener</button>
                                                 </div>
+
+                                                {/* Inline chart */}
+                                                {chartTicker === r.ticker && (
+                                                    <ScannerChart
+                                                        ticker={r.ticker}
+                                                        interval={chartInterval}
+                                                        onClose={() => setChartTicker(null)}
+                                                    />
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -736,7 +950,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
                     {!loading && results && filtered.length === 0 && (
                         <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
                             <div style={{ fontSize:'32px', marginBottom:'10px' }}>🔭</div>
-                            No stocks matched your current filters. Try loosening the signal or direction filter.
+                            No stocks matched your filters. Try loosening the signal or direction filter.
                         </div>
                     )}
                 </div>
@@ -750,6 +964,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker, openaiKey }) {
         </div>
     );
 }
+
 
 function MomentumVelocityPanel({ ticker, openaiKey }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
