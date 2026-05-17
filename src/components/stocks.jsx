@@ -239,6 +239,283 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
+function ScannerChart({ ticker, interval, onIntervalChange, onClose }) {
+    const BACKEND      = 'https://backend-production-c0ab.up.railway.app';
+    const containerRef = React.useRef(null);
+    const chartRef     = React.useRef(null);
+    const [chartLoading, setChartLoading] = React.useState(true);
+    const [chartError,   setChartError]   = React.useState(null);
+    const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
+
+    const INTERVALS = ['15m','1h','1D','1W','1M','3M','1Y'];
+
+    React.useEffect(() => {
+        if (window.LightweightCharts) { setChartReady(true); return; }
+        const s  = document.createElement('script');
+        s.src    = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        s.onload = () => setChartReady(true);
+        s.onerror= () => setChartError('Failed to load chart library');
+        document.head.appendChild(s);
+    }, []);
+
+    React.useEffect(() => {
+        if (!chartReady || !containerRef.current) return;
+        const LC = window.LightweightCharts;
+
+        if (chartRef.current) {
+            try { chartRef.current.remove(); } catch {}
+            chartRef.current = null;
+        }
+
+        const container = containerRef.current;
+        const chart = LC.createChart(container, {
+            width:           container.clientWidth,
+            height:          300,
+            layout:          { background: { color: '#0f172a' }, textColor: '#94a3b8' },
+            grid:            { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+            crosshair:       { mode: LC.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: '#1e293b' },
+            timeScale:       { borderColor: '#1e293b', timeVisible: true, secondsVisible: false },
+        });
+        chartRef.current = chart;
+
+        const ro = new ResizeObserver(() => {
+            if (chartRef.current && container.clientWidth > 0) {
+                chartRef.current.applyOptions({ width: container.clientWidth });
+            }
+        });
+        ro.observe(container);
+
+        const loadData = async () => {
+            setChartLoading(true);
+            setChartError(null);
+            try {
+                const res  = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ ticker, interval, indicators: ['ema'] }),
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.error || 'Failed to load data');
+                if (!chartRef.current) return;
+
+                const series = chart.addCandlestickSeries({
+                    upColor:         '#10b981',
+                    downColor:       '#ef4444',
+                    borderUpColor:   '#10b981',
+                    borderDownColor: '#ef4444',
+                    wickUpColor:     '#10b981',
+                    wickDownColor:   '#ef4444',
+                });
+                series.setData(json.candles);
+
+                if (json.ema20 && json.ema20.length > 0) {
+                    const e20 = chart.addLineSeries({
+                        color: '#10b981', lineWidth: 1,
+                        title: 'EMA20', lastValueVisible: false, priceLineVisible: false,
+                    });
+                    e20.setData(json.ema20);
+                }
+                if (json.ema50 && json.ema50.length > 0) {
+                    const e50 = chart.addLineSeries({
+                        color: '#3b82f6', lineWidth: 1,
+                        title: 'EMA50', lastValueVisible: false, priceLineVisible: false,
+                    });
+                    e50.setData(json.ema50);
+                }
+                if (json.ema200 && json.ema200.length > 0) {
+                    const e200 = chart.addLineSeries({
+                        color: '#ef4444', lineWidth: 1,
+                        title: 'EMA200', lastValueVisible: false, priceLineVisible: false,
+                    });
+                    e200.setData(json.ema200);
+                }
+
+                chart.timeScale().fitContent();
+            } catch (e) {
+                setChartError(e.message);
+            } finally {
+                setChartLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => {
+            ro.disconnect();
+            try { chart.remove(); } catch {}
+        };
+    }, [chartReady, ticker, interval]);
+
+    return (
+        <div style={{
+            backgroundColor: '#0f172a',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '1px solid #1e293b',
+            marginTop: '10px',
+        }}>
+            {/* Toolbar */}
+            <div style={{
+                padding: '10px 14px',
+                borderBottom: '1px solid #1e293b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+                backgroundColor: '#0a1628',
+            }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: '#fff', flex: 1, minWidth: 0 }}>
+                    📊 {ticker}
+                </span>
+
+                {INTERVALS.map(iv => (
+                    <button
+                        key={iv}
+                        onClick={() => onIntervalChange && onIntervalChange(iv)}
+                        style={{
+                            padding: '3px 9px',
+                            borderRadius: '5px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            border: 'none',
+                            backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.07)',
+                            color: interval === iv ? '#fff' : '#64748b',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        {iv}
+                    </button>
+                ))}
+
+                <a
+                    href={'https://www.tradingview.com/chart/?symbol=' + ticker}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        padding: '3px 9px',
+                        borderRadius: '5px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        textDecoration: 'none',
+                        backgroundColor: 'rgba(41,98,255,0.15)',
+                        color: '#2962ff',
+                        border: '1px solid rgba(41,98,255,0.3)',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    TV ↗
+                </a>
+
+                <button
+                    onClick={onClose}
+                    style={{
+                        background: 'rgba(255,255,255,0.07)',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '3px 10px',
+                        color: '#64748b',
+                        fontSize: '16px',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                    }}
+                >
+                    ×
+                </button>
+            </div>
+
+            {/* Chart area */}
+            <div style={{ position: 'relative', height: '300px' }}>
+                {(chartLoading || !chartReady) && (
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        zIndex: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#0f172a',
+                        gap: '8px',
+                    }}>
+                        <div style={{
+                            fontSize: '22px',
+                            display: 'inline-block',
+                            animation: 'spin 1s linear infinite',
+                        }}>
+                            ⏳
+                        </div>
+                        <span style={{ fontSize: '12px', color: '#475569' }}>
+                            Loading {ticker}...
+                        </span>
+                    </div>
+                )}
+
+                {chartError && !chartLoading && (
+                    <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#0f172a',
+                        gap: '8px',
+                    }}>
+                        <span style={{ fontSize: '20px' }}>⚠️</span>
+                        <span style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center', padding: '0 20px' }}>
+                            {chartError}
+                        </span>
+                    </div>
+                )}
+
+                <div ref={containerRef} style={{ width: '100%', height: '300px' }} />
+            </div>
+
+            {/* EMA legend */}
+            <div style={{
+                padding: '7px 14px',
+                backgroundColor: '#0a1628',
+                borderTop: '1px solid #1e293b',
+                display: 'flex',
+                gap: '16px',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+            }}>
+                {[
+                    { color: '#10b981', label: 'EMA20'  },
+                    { color: '#3b82f6', label: 'EMA50'  },
+                    { color: '#ef4444', label: 'EMA200' },
+                ].map(item => (
+                    <span
+                        key={item.label}
+                        style={{
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            color: item.color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                        }}
+                    >
+                        <span style={{
+                            width: '16px',
+                            height: '2px',
+                            backgroundColor: item.color,
+                            display: 'inline-block',
+                            borderRadius: '1px',
+                        }} />
+                        {item.label}
+                    </span>
+                ))}
+                <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#334155' }}>
+                    Candles · EMAs · {interval}
+                </span>
+            </div>
+        </div>
+    );
+}
 
 function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const BACKEND    = 'https://backend-production-c0ab.up.railway.app';
@@ -320,174 +597,6 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
             if (sortBy === 'cap')   return (b.marketCap||0) - (a.marketCap||0);
             return 0;
         });
-
-    // ── Inline chart component ────────────────────────────────────────────────
-    const ScannerChart = ({ ticker, interval, onClose: onChartClose }) => {
-        const containerRef = React.useRef(null);
-        const chartRef     = React.useRef(null);
-        const [chartLoading, setChartLoading] = React.useState(true);
-        const [chartError,   setChartError]   = React.useState(null);
-        const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
-
-        React.useEffect(() => {
-            if (window.LightweightCharts) { setChartReady(true); return; }
-            const s    = document.createElement('script');
-            s.src      = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
-            s.onload   = () => setChartReady(true);
-            s.onerror  = () => setChartError('Failed to load chart library');
-            document.head.appendChild(s);
-        }, []);
-
-        React.useEffect(() => {
-            if (!chartReady || !containerRef.current) return;
-            const LC = window.LightweightCharts;
-
-            if (chartRef.current) {
-                try { chartRef.current.remove(); } catch {}
-                chartRef.current = null;
-            }
-
-            const container = containerRef.current;
-            const chart = LC.createChart(container, {
-                width:           container.clientWidth,
-                height:          280,
-                layout:          { background:{ color:'#0f172a' }, textColor:'#94a3b8' },
-                grid:            { vertLines:{ color:'#1e293b' }, horzLines:{ color:'#1e293b' } },
-                crosshair:       { mode: LC.CrosshairMode.Normal },
-                rightPriceScale: { borderColor:'#1e293b' },
-                timeScale:       { borderColor:'#1e293b', timeVisible:true, secondsVisible:false },
-            });
-            chartRef.current = chart;
-
-            const ro = new ResizeObserver(() => {
-                if (chartRef.current && container.clientWidth > 0)
-                    chartRef.current.applyOptions({ width: container.clientWidth });
-            });
-            ro.observe(container);
-
-            const load = async () => {
-                setChartLoading(true);
-                setChartError(null);
-                try {
-                    const res  = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body:    JSON.stringify({ ticker, interval, indicators: ['ema'] }),
-                    });
-                    const json = await res.json();
-                    if (!res.ok) throw new Error(json.error || 'Failed');
-                    if (!chartRef.current) return;
-
-                    const series = chart.addCandlestickSeries({
-                        upColor:        '#10b981', downColor:       '#ef4444',
-                        borderUpColor:  '#10b981', borderDownColor: '#ef4444',
-                        wickUpColor:    '#10b981', wickDownColor:   '#ef4444',
-                    });
-                    series.setData(json.candles);
-
-                    if (json.ema20?.length) {
-                        const e20 = chart.addLineSeries({ color:'#10b981', lineWidth:1, title:'EMA20', lastValueVisible:false, priceLineVisible:false });
-                        e20.setData(json.ema20);
-                    }
-                    if (json.ema50?.length) {
-                        const e50 = chart.addLineSeries({ color:'#3b82f6', lineWidth:1, title:'EMA50', lastValueVisible:false, priceLineVisible:false });
-                        e50.setData(json.ema50);
-                    }
-                    if (json.ema200?.length) {
-                        const e200 = chart.addLineSeries({ color:'#ef4444', lineWidth:1, title:'EMA200', lastValueVisible:false, priceLineVisible:false });
-                        e200.setData(json.ema200);
-                    }
-
-                    chart.timeScale().fitContent();
-                } catch (e) {
-                    setChartError(e.message);
-                } finally {
-                    setChartLoading(false);
-                }
-            };
-
-            load();
-            return () => { ro.disconnect(); try { chart.remove(); } catch {} };
-        }, [chartReady, ticker, interval]);
-
-        return (
-            <div style={{ backgroundColor:'#0f172a', borderRadius:'12px', overflow:'hidden', border:'1px solid #1e293b', marginTop:'10px' }}>
-                {/* Toolbar */}
-                <div style={{
-                    padding:'10px 14px', backgroundColor:'#0f172a',
-                    borderBottom:'1px solid #1e293b',
-                    display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap',
-                }}>
-                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#fff', flex:1 }}>
-                        📊 {ticker}
-                    </span>
-                    {['15m','1h','1D','1W','1M','3M','1Y'].map(iv => (
-                        <button key={iv} onClick={() => setChartInterval(iv)}
-                            style={{
-                                padding:'3px 9px', borderRadius:'5px', fontSize:'11px',
-                                fontWeight:'700', cursor:'pointer', border:'none',
-                                backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.07)',
-                                color: interval === iv ? '#fff' : '#64748b',
-                                transition:'all 0.15s',
-                            }}>{iv}</button>
-                    ))}
-                    
-                        href={`https://www.tradingview.com/chart/?symbol=${ticker}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{
-                            padding:'3px 9px', borderRadius:'5px', fontSize:'11px',
-                            fontWeight:'700', textDecoration:'none',
-                            backgroundColor:'rgba(41,98,255,0.15)',
-                            color:'#2962ff', border:'1px solid rgba(41,98,255,0.3)',
-                            whiteSpace:'nowrap',
-                        }}
-                    >↗ TV</a>
-                    <button onClick={onChartClose} style={{
-                        background:'rgba(255,255,255,0.07)', border:'none',
-                        borderRadius:'5px', padding:'3px 9px',
-                        color:'#64748b', fontSize:'13px', cursor:'pointer',
-                    }}>×</button>
-                </div>
-
-                {/* Chart */}
-                <div style={{ position:'relative', height:'280px' }}>
-                    {(chartLoading || !chartReady) && (
-                        <div style={{
-                            position:'absolute', inset:0, zIndex:2,
-                            display:'flex', flexDirection:'column',
-                            alignItems:'center', justifyContent:'center',
-                            backgroundColor:'#0f172a', gap:'8px',
-                        }}>
-                            <div style={{ fontSize:'22px', animation:'spin 1s linear infinite', display:'inline-block' }}>⏳</div>
-                            <span style={{ fontSize:'12px', color:'#475569' }}>Loading {ticker}...</span>
-                        </div>
-                    )}
-                    {chartError && !chartLoading && (
-                        <div style={{
-                            position:'absolute', inset:0,
-                            display:'flex', alignItems:'center', justifyContent:'center',
-                            backgroundColor:'#0f172a', color:'#ef4444', fontSize:'12px',
-                        }}>⚠️ {chartError}</div>
-                    )}
-                    <div ref={containerRef} style={{ width:'100%', height:'280px' }} />
-                </div>
-
-                {/* EMA legend */}
-                <div style={{
-                    padding:'6px 14px', backgroundColor:'#0a1628',
-                    borderTop:'1px solid #1e293b',
-                    display:'flex', gap:'14px', flexWrap:'wrap',
-                }}>
-                    {[['#10b981','EMA20'],['#3b82f6','EMA50'],['#ef4444','EMA200']].map(([c,l]) => (
-                        <span key={l} style={{ fontSize:'10px', fontWeight:'700', color:c, display:'flex', alignItems:'center', gap:'4px' }}>
-                            <span style={{ width:'16px', height:'2px', backgroundColor:c, display:'inline-block', borderRadius:'1px' }}/>
-                            {l}
-                        </span>
-                    ))}
-                </div>
-            </div>
-        );
-    };
 
     // ── Score ring ────────────────────────────────────────────────────────────
     const ScoreRing = ({ score }) => {
@@ -935,6 +1044,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                                                     <ScannerChart
                                                         ticker={r.ticker}
                                                         interval={chartInterval}
+                                                        onIntervalChange={(iv) => setChartInterval(iv)}
                                                         onClose={() => setChartTicker(null)}
                                                     />
                                                 )}
