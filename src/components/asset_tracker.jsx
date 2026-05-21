@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   FaPlus, FaTrash, FaSync, FaChartLine,
-  FaVolumeUp, FaVolumeMute, FaClock, FaEdit, FaBell
+  FaVolumeUp, FaVolumeMute, FaClock, FaEdit, FaBell, FaBellSlash
 } from 'react-icons/fa';
 import { usePushNotifications } from "./usepushnotifications";
 
