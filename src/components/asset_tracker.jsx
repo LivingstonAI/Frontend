@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   FaPlus, FaTrash, FaSync, FaChartLine,
-  FaVolumeUp, FaVolumeMute, FaClock, FaEdit
+  FaVolumeUp, FaVolumeMute, FaClock, FaEdit, FaBell
 } from 'react-icons/fa';
+import { usePushNotifications } from "./usepushnotifications";
 
 const BASE = 'https://backend-production-c0ab.up.railway.app';
 
@@ -654,6 +654,8 @@ const AssetTracker = () => {
   const timerRef = useRef(null);
   const countdownRef = useRef(null);
   const [refreshingPositions, setRefreshingPositions] = useState(false);
+  // Inside AssetTracker component, near the top:
+  const push = usePushNotifications();
 
   const notify = (type, message, ms = 2500) => {
     setActionStatus({ type, message });
@@ -810,25 +812,49 @@ const refreshPositionPrices = async () => {
                 </button>
               </>
             )}
+            
             {activeTab === 'positions' && (
-                <div className="d-flex gap-2">
+              <div className="d-flex gap-2 align-items-center">
+
+                {/* Push notification toggle */}
+                {push.isSupported && (
                   <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={refreshPositionPrices}
-                    disabled={refreshingPositions}
-                    title="Fetch live prices for all positions"
+                    className={`btn btn-sm ${push.isSubscribed ? 'btn-success' : 'btn-outline-secondary'}`}
+                    onClick={push.isSubscribed ? push.unsubscribe : push.subscribe}
+                    disabled={push.isLoading}
+                    title={push.isSubscribed ? 'Notifications on — click to disable' : 'Enable trade notifications'}
+                    style={push.isSubscribed ? {
+                      background: 'linear-gradient(135deg, #27500a, #3b6d11)',
+                      border: 'none', color: '#fff'
+                    } : {}}
                   >
-                    <FaSync className={refreshingPositions ? 'fa-spin' : ''} />
+                    {push.isLoading
+                      ? <span className="spinner-border spinner-border-sm" />
+                      : push.isSubscribed
+                        ? <><FaBell /> <span style={{ fontSize: 11 }}>Alerts on</span></>
+                        : <FaBellSlash />
+                    }
                   </button>
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => setShowAddPosition(true)}
-                    style={{ background: 'linear-gradient(135deg, #042c53, #185fa5)', border: 'none' }}
-                  >
-                    <FaPlus /> New position
-                  </button>
-                </div>
-              )}
+                )}
+
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={refreshPositionPrices}
+                  disabled={refreshingPositions}
+                  title="Fetch live prices"
+                >
+                  <FaSync className={refreshingPositions ? 'fa-spin' : ''} />
+                </button>
+
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => setShowAddPosition(true)}
+                  style={{ background: 'linear-gradient(135deg, #042c53, #185fa5)', border: 'none' }}
+                >
+                  <FaPlus /> New position
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
