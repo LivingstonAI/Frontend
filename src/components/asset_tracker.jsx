@@ -653,6 +653,7 @@ const AssetTracker = () => {
   const [tempMinutes, setTempMinutes] = useState(5);
   const timerRef = useRef(null);
   const countdownRef = useRef(null);
+  const [refreshingPositions, setRefreshingPositions] = useState(false);
 
   const notify = (type, message, ms = 2500) => {
     setActionStatus({ type, message });
@@ -705,12 +706,32 @@ const AssetTracker = () => {
     finally { setProcessingId(null); }
   };
 
+  
   const fetchPositions = async () => {
-    try {
-      const res = await fetch(`${BASE}/snowai-trade-positions/`);
-      if (res.ok) setPositions(await res.json());
-    } catch { /* silent */ }
-  };
+  try {
+    const res = await fetch(`${BASE}/snowai-trade-positions/`);
+    if (res.ok) setPositions(await res.json());
+  } catch { /* silent */ }
+};
+
+const refreshPositionPrices = async () => {
+  setRefreshingPositions(true);
+  notify('info', 'Fetching live prices...');
+  try {
+    const res = await fetch(`${BASE}/snowai-trade-positions-refresh/`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      setPositions(data.positions);
+      notify('success', `Updated ${data.updated_count} of ${data.total} positions`);
+    } else {
+      notify('error', 'Refresh failed');
+    }
+  } catch {
+    notify('error', 'Network error');
+  } finally {
+    setRefreshingPositions(false);
+  }
+};
 
   // Voice timer
   const readAssetPrices = () => {
@@ -790,11 +811,24 @@ const AssetTracker = () => {
               </>
             )}
             {activeTab === 'positions' && (
-              <button className="btn btn-sm btn-primary" onClick={() => setShowAddPosition(true)}
-                style={{ background: 'linear-gradient(135deg, #042c53, #185fa5)', border: 'none' }}>
-                <FaPlus /> New position
-              </button>
-            )}
+                <div className="d-flex gap-2">
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={refreshPositionPrices}
+                    disabled={refreshingPositions}
+                    title="Fetch live prices for all positions"
+                  >
+                    <FaSync className={refreshingPositions ? 'fa-spin' : ''} />
+                  </button>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => setShowAddPosition(true)}
+                    style={{ background: 'linear-gradient(135deg, #042c53, #185fa5)', border: 'none' }}
+                  >
+                    <FaPlus /> New position
+                  </button>
+                </div>
+              )}
           </div>
         </div>
 
