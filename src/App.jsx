@@ -630,7 +630,9 @@ function App() {
             } />
 
             <Route path='/companies' element={
+              <ProtectedRoute>
                 <CompaniesofInterest />
+              </ProtectedRoute>
             } />
 
 
