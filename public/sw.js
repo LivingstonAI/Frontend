@@ -1,29 +1,29 @@
-// ── Push notification handler ─────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'SnowAI', body: 'Trade update', icon: '/logo192.png', url: '/' };
+  let data = {
+    title: 'SnowAI',
+    body:  'Trade update',
+    icon:  '/icon-192.png',
+    url:   '/',
+    tag:   'snowai-trade',
+  };
 
   try {
-    if (event.data) {
-      data = { ...data, ...JSON.parse(event.data.text()) };
-    }
-  } catch (e) {
-    console.warn('Push parse error:', e);
-  }
+    if (event.data) data = { ...data, ...JSON.parse(event.data.text()) };
+  } catch (e) {}
 
   event.waitUntil(
     self.registration.showNotification(data.title, {
-      body:    data.body,
-      icon:    data.icon,
-      badge:   '/logo192.png',
-      vibrate: [200, 100, 200],
-      tag:     'snowai-trade',       // replaces previous notification instead of stacking
+      body:     data.body,
+      icon:     data.icon,
+      badge:    '/logo192.png',
+      vibrate:  [200, 100, 200],
+      tag:      data.tag,       // use the tag from payload
       renotify: true,
-      data:    { url: data.url },
+      data:     { url: data.url },
     })
   );
 });
 
-// ── Notification click → open/focus the app ───────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
