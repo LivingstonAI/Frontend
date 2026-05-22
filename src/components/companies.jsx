@@ -711,7 +711,7 @@ function YouTubeModal({ link, onClose }) {
         <div style={styles.ytModalHeader}>
           <div style={styles.ytLogo}>
             <span>▶</span>
-            <span>SnowAI</span>
+            <span>SnowAI Youtube</span>
           </div>
           <span style={styles.ytTitle}>{link.title}</span>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: 22, cursor: 'pointer', padding: '2px 6px' }}>×</button>
