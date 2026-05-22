@@ -701,6 +701,208 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
   );
 }
 
+// ─── EDIT COMPANY MODAL ───────────────────────────────────────────────────────
+function EditCompanyModal({ company, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name:        company.name,
+    description: company.description,
+    sector:      company.sector,
+    logo_base64: company.logo_base64,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    f('logo_base64', await readFileAsBase64(file));
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError('Company name is required'); return; }
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${BASE}/snowai-companies-of-interest/${company.id}/update/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { onSaved(); onClose(); }
+      else { const d = await res.json(); setError(d.error || 'Failed to save'); }
+    } catch { setError('Network error'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div style={styles.modalOverlay}>
+      <div style={styles.modalBox}>
+        <div style={styles.modalHeader}>
+          <span style={{ fontSize: 20 }}>✏️</span>
+          <h2 style={styles.modalTitle}>Edit company</h2>
+          <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          {error && <div style={styles.error}>{error}</div>}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Company name *</label>
+            <input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Sector</label>
+            <input style={styles.input} value={form.sector} onChange={e => f('sector', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Description</label>
+            <textarea style={styles.textarea} rows={3} value={form.description} onChange={e => f('description', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Logo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(replace image)</span></label>
+            <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
+            {form.logo_base64 && (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={form.logo_base64} alt="preview" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', border: '1px solid #b5d4f4' }} />
+                <button style={styles.btnDanger} onClick={() => f('logo_base64', '')}>Remove</button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+          <button style={styles.btnPrimary} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : '💾 Save changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── EDIT PERSON MODAL ────────────────────────────────────────────────────────
+function EditPersonModal({ person, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name:         person.name,
+    role:         person.role,
+    bio:          person.bio,
+    photo_base64: person.photo_base64,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    f('photo_base64', await readFileAsBase64(file));
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { setError('Name is required'); return; }
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${BASE}/snowai-companies-of-interest/update-person/${person.id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { onSaved(); onClose(); }
+      else { const d = await res.json(); setError(d.error || 'Failed to save'); }
+    } catch { setError('Network error'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div style={styles.modalOverlay}>
+      <div style={styles.modalBox}>
+        <div style={styles.modalHeader}>
+          <span style={{ fontSize: 20 }}>✏️</span>
+          <h2 style={styles.modalTitle}>Edit person — {person.name}</h2>
+          <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          {error && <div style={styles.error}>{error}</div>}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Full name *</label>
+            <input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Role / title</label>
+            <input style={styles.input} value={form.role} onChange={e => f('role', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Bio / notes</label>
+            <textarea style={styles.textarea} rows={3} value={form.bio} onChange={e => f('bio', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Profile photo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(replace)</span></label>
+            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
+            {form.photo_base64 && (
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={form.photo_base64} alt="preview" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid #b5d4f4' }} />
+                <button style={styles.btnDanger} onClick={() => f('photo_base64', '')}>Remove</button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+          <button style={styles.btnPrimary} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : '💾 Save changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── EDIT LINK MODAL ──────────────────────────────────────────────────────────
+function EditLinkModal({ link, onClose, onSaved }) {
+  const [form, setForm] = useState({ title: link.title, url: link.url });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.url.trim()) { setError('Title and URL are required'); return; }
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${BASE}/snowai-companies-of-interest/update-link/${link.id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { onSaved(); onClose(); }
+      else { const d = await res.json(); setError(d.error || 'Failed to save'); }
+    } catch { setError('Network error'); }
+    finally { setSaving(false); }
+  };
+
+  const typeLabel = { url: '🌐 Web link', pdf: '📄 PDF', youtube: '▶️ YouTube' }[link.link_type];
+
+  return (
+    <div style={styles.modalOverlay}>
+      <div style={styles.modalBox}>
+        <div style={styles.modalHeader}>
+          <span style={{ fontSize: 20 }}>✏️</span>
+          <h2 style={styles.modalTitle}>Edit {typeLabel}</h2>
+          <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          {error && <div style={styles.error}>{error}</div>}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Title</label>
+            <input style={styles.input} value={form.title} onChange={e => f('title', e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>URL</label>
+            <input style={styles.input} value={form.url} onChange={e => f('url', e.target.value)} />
+          </div>
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
+          <button style={styles.btnPrimary} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : '💾 Save changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── YOUTUBE PLAYER MODAL ─────────────────────────────────────────────────────
 function YouTubeModal({ link, onClose }) {
   const videoId = extractYouTubeId(link.url);
@@ -711,7 +913,7 @@ function YouTubeModal({ link, onClose }) {
         <div style={styles.ytModalHeader}>
           <div style={styles.ytLogo}>
             <span>▶</span>
-            <span>SnowAI Youtube</span>
+            <span>SnowAI YouTube</span>
           </div>
           <span style={styles.ytTitle}>{link.title}</span>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: 22, cursor: 'pointer', padding: '2px 6px' }}>×</button>
@@ -764,6 +966,9 @@ function CompanyCard({ company, onRefresh }) {
   const [showAddLink, setShowAddLink] = useState(false);
   const [playingVideo, setPlayingVideo] = useState(null);
   const [viewingPdf, setViewingPdf] = useState(null);
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [editingPerson, setEditingPerson] = useState(null);
+  const [editingLink, setEditingLink] = useState(null);
 
   const deletePerson = async (personId) => {
     if (!window.confirm('Remove this person?')) return;
@@ -795,6 +1000,9 @@ function CompanyCard({ company, onRefresh }) {
       {showAddLink && <AddLinkModal companyId={company.id} onClose={() => setShowAddLink(false)} onSaved={onRefresh} />}
       {playingVideo && <YouTubeModal link={playingVideo} onClose={() => setPlayingVideo(null)} />}
       {viewingPdf && <PDFModal link={viewingPdf} onClose={() => setViewingPdf(null)} />}
+      {editingCompany && <EditCompanyModal company={company} onClose={() => setEditingCompany(false)} onSaved={() => { onRefresh(); setEditingCompany(false); }} />}
+      {editingPerson && <EditPersonModal person={editingPerson} onClose={() => setEditingPerson(null)} onSaved={() => { onRefresh(); setEditingPerson(null); }} />}
+      {editingLink && <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} onSaved={() => { onRefresh(); setEditingLink(null); }} />}
 
       <div style={styles.card}>
         <div style={styles.cardTopBar} />
@@ -811,6 +1019,7 @@ function CompanyCard({ company, onRefresh }) {
             <p style={styles.companyName}>{company.name}</p>
             {company.sector && <span style={styles.sectorBadge}>{company.sector}</span>}
           </div>
+          <button style={styles.btnSmall} onClick={() => setEditingCompany(true)} title="Edit company">✏️</button>
           <button style={styles.btnDanger} onClick={deleteCompany} title="Delete company">✕</button>
         </div>
 
@@ -872,6 +1081,7 @@ function CompanyCard({ company, onRefresh }) {
                     {person.role && <p style={styles.personRole}>{person.role}</p>}
                     {person.bio && <p style={styles.personBio}>{person.bio}</p>}
                   </div>
+                  <button style={styles.btnSmall} onClick={() => setEditingPerson(person)} title="Edit">✏️</button>
                   <button style={styles.btnDanger} onClick={() => deletePerson(person.id)}>✕</button>
                 </div>
               ))}
@@ -894,6 +1104,7 @@ function CompanyCard({ company, onRefresh }) {
                   <span style={styles.linkIcon}>🌐</span>
                   <span style={styles.linkTitle}>{link.title}</span>
                   <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗ Open</a>
+                  <button style={styles.btnSmall} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
                   <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
                 </div>
               ))}
@@ -917,6 +1128,7 @@ function CompanyCard({ company, onRefresh }) {
                   <span style={styles.linkTitle}>{link.title}</span>
                   <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setViewingPdf(link)}>👁 View</button>
                   <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗</a>
+                  <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
                   <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
                 </div>
               ))}
@@ -968,6 +1180,7 @@ function CompanyCard({ company, onRefresh }) {
                       </p>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setPlayingVideo(link)}>▶ Play</button>
+                        <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
                         <button style={{ ...styles.btnDanger, fontSize: 11 }} onClick={() => deleteLink(link.id)}>✕</button>
                       </div>
                     </div>
