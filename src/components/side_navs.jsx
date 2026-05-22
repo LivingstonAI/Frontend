@@ -1232,6 +1232,7 @@ export default function SideNavs() {
         <Link to="/snowai_moments" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-camera"></i></p></button></Link>
         <Link to="/data_tracker" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i className="bi bi-book-half"></i></p></button></Link>
         <Link to="/snow_meet" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-telephone-outbound-fill"></i></p></button></Link>
+        <Link to="/companies" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-buildings"></i></p></button></Link>
         </div>
 
       <div className="side-navs-cellphone">
@@ -1294,6 +1295,7 @@ export default function SideNavs() {
         <Link to="/snowai_moments" className="side-nav"><i className="bi bi-camera"></i></Link>
         <Link to="/data_tracker" className="side-nav"><i className="bi bi-book-half"></i></Link>
         <Link to="/snow_meet" className="side-nav"><i class="bi bi-telephone-outbound-fill"></i></Link>
+        <Link to="/companies" className="side-nav"><i class="bi bi-buildings"></i></Link>
       </div>
 
       <br />

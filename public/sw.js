@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title, {
       body:     data.body,
       icon:     data.icon,
-      badge:    '/logo192.png',
+      badge:    '/icon-192.png',
       vibrate:  [200, 100, 200],
       tag:      data.tag,       // use the tag from payload
       renotify: true,
