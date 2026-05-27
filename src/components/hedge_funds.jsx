@@ -24,7 +24,6 @@ export default function HedgeFundTracker() {
     const [showFundSelector, setShowFundSelector] = useState(false);
     const [showPerformanceChart, setShowPerformanceChart] = useState(false);
     
-    // Loading states for buttons
     const [loadingStates, setLoadingStates] = useState({
         createFund: false,
         updateFund: false,
@@ -556,7 +555,6 @@ export default function HedgeFundTracker() {
     };
     
     const handleWatchVideo = (url) => {
-        // Extract YouTube video ID
         let videoId = '';
         if (url.includes('youtube.com/watch?v=')) {
             videoId = url.split('v=')[1].split('&')[0];
@@ -570,7 +568,6 @@ export default function HedgeFundTracker() {
             setSelectedVideoUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1`);
             setShowVideoModal(true);
         } else {
-            // If not a YouTube URL, open in new tab
             window.open(url, '_blank');
         }
     };
@@ -591,7 +588,7 @@ export default function HedgeFundTracker() {
         },
         addButton: {
             padding: '10px 20px',
-            backgroundColor: '#007bff',
+            backgroundColor: '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
@@ -633,8 +630,8 @@ export default function HedgeFundTracker() {
             alignItems: 'center'
         },
         fundCardActive: {
-            border: '2px solid #007bff',
-            backgroundColor: '#e7f3ff'
+            border: '2px solid #3b82f6',
+            backgroundColor: '#eff6ff'
         },
         fundLogo: {
             width: '40px',
@@ -702,7 +699,7 @@ export default function HedgeFundTracker() {
         },
         addSmallButton: {
             padding: '6px 12px',
-            backgroundColor: '#28a745',
+            backgroundColor: '#10b981',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -777,7 +774,7 @@ export default function HedgeFundTracker() {
         },
         link: {
             fontSize: '12px',
-            color: '#007bff',
+            color: '#3b82f6',
             textDecoration: 'none'
         },
         actionButtons: {
@@ -801,7 +798,7 @@ export default function HedgeFundTracker() {
         },
         deleteIconButton: {
             padding: '4px 8px',
-            backgroundColor: '#dc3545',
+            backgroundColor: '#ef4444',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -827,7 +824,7 @@ export default function HedgeFundTracker() {
         resourceType: {
             display: 'inline-block',
             padding: '2px 8px',
-            backgroundColor: '#007bff',
+            backgroundColor: '#3b82f6',
             color: 'white',
             borderRadius: '3px',
             fontSize: '10px',
@@ -841,7 +838,7 @@ export default function HedgeFundTracker() {
         },
         watchButton: {
             padding: '4px 12px',
-            backgroundColor: '#dc2626',
+            backgroundColor: '#ef4444',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -922,7 +919,7 @@ export default function HedgeFundTracker() {
         },
         submitButton: {
             padding: '10px 20px',
-            backgroundColor: '#28a745',
+            backgroundColor: '#10b981',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -964,12 +961,12 @@ export default function HedgeFundTracker() {
         performanceReturn: {
             fontSize: '20px',
             fontWeight: '700',
-            color: '#28a745'
+            color: '#10b981'
         },
         performanceReturnNegative: {
             fontSize: '20px',
             fontWeight: '700',
-            color: '#dc3545'
+            color: '#ef4444'
         },
         emptyState: {
             textAlign: 'center',
@@ -978,7 +975,7 @@ export default function HedgeFundTracker() {
         },
         deleteFundButton: {
             padding: '8px 16px',
-            backgroundColor: '#dc3545',
+            backgroundColor: '#ef4444',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -1012,7 +1009,7 @@ export default function HedgeFundTracker() {
         },
         mobileFundSelector: {
             padding: '12px',
-            backgroundColor: '#007bff',
+            backgroundColor: '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '5px',
@@ -1054,7 +1051,7 @@ export default function HedgeFundTracker() {
         },
         chartToggle: {
             padding: '8px 16px',
-            backgroundColor: '#17a2b8',
+            backgroundColor: '#06b6d4',
             color: 'white',
             border: 'none',
             borderRadius: '4px',
@@ -1067,33 +1064,76 @@ export default function HedgeFundTracker() {
         mobileContainer: {
             position: 'relative'
         },
+        // Video Modal Styles - More Snug
         videoModal: {
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.9)',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            zIndex: 2000
+            zIndex: 2000,
+            backdropFilter: 'blur(4px)'
         },
         videoModalContent: {
             position: 'relative',
             width: '90%',
-            maxWidth: '1000px',
-            backgroundColor: '#1e3a8a',
-            padding: '20px',
+            maxWidth: '900px',
+            backgroundColor: '#0f172a',
             borderRadius: '12px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            padding: '8px',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            border: '1px solid rgba(59, 130, 246, 0.3)'
+        },
+        videoModalHeader: {
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 12px',
+            backgroundColor: '#1e293b',
+            borderTopLeftRadius: '8px',
+            borderTopRightRadius: '8px'
+        },
+        videoModalInsignia: {
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '6px'
+        },
+        snowAIText: {
+            fontSize: '14px',
+            fontWeight: '700',
+            color: '#60a5fa',
+            letterSpacing: '0.5px'
+        },
+        youtubeText: {
+            fontSize: '14px',
+            fontWeight: '700',
+            color: '#ef4444',
+            letterSpacing: '0.5px'
+        },
+        closeVideoButton: {
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            width: '28px',
+            height: '28px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            transition: 'all 0.2s'
         },
         videoContainer: {
             position: 'relative',
             paddingBottom: '56.25%',
             height: 0,
             overflow: 'hidden',
-            borderRadius: '8px'
+            backgroundColor: '#000'
         },
         videoIframe: {
             position: 'absolute',
@@ -1103,22 +1143,18 @@ export default function HedgeFundTracker() {
             height: '100%',
             border: 'none'
         },
-        closeVideoButton: {
-            position: 'absolute',
-            top: '-40px',
-            right: '-10px',
-            backgroundColor: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '36px',
-            height: '36px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            transition: 'all 0.2s'
+        videoModalFooter: {
+            padding: '8px 12px',
+            textAlign: 'center',
+            backgroundColor: '#1e293b',
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px'
+        },
+        footerSnowAIText: {
+            fontSize: '11px',
+            fontWeight: '600',
+            color: '#64748b',
+            letterSpacing: '1px'
         },
         disabledButton: {
             opacity: 0.6,
@@ -1284,7 +1320,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Performance Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Performance History</h3>
@@ -1318,7 +1353,7 @@ export default function HedgeFundTracker() {
                                                             <YAxis />
                                                             <Tooltip formatter={(value) => `${value}%`} />
                                                             <Legend />
-                                                            <Line type="monotone" dataKey="return_percentage" stroke="#007bff" strokeWidth={2} />
+                                                            <Line type="monotone" dataKey="return_percentage" stroke="#3b82f6" strokeWidth={2} />
                                                         </LineChart>
                                                     </ResponsiveContainer>
                                                 </div>
@@ -1358,7 +1393,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Key People Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Key People</h3>
@@ -1416,7 +1450,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Resources Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Resources & Articles</h3>
@@ -1580,7 +1613,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Performance Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Performance History</h3>
@@ -1607,7 +1639,7 @@ export default function HedgeFundTracker() {
                                                             <YAxis />
                                                             <Tooltip formatter={(value) => `${value}%`} />
                                                             <Legend />
-                                                            <Line type="monotone" dataKey="return_percentage" stroke="#007bff" strokeWidth={2} />
+                                                            <Line type="monotone" dataKey="return_percentage" stroke="#3b82f6" strokeWidth={2} />
                                                         </LineChart>
                                                     </ResponsiveContainer>
                                                 </div>
@@ -1639,7 +1671,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Key People Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Key People</h3>
@@ -1680,7 +1711,6 @@ export default function HedgeFundTracker() {
                                             )}
                                         </div>
 
-                                        {/* Resources Section */}
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Resources & Articles</h3>
@@ -1735,20 +1765,29 @@ export default function HedgeFundTracker() {
             {showVideoModal && (
                 <div style={styles.videoModal} onClick={() => setShowVideoModal(false)}>
                     <div style={styles.videoModalContent} onClick={(e) => e.stopPropagation()}>
-                        <button
-                            style={styles.closeVideoButton}
-                            onClick={() => setShowVideoModal(false)}
-                        >
-                            <X size={20} />
-                        </button>
+                        <div style={styles.videoModalHeader}>
+                            <div style={styles.videoModalInsignia}>
+                                <span style={styles.snowAIText}>SnowAI</span>
+                                <span style={styles.youtubeText}>YouTube</span>
+                            </div>
+                            <button
+                                style={styles.closeVideoButton}
+                                onClick={() => setShowVideoModal(false)}
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
                         <div style={styles.videoContainer}>
                             <iframe
                                 src={selectedVideoUrl}
-                                title="YouTube Video Player"
+                                title="SnowAI YouTube Video Player"
                                 style={styles.videoIframe}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             />
+                        </div>
+                        <div style={styles.videoModalFooter}>
+                            <span style={styles.footerSnowAIText}>SnowAI</span>
                         </div>
                     </div>
                 </div>
