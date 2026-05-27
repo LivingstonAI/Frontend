@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChevronDown, TrendingUp, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, TrendingUp, Edit2, Trash2, Play, X, Loader } from 'lucide-react';
 
 export default function HedgeFundTracker() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
@@ -18,9 +18,27 @@ export default function HedgeFundTracker() {
     const [showEditResourceModal, setShowEditResourceModal] = useState(false);
     const [showAddPerformanceModal, setShowAddPerformanceModal] = useState(false);
     const [showEditPerformanceModal, setShowEditPerformanceModal] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);
+    const [selectedVideoUrl, setSelectedVideoUrl] = useState('');
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [showFundSelector, setShowFundSelector] = useState(false);
     const [showPerformanceChart, setShowPerformanceChart] = useState(false);
+    
+    // Loading states for buttons
+    const [loadingStates, setLoadingStates] = useState({
+        createFund: false,
+        updateFund: false,
+        deleteFund: false,
+        addPerson: false,
+        updatePerson: false,
+        deletePerson: false,
+        addResource: false,
+        updateResource: false,
+        deleteResource: false,
+        addPerformance: false,
+        updatePerformance: false,
+        deletePerformance: false
+    });
     
     const [newFund, setNewFund] = useState({
         name: '',
@@ -122,6 +140,7 @@ export default function HedgeFundTracker() {
 
     const handleCreateFund = async (e) => {
         e.preventDefault();
+        setLoadingStates(prev => ({ ...prev, createFund: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/create/`, {
                 method: 'POST',
@@ -141,15 +160,18 @@ export default function HedgeFundTracker() {
                     headquarters: '',
                     website: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error creating fund:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, createFund: false }));
         }
     };
     
     const handleUpdateFund = async (e) => {
         e.preventDefault();
+        setLoadingStates(prev => ({ ...prev, updateFund: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/${editFund.id}/update/`, {
                 method: 'PUT',
@@ -179,10 +201,12 @@ export default function HedgeFundTracker() {
                     headquarters: '',
                     website: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error updating fund:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, updateFund: false }));
         }
     };
     
@@ -219,6 +243,7 @@ export default function HedgeFundTracker() {
     const handleDeleteFund = async (fundId) => {
         if (!window.confirm('Are you sure you want to delete this hedge fund? This will delete all associated data.')) return;
         
+        setLoadingStates(prev => ({ ...prev, deleteFund: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/${fundId}/delete/`, {
                 method: 'DELETE'
@@ -226,10 +251,12 @@ export default function HedgeFundTracker() {
             const data = await response.json();
             if (data.success) {
                 setSelectedFund(null);
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error deleting fund:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, deleteFund: false }));
         }
     };
     
@@ -252,6 +279,7 @@ export default function HedgeFundTracker() {
         e.preventDefault();
         if (!selectedFund) return;
         
+        setLoadingStates(prev => ({ ...prev, addPerson: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/key-person/add/`, {
                 method: 'POST',
@@ -269,15 +297,18 @@ export default function HedgeFundTracker() {
                     bio: '',
                     photo_base64: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error adding person:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, addPerson: false }));
         }
     };
     
     const handleUpdatePerson = async (e) => {
         e.preventDefault();
+        setLoadingStates(prev => ({ ...prev, updatePerson: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/key-person/${editPerson.id}/update/`, {
                 method: 'PUT',
@@ -303,10 +334,12 @@ export default function HedgeFundTracker() {
                     bio: '',
                     photo_base64: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error updating person:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, updatePerson: false }));
         }
     };
     
@@ -326,16 +359,19 @@ export default function HedgeFundTracker() {
     const handleDeletePerson = async (personId) => {
         if (!window.confirm('Are you sure you want to delete this person?')) return;
         
+        setLoadingStates(prev => ({ ...prev, deletePerson: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/key-person/${personId}/delete/`, {
                 method: 'DELETE'
             });
             const data = await response.json();
             if (data.success) {
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error deleting person:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, deletePerson: false }));
         }
     };
 
@@ -343,6 +379,7 @@ export default function HedgeFundTracker() {
         e.preventDefault();
         if (!selectedFund) return;
         
+        setLoadingStates(prev => ({ ...prev, addResource: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/resource/add/`, {
                 method: 'POST',
@@ -358,15 +395,18 @@ export default function HedgeFundTracker() {
                     description: '',
                     resource_type: 'article'
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error adding resource:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, addResource: false }));
         }
     };
     
     const handleUpdateResource = async (e) => {
         e.preventDefault();
+        setLoadingStates(prev => ({ ...prev, updateResource: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/resource/${editResource.id}/update/`, {
                 method: 'PUT',
@@ -388,10 +428,12 @@ export default function HedgeFundTracker() {
                     description: '',
                     resource_type: 'article'
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error updating resource:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, updateResource: false }));
         }
     };
     
@@ -409,16 +451,19 @@ export default function HedgeFundTracker() {
     const handleDeleteResource = async (resourceId) => {
         if (!window.confirm('Are you sure you want to delete this resource?')) return;
         
+        setLoadingStates(prev => ({ ...prev, deleteResource: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/resource/${resourceId}/delete/`, {
                 method: 'DELETE'
             });
             const data = await response.json();
             if (data.success) {
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error deleting resource:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, deleteResource: false }));
         }
     };
 
@@ -426,6 +471,7 @@ export default function HedgeFundTracker() {
         e.preventDefault();
         if (!selectedFund) return;
         
+        setLoadingStates(prev => ({ ...prev, addPerformance: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/${selectedFund.id}/performance/add/`, {
                 method: 'POST',
@@ -440,15 +486,18 @@ export default function HedgeFundTracker() {
                     return_percentage: '',
                     notes: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error adding performance:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, addPerformance: false }));
         }
     };
     
     const handleUpdatePerformance = async (e) => {
         e.preventDefault();
+        setLoadingStates(prev => ({ ...prev, updatePerformance: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/performance/${editPerformance.id}/update/`, {
                 method: 'PUT',
@@ -468,10 +517,12 @@ export default function HedgeFundTracker() {
                     return_percentage: '',
                     notes: ''
                 });
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error updating performance:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, updatePerformance: false }));
         }
     };
     
@@ -488,16 +539,39 @@ export default function HedgeFundTracker() {
     const handleDeletePerformance = async (performanceId) => {
         if (!window.confirm('Are you sure you want to delete this performance record?')) return;
         
+        setLoadingStates(prev => ({ ...prev, deletePerformance: true }));
         try {
             const response = await fetch(`${baseUrl}/snowai/hedge-funds/performance/${performanceId}/delete/`, {
                 method: 'DELETE'
             });
             const data = await response.json();
             if (data.success) {
-                fetchHedgeFunds();
+                await fetchHedgeFunds();
             }
         } catch (error) {
             console.error('Error deleting performance:', error);
+        } finally {
+            setLoadingStates(prev => ({ ...prev, deletePerformance: false }));
+        }
+    };
+    
+    const handleWatchVideo = (url) => {
+        // Extract YouTube video ID
+        let videoId = '';
+        if (url.includes('youtube.com/watch?v=')) {
+            videoId = url.split('v=')[1].split('&')[0];
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1].split('?')[0];
+        } else if (url.includes('youtube.com/embed/')) {
+            videoId = url.split('embed/')[1].split('?')[0];
+        }
+        
+        if (videoId) {
+            setSelectedVideoUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1`);
+            setShowVideoModal(true);
+        } else {
+            // If not a YouTube URL, open in new tab
+            window.open(url, '_blank');
         }
     };
 
@@ -522,7 +596,14 @@ export default function HedgeFundTracker() {
             border: 'none',
             borderRadius: '5px',
             cursor: 'pointer',
-            fontSize: '14px'
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+        },
+        addButtonDisabled: {
+            opacity: 0.6,
+            cursor: 'not-allowed'
         },
         layout: {
             display: 'grid',
@@ -626,7 +707,10 @@ export default function HedgeFundTracker() {
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
-            fontSize: '12px'
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
         },
         description: {
             fontSize: '14px',
@@ -705,8 +789,8 @@ export default function HedgeFundTracker() {
         },
         editIconButton: {
             padding: '4px 8px',
-            backgroundColor: '#ffc107',
-            color: '#212529',
+            backgroundColor: '#3b82f6',
+            color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -754,6 +838,19 @@ export default function HedgeFundTracker() {
             fontSize: '13px',
             color: '#6c757d',
             marginBottom: '8px'
+        },
+        watchButton: {
+            padding: '4px 12px',
+            backgroundColor: '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '11px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginTop: '8px'
         },
         modal: {
             position: 'fixed',
@@ -831,7 +928,10 @@ export default function HedgeFundTracker() {
             borderRadius: '4px',
             cursor: 'pointer',
             fontSize: '14px',
-            fontWeight: '600'
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
         },
         cancelButton: {
             padding: '10px 20px',
@@ -884,13 +984,15 @@ export default function HedgeFundTracker() {
             borderRadius: '4px',
             cursor: 'pointer',
             fontSize: '13px',
-            marginLeft: 'auto',
-            whiteSpace: 'nowrap'
+            whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
         },
         editFundButton: {
             padding: '8px 16px',
-            backgroundColor: '#ffc107',
-            color: '#212529',
+            backgroundColor: '#3b82f6',
+            color: 'white',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -964,6 +1066,63 @@ export default function HedgeFundTracker() {
         },
         mobileContainer: {
             position: 'relative'
+        },
+        videoModal: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 2000
+        },
+        videoModalContent: {
+            position: 'relative',
+            width: '90%',
+            maxWidth: '1000px',
+            backgroundColor: '#1e3a8a',
+            padding: '20px',
+            borderRadius: '12px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        },
+        videoContainer: {
+            position: 'relative',
+            paddingBottom: '56.25%',
+            height: 0,
+            overflow: 'hidden',
+            borderRadius: '8px'
+        },
+        videoIframe: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            border: 'none'
+        },
+        closeVideoButton: {
+            position: 'absolute',
+            top: '-40px',
+            right: '-10px',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '36px',
+            height: '36px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            transition: 'all 0.2s'
+        },
+        disabledButton: {
+            opacity: 0.6,
+            cursor: 'not-allowed'
         }
     };
 
@@ -999,10 +1158,15 @@ export default function HedgeFundTracker() {
                     <div style={styles.container}>
                         <div style={styles.header}>
                             <button 
-                                style={styles.addButton}
+                                style={{
+                                    ...styles.addButton,
+                                    ...(loadingStates.createFund ? styles.disabledButton : {})
+                                }}
                                 onClick={() => setShowAddFundModal(true)}
+                                disabled={loadingStates.createFund}
                             >
-                                + Add Hedge Fund
+                                {loadingStates.createFund ? <Loader size={16} className="spinner" /> : '+'}
+                                {loadingStates.createFund ? 'Adding...' : 'Add Hedge Fund'}
                             </button>
                         </div>
 
@@ -1073,14 +1237,18 @@ export default function HedgeFundTracker() {
                                                 <button
                                                     style={styles.editFundButton}
                                                     onClick={() => handleEditFundClick(selectedFund)}
+                                                    disabled={loadingStates.updateFund}
                                                 >
-                                                    <Edit2 size={14} /> Edit
+                                                    {loadingStates.updateFund ? <Loader size={14} /> : <Edit2 size={14} />}
+                                                    Edit
                                                 </button>
                                                 <button
                                                     style={styles.deleteFundButton}
                                                     onClick={() => handleDeleteFund(selectedFund.id)}
+                                                    disabled={loadingStates.deleteFund}
                                                 >
-                                                    <Trash2 size={14} /> Delete
+                                                    {loadingStates.deleteFund ? <Loader size={14} /> : <Trash2 size={14} />}
+                                                    Delete
                                                 </button>
                                             </div>
                                         </div>
@@ -1133,8 +1301,10 @@ export default function HedgeFundTracker() {
                                                     <button
                                                         style={styles.addSmallButton}
                                                         onClick={() => setShowAddPerformanceModal(true)}
+                                                        disabled={loadingStates.addPerformance}
                                                     >
-                                                        + Add Performance
+                                                        {loadingStates.addPerformance ? <Loader size={12} /> : '+'}
+                                                        Add Performance
                                                     </button>
                                                 </div>
                                             </div>
@@ -1162,14 +1332,18 @@ export default function HedgeFundTracker() {
                                                                 <button
                                                                     style={styles.editIconButton}
                                                                     onClick={() => handleEditPerformanceClick(perf)}
+                                                                    disabled={loadingStates.updatePerformance}
                                                                 >
-                                                                    <Edit2 size={10} /> Edit
+                                                                    {loadingStates.updatePerformance ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                    Edit
                                                                 </button>
                                                                 <button
                                                                     style={styles.deleteIconButton}
                                                                     onClick={() => handleDeletePerformance(perf.id)}
+                                                                    disabled={loadingStates.deletePerformance}
                                                                 >
-                                                                    <Trash2 size={10} /> Del
+                                                                    {loadingStates.deletePerformance ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                    Del
                                                                 </button>
                                                             </div>
                                                             <div style={styles.performanceYear}>{perf.year}</div>
@@ -1191,8 +1365,10 @@ export default function HedgeFundTracker() {
                                                 <button
                                                     style={styles.addSmallButton}
                                                     onClick={() => setShowAddPersonModal(true)}
+                                                    disabled={loadingStates.addPerson}
                                                 >
-                                                    + Add Person
+                                                    {loadingStates.addPerson ? <Loader size={12} /> : '+'}
+                                                    Add Person
                                                 </button>
                                             </div>
                                             {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
@@ -1202,14 +1378,18 @@ export default function HedgeFundTracker() {
                                                             <button
                                                                 style={styles.editIconButton}
                                                                 onClick={() => handleEditPersonClick(person)}
+                                                                disabled={loadingStates.updatePerson}
                                                             >
-                                                                <Edit2 size={10} /> Edit
+                                                                {loadingStates.updatePerson ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                Edit
                                                             </button>
                                                             <button
                                                                 style={styles.deleteIconButton}
                                                                 onClick={() => handleDeletePerson(person.id)}
+                                                                disabled={loadingStates.deletePerson}
                                                             >
-                                                                <Trash2 size={10} /> Del
+                                                                {loadingStates.deletePerson ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                Del
                                                             </button>
                                                         </div>
                                                         {person.photo_base64 && (
@@ -1243,8 +1423,10 @@ export default function HedgeFundTracker() {
                                                 <button
                                                     style={styles.addSmallButton}
                                                     onClick={() => setShowAddResourceModal(true)}
+                                                    disabled={loadingStates.addResource}
                                                 >
-                                                    + Add Resource
+                                                    {loadingStates.addResource ? <Loader size={12} /> : '+'}
+                                                    Add Resource
                                                 </button>
                                             </div>
                                             {selectedFund.resources && selectedFund.resources.length > 0 ? (
@@ -1254,14 +1436,18 @@ export default function HedgeFundTracker() {
                                                             <button
                                                                 style={styles.editIconButton}
                                                                 onClick={() => handleEditResourceClick(resource)}
+                                                                disabled={loadingStates.updateResource}
                                                             >
-                                                                <Edit2 size={10} /> Edit
+                                                                {loadingStates.updateResource ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                Edit
                                                             </button>
                                                             <button
                                                                 style={styles.deleteIconButton}
                                                                 onClick={() => handleDeleteResource(resource.id)}
+                                                                disabled={loadingStates.deleteResource}
                                                             >
-                                                                <Trash2 size={10} /> Del
+                                                                {loadingStates.deleteResource ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                Del
                                                             </button>
                                                         </div>
                                                         <span style={styles.resourceType}>{resource.resource_type}</span>
@@ -1271,6 +1457,14 @@ export default function HedgeFundTracker() {
                                                             </a>
                                                         </h4>
                                                         {resource.description && <p style={styles.resourceDescription}>{resource.description}</p>}
+                                                        {resource.resource_type === 'video' && (
+                                                            <button
+                                                                style={styles.watchButton}
+                                                                onClick={() => handleWatchVideo(resource.url)}
+                                                            >
+                                                                <Play size={12} /> Watch Video
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))
                                             ) : (
@@ -1310,8 +1504,10 @@ export default function HedgeFundTracker() {
                                                     e.stopPropagation();
                                                     handleEditFundClick(fund);
                                                 }}
+                                                disabled={loadingStates.updateFund}
                                             >
-                                                <Edit2 size={12} /> Edit
+                                                {loadingStates.updateFund ? <Loader size={12} /> : <Edit2 size={12} />}
+                                                Edit
                                             </button>
                                         </div>
                                     ))}
@@ -1337,14 +1533,18 @@ export default function HedgeFundTracker() {
                                                 <button
                                                     style={styles.editFundButton}
                                                     onClick={() => handleEditFundClick(selectedFund)}
+                                                    disabled={loadingStates.updateFund}
                                                 >
-                                                    <Edit2 size={14} /> Edit Fund
+                                                    {loadingStates.updateFund ? <Loader size={14} /> : <Edit2 size={14} />}
+                                                    Edit Fund
                                                 </button>
                                                 <button
                                                     style={styles.deleteFundButton}
                                                     onClick={() => handleDeleteFund(selectedFund.id)}
+                                                    disabled={loadingStates.deleteFund}
                                                 >
-                                                    <Trash2 size={14} /> Delete Fund
+                                                    {loadingStates.deleteFund ? <Loader size={14} /> : <Trash2 size={14} />}
+                                                    Delete Fund
                                                 </button>
                                             </div>
                                         </div>
@@ -1391,8 +1591,9 @@ export default function HedgeFundTracker() {
                                                             {showPerformanceChart ? 'Hide Chart' : 'Show Chart'}
                                                         </button>
                                                     )}
-                                                    <button style={styles.addSmallButton} onClick={() => setShowAddPerformanceModal(true)}>
-                                                        + Add Performance
+                                                    <button style={styles.addSmallButton} onClick={() => setShowAddPerformanceModal(true)} disabled={loadingStates.addPerformance}>
+                                                        {loadingStates.addPerformance ? <Loader size={12} /> : '+'}
+                                                        Add Performance
                                                     </button>
                                                 </div>
                                             </div>
@@ -1417,11 +1618,13 @@ export default function HedgeFundTracker() {
                                                     {selectedFund.performance.map(perf => (
                                                         <div key={perf.id} style={styles.performanceCard}>
                                                             <div style={styles.actionButtons}>
-                                                                <button style={styles.editIconButton} onClick={() => handleEditPerformanceClick(perf)}>
-                                                                    <Edit2 size={10} /> Edit
+                                                                <button style={styles.editIconButton} onClick={() => handleEditPerformanceClick(perf)} disabled={loadingStates.updatePerformance}>
+                                                                    {loadingStates.updatePerformance ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                    Edit
                                                                 </button>
-                                                                <button style={styles.deleteIconButton} onClick={() => handleDeletePerformance(perf.id)}>
-                                                                    <Trash2 size={10} /> Del
+                                                                <button style={styles.deleteIconButton} onClick={() => handleDeletePerformance(perf.id)} disabled={loadingStates.deletePerformance}>
+                                                                    {loadingStates.deletePerformance ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                    Del
                                                                 </button>
                                                             </div>
                                                             <div style={styles.performanceYear}>{perf.year}</div>
@@ -1440,19 +1643,22 @@ export default function HedgeFundTracker() {
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Key People</h3>
-                                                <button style={styles.addSmallButton} onClick={() => setShowAddPersonModal(true)}>
-                                                    + Add Person
+                                                <button style={styles.addSmallButton} onClick={() => setShowAddPersonModal(true)} disabled={loadingStates.addPerson}>
+                                                    {loadingStates.addPerson ? <Loader size={12} /> : '+'}
+                                                    Add Person
                                                 </button>
                                             </div>
                                             {selectedFund.key_people && selectedFund.key_people.length > 0 ? (
                                                 selectedFund.key_people.map(person => (
                                                     <div key={person.id} style={styles.personCard}>
                                                         <div style={styles.actionButtons}>
-                                                            <button style={styles.editIconButton} onClick={() => handleEditPersonClick(person)}>
-                                                                <Edit2 size={10} /> Edit
+                                                            <button style={styles.editIconButton} onClick={() => handleEditPersonClick(person)} disabled={loadingStates.updatePerson}>
+                                                                {loadingStates.updatePerson ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                Edit
                                                             </button>
-                                                            <button style={styles.deleteIconButton} onClick={() => handleDeletePerson(person.id)}>
-                                                                <Trash2 size={10} /> Del
+                                                            <button style={styles.deleteIconButton} onClick={() => handleDeletePerson(person.id)} disabled={loadingStates.deletePerson}>
+                                                                {loadingStates.deletePerson ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                Del
                                                             </button>
                                                         </div>
                                                         {person.photo_base64 && (
@@ -1478,19 +1684,22 @@ export default function HedgeFundTracker() {
                                         <div style={styles.section}>
                                             <div style={styles.sectionHeader}>
                                                 <h3 style={styles.sectionTitle}>Resources & Articles</h3>
-                                                <button style={styles.addSmallButton} onClick={() => setShowAddResourceModal(true)}>
-                                                    + Add Resource
+                                                <button style={styles.addSmallButton} onClick={() => setShowAddResourceModal(true)} disabled={loadingStates.addResource}>
+                                                    {loadingStates.addResource ? <Loader size={12} /> : '+'}
+                                                    Add Resource
                                                 </button>
                                             </div>
                                             {selectedFund.resources && selectedFund.resources.length > 0 ? (
                                                 selectedFund.resources.map(resource => (
                                                     <div key={resource.id} style={styles.resourceCard}>
                                                         <div style={styles.actionButtons}>
-                                                            <button style={styles.editIconButton} onClick={() => handleEditResourceClick(resource)}>
-                                                                <Edit2 size={10} /> Edit
+                                                            <button style={styles.editIconButton} onClick={() => handleEditResourceClick(resource)} disabled={loadingStates.updateResource}>
+                                                                {loadingStates.updateResource ? <Loader size={10} /> : <Edit2 size={10} />}
+                                                                Edit
                                                             </button>
-                                                            <button style={styles.deleteIconButton} onClick={() => handleDeleteResource(resource.id)}>
-                                                                <Trash2 size={10} /> Del
+                                                            <button style={styles.deleteIconButton} onClick={() => handleDeleteResource(resource.id)} disabled={loadingStates.deleteResource}>
+                                                                {loadingStates.deleteResource ? <Loader size={10} /> : <Trash2 size={10} />}
+                                                                Del
                                                             </button>
                                                         </div>
                                                         <span style={styles.resourceType}>{resource.resource_type}</span>
@@ -1500,6 +1709,14 @@ export default function HedgeFundTracker() {
                                                             </a>
                                                         </h4>
                                                         {resource.description && <p style={styles.resourceDescription}>{resource.description}</p>}
+                                                        {resource.resource_type === 'video' && (
+                                                            <button
+                                                                style={styles.watchButton}
+                                                                onClick={() => handleWatchVideo(resource.url)}
+                                                            >
+                                                                <Play size={12} /> Watch Video
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))
                                             ) : (
@@ -1513,6 +1730,29 @@ export default function HedgeFundTracker() {
                     </div>
                 </div>
             </div>
+
+            {/* Video Modal */}
+            {showVideoModal && (
+                <div style={styles.videoModal} onClick={() => setShowVideoModal(false)}>
+                    <div style={styles.videoModalContent} onClick={(e) => e.stopPropagation()}>
+                        <button
+                            style={styles.closeVideoButton}
+                            onClick={() => setShowVideoModal(false)}
+                        >
+                            <X size={20} />
+                        </button>
+                        <div style={styles.videoContainer}>
+                            <iframe
+                                src={selectedVideoUrl}
+                                title="YouTube Video Player"
+                                style={styles.videoIframe}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Edit Fund Modal */}
             {showEditFundModal && (
@@ -1554,7 +1794,10 @@ export default function HedgeFundTracker() {
                                 <input type="url" style={styles.input} value={editFund.website} onChange={(e) => setEditFund({...editFund, website: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Update Fund</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.updateFund}>
+                                    {loadingStates.updateFund ? <Loader size={16} /> : null}
+                                    {loadingStates.updateFund ? 'Updating...' : 'Update Fund'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowEditFundModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1602,7 +1845,10 @@ export default function HedgeFundTracker() {
                                 <input type="url" style={styles.input} value={newFund.website} onChange={(e) => setNewFund({...newFund, website: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Create Fund</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.createFund}>
+                                    {loadingStates.createFund ? <Loader size={16} /> : null}
+                                    {loadingStates.createFund ? 'Creating...' : 'Create Fund'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowAddFundModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1642,7 +1888,10 @@ export default function HedgeFundTracker() {
                                 <input type="url" style={styles.input} value={editPerson.linkedin_url} onChange={(e) => setEditPerson({...editPerson, linkedin_url: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Update Person</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.updatePerson}>
+                                    {loadingStates.updatePerson ? <Loader size={16} /> : null}
+                                    {loadingStates.updatePerson ? 'Updating...' : 'Update Person'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowEditPersonModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1682,7 +1931,10 @@ export default function HedgeFundTracker() {
                                 <input type="url" style={styles.input} value={newPerson.linkedin_url} onChange={(e) => setNewPerson({...newPerson, linkedin_url: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Add Person</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.addPerson}>
+                                    {loadingStates.addPerson ? <Loader size={16} /> : null}
+                                    {loadingStates.addPerson ? 'Adding...' : 'Add Person'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowAddPersonModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1719,7 +1971,10 @@ export default function HedgeFundTracker() {
                                 </select>
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Update Resource</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.updateResource}>
+                                    {loadingStates.updateResource ? <Loader size={16} /> : null}
+                                    {loadingStates.updateResource ? 'Updating...' : 'Update Resource'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowEditResourceModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1756,7 +2011,10 @@ export default function HedgeFundTracker() {
                                 </select>
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Add Resource</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.addResource}>
+                                    {loadingStates.addResource ? <Loader size={16} /> : null}
+                                    {loadingStates.addResource ? 'Adding...' : 'Add Resource'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowAddResourceModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1783,7 +2041,10 @@ export default function HedgeFundTracker() {
                                 <textarea style={styles.textarea} value={editPerformance.notes} onChange={(e) => setEditPerformance({...editPerformance, notes: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Update Performance</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.updatePerformance}>
+                                    {loadingStates.updatePerformance ? <Loader size={16} /> : null}
+                                    {loadingStates.updatePerformance ? 'Updating...' : 'Update Performance'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowEditPerformanceModal(false)}>Cancel</button>
                             </div>
                         </form>
@@ -1810,7 +2071,10 @@ export default function HedgeFundTracker() {
                                 <textarea style={styles.textarea} value={newPerformance.notes} onChange={(e) => setNewPerformance({...newPerformance, notes: e.target.value})} />
                             </div>
                             <div style={styles.buttonGroup}>
-                                <button type="submit" style={styles.submitButton}>Add Performance</button>
+                                <button type="submit" style={styles.submitButton} disabled={loadingStates.addPerformance}>
+                                    {loadingStates.addPerformance ? <Loader size={16} /> : null}
+                                    {loadingStates.addPerformance ? 'Adding...' : 'Add Performance'}
+                                </button>
                                 <button type="button" style={styles.cancelButton} onClick={() => setShowAddPerformanceModal(false)}>Cancel</button>
                             </div>
                         </form>
