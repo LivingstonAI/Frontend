@@ -1,984 +1,1045 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Header from "./header";
 import SideNavs from "./side_navs";
-import Cookies from 'js-cookie';
 
-export default function MultiAccountAnalytics() {
-    
-    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
-    
-    const [performanceOverviewData, setPerformanceOverviewData] = useState(null);
-    const [selectedAccountForEquityCurve, setSelectedAccountForEquityCurve] = useState(null);
-    const [equityCurveData, setEquityCurveData] = useState(null);
-    const [isLoadingOverview, setIsLoadingOverview] = useState(true);
-    const [isLoadingEquityCurve, setIsLoadingEquityCurve] = useState(false);
-    const [accountFilter, setAccountFilter] = useState('all'); // 'all', 'profitable', 'losing'
-    const [monteCarloResults, setMonteCarloResults] = useState(null);
-    const [isRunningMonteCarlo, setIsRunningMonteCarlo] = useState(false);
-    const [showMonteCarloModal, setShowMonteCarloModal] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
+const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
-    // Fetch performance overview on mount
-    useEffect(() => {
-        fetchPerformanceOverview();
-    }, []);
+// ─── Colour helpers ───────────────────────────────────────────────────────────
+const roi2col  = v => v > 0 ? '#00e5a0' : v < 0 ? '#ff4d6d' : '#8b949e';
+const pnl2col  = v => v > 0 ? '#00e5a0' : v < 0 ? '#ff4d6d' : '#8b949e';
 
-    // Fetch equity curve when account is selected
-    useEffect(() => {
-        if (selectedAccountForEquityCurve) {
-            fetchEquityCurveForAccount(selectedAccountForEquityCurve);
-        }
-    }, [selectedAccountForEquityCurve]);
+const SECTOR_PALETTE = [
+  '#7c3aed','#0ea5e9','#f59e0b','#10b981',
+  '#ef4444','#ec4899','#14b8a6','#f97316',
+  '#6366f1','#84cc16','#06b6d4','#a855f7'
+];
 
-    const fetchPerformanceOverview = async () => {
-        try {
-            setIsLoadingOverview(true);
-            const response = await fetch(`${baseUrl}/fetch_multi_account_performance_overview_data/`);
-            const data = await response.json();
-            
-            if (data.success) {
-                setPerformanceOverviewData(data);
-                // Auto-select first account for equity curve
-                if (data.all_accounts && data.all_accounts.length > 0) {
-                    setSelectedAccountForEquityCurve(data.all_accounts[0].account_id);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching performance overview:', error);
-        } finally {
-            setIsLoadingOverview(false);
-        }
-    };
+// ─── CSS ─────────────────────────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
 
-    const fetchEquityCurveForAccount = async (accountId) => {
-        try {
-            setIsLoadingEquityCurve(true);
-            const response = await fetch(`${baseUrl}/fetch_account_equity_curve_progression_data/${accountId}/`);
-            const data = await response.json();
-            
-            if (data.success) {
-                setEquityCurveData(data);
-            }
-        } catch (error) {
-            console.error('Error fetching equity curve:', error);
-        } finally {
-            setIsLoadingEquityCurve(false);
-        }
-    };
+  .mac-root{font-family:'Syne',sans-serif;background:#0a0c10;min-height:100vh;color:#e2e8f0;}
+  .mac-root *{box-sizing:border-box;}
 
-    const runMonteCarloSimulation = async (accountId) => {
-        try {
-            setIsRunningMonteCarlo(true);
-            const response = await fetch(`${baseUrl}/execute_portfolio_monte_carlo_risk_simulation/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    account_id: accountId,
-                    num_simulations: 1000,
-                    num_trades: 100
-                })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-                setMonteCarloResults(data);
-                setShowMonteCarloModal(true);
-            } else {
-                alert('Error running simulation: ' + data.error);
-            }
-        } catch (error) {
-            console.error('Error running Monte Carlo:', error);
-            alert('Failed to run Monte Carlo simulation');
-        } finally {
-            setIsRunningMonteCarlo(false);
-        }
-    };
+  /* ── tabs ── */
+  .mac-tabs{display:flex;gap:4px;padding:0 0 24px;border-bottom:1px solid #1e2530;margin-bottom:28px;}
+  .mac-tab{padding:10px 22px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent;transition:all .18s;}
+  .mac-tab.active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+  .mac-tab:not(.active){background:transparent;color:#64748b;border-color:#1e2530;}
+  .mac-tab:not(.active):hover{border-color:#7c3aed33;color:#a78bfa;}
 
-    const getFilteredAccounts = () => {
-        if (!performanceOverviewData || !performanceOverviewData.all_accounts) return [];
-        
-        let filtered = performanceOverviewData.all_accounts;
-        
-        // Apply filter
-        switch (accountFilter) {
-            case 'profitable':
-                filtered = filtered.filter(acc => acc.roi > 0);
-                break;
-            case 'losing':
-                filtered = filtered.filter(acc => acc.roi < 0);
-                break;
-            default:
-                break;
-        }
-        
-        // Apply search
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(acc => 
-                acc.account_name.toLowerCase().includes(query) ||
-                acc.main_assets.toLowerCase().includes(query)
-            );
-        }
-        
-        return filtered;
-    };
+  /* ── cards ── */
+  .mac-card{background:#0d1117;border:1px solid #1e2530;border-radius:12px;padding:22px;}
+  .mac-card-accent-green{border-top:3px solid #00e5a0;}
+  .mac-card-accent-red  {border-top:3px solid #ff4d6d;}
+  .mac-card-accent-blue {border-top:3px solid #7c3aed;}
 
-    const getColorForROI = (roi) => {
-        if (roi > 0) return '#10b981';
-        if (roi < 0) return '#ef4444';
-        return '#6b7280';
-    };
+  /* ── grid helpers ── */
+  .mac-top-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:28px;}
+  .mac-accounts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
 
-    const getColorForPnL = (pnl) => {
-        if (pnl > 0) return '#10b981';
-        if (pnl < 0) return '#ef4444';
-        return '#6b7280';
-    };
+  /* ── account card ── */
+  .acc-card{background:#0d1117;border:1.5px solid #1e2530;border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;}
+  .acc-card:hover{border-color:#7c3aed88;transform:translateY(-2px);box-shadow:0 6px 24px #7c3aed22;}
+  .acc-card.selected{border-color:#7c3aed;background:#110d1a;box-shadow:0 0 0 2px #7c3aed44;}
+  .acc-card.synth-selected{border-color:#f59e0b;background:#110f00;box-shadow:0 0 0 2px #f59e0b44;}
 
-    const styles = {
-        analyticsContainer: {
-            padding: '20px',
-            maxWidth: '1400px',
-            margin: '0 auto',
-            backgroundColor: '#ffffff'
-        },
-        topCardsGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '20px',
-            marginBottom: '30px'
-        },
-        performanceCard: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '20px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e5e7eb'
-        },
-        cardTitle: {
-            fontSize: '14px',
-            color: '#6b7280',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            marginBottom: '15px',
-            fontWeight: '600'
-        },
-        accountName: {
-            fontSize: '20px',
-            color: '#1f2937',
-            fontWeight: '700',
-            marginBottom: '10px'
-        },
-        metricsGrid: {
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '12px',
-            marginTop: '15px'
-        },
-        metricItem: {
-            display: 'flex',
-            flexDirection: 'column'
-        },
-        metricLabel: {
-            fontSize: '12px',
-            color: '#6b7280',
-            marginBottom: '4px'
-        },
-        metricValue: {
-            fontSize: '16px',
-            fontWeight: '600',
-            color: '#1f2937'
-        },
-        allAccountsSection: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '25px',
-            marginBottom: '30px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-        },
-        sectionHeader: {
-            fontSize: '18px',
-            color: '#1f2937',
-            fontWeight: '700',
-            marginBottom: '20px',
-            borderBottom: '2px solid #3b82f6',
-            paddingBottom: '10px'
-        },
-        accountsGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '15px'
-        },
-        accountCard: {
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            padding: '15px',
-            border: '2px solid #e5e7eb',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            position: 'relative'
-        },
-        accountCardHover: {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
-            borderColor: '#3b82f6'
-        },
-        accountCardSelected: {
-            borderColor: '#3b82f6',
-            backgroundColor: '#eff6ff',
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
-        },
-        equityCurveSection: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '25px',
-            marginBottom: '30px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-        },
-        accountSelector: {
-            display: 'flex',
-            gap: '10px',
-            flexWrap: 'wrap',
-            marginBottom: '20px'
-        },
-        accountButton: {
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: '2px solid #e5e7eb',
-            backgroundColor: '#ffffff',
-            color: '#6b7280',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500',
-            transition: 'all 0.2s ease'
-        },
-        accountButtonActive: {
-            backgroundColor: '#3b82f6',
-            color: '#ffffff',
-            borderColor: '#3b82f6'
-        },
-        chartContainer: {
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            padding: '20px',
-            minHeight: '400px',
-            position: 'relative',
-            border: '1px solid #e5e7eb'
-        },
-        svgChart: {
-            width: '100%',
-            height: '400px'
-        },
-        loadingSpinner: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '40px',
-            color: '#6b7280',
-            fontSize: '16px'
-        },
-        badge: {
-            display: 'inline-block',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '600',
-            marginTop: '8px'
-        },
-        chartLegend: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginTop: '15px',
-            fontSize: '12px',
-            color: '#6b7280'
-        },
-        filterButtonsContainer: {
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px'
-        },
-        filterButton: {
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: '2px solid #e5e7eb',
-            backgroundColor: '#ffffff',
-            color: '#6b7280',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500',
-            transition: 'all 0.2s ease'
-        },
-        filterButtonActive: {
-            backgroundColor: '#3b82f6',
-            color: '#ffffff',
-            borderColor: '#3b82f6'
-        },
-        monteCarloButton: {
-            padding: '6px 12px',
-            borderRadius: '4px',
-            border: 'none',
-            backgroundColor: '#8b5cf6',
-            color: '#ffffff',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: '600',
-            marginTop: '8px',
-            transition: 'all 0.2s ease',
-            width: '100%'
-        },
-        monteCarloButtonHover: {
-            backgroundColor: '#7c3aed'
-        },
-        modalOverlay: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000
-        },
-        modalContent: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '30px',
-            maxWidth: '800px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-        },
-        modalHeader: {
-            fontSize: '24px',
-            fontWeight: '700',
-            color: '#1f2937',
-            marginBottom: '20px',
-            borderBottom: '2px solid #3b82f6',
-            paddingBottom: '10px'
-        },
-        modalClose: {
-            float: 'right',
-            fontSize: '24px',
-            cursor: 'pointer',
-            color: '#6b7280',
-            fontWeight: '700'
-        },
-        statsGrid: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '15px',
-            marginTop: '20px'
-        },
-        statCard: {
-            backgroundColor: '#f9fafb',
-            padding: '15px',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-        },
-        statLabel: {
-            fontSize: '12px',
-            color: '#6b7280',
-            marginBottom: '5px'
-        },
-        statValue: {
-            fontSize: '18px',
-            fontWeight: '700',
-            color: '#1f2937'
-        },
-        searchContainer: {
-            marginBottom: '15px'
-        },
-        searchInput: {
-            width: '100%',
-            padding: '10px 15px',
-            borderRadius: '8px',
-            border: '2px solid #e5e7eb',
-            fontSize: '14px',
-            color: '#1f2937',
-            backgroundColor: '#ffffff',
-            transition: 'all 0.2s ease',
-            outline: 'none'
-        },
-        searchInputFocus: {
-            borderColor: '#3b82f6',
-            boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-        }
-    };
+  /* ── metrics ── */
+  .met-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;}
+  .met-label{font-size:11px;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-family:'DM Mono',monospace;}
+  .met-value{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;}
 
-    const renderEquityCurveChart = () => {
-        if (!equityCurveData || !equityCurveData.equity_curve || equityCurveData.equity_curve.length === 0) {
-            return <div style={styles.loadingSpinner}>No trade data available for this account</div>;
-        }
+  /* ── filter/search bar ── */
+  .mac-search{width:100%;padding:11px 16px;border-radius:8px;border:1.5px solid #1e2530;background:#0a0c10;color:#e2e8f0;font-size:14px;font-family:'Syne',sans-serif;outline:none;transition:border-color .18s;}
+  .mac-search:focus{border-color:#7c3aed;}
+  .mac-search::placeholder{color:#334155;}
 
-        const data = equityCurveData.equity_curve;
-        
-        // Debug: log the equity curve data
-        console.log('Equity Curve Data:', data);
-        
-        const width = 1000;
-        const height = 350;
-        const padding = { top: 20, right: 30, bottom: 40, left: 60 };
+  .mac-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;}
+  .mac-filter-btn{padding:7px 16px;border-radius:6px;border:1.5px solid #1e2530;background:transparent;color:#64748b;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;transition:all .18s;font-family:'Syne',sans-serif;}
+  .mac-filter-btn:hover{border-color:#7c3aed55;color:#a78bfa;}
+  .mac-filter-btn.active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
 
-        const maxBalance = Math.max(...data.map(d => d.balance));
-        const minBalance = Math.min(...data.map(d => d.balance));
-        const maxTrade = Math.max(...data.map(d => d.trade_number));
+  /* ── section header ── */
+  .sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#475569;margin-bottom:18px;display:flex;align-items:center;gap:10px;}
+  .sec-hdr::after{content:'';flex:1;height:1px;background:#1e2530;}
 
-        const xScale = (tradeNum) => padding.left + ((tradeNum / maxTrade) * (width - padding.left - padding.right));
-        const yScale = (balance) => height - padding.bottom - ((balance - minBalance) / (maxBalance - minBalance)) * (height - padding.top - padding.bottom);
+  /* ── badges ── */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;}
+  .badge-green{background:#00e5a011;color:#00e5a0;border:1px solid #00e5a033;}
+  .badge-red  {background:#ff4d6d11;color:#ff4d6d;border:1px solid #ff4d6d33;}
 
-        const pathData = data.map((point, idx) => {
-            const x = xScale(point.trade_number);
-            const y = yScale(point.balance);
-            return idx === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-        }).join(' ');
+  /* ── buttons ── */
+  .mac-btn{padding:9px 18px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-family:'Syne',sans-serif;transition:all .18s;}
+  .mac-btn-purple{background:#7c3aed;color:#fff;}
+  .mac-btn-purple:hover{background:#6d28d9;}
+  .mac-btn-amber {background:#f59e0b;color:#0a0c10;}
+  .mac-btn-amber:hover{background:#d97706;}
+  .mac-btn-teal  {background:#00e5a0;color:#0a0c10;}
+  .mac-btn-teal:hover{background:#00c990;}
+  .mac-btn-ghost {background:transparent;color:#64748b;border:1.5px solid #1e2530;}
+  .mac-btn-ghost:hover{border-color:#7c3aed55;color:#a78bfa;}
+  .mac-btn-danger{background:#ff4d6d22;color:#ff4d6d;border:1.5px solid #ff4d6d44;}
+  .mac-btn-danger:hover{background:#ff4d6d33;}
+  .mac-btn:disabled{opacity:.4;cursor:not-allowed;}
 
-        return (
-            <div>
-                <svg viewBox={`0 0 ${width} ${height}`} style={styles.svgChart}>
-                    {/* Grid lines */}
-                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
-                        const y = height - padding.bottom - (ratio * (height - padding.top - padding.bottom));
-                        const balance = minBalance + (ratio * (maxBalance - minBalance));
-                        return (
-                            <g key={idx}>
-                                <line
-                                    x1={padding.left}
-                                    y1={y}
-                                    x2={width - padding.right}
-                                    y2={y}
-                                    stroke="#e5e7eb"
-                                    strokeWidth="1"
-                                    strokeDasharray="4"
-                                />
-                                <text x={padding.left - 10} y={y + 4} fill="#6b7280" fontSize="11" textAnchor="end">
-                                    ${balance.toFixed(0)}
-                                </text>
-                            </g>
-                        );
-                    })}
+  /* ── monte carlo ── */
+  .mc-btn{width:100%;margin-top:10px;padding:7px;border-radius:6px;border:1.5px solid #7c3aed44;background:#7c3aed11;color:#a78bfa;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-family:'Syne',sans-serif;transition:all .18s;}
+  .mc-btn:hover{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+  .mc-btn:disabled{opacity:.4;cursor:not-allowed;}
 
-                    {/* X-axis labels */}
-                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
-                        const x = padding.left + (ratio * (width - padding.left - padding.right));
-                        const tradeNum = Math.round(ratio * maxTrade);
-                        return (
-                            <text key={idx} x={x} y={height - padding.bottom + 20} fill="#6b7280" fontSize="11" textAnchor="middle">
-                                Trade {tradeNum}
-                            </text>
-                        );
-                    })}
+  /* ── modal backdrop ── */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
+  .modal-box{background:#0d1117;border:1.5px solid #1e2530;border-radius:16px;padding:32px;width:90%;max-width:780px;max-height:85vh;overflow-y:auto;}
+  .modal-box.sm{max-width:520px;}
+  .modal-hdr{font-size:20px;font-weight:800;color:#e2e8f0;margin-bottom:6px;}
+  .modal-sub{font-size:13px;color:#475569;margin-bottom:24px;}
 
-                    {/* Equity curve line */}
-                    <path
-                        d={pathData}
-                        fill="none"
-                        stroke="#3b82f6"
-                        strokeWidth="3"
-                    />
+  /* ── equity chart area buttons ── */
+  .eq-btn{padding:6px 14px;border-radius:6px;border:1.5px solid #1e2530;background:transparent;color:#64748b;cursor:pointer;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;text-transform:uppercase;letter-spacing:.04em;transition:all .18s;}
+  .eq-btn:hover{border-color:#7c3aed55;color:#a78bfa;}
+  .eq-btn.active{background:#7c3aed;color:#fff;border-color:#7c3aed;}
 
-                    {/* Data points */}
-                    {data.map((point, idx) => (
-                        <circle
-                            key={idx}
-                            cx={xScale(point.trade_number)}
-                            cy={yScale(point.balance)}
-                            r="4"
-                            fill={point.outcome === 'Win' ? '#10b981' : point.outcome === 'Loss' ? '#ef4444' : '#3b82f6'}
-                            stroke="#ffffff"
-                            strokeWidth="2"
-                        >
-                            <title>
-                                Trade {point.trade_number}
-                                {point.asset ? ` - ${point.asset}` : ''}
-                                {'\n'}Balance: ${point.balance}
-                                {point.trade_amount !== undefined && point.trade_amount !== null ? `\nP&L: ${point.trade_amount}` : ''}
-                            </title>
-                        </circle>
-                    ))}
-                </svg>
-                <div style={styles.chartLegend}>
-                    <div>
-                        <span style={{color: '#10b981'}}>● </span>Winning Trades
-                        <span style={{marginLeft: '20px', color: '#ef4444'}}>● </span>Losing Trades
-                    </div>
-                    <div>
-                        Initial: ${equityCurveData.initial_capital.toFixed(2)} → Current: ${equityCurveData.current_balance.toFixed(2)}
-                    </div>
-                </div>
-            </div>
-        );
-    };
+  /* ── loading ── */
+  .mac-loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#334155;font-size:14px;font-family:'DM Mono',monospace;gap:10px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:18px;height:18px;border:2px solid #1e2530;border-top-color:#7c3aed;border-radius:50%;animation:spin .7s linear infinite;}
 
-    if (isLoadingOverview) {
-        return (
-            <div>
-                <div className="header">
-                    <Header />
-                </div>
-                <div className="main-page-body">
-                    <SideNavs />
-                    <div className="main-body-info">
-                        <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5>
-                        <div style={styles.loadingSpinner}>Loading analytics data...</div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+  /* ── sector chart ── */
+  .sector-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
+  .sector-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:2px;}
 
-    if (!performanceOverviewData) {
-        return (
-            <div>
-                <div className="header">
-                    <Header />
-                </div>
-                <div className="main-page-body">
-                    <SideNavs />
-                    <div className="main-body-info">
-                        <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5><br />
-                        <div style={styles.loadingSpinner}>No data available</div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+  /* ── edit form ── */
+  .edit-field{display:flex;flex-direction:column;gap:6px;}
+  .edit-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#475569;font-family:'DM Mono',monospace;}
+  .edit-input{padding:10px 13px;border-radius:7px;border:1.5px solid #1e2530;background:#0a0c10;color:#e2e8f0;font-size:14px;font-family:'Syne',sans-serif;outline:none;transition:border-color .18s;}
+  .edit-input:focus{border-color:#7c3aed;}
+  .edit-input option{background:#0d1117;}
+  .edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 
-    return (
-        <div>
-            <div className="header">
-                <Header />
-            </div>
-            <div className="main-page-body">
-                <SideNavs />
-                
+  /* ── synth checkbox ── */
+  .synth-check{display:none;}
+  .synth-check + label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#64748b;padding:10px 14px;border-radius:7px;border:1.5px solid #1e2530;transition:all .18s;}
+  .synth-check:checked + label{border-color:#f59e0b;color:#f59e0b;background:#f59e0b0a;}
+  .synth-check + label .chk-box{width:16px;height:16px;border-radius:4px;border:1.5px solid #334155;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+  .synth-check:checked + label .chk-box{background:#f59e0b;border-color:#f59e0b;}
 
-                <div className="main-body-info">
-                    <h5 className="major-upcoming-news-events-header">Multi-Account Analytics</h5><br />
-                    
-                    <div style={styles.analyticsContainer}>
-                        {/* Top Performance Cards */}
-                        <div style={styles.topCardsGrid}>
-                            {/* Best Performer */}
-                            {performanceOverviewData.best_performer && (
-                                <div style={{...styles.performanceCard, borderTop: '4px solid #10b981'}}>
-                                    <div style={styles.cardTitle}>🏆 Best Performer</div>
-                                    <div style={styles.accountName}>{performanceOverviewData.best_performer.account_name}</div>
-                                    <div style={styles.metricsGrid}>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>ROI</div>
-                                            <div style={{...styles.metricValue, color: '#10b981'}}>
-                                                {performanceOverviewData.best_performer.roi}%
-                                            </div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Net P&L</div>
-                                            <div style={{...styles.metricValue, color: getColorForPnL(performanceOverviewData.best_performer.net_pnl)}}>
-                                                ${performanceOverviewData.best_performer.net_pnl}
-                                            </div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Win Rate</div>
-                                            <div style={styles.metricValue}>{performanceOverviewData.best_performer.win_rate}%</div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Total Trades</div>
-                                            <div style={styles.metricValue}>{performanceOverviewData.best_performer.total_trades}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+  /* ── scrollbar ── */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#0a0c10;}
+  ::-webkit-scrollbar-thumb{background:#1e2530;border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:#334155;}
 
-                            {/* Worst Performer */}
-                            {performanceOverviewData.worst_performer && (
-                                <div style={{...styles.performanceCard, borderTop: '4px solid #ef4444'}}>
-                                    <div style={styles.cardTitle}>📉 Worst Performer</div>
-                                    <div style={styles.accountName}>{performanceOverviewData.worst_performer.account_name}</div>
-                                    <div style={styles.metricsGrid}>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>ROI</div>
-                                            <div style={{...styles.metricValue, color: '#ef4444'}}>
-                                                {performanceOverviewData.worst_performer.roi}%
-                                            </div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Net P&L</div>
-                                            <div style={{...styles.metricValue, color: getColorForPnL(performanceOverviewData.worst_performer.net_pnl)}}>
-                                                ${performanceOverviewData.worst_performer.net_pnl}
-                                            </div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Win Rate</div>
-                                            <div style={styles.metricValue}>{performanceOverviewData.worst_performer.win_rate}%</div>
-                                        </div>
-                                        <div style={styles.metricItem}>
-                                            <div style={styles.metricLabel}>Total Trades</div>
-                                            <div style={styles.metricValue}>{performanceOverviewData.worst_performer.total_trades}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+  /* ── tooltip ── */
+  .chart-tooltip{position:absolute;background:#0d1117;border:1px solid #1e2530;border-radius:7px;padding:10px 14px;font-size:12px;color:#e2e8f0;pointer-events:none;white-space:nowrap;z-index:50;font-family:'DM Mono',monospace;}
+`;
 
-                            {/* Average Performance */}
-                            <div style={{...styles.performanceCard, borderTop: '4px solid #3b82f6'}}>
-                                <div style={styles.cardTitle}>📊 Average Performance</div>
-                                <div style={styles.accountName}>Portfolio Metrics</div>
-                                <div style={styles.metricsGrid}>
-                                    <div style={styles.metricItem}>
-                                        <div style={styles.metricLabel}>Avg ROI</div>
-                                        <div style={{...styles.metricValue, color: getColorForROI(performanceOverviewData.averages.avg_roi)}}>
-                                            {performanceOverviewData.averages.avg_roi}%
-                                        </div>
-                                    </div>
-                                    <div style={styles.metricItem}>
-                                        <div style={styles.metricLabel}>Avg Net P&L</div>
-                                        <div style={{...styles.metricValue, color: getColorForPnL(performanceOverviewData.averages.avg_net_pnl)}}>
-                                            ${performanceOverviewData.averages.avg_net_pnl}
-                                        </div>
-                                    </div>
-                                    <div style={styles.metricItem}>
-                                        <div style={styles.metricLabel}>Avg Win Rate</div>
-                                        <div style={styles.metricValue}>{performanceOverviewData.averages.avg_win_rate}%</div>
-                                    </div>
-                                    <div style={styles.metricItem}>
-                                        <div style={styles.metricLabel}>Total Accounts</div>
-                                        <div style={styles.metricValue}>{performanceOverviewData.total_accounts}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+// ─── Mini SVG equity chart ────────────────────────────────────────────────────
+function MiniSparkline({ data, color = '#7c3aed', width = 120, height = 36 }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((v - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  return (
+    <svg width={width} height={height} style={{ overflow: 'visible' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
-                        {/* All Accounts Section */}
-                        <div style={styles.allAccountsSection}>
-                            <div style={styles.sectionHeader}>All Accounts Overview</div>
-                            
-                            {/* Search Bar */}
-                            <div style={styles.searchContainer}>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Search accounts by name or asset class..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    style={styles.searchInput}
-                                    onFocus={(e) => {
-                                        e.target.style.borderColor = '#3b82f6';
-                                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                                    }}
-                                    onBlur={(e) => {
-                                        e.target.style.borderColor = '#e5e7eb';
-                                        e.target.style.boxShadow = 'none';
-                                    }}
-                                />
-                            </div>
-                            
-                            {/* Filter Buttons */}
-                            <div style={styles.filterButtonsContainer}>
-                                <button
-                                    style={{
-                                        ...styles.filterButton,
-                                        ...(accountFilter === 'all' ? styles.filterButtonActive : {})
-                                    }}
-                                    onClick={() => setAccountFilter('all')}
-                                    onMouseEnter={(e) => {
-                                        if (accountFilter !== 'all') {
-                                            e.currentTarget.style.backgroundColor = '#eff6ff';
-                                            e.currentTarget.style.borderColor = '#3b82f6';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (accountFilter !== 'all') {
-                                            e.currentTarget.style.backgroundColor = '#ffffff';
-                                            e.currentTarget.style.borderColor = '#e5e7eb';
-                                        }
-                                    }}
-                                >
-                                    All Accounts ({performanceOverviewData.all_accounts.length})
-                                </button>
-                                <button
-                                    style={{
-                                        ...styles.filterButton,
-                                        ...(accountFilter === 'profitable' ? styles.filterButtonActive : {})
-                                    }}
-                                    onClick={() => setAccountFilter('profitable')}
-                                    onMouseEnter={(e) => {
-                                        if (accountFilter !== 'profitable') {
-                                            e.currentTarget.style.backgroundColor = '#eff6ff';
-                                            e.currentTarget.style.borderColor = '#3b82f6';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (accountFilter !== 'profitable') {
-                                            e.currentTarget.style.backgroundColor = '#ffffff';
-                                            e.currentTarget.style.borderColor = '#e5e7eb';
-                                        }
-                                    }}
-                                >
-                                    Profitable ({performanceOverviewData.all_accounts.filter(a => a.roi > 0).length})
-                                </button>
-                                <button
-                                    style={{
-                                        ...styles.filterButton,
-                                        ...(accountFilter === 'losing' ? styles.filterButtonActive : {})
-                                    }}
-                                    onClick={() => setAccountFilter('losing')}
-                                    onMouseEnter={(e) => {
-                                        if (accountFilter !== 'losing') {
-                                            e.currentTarget.style.backgroundColor = '#eff6ff';
-                                            e.currentTarget.style.borderColor = '#3b82f6';
-                                        }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        if (accountFilter !== 'losing') {
-                                            e.currentTarget.style.backgroundColor = '#ffffff';
-                                            e.currentTarget.style.borderColor = '#e5e7eb';
-                                        }
-                                    }}
-                                >
-                                    Losing ({performanceOverviewData.all_accounts.filter(a => a.roi < 0).length})
-                                </button>
-                            </div>
-                            
-                            {/* Results count */}
-                            {searchQuery && (
-                                <div style={{marginBottom: '15px', color: '#6b7280', fontSize: '14px'}}>
-                                    Found {getFilteredAccounts().length} account(s)
-                                </div>
-                            )}
-                            
-                            <div style={styles.accountsGrid}>
-                                {getFilteredAccounts().length > 0 ? (
-                                    getFilteredAccounts().map((account) => (
-                                    <div
-                                        key={account.account_id}
-                                        style={{
-                                            ...styles.accountCard,
-                                            ...(selectedAccountForEquityCurve === account.account_id ? styles.accountCardSelected : {})
-                                        }}
-                                        onClick={() => setSelectedAccountForEquityCurve(account.account_id)}
-                                        onMouseEnter={(e) => {
-                                            if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
-                                                e.currentTarget.style.borderColor = '#3b82f6';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.transform = 'translateY(0)';
-                                                e.currentTarget.style.boxShadow = 'none';
-                                                e.currentTarget.style.borderColor = '#e5e7eb';
-                                            }
-                                        }}
-                                    >
-                                        <div style={{fontSize: '16px', fontWeight: '700', color: '#1f2937', marginBottom: '8px'}}>
-                                            {account.account_name}
-                                        </div>
-                                        <div style={{fontSize: '12px', color: '#6b7280', marginBottom: '12px'}}>
-                                            {account.main_assets}
-                                        </div>
-                                        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px'}}>
-                                            <div>
-                                                <div style={{color: '#6b7280'}}>ROI</div>
-                                                <div style={{color: getColorForROI(account.roi), fontWeight: '600', fontSize: '14px'}}>
-                                                    {account.roi}%
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{color: '#6b7280'}}>Net P&L</div>
-                                                <div style={{color: getColorForPnL(account.net_pnl), fontWeight: '600', fontSize: '14px'}}>
-                                                    ${account.net_pnl}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{color: '#6b7280'}}>Win Rate</div>
-                                                <div style={{color: '#1f2937', fontWeight: '600'}}>{account.win_rate}%</div>
-                                            </div>
-                                            <div>
-                                                <div style={{color: '#6b7280'}}>Trades</div>
-                                                <div style={{color: '#1f2937', fontWeight: '600'}}>{account.total_trades}</div>
-                                            </div>
-                                        </div>
-                                        <div style={{...styles.badge, backgroundColor: account.roi > 0 ? '#d1fae5' : '#fee2e2', color: account.roi > 0 ? '#065f46' : '#991b1b'}}>
-                                            {account.roi > 0 ? '↑' : '↓'} ${account.current_balance.toFixed(2)}
-                                        </div>
-                                        <button
-                                            style={styles.monteCarloButton}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                runMonteCarloSimulation(account.account_id);
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#7c3aed';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.backgroundColor = '#8b5cf6';
-                                            }}
-                                            disabled={isRunningMonteCarlo}
-                                        >
-                                            {isRunningMonteCarlo ? 'Running...' : '🎲 Monte Carlo'}
-                                        </button>
-                                    </div>
-                                    ))
-                                ) : (
-                                    <div style={{
-                                        gridColumn: '1 / -1',
-                                        textAlign: 'center',
-                                        padding: '40px',
-                                        color: '#6b7280',
-                                        fontSize: '16px'
-                                    }}>
-                                        No accounts found matching "{searchQuery}"
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+// ─── Equity Curve Chart ───────────────────────────────────────────────────────
+function EquityChart({ data, initialCapital }) {
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+  if (!data || data.length === 0) return <div className="mac-loading">No trade data available</div>;
 
-                        {/* Equity Curve Section */}
-                        <div style={styles.equityCurveSection}>
-                            <div style={styles.sectionHeader}>Account Equity Curve</div>
-                            <div style={styles.accountSelector}>
-                                {performanceOverviewData.all_accounts.map((account) => (
-                                    <button
-                                        key={account.account_id}
-                                        style={{
-                                            ...styles.accountButton,
-                                            ...(selectedAccountForEquityCurve === account.account_id ? styles.accountButtonActive : {})
-                                        }}
-                                        onClick={() => setSelectedAccountForEquityCurve(account.account_id)}
-                                        onMouseEnter={(e) => {
-                                            if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.backgroundColor = '#eff6ff';
-                                                e.currentTarget.style.borderColor = '#3b82f6';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (selectedAccountForEquityCurve !== account.account_id) {
-                                                e.currentTarget.style.backgroundColor = '#ffffff';
-                                                e.currentTarget.style.borderColor = '#e5e7eb';
-                                            }
-                                        }}
-                                    >
-                                        {account.account_name}
-                                    </button>
-                                ))}
-                            </div>
-                            <div style={styles.chartContainer}>
-                                {isLoadingEquityCurve ? (
-                                    <div style={styles.loadingSpinner}>Loading equity curve...</div>
-                                ) : (
-                                    renderEquityCurveChart()
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            {/* Monte Carlo Results Modal */}
-            {showMonteCarloModal && monteCarloResults && (
-                <div style={styles.modalOverlay} onClick={() => setShowMonteCarloModal(false)}>
-                    <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                        <span style={styles.modalClose} onClick={() => setShowMonteCarloModal(false)}>&times;</span>
-                        <div style={styles.modalHeader}>
-                            Monte Carlo Simulation Results
-                            <div style={{fontSize: '16px', color: '#6b7280', fontWeight: '500', marginTop: '5px'}}>
-                                {monteCarloResults.account_name}
-                            </div>
-                        </div>
-                        
-                        <div style={{marginBottom: '20px', color: '#6b7280', fontSize: '14px'}}>
-                            Simulated {monteCarloResults.num_simulations} scenarios with {monteCarloResults.num_trades_simulated} trades each
-                            <div style={{marginTop: '8px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
-                                <strong>Time Horizon:</strong> ~{monteCarloResults.time_horizon.estimated_days} days 
-                                ({monteCarloResults.time_horizon.estimated_weeks.toFixed(1)} weeks / {monteCarloResults.time_horizon.estimated_months.toFixed(1)} months)
-                                <div style={{fontSize: '12px', marginTop: '4px', color: '#9ca3af'}}>
-                                    Based on your avg trading frequency: {monteCarloResults.time_horizon.avg_trades_per_day} trades/day
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style={styles.statsGrid}>
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Initial Capital</div>
-                                <div style={styles.statValue}>${monteCarloResults.initial_capital.toLocaleString()}</div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Mean Final Balance</div>
-                                <div style={{...styles.statValue, color: monteCarloResults.statistics.mean_final_balance > monteCarloResults.initial_capital ? '#10b981' : '#ef4444'}}>
-                                    ${monteCarloResults.statistics.mean_final_balance.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Median Final Balance</div>
-                                <div style={{...styles.statValue, color: monteCarloResults.statistics.median_final_balance > monteCarloResults.initial_capital ? '#10b981' : '#ef4444'}}>
-                                    ${monteCarloResults.statistics.median_final_balance.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Probability of Profit</div>
-                                <div style={{...styles.statValue, color: monteCarloResults.statistics.probability_of_profit > 50 ? '#10b981' : '#ef4444'}}>
-                                    {monteCarloResults.statistics.probability_of_profit}%
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>5th Percentile (Worst Case)</div>
-                                <div style={{...styles.statValue, color: '#ef4444'}}>
-                                    ${monteCarloResults.statistics.percentile_5.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>95th Percentile (Best Case)</div>
-                                <div style={{...styles.statValue, color: '#10b981'}}>
-                                    ${monteCarloResults.statistics.percentile_95.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Max Potential Loss</div>
-                                <div style={{...styles.statValue, color: '#ef4444'}}>
-                                    ${monteCarloResults.statistics.max_potential_loss.toLocaleString()}
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Max Loss Percentage</div>
-                                <div style={{...styles.statValue, color: '#ef4444'}}>
-                                    {monteCarloResults.statistics.max_loss_percentage.toFixed(2)}%
-                                </div>
-                            </div>
-                            
-                            <div style={styles.statCard}>
-                                <div style={styles.statLabel}>Standard Deviation</div>
-                                <div style={styles.statValue}>
-                                    ${monteCarloResults.statistics.std_deviation.toLocaleString()}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div style={{marginTop: '20px', padding: '15px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #3b82f6'}}>
-                            <div style={{fontWeight: '600', color: '#1f2937', marginBottom: '8px'}}>💡 Interpretation</div>
-                            <div style={{fontSize: '13px', color: '#6b7280', lineHeight: '1.6'}}>
-                                Based on {monteCarloResults.num_simulations} simulations over approximately <strong>{monteCarloResults.time_horizon.estimated_months.toFixed(1)} months</strong>, 
-                                there's a {monteCarloResults.statistics.probability_of_profit}% chance of profit.
-                                The expected balance ranges from ${monteCarloResults.statistics.percentile_5.toLocaleString()} (worst 5%) 
-                                to ${monteCarloResults.statistics.percentile_95.toLocaleString()} (best 5%).
-                                Maximum potential loss is {monteCarloResults.statistics.max_loss_percentage.toFixed(1)}% of capital.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+  const W = 1000, H = 320;
+  const pad = { top: 20, right: 30, bottom: 40, left: 72 };
+  const iW = W - pad.left - pad.right, iH = H - pad.top - pad.bottom;
+
+  const maxB = Math.max(...data.map(d => d.balance));
+  const minB = Math.min(...data.map(d => d.balance));
+  const maxT = Math.max(...data.map(d => d.trade_number));
+
+  const xS = t => pad.left + (t / (maxT || 1)) * iW;
+  const yS = b => pad.top + iH - ((b - minB) / ((maxB - minB) || 1)) * iH;
+
+  const path = data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xS(p.trade_number)} ${yS(p.balance)}`).join(' ');
+  const area = `${path} L ${xS(maxT)} ${pad.top + iH} L ${xS(0)} ${pad.top + iH} Z`;
+  const bLine = yS(initialCapital);
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {tooltip && (
+        <div className="chart-tooltip" style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}>
+          <div style={{ color: '#475569' }}>Trade #{tooltip.d.trade_number}</div>
+          {tooltip.d.asset && <div style={{ color: '#a78bfa' }}>{tooltip.d.asset}</div>}
+          <div style={{ color: pnl2col(tooltip.d.trade_amount) }}>
+            {tooltip.d.trade_amount > 0 ? '+' : ''}{tooltip.d.trade_amount}
+          </div>
+          <div style={{ color: '#e2e8f0', fontWeight: 700 }}>${tooltip.d.balance?.toLocaleString()}</div>
         </div>
+      )}
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 340 }}>
+        {/* gradient */}
+        <defs>
+          <linearGradient id="eq-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7c3aed" stopOpacity=".18" />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* grid */}
+        {[0,.25,.5,.75,1].map((r, i) => {
+          const y = pad.top + iH - r * iH;
+          const v = minB + r * (maxB - minB);
+          return (
+            <g key={i}>
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#1e2530" strokeWidth="1" strokeDasharray="4" />
+              <text x={pad.left - 8} y={y + 4} fill="#475569" fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
+                ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+        {/* X axis labels */}
+        {[0,.25,.5,.75,1].map((r, i) => {
+          const x = pad.left + r * iW;
+          return (
+            <text key={i} x={x} y={H - pad.bottom + 18} fill="#475569" fontSize="11" textAnchor="middle" fontFamily="DM Mono,monospace">
+              T{Math.round(r * maxT)}
+            </text>
+          );
+        })}
+        {/* baseline */}
+        {bLine >= pad.top && bLine <= pad.top + iH && (
+          <line x1={pad.left} y1={bLine} x2={W - pad.right} y2={bLine} stroke="#f59e0b" strokeWidth="1" strokeDasharray="6,3" opacity=".5" />
+        )}
+        {/* area fill */}
+        <path d={area} fill="url(#eq-grad)" />
+        {/* main line */}
+        <path d={path} fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinejoin="round" />
+        {/* dots */}
+        {data.map((p, i) => (
+          <circle
+            key={i}
+            cx={xS(p.trade_number)}
+            cy={yS(p.balance)}
+            r="5"
+            fill={p.outcome === 'Win' ? '#00e5a0' : p.outcome === 'Loss' ? '#ff4d6d' : '#7c3aed'}
+            stroke="#0d1117"
+            strokeWidth="2"
+            style={{ cursor: 'pointer' }}
+            onMouseEnter={e => {
+              const rect = svgRef.current?.getBoundingClientRect();
+              if (rect) setTooltip({ d: p, x: e.clientX - rect.left, y: e.clientY - rect.top });
+            }}
+            onMouseLeave={() => setTooltip(null)}
+          />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#475569', fontFamily: 'DM Mono,monospace', marginTop: 8 }}>
+        <span><span style={{ color: '#00e5a0' }}>●</span> Win &nbsp;<span style={{ color: '#ff4d6d' }}>●</span> Loss</span>
+        <span style={{ color: '#f59e0b' }}>— Baseline</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sector Chart ─────────────────────────────────────────────────────────────
+function SectorChart({ sectorData }) {
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+  if (!sectorData || sectorData.length === 0) return <div className="mac-loading">No sector data</div>;
+
+  // For each sector: bars showing avg ROI per sector
+  const maxAbs = Math.max(...sectorData.map(s => Math.abs(s.avg_roi)), 1);
+  const W = 700, H = 320;
+  const pad = { top: 20, right: 30, bottom: 90, left: 60 };
+  const iW = W - pad.left - pad.right, iH = H - pad.top - pad.bottom;
+  const barW = Math.min(50, (iW / sectorData.length) - 8);
+  const midY = pad.top + iH / 2;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {tooltip && (
+        <div className="chart-tooltip" style={{ left: tooltip.x + 12, top: tooltip.y - 40 }}>
+          <div style={{ color: '#a78bfa', fontWeight: 700 }}>{tooltip.s.sector}</div>
+          <div>Avg ROI: <span style={{ color: roi2col(tooltip.s.avg_roi), fontWeight: 700 }}>{tooltip.s.avg_roi}%</span></div>
+          <div>Trades: {tooltip.s.total_trades}</div>
+          <div>Win Rate: {tooltip.s.win_rate}%</div>
+        </div>
+      )}
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 280 }}>
+        {/* grid */}
+        {[-1, -0.5, 0, 0.5, 1].map((r, i) => {
+          const y = midY - r * (iH / 2);
+          const v = r * maxAbs;
+          return (
+            <g key={i}>
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke={r === 0 ? '#334155' : '#1e2530'} strokeWidth={r === 0 ? 1.5 : 1} />
+              <text x={pad.left - 6} y={y + 4} fill="#475569" fontSize="10" textAnchor="end" fontFamily="DM Mono,monospace">
+                {v.toFixed(0)}%
+              </text>
+            </g>
+          );
+        })}
+        {/* bars */}
+        {sectorData.map((s, i) => {
+          const x = pad.left + (i / sectorData.length) * iW + (iW / sectorData.length - barW) / 2;
+          const norm = s.avg_roi / maxAbs;
+          const barH = Math.abs(norm) * (iH / 2);
+          const y = norm >= 0 ? midY - barH : midY;
+          const col = SECTOR_PALETTE[i % SECTOR_PALETTE.length];
+          return (
+            <g key={i}
+              onMouseEnter={e => { const r = svgRef.current?.getBoundingClientRect(); if (r) setTooltip({ s, x: e.clientX - r.left, y: e.clientY - r.top }); }}
+              onMouseLeave={() => setTooltip(null)}
+              style={{ cursor: 'pointer' }}
+            >
+              <rect x={x} y={y} width={barW} height={Math.max(barH, 2)} fill={col} rx="3" opacity=".85" />
+              <rect x={x} y={y} width={barW} height={Math.max(barH, 2)} fill={col} rx="3" opacity=".15" />
+              <text
+                x={x + barW / 2}
+                y={H - pad.bottom + 14}
+                fill="#64748b"
+                fontSize="10"
+                textAnchor="middle"
+                fontFamily="DM Mono,monospace"
+                transform={`rotate(-35, ${x + barW / 2}, ${H - pad.bottom + 14})`}
+              >
+                {s.sector.length > 10 ? s.sector.slice(0, 10) + '…' : s.sector}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// ─── Multi-account comparison line chart ──────────────────────────────────────
+function ComparisonChart({ curvesData }) {
+  if (!curvesData || curvesData.length === 0) return <div className="mac-loading">Loading…</div>;
+
+  const W = 1000, H = 320;
+  const pad = { top: 20, right: 30, bottom: 40, left: 72 };
+  const iW = W - pad.left - pad.right, iH = H - pad.top - pad.bottom;
+
+  const allBalances = curvesData.flatMap(c => c.equity_curve.map(p => p.balance));
+  const maxT = Math.max(...curvesData.flatMap(c => c.equity_curve.map(p => p.trade_number)), 1);
+  const maxB = Math.max(...allBalances, 1);
+  const minB = Math.min(...allBalances, 0);
+
+  const xS = t => pad.left + (t / maxT) * iW;
+  const yS = b => pad.top + iH - ((b - minB) / ((maxB - minB) || 1)) * iH;
+
+  return (
+    <div>
+      <div className="sector-legend" style={{ marginBottom: 14 }}>
+        {curvesData.map((c, i) => (
+          <div key={c.account_id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', fontFamily: 'DM Mono,monospace' }}>
+            <div style={{ width: 24, height: 3, background: SECTOR_PALETTE[i % SECTOR_PALETTE.length], borderRadius: 2 }} />
+            {c.account_name}
+          </div>
+        ))}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 320 }}>
+        {[0,.25,.5,.75,1].map((r, i) => {
+          const y = pad.top + iH - r * iH;
+          const v = minB + r * (maxB - minB);
+          return (
+            <g key={i}>
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#1e2530" strokeWidth="1" strokeDasharray="4" />
+              <text x={pad.left - 8} y={y + 4} fill="#475569" fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
+                ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+        {curvesData.map((c, ci) => {
+          const col = SECTOR_PALETTE[ci % SECTOR_PALETTE.length];
+          const pts = c.equity_curve.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xS(p.trade_number)} ${yS(p.balance)}`).join(' ');
+          return <path key={c.account_id} d={pts} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" opacity=".9" />;
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// ─── Monte Carlo Modal ────────────────────────────────────────────────────────
+function MonteCarloModal({ results, onClose }) {
+  if (!results) return null;
+  const stats = results.statistics;
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div className="modal-hdr">🎲 Monte Carlo Simulation</div>
+            <div className="modal-sub">{results.account_name} · {results.num_simulations.toLocaleString()} scenarios</div>
+          </div>
+          <button className="mac-btn mac-btn-ghost" onClick={onClose} style={{ padding: '6px 12px' }}>✕</button>
+        </div>
+        <div style={{ padding: '12px 16px', background: '#7c3aed0a', border: '1px solid #7c3aed33', borderRadius: 8, marginBottom: 20, fontSize: 13, color: '#94a3b8', fontFamily: 'DM Mono,monospace' }}>
+          Time horizon: ~{results.time_horizon.estimated_months.toFixed(1)} months ({results.time_horizon.estimated_days.toFixed(0)} days) · {results.time_horizon.avg_trades_per_day} trades/day
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 20 }}>
+          {[
+            { label: 'Initial Capital',     val: `$${results.initial_capital.toLocaleString()}`,              col: '#e2e8f0' },
+            { label: 'Mean Final Balance',  val: `$${stats.mean_final_balance.toLocaleString()}`,             col: pnl2col(stats.mean_final_balance - results.initial_capital) },
+            { label: 'Median Balance',      val: `$${stats.median_final_balance.toLocaleString()}`,           col: pnl2col(stats.median_final_balance - results.initial_capital) },
+            { label: 'Profit Probability',  val: `${stats.probability_of_profit}%`,                          col: stats.probability_of_profit > 50 ? '#00e5a0' : '#ff4d6d' },
+            { label: '5th Pct (Worst)',     val: `$${stats.percentile_5.toLocaleString()}`,                  col: '#ff4d6d' },
+            { label: '95th Pct (Best)',     val: `$${stats.percentile_95.toLocaleString()}`,                 col: '#00e5a0' },
+            { label: 'Max Potential Loss',  val: `$${stats.max_potential_loss.toLocaleString()}`,            col: '#ff4d6d' },
+            { label: 'Max Loss %',          val: `${stats.max_loss_percentage.toFixed(2)}%`,                 col: '#ff4d6d' },
+            { label: 'Std Deviation',       val: `$${stats.std_deviation.toLocaleString()}`,                 col: '#a78bfa' },
+          ].map(({ label, val, col }) => (
+            <div key={label} style={{ background: '#0a0c10', border: '1px solid #1e2530', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5, fontFamily: 'DM Mono,monospace' }}>{label}</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: col, fontFamily: 'DM Mono,monospace' }}>{val}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: '#7c3aed0a', border: '1px solid #7c3aed33', borderRadius: 8, padding: '14px 16px', fontSize: 13, color: '#94a3b8', lineHeight: 1.7 }}>
+          <span style={{ fontWeight: 700, color: '#a78bfa' }}>Interpretation · </span>
+          Over ~{results.time_horizon.estimated_months.toFixed(1)} months, {stats.probability_of_profit}% chance of profit.
+          Range: <span style={{ color: '#ff4d6d' }}>${stats.percentile_5.toLocaleString()}</span> → <span style={{ color: '#00e5a0' }}>${stats.percentile_95.toLocaleString()}</span>.
+          Max drawdown risk: <span style={{ color: '#ff4d6d' }}>{stats.max_loss_percentage.toFixed(1)}%</span>.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Synthesise Modal ─────────────────────────────────────────────────────────
+function SynthesiseModal({ accounts, onClose, onSynthesize }) {
+  const [selected, setSelected] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [wantSave, setWantSave] = useState(false);
+  const [synthResult, setSynthResult] = useState(null);
+
+  const toggle = id => setSelected(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
+
+  const computedName = selected.length > 0
+    ? selected.map(id => accounts.find(a => a.account_id === id)?.account_name).filter(Boolean).join(', ')
+    : '—';
+
+  const handleRun = async () => {
+    if (selected.length < 2) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${baseUrl}/mac_synthesize_accounts_combined/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_ids: selected, save: wantSave })
+      });
+      const d = await res.json();
+      if (d.success) setSynthResult(d);
+      else alert('Error: ' + d.error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (synthResult) {
+    const s = synthResult.synthesized;
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal-box" onClick={e => e.stopPropagation()}>
+          <div className="modal-hdr">✦ Synthesis Result</div>
+          <div className="modal-sub">{s.account_name}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
+            {[
+              { label: 'Combined Capital', val: `$${s.initial_capital.toLocaleString()}` },
+              { label: 'Net P&L',          val: `$${s.net_pnl.toLocaleString()}`, col: pnl2col(s.net_pnl) },
+              { label: 'ROI',              val: `${s.roi}%`, col: roi2col(s.roi) },
+              { label: 'Win Rate',         val: `${s.win_rate}%` },
+              { label: 'Total Trades',     val: s.total_trades },
+            ].map(({ label, val, col }) => (
+              <div key={label} style={{ background: '#0a0c10', border: '1px solid #1e2530', borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5, fontFamily: 'DM Mono,monospace' }}>{label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: col || '#e2e8f0', fontFamily: 'DM Mono,monospace' }}>{val}</div>
+              </div>
+            ))}
+          </div>
+          {synthResult.saved && (
+            <div style={{ padding: '10px 14px', background: '#00e5a011', border: '1px solid #00e5a033', borderRadius: 7, marginBottom: 16, fontSize: 13, color: '#00e5a0', fontFamily: 'DM Mono,monospace' }}>
+              ✓ Saved as new account: "{s.account_name}"
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="mac-btn mac-btn-purple" onClick={() => { onSynthesize(); onClose(); }}>
+              Refresh Dashboard
+            </button>
+            <button className="mac-btn mac-btn-ghost" onClick={onClose}>Close</button>
+          </div>
+        </div>
+      </div>
     );
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()}>
+        <div className="modal-hdr">⟡ Synthesise Accounts</div>
+        <div className="modal-sub">Select 2+ accounts to combine their performance into a unified view</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10, marginBottom: 20 }}>
+          {accounts.map(acc => (
+            <div key={acc.account_id}>
+              <input className="synth-check" type="checkbox" id={`sc-${acc.account_id}`} checked={selected.includes(acc.account_id)} onChange={() => toggle(acc.account_id)} />
+              <label htmlFor={`sc-${acc.account_id}`}>
+                <span className="chk-box">{selected.includes(acc.account_id) && <span style={{ fontSize: 10, color: '#0a0c10', fontWeight: 900 }}>✓</span>}</span>
+                <span>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#e2e8f0' }}>{acc.account_name}</div>
+                  <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace' }}>{acc.main_assets}</div>
+                </span>
+              </label>
+            </div>
+          ))}
+        </div>
+
+        {selected.length > 0 && (
+          <div style={{ padding: '12px 14px', background: '#f59e0b0a', border: '1px solid #f59e0b33', borderRadius: 8, marginBottom: 18, fontSize: 13, color: '#f59e0b', fontFamily: 'DM Mono,monospace' }}>
+            Combined name: <span style={{ fontWeight: 700 }}>{computedName}</span>
+          </div>
+        )}
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
+          <input type="checkbox" checked={wantSave} onChange={e => setWantSave(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: '#f59e0b', cursor: 'pointer' }} />
+          Save as new account in the database
+        </label>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="mac-btn mac-btn-amber" disabled={selected.length < 2 || saving} onClick={handleRun}>
+            {saving ? 'Synthesising…' : `⟡ Synthesise (${selected.length})`}
+          </button>
+          <button className="mac-btn mac-btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Trade Modal ─────────────────────────────────────────────────────────
+function EditTradeModal({ trade, onClose, onSaved }) {
+  const [form, setForm] = useState({ ...trade });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${baseUrl}/mac_edit_account_trade_entry/${trade.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      const d = await res.json();
+      if (d.success) { onSaved(); onClose(); }
+      else alert('Error: ' + d.error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box sm" onClick={e => e.stopPropagation()}>
+        <div className="modal-hdr">✎ Edit Trade</div>
+        <div className="modal-sub" style={{ marginBottom: 20 }}>Trade #{trade.id} · {trade.asset}</div>
+
+        <div className="edit-grid" style={{ marginBottom: 14 }}>
+          {[
+            { key: 'asset',                    label: 'Asset',             type: 'text'   },
+            { key: 'order_type',               label: 'Order Type',        type: 'text'   },
+            { key: 'strategy',                 label: 'Strategy',          type: 'text'   },
+            { key: 'sector',                   label: 'Sector',            type: 'text'   },
+            { key: 'day_of_week_entered',      label: 'Day Entered',       type: 'text'   },
+            { key: 'day_of_week_closed',       label: 'Day Closed',        type: 'text'   },
+            { key: 'trading_session_entered',  label: 'Session Entered',   type: 'text'   },
+            { key: 'trading_session_closed',   label: 'Session Closed',    type: 'text'   },
+          ].map(({ key, label, type }) => (
+            <div className="edit-field" key={key}>
+              <div className="edit-label">{label}</div>
+              <input className="edit-input" type={type} value={form[key] || ''} onChange={e => set(key, e.target.value)} />
+            </div>
+          ))}
+        </div>
+
+        <div className="edit-grid" style={{ marginBottom: 14 }}>
+          <div className="edit-field">
+            <div className="edit-label">Outcome</div>
+            <select className="edit-input" value={form.outcome || ''} onChange={e => set('outcome', e.target.value)}>
+              <option value="Win">Win</option>
+              <option value="Loss">Loss</option>
+            </select>
+          </div>
+          <div className="edit-field">
+            <div className="edit-label">Amount</div>
+            <input className="edit-input" type="number" step="0.01" value={form.amount || ''} onChange={e => set('amount', parseFloat(e.target.value))} />
+          </div>
+        </div>
+
+        <div className="edit-field" style={{ marginBottom: 14 }}>
+          <div className="edit-label">Date Entered</div>
+          <input className="edit-input" type="datetime-local"
+            value={form.date_entered ? form.date_entered.slice(0, 16) : ''}
+            onChange={e => set('date_entered', e.target.value)} />
+        </div>
+
+        <div className="edit-field" style={{ marginBottom: 14 }}>
+          <div className="edit-label">Emotional Bias</div>
+          <textarea className="edit-input" rows={2} value={form.emotional_bias || ''} onChange={e => set('emotional_bias', e.target.value)} />
+        </div>
+
+        <div className="edit-field" style={{ marginBottom: 20 }}>
+          <div className="edit-label">Reflection</div>
+          <textarea className="edit-input" rows={2} value={form.reflection || ''} onChange={e => set('reflection', e.target.value)} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="mac-btn mac-btn-teal" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : '✓ Save Changes'}
+          </button>
+          <button className="mac-btn mac-btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Account Trades Table ─────────────────────────────────────────────────────
+function AccountTradesPanel({ accountId, accountName }) {
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editTrade, setEditTrade] = useState(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 15;
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${baseUrl}/mac_fetch_account_trades_list/${accountId}/`);
+      const d = await r.json();
+      if (d.success) setTrades(d.trades);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (accountId) { load(); setPage(1); } }, [accountId]);
+
+  if (loading) return <div className="mac-loading"><div className="spinner" />&nbsp;Loading trades…</div>;
+  if (!trades.length) return <div className="mac-loading">No trades for this account</div>;
+
+  const pages = Math.ceil(trades.length / PER_PAGE);
+  const paginated = trades.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  return (
+    <div>
+      {editTrade && <EditTradeModal trade={editTrade} onClose={() => setEditTrade(null)} onSaved={load} />}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'DM Mono,monospace' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #1e2530' }}>
+              {['#', 'Asset', 'Type', 'Strategy', 'Sector', 'Session', 'Outcome', 'Amount', 'Date', 'Edit'].map(h => (
+                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paginated.map((t, i) => (
+              <tr key={t.id} style={{ borderBottom: '1px solid #1e253033' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#7c3aed08'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <td style={{ padding: '8px 12px', color: '#475569' }}>{(page - 1) * PER_PAGE + i + 1}</td>
+                <td style={{ padding: '8px 12px', color: '#a78bfa', fontWeight: 700 }}>{t.asset}</td>
+                <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{t.order_type}</td>
+                <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{t.strategy}</td>
+                <td style={{ padding: '8px 12px', color: '#64748b' }}>{t.sector || '—'}</td>
+                <td style={{ padding: '8px 12px', color: '#64748b' }}>{t.trading_session_entered}</td>
+                <td style={{ padding: '8px 12px' }}>
+                  <span style={{ color: t.outcome === 'Win' ? '#00e5a0' : '#ff4d6d', fontWeight: 700 }}>
+                    {t.outcome === 'Win' ? '▲' : '▼'} {t.outcome}
+                  </span>
+                </td>
+                <td style={{ padding: '8px 12px', color: pnl2col(t.outcome === 'Win' ? t.amount : -t.amount), fontWeight: 700 }}>
+                  {t.outcome === 'Win' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}
+                </td>
+                <td style={{ padding: '8px 12px', color: '#475569' }}>
+                  {t.date_entered ? new Date(t.date_entered).toLocaleDateString() : '—'}
+                </td>
+                <td style={{ padding: '8px 12px' }}>
+                  <button
+                    style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid #1e2530', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 11, fontFamily: 'DM Mono,monospace' }}
+                    onClick={() => setEditTrade(t)}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.color = '#a78bfa'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e2530'; e.currentTarget.style.color = '#64748b'; }}
+                  >✎</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {pages > 1 && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, alignItems: 'center' }}>
+          <button className="mac-btn mac-btn-ghost" style={{ padding: '5px 12px', fontSize: 12 }} disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+          <span style={{ fontSize: 12, color: '#475569', fontFamily: 'DM Mono,monospace' }}>{page} / {pages}</span>
+          <button className="mac-btn mac-btn-ghost" style={{ padding: '5px 12px', fontSize: 12 }} disabled={page === pages} onClick={() => setPage(p => p + 1)}>Next →</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export default function MultiAccountAnalytics() {
+  const [tab, setTab] = useState('overview');    // overview | sector | compare | trades
+  const [overview, setOverview] = useState(null);
+  const [equityData, setEquityData] = useState(null);
+  const [selectedAcc, setSelectedAcc] = useState(null);
+  const [comparisonData, setComparisonData] = useState(null);
+  const [sectorData, setSectorData] = useState(null);
+  const [loadingOv, setLoadingOv] = useState(true);
+  const [loadingEq, setLoadingEq] = useState(false);
+  const [accFilter, setAccFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [mcResults, setMcResults] = useState(null);
+  const [mcRunning, setMcRunning] = useState(false);
+  const [showSynth, setShowSynth] = useState(false);
+  const [synthAccFilter, setSynthAccFilter] = useState(false);
+  const [tradesAccount, setTradesAccount] = useState(null);
+
+  const loadOverview = async () => {
+    setLoadingOv(true);
+    try {
+      const r = await fetch(`${baseUrl}/fetch_multi_account_performance_overview_data/`);
+      const d = await r.json();
+      if (d.success) {
+        setOverview(d);
+        if (!selectedAcc && d.all_accounts?.length) setSelectedAcc(d.all_accounts[0].account_id);
+      }
+    } finally { setLoadingOv(false); }
+  };
+
+  const loadEquity = async id => {
+    setLoadingEq(true);
+    try {
+      const r = await fetch(`${baseUrl}/fetch_account_equity_curve_progression_data/${id}/`);
+      const d = await r.json();
+      if (d.success) setEquityData(d);
+    } finally { setLoadingEq(false); }
+  };
+
+  const loadComparison = async () => {
+    const r = await fetch(`${baseUrl}/fetch_all_accounts_equity_curves_comparison_data/`);
+    const d = await r.json();
+    if (d.success) setComparisonData(d.accounts_equity_data);
+  };
+
+  const loadSector = async () => {
+    const r = await fetch(`${baseUrl}/mac_fetch_sector_performance_breakdown/`);
+    const d = await r.json();
+    if (d.success) setSectorData(d.sectors);
+  };
+
+  const runMC = async id => {
+    setMcRunning(true);
+    try {
+      const r = await fetch(`${baseUrl}/execute_portfolio_monte_carlo_risk_simulation/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_id: id, num_simulations: 1000, num_trades: 100 })
+      });
+      const d = await r.json();
+      if (d.success) setMcResults(d);
+      else alert('MC error: ' + d.error);
+    } finally { setMcRunning(false); }
+  };
+
+  useEffect(() => { loadOverview(); }, []);
+  useEffect(() => { if (selectedAcc) loadEquity(selectedAcc); }, [selectedAcc]);
+  useEffect(() => { if (tab === 'compare') loadComparison(); if (tab === 'sector') loadSector(); }, [tab]);
+
+  const filtered = () => {
+    if (!overview?.all_accounts) return [];
+    let list = overview.all_accounts;
+    if (accFilter === 'profitable') list = list.filter(a => a.roi > 0);
+    if (accFilter === 'losing')     list = list.filter(a => a.roi < 0);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(a =>
+        a.account_name.toLowerCase().includes(q) ||
+        a.main_assets.toLowerCase().includes(q) ||
+        (a.sectors && a.sectors.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  };
+
+  if (loadingOv) return (
+    <div><div className="header"><Header /></div>
+      <div className="main-page-body"><SideNavs />
+        <div className="main-body-info">
+          <style>{CSS}</style>
+          <div className="mac-root" style={{ padding: 24 }}>
+            <div className="mac-loading"><div className="spinner" />Loading analytics…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="header"><Header /></div>
+      <div className="main-page-body"><SideNavs />
+        <div className="main-body-info">
+          <style>{CSS}</style>
+          <div className="mac-root" style={{ padding: '24px 28px', maxWidth: 1440 }}>
+
+            {/* Page header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+              <div>
+                <h1 style={{ fontSize: 26, fontWeight: 800, color: '#e2e8f0', margin: 0, letterSpacing: '-0.02em' }}>Multi-Account Analytics</h1>
+                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: 13, fontFamily: 'DM Mono,monospace' }}>
+                  {overview?.total_accounts || 0} accounts · live performance dashboard
+                </p>
+              </div>
+              <button className="mac-btn mac-btn-amber" onClick={() => setShowSynth(true)}>⟡ Synthesise</button>
+            </div>
+
+            {/* Tabs */}
+            <div className="mac-tabs">
+              {[['overview','Overview'],['sector','Sector View'],['compare','Comparison'],['trades','Trade Entries']].map(([id, label]) => (
+                <button key={id} className={`mac-tab${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}>{label}</button>
+              ))}
+            </div>
+
+            {/* ── TAB: OVERVIEW ── */}
+            {tab === 'overview' && overview && (
+              <>
+                {/* Top 3 KPI cards */}
+                <div className="mac-top-grid" style={{ marginBottom: 28 }}>
+                  {overview.best_performer && (
+                    <div className="mac-card mac-card-accent-green">
+                      <div className="sec-hdr">🏆 Best Performer</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>{overview.best_performer.account_name}</div>
+                      <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>{overview.best_performer.main_assets}</div>
+                      <div className="met-grid">
+                        <div><div className="met-label">ROI</div><div className="met-value" style={{ color: '#00e5a0' }}>{overview.best_performer.roi}%</div></div>
+                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.best_performer.net_pnl) }}>${overview.best_performer.net_pnl}</div></div>
+                        <div><div className="met-label">Win Rate</div><div className="met-value">{overview.best_performer.win_rate}%</div></div>
+                        <div><div className="met-label">Trades</div><div className="met-value">{overview.best_performer.total_trades}</div></div>
+                      </div>
+                    </div>
+                  )}
+                  {overview.worst_performer && (
+                    <div className="mac-card mac-card-accent-red">
+                      <div className="sec-hdr">📉 Worst Performer</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>{overview.worst_performer.account_name}</div>
+                      <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>{overview.worst_performer.main_assets}</div>
+                      <div className="met-grid">
+                        <div><div className="met-label">ROI</div><div className="met-value" style={{ color: '#ff4d6d' }}>{overview.worst_performer.roi}%</div></div>
+                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.worst_performer.net_pnl) }}>${overview.worst_performer.net_pnl}</div></div>
+                        <div><div className="met-label">Win Rate</div><div className="met-value">{overview.worst_performer.win_rate}%</div></div>
+                        <div><div className="met-label">Trades</div><div className="met-value">{overview.worst_performer.total_trades}</div></div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="mac-card mac-card-accent-blue">
+                    <div className="sec-hdr">📊 Portfolio Averages</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>All {overview.total_accounts} Accounts</div>
+                    <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>Combined portfolio</div>
+                    <div className="met-grid">
+                      <div><div className="met-label">Avg ROI</div><div className="met-value" style={{ color: roi2col(overview.averages.avg_roi) }}>{overview.averages.avg_roi}%</div></div>
+                      <div><div className="met-label">Avg P&L</div><div className="met-value" style={{ color: pnl2col(overview.averages.avg_net_pnl) }}>${overview.averages.avg_net_pnl}</div></div>
+                      <div><div className="met-label">Avg Win Rate</div><div className="met-value">{overview.averages.avg_win_rate}%</div></div>
+                      <div><div className="met-label">Accounts</div><div className="met-value">{overview.total_accounts}</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Accounts grid */}
+                <div className="mac-card" style={{ marginBottom: 24 }}>
+                  <div className="sec-hdr">All Accounts</div>
+                  <input className="mac-search" placeholder="🔍  Search by name, asset or sector…" value={search} onChange={e => setSearch(e.target.value)} style={{ marginBottom: 14 }} />
+                  <div className="mac-filter-row">
+                    {[['all','All'],['profitable','Profitable'],['losing','Losing']].map(([v, l]) => (
+                      <button key={v} className={`mac-filter-btn${accFilter === v ? ' active' : ''}`} onClick={() => setAccFilter(v)}>
+                        {l} ({v === 'all' ? overview.all_accounts.length : v === 'profitable' ? overview.all_accounts.filter(a => a.roi > 0).length : overview.all_accounts.filter(a => a.roi < 0).length})
+                      </button>
+                    ))}
+                  </div>
+                  {search && <div style={{ fontSize: 12, color: '#475569', marginBottom: 12, fontFamily: 'DM Mono,monospace' }}>{filtered().length} result(s)</div>}
+                  <div className="mac-accounts-grid">
+                    {filtered().map(acc => (
+                      <div key={acc.account_id}
+                        className={`acc-card${selectedAcc === acc.account_id ? ' selected' : ''}`}
+                        onClick={() => setSelectedAcc(acc.account_id)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: '#e2e8f0' }}>{acc.account_name}</div>
+                          <span className={`badge ${acc.roi >= 0 ? 'badge-green' : 'badge-red'}`}>
+                            {acc.roi >= 0 ? '▲' : '▼'} {acc.roi}%
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 10 }}>{acc.main_assets}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div><div className="met-label">P&L</div><div style={{ color: pnl2col(acc.net_pnl), fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>${acc.net_pnl}</div></div>
+                          <div><div className="met-label">Win Rate</div><div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.win_rate}%</div></div>
+                          <div><div className="met-label">Trades</div><div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.total_trades}</div></div>
+                          <div><div className="met-label">Balance</div><div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>${acc.current_balance?.toFixed(2)}</div></div>
+                        </div>
+                        <button className="mc-btn" disabled={mcRunning}
+                          onClick={e => { e.stopPropagation(); runMC(acc.account_id); }}>
+                          {mcRunning ? '…' : '🎲 Monte Carlo'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Equity curve */}
+                <div className="mac-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                    <div className="sec-hdr" style={{ marginBottom: 0, flex: 1 }}>Equity Curve</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+                    {overview.all_accounts.map(a => (
+                      <button key={a.account_id} className={`eq-btn${selectedAcc === a.account_id ? ' active' : ''}`}
+                        onClick={() => setSelectedAcc(a.account_id)}>{a.account_name}</button>
+                    ))}
+                  </div>
+                  {loadingEq
+                    ? <div className="mac-loading"><div className="spinner" />&nbsp;Loading…</div>
+                    : <EquityChart data={equityData?.equity_curve} initialCapital={equityData?.initial_capital} />
+                  }
+                </div>
+              </>
+            )}
+
+            {/* ── TAB: SECTOR ── */}
+            {tab === 'sector' && (
+              <div className="mac-card">
+                <div className="sec-hdr">Sector Performance Breakdown</div>
+                {!sectorData ? (
+                  <div className="mac-loading"><div className="spinner" />&nbsp;Loading sector data…</div>
+                ) : (
+                  <>
+                    <div className="sector-legend" style={{ marginBottom: 20 }}>
+                      {sectorData.map((s, i) => (
+                        <div key={s.sector} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', fontFamily: 'DM Mono,monospace' }}>
+                          <div className="sector-dot" style={{ background: SECTOR_PALETTE[i % SECTOR_PALETTE.length] }} />
+                          {s.sector}
+                          <span style={{ color: roi2col(s.avg_roi), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</span>
+                        </div>
+                      ))}
+                    </div>
+                    <SectorChart sectorData={sectorData} />
+                    <div style={{ marginTop: 28 }}>
+                      <div className="sec-hdr">Sector Details</div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'DM Mono,monospace' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #1e2530' }}>
+                              {['Sector','Trades','Wins','Losses','Win Rate','Avg ROI','Net P&L'].map(h => (
+                                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sectorData.sort((a, b) => b.avg_roi - a.avg_roi).map((s, i) => (
+                              <tr key={s.sector} style={{ borderBottom: '1px solid #1e253033' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#7c3aed08'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '9px 12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: SECTOR_PALETTE[i % SECTOR_PALETTE.length] }} />
+                                    <span style={{ color: '#e2e8f0', fontWeight: 700 }}>{s.sector}</span>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '9px 12px', color: '#94a3b8' }}>{s.total_trades}</td>
+                                <td style={{ padding: '9px 12px', color: '#00e5a0' }}>{s.winning_trades}</td>
+                                <td style={{ padding: '9px 12px', color: '#ff4d6d' }}>{s.losing_trades}</td>
+                                <td style={{ padding: '9px 12px', color: '#e2e8f0', fontWeight: 700 }}>{s.win_rate}%</td>
+                                <td style={{ padding: '9px 12px', color: roi2col(s.avg_roi), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</td>
+                                <td style={{ padding: '9px 12px', color: pnl2col(s.net_pnl), fontWeight: 700 }}>${s.net_pnl}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── TAB: COMPARE ── */}
+            {tab === 'compare' && (
+              <div className="mac-card">
+                <div className="sec-hdr">All Accounts — Equity Curve Comparison</div>
+                {!comparisonData
+                  ? <div className="mac-loading"><div className="spinner" />&nbsp;Loading…</div>
+                  : <ComparisonChart curvesData={comparisonData} />
+                }
+                {comparisonData && (
+                  <div style={{ marginTop: 28 }}>
+                    <div className="sec-hdr">Account Rankings</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+                      {[...( overview?.all_accounts || [])].sort((a,b) => b.roi - a.roi).map((acc, i) => (
+                        <div key={acc.account_id} style={{ background: '#0a0c10', border: '1px solid #1e2530', borderRadius: 8, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: i === 0 ? '#f59e0b' : '#334155', fontFamily: 'DM Mono,monospace', minWidth: 28 }}>#{i + 1}</div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{acc.account_name}</div>
+                            <div style={{ fontSize: 12, color: roi2col(acc.roi), fontFamily: 'DM Mono,monospace', fontWeight: 700 }}>{acc.roi > 0 ? '+' : ''}{acc.roi}%</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── TAB: TRADES ── */}
+            {tab === 'trades' && overview && (
+              <div className="mac-card">
+                <div className="sec-hdr">Trade Entries</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+                  {overview.all_accounts.map(a => (
+                    <button key={a.account_id}
+                      className={`eq-btn${tradesAccount === a.account_id ? ' active' : ''}`}
+                      onClick={() => setTradesAccount(a.account_id)}>{a.account_name}</button>
+                  ))}
+                </div>
+                {tradesAccount
+                  ? <AccountTradesPanel accountId={tradesAccount} accountName={overview.all_accounts.find(a => a.account_id === tradesAccount)?.account_name} />
+                  : <div className="mac-loading" style={{ color: '#334155' }}>Select an account above to view and edit its trades</div>
+                }
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {mcResults && <MonteCarloModal results={mcResults} onClose={() => setMcResults(null)} />}
+      {showSynth && overview && (
+        <SynthesiseModal
+          accounts={overview.all_accounts}
+          onClose={() => setShowSynth(false)}
+          onSynthesize={loadOverview}
+        />
+      )}
+    </div>
+  );
 }
