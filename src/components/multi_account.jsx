@@ -847,11 +847,23 @@ export default function MultiAccountAnalytics() {
     return list;
   };
 
+  const T = theme === 'dark';
+  const themeVars = T
+    ? { bg: '#0a0c10', card: '#0d1117', border: '#1e2530', text: '#e2e8f0', muted: '#475569', subtext: '#64748b', rankBg: '#0a0c10', rankBorder: '#1e2530', rankNum: '#334155' }
+    : { bg: '#f1f5f9', card: '#ffffff',  border: '#e2e8f0', text: '#0f172a', muted: '#64748b', subtext: '#64748b', rankBg: '#ffffff',  rankBorder: '#e2e8f0', rankNum: '#94a3b8' };
+
+  const ThemeToggle = () => (
+    <div className="theme-toggle">
+      <button className={!T ? 't-active' : ''} onClick={() => setTheme('light')}>☀ Light</button>
+      <button className={T  ? 't-active' : ''} onClick={() => setTheme('dark')}>◑ Dark</button>
+    </div>
+  );
+
   if (loadingOv) return (
     <div><div className="header"><Header /></div>
       <div className="main-page-body"><SideNavs />
         <div className="main-body-info">
-          <style>{CSS}</style>
+          <style>{getCss(theme)}</style>
           <div className="mac-root" style={{ padding: 24 }}>
             <div className="mac-loading"><div className="spinner" />Loading analytics…</div>
           </div>
@@ -865,18 +877,21 @@ export default function MultiAccountAnalytics() {
       <div className="header"><Header /></div>
       <div className="main-page-body"><SideNavs />
         <div className="main-body-info">
-          <style>{CSS}</style>
+          <style>{getCss(theme)}</style>
           <div className="mac-root" style={{ padding: '24px 28px', maxWidth: 1440 }}>
 
             {/* Page header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
               <div>
                 <h1 style={{ fontSize: 26, fontWeight: 800, color: '#e2e8f0', margin: 0, letterSpacing: '-0.02em' }}>Multi-Account Analytics</h1>
-                <p style={{ margin: '4px 0 0', color: '#475569', fontSize: 13, fontFamily: 'DM Mono,monospace' }}>
+                <p style={{ margin: '4px 0 0', color: themeVars.muted, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>
                   {overview?.total_accounts || 0} accounts · live performance dashboard
                 </p>
               </div>
-              <button className="mac-btn mac-btn-amber" onClick={() => setShowSynth(true)}>⟡ Synthesise</button>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <ThemeToggle />
+                <button className="mac-btn mac-btn-amber" onClick={() => setShowSynth(true)}>⟡ Synthesise</button>
+              </div>
             </div>
 
             {/* Tabs */}
@@ -1011,24 +1026,24 @@ export default function MultiAccountAnalytics() {
                       <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'DM Mono,monospace' }}>
                           <thead>
-                            <tr style={{ borderBottom: '1px solid #1e2530' }}>
+                            <tr style={{ borderBottom: `1px solid ${themeVars.border}` }}>
                               {['Sector','Trades','Wins','Losses','Win Rate','Avg ROI','Net P&L'].map(h => (
-                                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
+                                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: themeVars.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
                             {sectorData.sort((a, b) => b.avg_roi - a.avg_roi).map((s, i) => (
-                              <tr key={s.sector} style={{ borderBottom: '1px solid #1e253033' }}
+                              <tr key={s.sector} style={{ borderBottom: `1px solid ${themeVars.border}44` }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#7c3aed08'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                 <td style={{ padding: '9px 12px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: SECTOR_PALETTE[i % SECTOR_PALETTE.length] }} />
-                                    <span style={{ color: '#e2e8f0', fontWeight: 700 }}>{s.sector}</span>
+                                    <span style={{ color: themeVars.text, fontWeight: 700 }}>{s.sector}</span>
                                   </div>
                                 </td>
-                                <td style={{ padding: '9px 12px', color: '#94a3b8' }}>{s.total_trades}</td>
+                                <td style={{ padding: '9px 12px', color: themeVars.subtext }}>{s.total_trades}</td>
                                 <td style={{ padding: '9px 12px', color: '#00e5a0' }}>{s.winning_trades}</td>
                                 <td style={{ padding: '9px 12px', color: '#ff4d6d' }}>{s.losing_trades}</td>
                                 <td style={{ padding: '9px 12px', color: '#e2e8f0', fontWeight: 700 }}>{s.win_rate}%</td>
@@ -1058,10 +1073,10 @@ export default function MultiAccountAnalytics() {
                     <div className="sec-hdr">Account Rankings</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
                       {[...( overview?.all_accounts || [])].sort((a,b) => b.roi - a.roi).map((acc, i) => (
-                        <div key={acc.account_id} style={{ background: '#0a0c10', border: '1px solid #1e2530', borderRadius: 8, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: i === 0 ? '#f59e0b' : '#334155', fontFamily: 'DM Mono,monospace', minWidth: 28 }}>#{i + 1}</div>
+                        <div key={acc.account_id} style={{ background: themeVars.rankBg, border: `1px solid ${themeVars.rankBorder}`, borderRadius: 8, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center' }}>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: i === 0 ? '#f59e0b' : themeVars.rankNum, fontFamily: 'DM Mono,monospace', minWidth: 28 }}>#{i + 1}</div>
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>{acc.account_name}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: themeVars.text }}>{acc.account_name}</div>
                             <div style={{ fontSize: 12, color: roi2col(acc.roi), fontFamily: 'DM Mono,monospace', fontWeight: 700 }}>{acc.roi > 0 ? '+' : ''}{acc.roi}%</div>
                           </div>
                         </div>
@@ -1085,7 +1100,7 @@ export default function MultiAccountAnalytics() {
                 </div>
                 {tradesAccount
                   ? <AccountTradesPanel accountId={tradesAccount} accountName={overview.all_accounts.find(a => a.account_id === tradesAccount)?.account_name} />
-                  : <div className="mac-loading" style={{ color: '#334155' }}>Select an account above to view and edit its trades</div>
+                  : <div className="mac-loading" style={{ color: themeVars.muted }}>Select an account above to view and edit its trades</div>
                 }
               </div>
             )}
