@@ -556,6 +556,169 @@ const styles = {
     padding: '10px 12px',
     marginBottom: 8,
   },
+
+  // ── Company transcript list (inside card tab) ──
+  ctrItem: {
+    background: '#f4f8fd',
+    border: '1px solid #daeaf7',
+    borderRadius: 12,
+    padding: '12px 14px',
+    marginBottom: 10,
+    cursor: 'pointer',
+    transition: 'box-shadow 0.15s, border-color 0.15s',
+  },
+  ctrItemTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#042c53',
+    margin: '0 0 4px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  ctrItemMeta: {
+    fontSize: 11,
+    color: '#6a8fb5',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px 12px',
+    marginBottom: 6,
+  },
+  ctrStatusBadge: (status) => ({
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    borderRadius: 20,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    background: status === 'raw'       ? '#fff8e6' :
+                status === 'reviewed'  ? '#e8f5e9' :
+                status === 'processed' ? '#e8f0fe' : '#f5f5f5',
+    color:      status === 'raw'       ? '#b07800' :
+                status === 'reviewed'  ? '#2e7d32' :
+                status === 'processed' ? '#1a56db' : '#666',
+    border: `1px solid ${
+                status === 'raw'       ? '#f5d090' :
+                status === 'reviewed'  ? '#a5d6a7' :
+                status === 'processed' ? '#93b4f8' : '#ddd'}`,
+  }),
+
+  // ── Transcript viewer modal ──
+  viewerModalBox: {
+    background: '#fff',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 780,
+    maxHeight: '92vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    boxShadow: '0 24px 80px rgba(4,44,83,0.22)',
+  },
+  viewerHeader: {
+    background: 'linear-gradient(135deg, #042c53 0%, #0c447c 60%, #185fa5 100%)',
+    padding: '18px 22px',
+    flexShrink: 0,
+  },
+  viewerHeaderTop: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
+  },
+  viewerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    background: 'rgba(255,255,255,0.15)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 20,
+    flexShrink: 0,
+  },
+  viewerTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#fff',
+    margin: '0 0 3px',
+    lineHeight: 1.3,
+  },
+  viewerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    margin: 0,
+  },
+  viewerMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px 16px',
+    marginTop: 4,
+  },
+  viewerMetaChip: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.75)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+  },
+  viewerBody: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '20px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 18,
+  },
+  viewerSection: {
+    background: '#f7fafd',
+    border: '1px solid #e2edf8',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  viewerSectionHead: {
+    padding: '10px 16px',
+    background: '#eaf2fb',
+    borderBottom: '1px solid #d5e8f7',
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#185fa5',
+    textTransform: 'uppercase',
+    letterSpacing: '0.6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  viewerSectionBody: {
+    padding: '14px 16px',
+    fontSize: 13,
+    color: '#2c3e50',
+    lineHeight: 1.75,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  viewerFooter: {
+    padding: '14px 22px',
+    borderTop: '1px solid #e6f1fb',
+    background: '#f4f8fd',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 0,
+    flexWrap: 'wrap',
+  },
+
+  // ── Record-into-company modal ──
+  recordModalBox: {
+    background: '#fff',
+    borderRadius: 18,
+    width: '100%',
+    maxWidth: 560,
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    boxShadow: '0 24px 80px rgba(4,44,83,0.2)',
+  },
 };
 
 // Pulse animation style injected once
@@ -1452,6 +1615,536 @@ function PDFModal({ link, onClose }) {
   );
 }
 
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function formatDurationHMS(secs) {
+  if (!secs) return null;
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  return h > 0
+    ? `${h}h ${m}m ${s}s`
+    : m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+function fmtDate(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+const SOURCE_ICONS = { youtube: '▶️', meeting: '🎙', earnings_call: '📊', conference: '🏛', interview: '🎤', other: '📝' };
+const STATUS_LABELS = { raw: '⏳ Raw', reviewed: '✅ Reviewed', processed: '🔬 Processed', archived: '📦 Archived' };
+
+// ─── TRANSCRIPT VIEWER MODAL ──────────────────────────────────────────────────
+function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelete }) {
+  const [statusChanging, setStatusChanging] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleStatus = async (newStatus) => {
+    setStatusChanging(true);
+    try {
+      await fetch(`${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/status/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      onStatusChange && onStatusChange(newStatus);
+    } catch {}
+    finally { setStatusChanging(false); }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await fetch(`${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/delete/`, { method: 'POST' });
+      onDelete && onDelete();
+      onClose();
+    } catch {}
+  };
+
+  const wordCount  = t.word_count || t.full_transcript_text?.split(/\s+/).filter(Boolean).length || 0;
+  const sourceIcon = SOURCE_ICONS[t.source_type] || '📝';
+  const ytId       = t.youtube_video_id;
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.viewerModalBox} onClick={e => e.stopPropagation()}>
+
+        {/* ── Gradient header ── */}
+        <div style={styles.viewerHeader}>
+          <div style={styles.viewerHeaderTop}>
+            <div style={styles.viewerIcon}>{sourceIcon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={styles.viewerTitle}>{t.source_title || 'Untitled Transcript'}</p>
+              <p style={styles.viewerSubtitle}>{t.company_name || `Company #${t.company_id}`}</p>
+            </div>
+            <div style={styles.ctrStatusBadge(t.status)}>{STATUS_LABELS[t.status] || t.status}</div>
+            <button style={{ ...styles.modalCloseBtn, marginLeft: 6 }} onClick={onClose}>×</button>
+          </div>
+
+          {/* Meta chips */}
+          <div style={styles.viewerMeta}>
+            {t.speaker_name && (
+              <span style={styles.viewerMetaChip}>👤 {t.speaker_name}{t.speaker_role ? ` · ${t.speaker_role}` : ''}</span>
+            )}
+            {t.event_name && <span style={styles.viewerMetaChip}>🏛 {t.event_name}</span>}
+            {t.event_date && <span style={styles.viewerMetaChip}>📅 {fmtDate(t.event_date)}</span>}
+            {t.transcript_language && <span style={styles.viewerMetaChip}>🌐 {t.transcript_language}</span>}
+            {wordCount > 0 && <span style={styles.viewerMetaChip}>📝 {wordCount.toLocaleString()} words</span>}
+            {t.recording_duration_seconds > 0 && (
+              <span style={styles.viewerMetaChip}>⏱ {formatDurationHMS(t.recording_duration_seconds)}</span>
+            )}
+            {t.recorded_at && <span style={styles.viewerMetaChip}>🕐 {fmtDate(t.recorded_at)}</span>}
+          </div>
+        </div>
+
+        {/* ── Scrollable body ── */}
+        <div style={styles.viewerBody}>
+
+          {/* YouTube thumbnail link */}
+          {ytId && (
+            <a
+              href={t.source_url} target="_blank" rel="noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
+                       background: '#111', borderRadius: 12, overflow: 'hidden', border: '1px solid #222' }}
+            >
+              <img
+                src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
+                alt="thumbnail"
+                style={{ width: 120, height: 68, objectFit: 'cover', flexShrink: 0 }}
+              />
+              <div style={{ padding: '8px 12px 8px 0' }}>
+                <p style={{ margin: 0, fontSize: 12, color: '#eee', fontWeight: 600 }}>{t.source_title}</p>
+                <p style={{ margin: '3px 0 0', fontSize: 11, color: '#888' }}>↗ Open on YouTube</p>
+              </div>
+              <div style={{ marginLeft: 'auto', paddingRight: 14,
+                            background: '#ff0000', borderRadius: 5, width: 28, height: 20,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, color: '#fff', flexShrink: 0 }}>▶</div>
+            </a>
+          )}
+
+          {/* Summary */}
+          {t.summary && (
+            <div style={styles.viewerSection}>
+              <div style={styles.viewerSectionHead}>💡 Summary</div>
+              <div style={styles.viewerSectionBody}>{t.summary}</div>
+            </div>
+          )}
+
+          {/* Key points */}
+          {t.key_points?.length > 0 && (
+            <div style={styles.viewerSection}>
+              <div style={styles.viewerSectionHead}>📌 Key Points</div>
+              <div style={{ padding: '12px 16px' }}>
+                {t.key_points.map((pt, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
+                    <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%',
+                                   width: 20, height: 20, display: 'flex', alignItems: 'center',
+                                   justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                      {i + 1}
+                    </span>
+                    <span style={{ fontSize: 13, color: '#2c3e50', lineHeight: 1.6 }}>{pt}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Topics + tags */}
+          {(t.topics?.length > 0 || t.custom_tags?.length > 0) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {t.topics?.map(tag => (
+                <span key={tag} style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20,
+                                         background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                  {tag}
+                </span>
+              ))}
+              {t.custom_tags?.map(tag => (
+                <span key={tag} style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20,
+                                         background: '#e6f1fb', color: '#185fa5', border: '1px solid #b5d4f4' }}>
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Analyst notes */}
+          {t.analyst_notes && (
+            <div style={styles.viewerSection}>
+              <div style={styles.viewerSectionHead}>🖊 Analyst Notes</div>
+              <div style={styles.viewerSectionBody}>{t.analyst_notes}</div>
+            </div>
+          )}
+
+          {/* Full transcript */}
+          <div style={styles.viewerSection}>
+            <div style={{ ...styles.viewerSectionHead, justifyContent: 'space-between' }}>
+              <span>📄 Full Transcript</span>
+              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6a8fb5' }}>
+                {wordCount.toLocaleString()} words
+              </span>
+            </div>
+            <div style={{ ...styles.viewerSectionBody, maxHeight: 320, overflowY: 'auto',
+                          background: '#fff', fontSize: 13.5, lineHeight: 1.8 }}>
+              {t.full_transcript_text}
+            </div>
+          </div>
+
+          {/* Sentiment bar */}
+          {t.sentiment_score != null && (
+            <div style={styles.viewerSection}>
+              <div style={styles.viewerSectionHead}>📊 Sentiment</div>
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: '#e74c3c', fontWeight: 600 }}>–</span>
+                  <div style={{ flex: 1, height: 8, background: '#e6f1fb', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 4,
+                      width: `${((t.sentiment_score + 1) / 2) * 100}%`,
+                      background: t.sentiment_score > 0.2 ? '#2ecc71' : t.sentiment_score < -0.2 ? '#e74c3c' : '#f39c12',
+                      transition: 'width 0.4s ease',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: '#2ecc71', fontWeight: 600 }}>+</span>
+                  <span style={{ fontSize: 12, color: '#042c53', fontWeight: 600, minWidth: 36 }}>
+                    {t.sentiment_score > 0 ? '+' : ''}{t.sentiment_score.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Footer actions ── */}
+        <div style={styles.viewerFooter}>
+          <span style={{ fontSize: 11, color: '#aaa', flex: 1 }}>
+            Recorded {fmtDate(t.recorded_at)} · {t.transcription_method?.replace(/_/g, ' ')}
+          </span>
+
+          {/* Status cycle */}
+          {t.status !== 'archived' && (
+            <select
+              style={{ ...styles.langSelect, fontSize: 12 }}
+              value={t.status}
+              disabled={statusChanging}
+              onChange={e => handleStatus(e.target.value)}
+            >
+              <option value="raw">⏳ Raw</option>
+              <option value="reviewed">✅ Reviewed</option>
+              <option value="processed">🔬 Processed</option>
+              <option value="archived">📦 Archive</option>
+            </select>
+          )}
+
+          {t.source_url && (
+            <a href={t.source_url} target="_blank" rel="noreferrer"
+               style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 12 }}>
+              ↗ Source
+            </a>
+          )}
+
+          {confirmDelete ? (
+            <>
+              <span style={{ fontSize: 12, color: '#c0392b', fontWeight: 600 }}>Sure?</span>
+              <button style={{ ...styles.btnDanger, fontSize: 12 }} onClick={handleDelete}>Yes, delete</button>
+              <button style={{ ...styles.btnSecondary, fontSize: 12, padding: '5px 12px' }}
+                      onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </>
+          ) : (
+            <button style={{ ...styles.btnDanger, fontSize: 12 }} onClick={() => setConfirmDelete(true)}>
+              🗑 Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── RECORD FOR COMPANY MODAL ─────────────────────────────────────────────────
+function RecordForCompanyModal({ company, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    source_title: '', source_url: '', source_type: 'youtube',
+    speaker_name: '', speaker_role: '', event_name: '',
+  });
+  const [recordingLanguage, setRecordingLanguage] = useState('en-US');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [fetchingTitle, setFetchingTitle] = useState(false);
+  const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const {
+    isSupported, isRecording, finalTranscript, interimTranscript, elapsed, error: recError,
+    start: startRec, stop: stopRec, reset: resetRec,
+  } = useTranscriptionRecorder({ language: recordingLanguage });
+
+  const handleUrlChange = async (url) => {
+    f('source_url', url);
+    if (form.source_type !== 'youtube') return;
+    const videoId = extractYouTubeId(url);
+    if (!videoId || form.source_title) return;
+    setFetchingTitle(true);
+    try {
+      const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) { const d = await res.json(); if (d.title) f('source_title', d.title); }
+    } catch {}
+    finally { setFetchingTitle(false); }
+  };
+
+  const handleSave = async () => {
+    if (!finalTranscript.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/save/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          company_name:              company.name,
+          full_transcript_text:      finalTranscript.trim(),
+          transcript_language:       recordingLanguage,
+          recording_duration_seconds: elapsed,
+          transcription_method:      'browser_speech_api',
+          status:                    'raw',
+        }),
+      });
+      if (res.ok) { setSaved(true); resetRec(); onSaved && onSaved(); }
+    } catch {}
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div style={styles.modalOverlay}>
+      <style>{pulseStyle}</style>
+      <div style={styles.recordModalBox}>
+        <div style={styles.modalHeader}>
+          <span style={{ fontSize: 20 }}>🎙</span>
+          <h2 style={styles.modalTitle}>Record transcript — {company.name}</h2>
+          <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
+        </div>
+        <div style={styles.modalBody}>
+          {saved && (
+            <div style={styles.success}>✅ Transcript saved to {company.name}!</div>
+          )}
+
+          {/* Source info */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Source type</label>
+              <select style={styles.select} value={form.source_type} onChange={e => f('source_type', e.target.value)}>
+                <option value="youtube">▶️ YouTube</option>
+                <option value="meeting">🎙 Meeting</option>
+                <option value="earnings_call">📊 Earnings Call</option>
+                <option value="conference">🏛 Conference</option>
+                <option value="interview">🎤 Interview</option>
+                <option value="other">📝 Other</option>
+              </select>
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Language</label>
+              <select style={styles.select} value={recordingLanguage}
+                      onChange={e => setRecordingLanguage(e.target.value)} disabled={isRecording}>
+                {SUPPORTED_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>URL {fetchingTitle && <span style={{ color: '#85b7eb', textTransform: 'none', fontWeight: 400 }}>⏳ detecting title…</span>}</label>
+            <input style={styles.input} placeholder="https://..." value={form.source_url}
+                   onChange={e => handleUrlChange(e.target.value)} />
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Title</label>
+            <input style={styles.input} placeholder="e.g. Q3 Earnings Call 2024"
+                   value={form.source_title} onChange={e => f('source_title', e.target.value)} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Speaker</label>
+              <input style={styles.input} placeholder="e.g. Jane Smith"
+                     value={form.speaker_name} onChange={e => f('speaker_name', e.target.value)} />
+            </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Role</label>
+              <input style={styles.input} placeholder="e.g. CEO"
+                     value={form.speaker_role} onChange={e => f('speaker_role', e.target.value)} />
+            </div>
+          </div>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Event name</label>
+            <input style={styles.input} placeholder="e.g. Davos 2024"
+                   value={form.event_name} onChange={e => f('event_name', e.target.value)} />
+          </div>
+
+          {/* Recording box */}
+          <div style={styles.recordingBox}>
+            <div style={styles.recordingHeader}>
+              <div style={styles.recordingDot(isRecording)} />
+              <span style={styles.recordingLabel}>
+                {isRecording ? `● Recording… ${formatDuration(elapsed)}` : 'Live transcript recorder'}
+              </span>
+            </div>
+
+            {recError && <div style={{ ...styles.error, marginBottom: 8 }}>{recError}</div>}
+            {!isSupported && <div style={{ ...styles.error, marginBottom: 8 }}>⚠️ Use Chrome or Edge for recording.</div>}
+
+            {(finalTranscript || interimTranscript) && (
+              <div style={styles.transcriptBox}>
+                <span>{finalTranscript}</span>
+                {interimTranscript && <span style={styles.interimText}>{interimTranscript}</span>}
+              </div>
+            )}
+            {!finalTranscript && !isRecording && (
+              <p style={{ fontSize: 12, color: '#bbb', textAlign: 'center', margin: '6px 0 10px' }}>
+                Hit record and speak — transcript appears here in real time.
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+              {!isRecording
+                ? <button style={styles.btnRecord} onClick={startRec} disabled={!isSupported}>🎙 Start</button>
+                : <button style={styles.btnRecordStop} onClick={stopRec}>⏹ Stop</button>
+              }
+              {finalTranscript && !isRecording && (
+                <button style={{ ...styles.btnPrimary, fontSize: 12 }} onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving…' : '💾 Save transcript'}
+                </button>
+              )}
+              {(finalTranscript || interimTranscript) && (
+                <button style={{ ...styles.btnSecondary, fontSize: 12 }} onClick={resetRec}>Clear</button>
+              )}
+            </div>
+          </div>
+        </div>
+        <div style={styles.modalFooter}>
+          <button style={styles.btnSecondary} onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPANY TRANSCRIPTS TAB ──────────────────────────────────────────────────
+function CompanyTranscriptsTab({ company }) {
+  const [transcripts, setTranscripts]     = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [viewingTx, setViewingTx]         = useState(null);
+  const [showRecord, setShowRecord]       = useState(false);
+  const [statusFilter, setStatusFilter]   = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = statusFilter ? `?status=${statusFilter}` : '';
+      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/${params}`);
+      if (res.ok) setTranscripts((await res.json()).transcripts || []);
+    } catch {}
+    finally { setLoading(false); }
+  }, [company.id, statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleStatusChange = (newStatus) => {
+    setTranscripts(prev => prev.map(t => t.id === viewingTx?.id ? { ...t, status: newStatus } : t));
+    setViewingTx(prev => prev ? { ...prev, status: newStatus } : null);
+  };
+
+  const handleDelete = () => {
+    setTranscripts(prev => prev.filter(t => t.id !== viewingTx?.id));
+  };
+
+  return (
+    <>
+      {viewingTx && (
+        <TranscriptViewerModal
+          transcript={viewingTx}
+          onClose={() => setViewingTx(null)}
+          onStatusChange={handleStatusChange}
+          onDelete={handleDelete}
+        />
+      )}
+      {showRecord && (
+        <RecordForCompanyModal
+          company={company}
+          onClose={() => setShowRecord(false)}
+          onSaved={load}
+        />
+      )}
+
+      {/* Controls bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <select
+          style={{ ...styles.langSelect, fontSize: 11, flex: 1, minWidth: 110 }}
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All statuses</option>
+          <option value="raw">⏳ Raw</option>
+          <option value="reviewed">✅ Reviewed</option>
+          <option value="processed">🔬 Processed</option>
+        </select>
+        <button style={{ ...styles.btnRecord, fontSize: 11, padding: '5px 12px', borderRadius: 8 }}
+                onClick={() => setShowRecord(true)}>
+          🎙 New recording
+        </button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>Loading…</p>
+      ) : transcripts.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🎙</div>
+          <p style={{ fontSize: 12, color: '#85b7eb', margin: '0 0 10px' }}>
+            No transcripts yet. Record your first one.
+          </p>
+          <button style={{ ...styles.btnRecord, fontSize: 11, padding: '7px 14px', margin: '0 auto' }}
+                  onClick={() => setShowRecord(true)}>
+            🎙 Start recording
+          </button>
+        </div>
+      ) : (
+        transcripts.map(tx => {
+          const wordCount = tx.word_count || 0;
+          return (
+            <div
+              key={tx.id}
+              style={styles.ctrItem}
+              onClick={() => setViewingTx(tx)}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(24,95,165,0.14)'; e.currentTarget.style.borderColor = '#85b7eb'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = '#daeaf7'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>
+                  {SOURCE_ICONS[tx.source_type] || '📝'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={styles.ctrItemTitle}>{tx.source_title || 'Untitled'}</p>
+                  <div style={styles.ctrItemMeta}>
+                    {tx.speaker_name && <span>👤 {tx.speaker_name}</span>}
+                    {tx.event_name   && <span>🏛 {tx.event_name}</span>}
+                    {tx.recorded_at  && <span>📅 {fmtDate(tx.recorded_at)}</span>}
+                    {wordCount > 0   && <span>📝 {wordCount.toLocaleString()} words</span>}
+                    {tx.transcript_language && <span>🌐 {tx.transcript_language}</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={styles.ctrStatusBadge(tx.status)}>{STATUS_LABELS[tx.status] || tx.status}</span>
+                    {tx.topics?.slice(0, 2).map(tp => (
+                      <span key={tp} style={{ fontSize: 10, padding: '1px 7px', borderRadius: 10,
+                                             background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                        {tp}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <span style={{ fontSize: 16, color: '#b5d4f4', flexShrink: 0 }}>›</span>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </>
+  );
+}
+
 // ─── COMPANY CARD ─────────────────────────────────────────────────────────────
 function CompanyCard({ company, onRefresh }) {
   const [tab, setTab] = useState('people');
@@ -1533,6 +2226,7 @@ function CompanyCard({ company, onRefresh }) {
               { key: 'links', label: '🌐 Links' },
               { key: 'pdfs', label: '📄 PDFs' },
               { key: 'youtube', label: '▶️ Videos' },
+              { key: 'transcripts', label: '🎙 Transcripts' },
             ].map(t => (
               <button key={t.key} style={styles.tab(tab === t.key)} onClick={() => setTab(t.key)}>{t.label}</button>
             ))}
@@ -1626,6 +2320,11 @@ function CompanyCard({ company, onRefresh }) {
               })}
               <div style={styles.addSection}><button style={styles.btnSmall} onClick={() => setShowAddLink(true)}><span>+</span> Add video</button></div>
             </>
+          )}
+
+          {/* Transcripts tab */}
+          {tab === 'transcripts' && (
+            <CompanyTranscriptsTab company={company} />
           )}
         </div>
       </div>
