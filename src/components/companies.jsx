@@ -33,8 +33,6 @@ const styles = {
     background: 'linear-gradient(180deg, #185fa5, #378add)',
     borderRadius: 2,
   },
-
-  // ── Buttons ──
   btnPrimary: {
     background: 'linear-gradient(135deg, #042c53, #185fa5)',
     border: 'none',
@@ -80,8 +78,32 @@ const styles = {
     alignItems: 'center',
     gap: 4,
   },
-
-  // ── Company grid ──
+  btnRecord: {
+    background: 'linear-gradient(135deg, #c0392b, #e74c3c)',
+    border: 'none',
+    color: '#fff',
+    borderRadius: 10,
+    padding: '9px 20px',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnRecordStop: {
+    background: 'linear-gradient(135deg, #6c3483, #8e44ad)',
+    border: 'none',
+    color: '#fff',
+    borderRadius: 10,
+    padding: '9px 20px',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
@@ -152,14 +174,13 @@ const styles = {
     lineHeight: 1.6,
     marginBottom: 14,
   },
-
-  // ── Tabs inside card ──
   tabRow: {
     display: 'flex',
     gap: 4,
     marginBottom: 14,
     borderBottom: '1px solid #e6f1fb',
     paddingBottom: 0,
+    overflowX: 'auto',
   },
   tab: (active) => ({
     fontSize: 12,
@@ -173,9 +194,8 @@ const styles = {
     borderBottom: active ? '2px solid #185fa5' : '2px solid transparent',
     transition: 'all 0.15s',
     marginBottom: -1,
+    whiteSpace: 'nowrap',
   }),
-
-  // ── Key people ──
   personCard: {
     display: 'flex',
     alignItems: 'center',
@@ -224,8 +244,6 @@ const styles = {
     marginTop: 2,
     lineHeight: 1.5,
   },
-
-  // ── Links ──
   linkItem: {
     display: 'flex',
     alignItems: 'center',
@@ -248,25 +266,11 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  linkTypeBadge: (type) => ({
-    fontSize: 10,
-    fontWeight: 500,
-    padding: '2px 7px',
-    borderRadius: 5,
-    background: type === 'youtube' ? '#fff0f0' : type === 'pdf' ? '#fff8e6' : '#e6f1fb',
-    color: type === 'youtube' ? '#c00' : type === 'pdf' ? '#a05a00' : '#185fa5',
-    border: `1px solid ${type === 'youtube' ? '#ffc1c1' : type === 'pdf' ? '#f5d090' : '#b5d4f4'}`,
-    flexShrink: 0,
-  }),
-
-  // ── Add section ──
   addSection: {
     marginTop: 10,
     paddingTop: 10,
     borderTop: '1px dashed #b5d4f4',
   },
-
-  // ── Modals ──
   modalOverlay: {
     position: 'fixed',
     inset: 0,
@@ -331,8 +335,6 @@ const styles = {
     position: 'sticky',
     bottom: 0,
   },
-
-  // ── Form ──
   formGroup: { marginBottom: 14 },
   label: {
     fontSize: 11,
@@ -388,8 +390,15 @@ const styles = {
     fontSize: 13,
     marginBottom: 14,
   },
-
-  // ── YouTube modal ──
+  success: {
+    background: '#e8f8f0',
+    border: '1px solid #a3e4bf',
+    borderRadius: 8,
+    padding: '8px 12px',
+    color: '#1a6b3c',
+    fontSize: 13,
+    marginBottom: 14,
+  },
   ytModalBox: {
     background: '#000',
     borderRadius: 16,
@@ -430,8 +439,6 @@ const styles = {
     border: 'none',
     display: 'block',
   },
-
-  // ── PDF modal ──
   pdfModalBox: {
     background: '#fff',
     borderRadius: 16,
@@ -448,16 +455,12 @@ const styles = {
     width: '100%',
     minHeight: '75vh',
   },
-
-  // ── Empty ──
   empty: {
     textAlign: 'center',
     padding: '40px 20px',
     color: '#85b7eb',
     fontSize: 14,
   },
-
-  // ── Search bar ──
   searchBar: {
     display: 'flex',
     alignItems: 'center',
@@ -477,22 +480,288 @@ const styles = {
     outline: 'none',
     fontFamily: 'inherit',
   },
+
+  // ── Recording UI ──
+  recordingBox: {
+    background: '#fff8f8',
+    border: '1.5px solid #f7c1c1',
+    borderRadius: 12,
+    padding: '14px 16px',
+    marginTop: 12,
+  },
+  recordingHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  recordingDot: (active) => ({
+    width: 10,
+    height: 10,
+    borderRadius: '50%',
+    background: active ? '#e74c3c' : '#ccc',
+    boxShadow: active ? '0 0 0 3px rgba(231,76,60,0.25)' : 'none',
+    animation: active ? 'pulse 1.2s infinite' : 'none',
+    flexShrink: 0,
+  }),
+  recordingLabel: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#c0392b',
+    flex: 1,
+  },
+  recordingTimer: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#7f8c8d',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  transcriptBox: {
+    background: '#fff',
+    border: '1px solid #e0e0e0',
+    borderRadius: 8,
+    padding: '10px 12px',
+    fontSize: 13,
+    color: '#2c3e50',
+    lineHeight: 1.65,
+    minHeight: 80,
+    maxHeight: 200,
+    overflowY: 'auto',
+    fontFamily: 'inherit',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  interimText: {
+    color: '#999',
+    fontStyle: 'italic',
+  },
+  langSelect: {
+    border: '1px solid #b5d4f4',
+    borderRadius: 8,
+    padding: '6px 10px',
+    fontSize: 12,
+    color: '#042c53',
+    background: '#e6f1fb',
+    outline: 'none',
+    fontFamily: 'inherit',
+  },
+  savedTranscriptItem: {
+    background: '#f4f8fd',
+    border: '1px solid #daeaf7',
+    borderRadius: 10,
+    padding: '10px 12px',
+    marginBottom: 8,
+  },
 };
 
-// ─── YOUTUBE ID EXTRACTOR ─────────────────────────────────────────────────────
+// Pulse animation style injected once
+const pulseStyle = `
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+    70%  { box-shadow: 0 0 0 6px rgba(231,76,60,0); }
+    100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+  }
+`;
+
+// ─── SUPPORTED LANGUAGES ──────────────────────────────────────────────────────
+const SUPPORTED_LANGUAGES = [
+  { code: 'af-ZA', label: 'Afrikaans (South Africa)' },
+  { code: 'sq-AL', label: 'Albanian' },
+  { code: 'am-ET', label: 'Amharic' },
+  { code: 'ar-SA', label: 'Arabic (Saudi Arabia)' },
+  { code: 'ar-EG', label: 'Arabic (Egypt)' },
+  { code: 'hy-AM', label: 'Armenian' },
+  { code: 'az-AZ', label: 'Azerbaijani' },
+  { code: 'eu-ES', label: 'Basque' },
+  { code: 'bn-BD', label: 'Bengali (Bangladesh)' },
+  { code: 'bn-IN', label: 'Bengali (India)' },
+  { code: 'bs-BA', label: 'Bosnian' },
+  { code: 'bg-BG', label: 'Bulgarian' },
+  { code: 'my-MM', label: 'Burmese' },
+  { code: 'ca-ES', label: 'Catalan' },
+  { code: 'zh-CN', label: 'Chinese (Mandarin, Simplified)' },
+  { code: 'zh-TW', label: 'Chinese (Traditional)' },
+  { code: 'zh-HK', label: 'Chinese (Cantonese)' },
+  { code: 'hr-HR', label: 'Croatian' },
+  { code: 'cs-CZ', label: 'Czech' },
+  { code: 'da-DK', label: 'Danish' },
+  { code: 'nl-NL', label: 'Dutch (Netherlands)' },
+  { code: 'nl-BE', label: 'Dutch (Belgium)' },
+  { code: 'en-US', label: 'English (US)' },
+  { code: 'en-GB', label: 'English (UK)' },
+  { code: 'en-AU', label: 'English (Australia)' },
+  { code: 'en-ZA', label: 'English (South Africa)' },
+  { code: 'et-EE', label: 'Estonian' },
+  { code: 'fil-PH', label: 'Filipino' },
+  { code: 'fi-FI', label: 'Finnish' },
+  { code: 'fr-FR', label: 'French (France)' },
+  { code: 'fr-CA', label: 'French (Canada)' },
+  { code: 'gl-ES', label: 'Galician' },
+  { code: 'ka-GE', label: 'Georgian' },
+  { code: 'de-DE', label: 'German' },
+  { code: 'el-GR', label: 'Greek' },
+  { code: 'gu-IN', label: 'Gujarati' },
+  { code: 'iw-IL', label: 'Hebrew' },
+  { code: 'hi-IN', label: 'Hindi' },
+  { code: 'hu-HU', label: 'Hungarian' },
+  { code: 'is-IS', label: 'Icelandic' },
+  { code: 'id-ID', label: 'Indonesian' },
+  { code: 'it-IT', label: 'Italian' },
+  { code: 'ja-JP', label: 'Japanese' },
+  { code: 'jv-ID', label: 'Javanese' },
+  { code: 'kn-IN', label: 'Kannada' },
+  { code: 'km-KH', label: 'Khmer' },
+  { code: 'ko-KR', label: 'Korean' },
+  { code: 'lo-LA', label: 'Lao' },
+  { code: 'lv-LV', label: 'Latvian' },
+  { code: 'lt-LT', label: 'Lithuanian' },
+  { code: 'mk-MK', label: 'Macedonian' },
+  { code: 'ms-MY', label: 'Malay' },
+  { code: 'ml-IN', label: 'Malayalam' },
+  { code: 'mr-IN', label: 'Marathi' },
+  { code: 'mn-MN', label: 'Mongolian' },
+  { code: 'ne-NP', label: 'Nepali' },
+  { code: 'nb-NO', label: 'Norwegian Bokmål' },
+  { code: 'fa-IR', label: 'Persian' },
+  { code: 'pl-PL', label: 'Polish' },
+  { code: 'pt-BR', label: 'Portuguese (Brazil)' },
+  { code: 'pt-PT', label: 'Portuguese (Portugal)' },
+  { code: 'pa-Guru-IN', label: 'Punjabi' },
+  { code: 'ro-RO', label: 'Romanian' },
+  { code: 'ru-RU', label: 'Russian' },
+  { code: 'sr-RS', label: 'Serbian' },
+  { code: 'si-LK', label: 'Sinhala' },
+  { code: 'sk-SK', label: 'Slovak' },
+  { code: 'sl-SI', label: 'Slovenian' },
+  { code: 'es-ES', label: 'Spanish (Spain)' },
+  { code: 'es-MX', label: 'Spanish (Mexico)' },
+  { code: 'es-US', label: 'Spanish (US)' },
+  { code: 'su-ID', label: 'Sundanese' },
+  { code: 'sw-TZ', label: 'Swahili' },
+  { code: 'sv-SE', label: 'Swedish' },
+  { code: 'ta-IN', label: 'Tamil (India)' },
+  { code: 'ta-SG', label: 'Tamil (Singapore)' },
+  { code: 'te-IN', label: 'Telugu' },
+  { code: 'th-TH', label: 'Thai' },
+  { code: 'tr-TR', label: 'Turkish' },
+  { code: 'uk-UA', label: 'Ukrainian' },
+  { code: 'ur-PK', label: 'Urdu (Pakistan)' },
+  { code: 'uz-UZ', label: 'Uzbek' },
+  { code: 'vi-VN', label: 'Vietnamese' },
+  { code: 'zu-ZA', label: 'Zulu' },
+];
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function extractYouTubeId(url) {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([A-Za-z0-9_-]{11})/);
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([A-Za-z0-9_-]{11})/);
   return match ? match[1] : null;
 }
 
-// ─── BASE64 FILE READER ───────────────────────────────────────────────────────
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result); // includes data:image/...;base64,
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+function formatDuration(seconds) {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ─── RECORDING HOOK ───────────────────────────────────────────────────────────
+function useTranscriptionRecorder({ language, onTranscriptUpdate }) {
+  const recognitionRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [finalTranscript, setFinalTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [elapsed, setElapsed] = useState(0);
+  const [error, setError] = useState('');
+  const timerRef = useRef(null);
+  const finalRef = useRef('');
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const isSupported = !!SpeechRecognition;
+
+  const start = useCallback(() => {
+    if (!isSupported) { setError('Speech recognition not supported in this browser. Use Chrome or Edge.'); return; }
+    setError('');
+    setFinalTranscript('');
+    setInterimTranscript('');
+    setElapsed(0);
+    finalRef.current = '';
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = language;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalRef.current += text + ' ';
+        } else {
+          interim += text;
+        }
+      }
+      setFinalTranscript(finalRef.current);
+      setInterimTranscript(interim);
+      onTranscriptUpdate && onTranscriptUpdate(finalRef.current + interim);
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error === 'no-speech') return; // ignore silence
+      setError(`Recognition error: ${e.error}`);
+      stopRecording();
+    };
+
+    recognition.onend = () => {
+      // Auto-restart if still recording (browser stops after ~60s of silence)
+      if (isRecording || recognitionRef.current?._shouldRestart) {
+        try { recognition.start(); } catch {}
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognitionRef.current._shouldRestart = true;
+    recognition.start();
+    setIsRecording(true);
+
+    timerRef.current = setInterval(() => setElapsed(p => p + 1), 1000);
+  }, [language, isSupported, onTranscriptUpdate]);
+
+  const stop = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current._shouldRestart = false;
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+    setInterimTranscript('');
+    clearInterval(timerRef.current);
+  }, []);
+
+  const reset = useCallback(() => {
+    stop();
+    setFinalTranscript('');
+    setInterimTranscript('');
+    setElapsed(0);
+    finalRef.current = '';
+  }, [stop]);
+
+  useEffect(() => () => { stop(); }, [stop]);
+
+  return {
+    isSupported, isRecording, finalTranscript, interimTranscript, elapsed, error,
+    start, stop, reset,
+    fullText: finalTranscript + interimTranscript,
+  };
 }
 
 // ─── ADD COMPANY MODAL ────────────────────────────────────────────────────────
@@ -505,8 +774,7 @@ function AddCompanyModal({ onClose, onSaved }) {
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const b64 = await readFileAsBase64(file);
-    f('logo_base64', b64);
+    f('logo_base64', await readFileAsBase64(file));
   };
 
   const handleSave = async () => {
@@ -544,10 +812,10 @@ function AddCompanyModal({ onClose, onSaved }) {
           </div>
           <div style={styles.formGroup}>
             <label style={styles.label}>Description</label>
-            <textarea style={styles.textarea} rows={3} placeholder="Brief description of the company..." value={form.description} onChange={e => f('description', e.target.value)} />
+            <textarea style={styles.textarea} rows={3} value={form.description} onChange={e => f('description', e.target.value)} />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Logo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(image → stored as base64)</span></label>
+            <label style={styles.label}>Logo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(image)</span></label>
             <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
             {form.logo_base64 && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -576,8 +844,7 @@ function AddPersonModal({ companyId, onClose, onSaved }) {
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const b64 = await readFileAsBase64(file);
-    f('photo_base64', b64);
+    f('photo_base64', await readFileAsBase64(file));
   };
 
   const handleSave = async () => {
@@ -615,10 +882,10 @@ function AddPersonModal({ companyId, onClose, onSaved }) {
           </div>
           <div style={styles.formGroup}>
             <label style={styles.label}>Bio / notes</label>
-            <textarea style={styles.textarea} rows={3} placeholder="Background, key decisions, why they matter..." value={form.bio} onChange={e => f('bio', e.target.value)} />
+            <textarea style={styles.textarea} rows={3} value={form.bio} onChange={e => f('bio', e.target.value)} />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Profile photo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(stored as base64)</span></label>
+            <label style={styles.label}>Profile photo</label>
             <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
             {form.photo_base64 && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -637,12 +904,95 @@ function AddPersonModal({ companyId, onClose, onSaved }) {
   );
 }
 
-// ─── ADD LINK MODAL ───────────────────────────────────────────────────────────
+// ─── ADD LINK MODAL (with auto-title + recording) ─────────────────────────────
 function AddLinkModal({ companyId, onClose, onSaved }) {
   const [form, setForm] = useState({ link_type: 'url', title: '', url: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fetchingTitle, setFetchingTitle] = useState(false);
+  const [recordingLanguage, setRecordingLanguage] = useState('en-US');
+  const [savedTranscript, setSavedTranscript] = useState(null);
+  const [savingTranscript, setSavingTranscript] = useState(false);
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const {
+    isSupported, isRecording, finalTranscript, interimTranscript, elapsed, error: recError,
+    start: startRec, stop: stopRec, reset: resetRec, fullText,
+  } = useTranscriptionRecorder({ language: recordingLanguage });
+
+  // Auto-detect YouTube title when URL is pasted
+  const handleUrlChange = async (url) => {
+    f('url', url);
+    if (form.link_type !== 'youtube') return;
+    const videoId = extractYouTubeId(url);
+    if (!videoId || form.title) return; // don't overwrite existing title
+    setFetchingTitle(true);
+    try {
+      const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title) f('title', data.title);
+      }
+    } catch { /* silent fail */ }
+    finally { setFetchingTitle(false); }
+  };
+
+  // Also trigger auto-detect when link_type changes to youtube and URL is already filled
+  const handleTypeChange = async (type) => {
+    f('link_type', type);
+    if (type === 'youtube' && form.url && !form.title) {
+      const videoId = extractYouTubeId(form.url);
+      if (videoId) {
+        setFetchingTitle(true);
+        try {
+          const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: form.url }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.title) f('title', data.title);
+          }
+        } catch {}
+        finally { setFetchingTitle(false); }
+      }
+    }
+  };
+
+  const handleSaveTranscript = async () => {
+    const text = finalTranscript.trim();
+    if (!text) return;
+    setSavingTranscript(true);
+    try {
+      const videoId = extractYouTubeId(form.url);
+      const payload = {
+        full_transcript_text: text,
+        youtube_url:          form.url || null,
+        youtube_video_id:     videoId || null,
+        video_title:          form.title || null,
+        transcript_language:  recordingLanguage,
+        transcription_method: 'browser_speech_api',
+        video_duration_seconds: elapsed,
+        processing_status:    'completed',
+      };
+      const res = await fetch(`${BASE}/snowai-vtr/transcripts/save/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSavedTranscript(data.transcript);
+        resetRec();
+      }
+    } catch {}
+    finally { setSavingTranscript(false); }
+  };
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.url.trim()) { setError('Title and URL are required'); return; }
@@ -665,9 +1015,12 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
     youtube: 'https://youtube.com/watch?v=...',
   };
 
+  const isYoutube = form.link_type === 'youtube';
+
   return (
     <div style={styles.modalOverlay}>
-      <div style={styles.modalBox}>
+      <style>{pulseStyle}</style>
+      <div style={{ ...styles.modalBox, maxWidth: isYoutube ? 600 : 520 }}>
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>🔗</span>
           <h2 style={styles.modalTitle}>Add link / resource</h2>
@@ -675,22 +1028,112 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
         </div>
         <div style={styles.modalBody}>
           {error && <div style={styles.error}>{error}</div>}
+          {savedTranscript && (
+            <div style={styles.success}>
+              ✅ Transcript saved ({savedTranscript.word_count} words, {savedTranscript.transcript_language})
+            </div>
+          )}
           <div style={styles.formGroup}>
             <label style={styles.label}>Type</label>
-            <select style={styles.select} value={form.link_type} onChange={e => f('link_type', e.target.value)}>
+            <select style={styles.select} value={form.link_type} onChange={e => handleTypeChange(e.target.value)}>
               <option value="url">🌐 Web link</option>
               <option value="pdf">📄 PDF document</option>
               <option value="youtube">▶️ YouTube video</option>
             </select>
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Title</label>
-            <input style={styles.input} placeholder="e.g. Annual Report 2024" value={form.title} onChange={e => f('title', e.target.value)} />
+            <label style={styles.label}>URL</label>
+            <input
+              style={styles.input}
+              placeholder={placeholders[form.link_type]}
+              value={form.url}
+              onChange={e => handleUrlChange(e.target.value)}
+            />
           </div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>URL</label>
-            <input style={styles.input} placeholder={placeholders[form.link_type]} value={form.url} onChange={e => f('url', e.target.value)} />
+            <label style={styles.label}>
+              Title
+              {fetchingTitle && <span style={{ color: '#85b7eb', textTransform: 'none', fontWeight: 400, marginLeft: 6 }}>⏳ detecting…</span>}
+            </label>
+            <input
+              style={styles.input}
+              placeholder={isYoutube ? 'Auto-detected from YouTube URL' : 'e.g. Annual Report 2024'}
+              value={form.title}
+              onChange={e => f('title', e.target.value)}
+            />
           </div>
+
+          {/* Recording section — only for YouTube */}
+          {isYoutube && (
+            <div style={styles.recordingBox}>
+              <div style={styles.recordingHeader}>
+                <div style={styles.recordingDot(isRecording)} />
+                <span style={styles.recordingLabel}>
+                  {isRecording ? '● Recording transcript…' : 'Live transcript recording'}
+                </span>
+                {isRecording && (
+                  <span style={styles.recordingTimer}>{formatDuration(elapsed)}</span>
+                )}
+                <select
+                  style={styles.langSelect}
+                  value={recordingLanguage}
+                  onChange={e => setRecordingLanguage(e.target.value)}
+                  disabled={isRecording}
+                >
+                  {SUPPORTED_LANGUAGES.map(l => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {recError && <div style={{ ...styles.error, marginBottom: 8 }}>{recError}</div>}
+
+              {!isSupported && (
+                <div style={{ ...styles.error, marginBottom: 8 }}>
+                  ⚠️ Speech recognition not supported. Use Chrome or Edge.
+                </div>
+              )}
+
+              {(finalTranscript || interimTranscript) && (
+                <div style={styles.transcriptBox}>
+                  <span>{finalTranscript}</span>
+                  {interimTranscript && <span style={styles.interimText}>{interimTranscript}</span>}
+                </div>
+              )}
+
+              {!finalTranscript && !isRecording && (
+                <p style={{ fontSize: 12, color: '#aaa', margin: '0 0 10px', textAlign: 'center' }}>
+                  Press record while the video plays to capture a transcript.
+                </p>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                {!isRecording ? (
+                  <button style={styles.btnRecord} onClick={startRec} disabled={!isSupported}>
+                    🎙 Start Recording
+                  </button>
+                ) : (
+                  <button style={styles.btnRecordStop} onClick={stopRec}>
+                    ⏹ Stop
+                  </button>
+                )}
+                {finalTranscript && !isRecording && (
+                  <button
+                    style={{ ...styles.btnPrimary, fontSize: 12 }}
+                    onClick={handleSaveTranscript}
+                    disabled={savingTranscript}
+                  >
+                    {savingTranscript ? 'Saving…' : '💾 Save transcript'}
+                  </button>
+                )}
+                {(finalTranscript || interimTranscript) && (
+                  <button style={{ ...styles.btnSecondary, fontSize: 12 }} onClick={resetRec}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div style={styles.modalFooter}>
           <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
@@ -704,29 +1147,19 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
 // ─── EDIT COMPANY MODAL ───────────────────────────────────────────────────────
 function EditCompanyModal({ company, onClose, onSaved }) {
   const [form, setForm] = useState({
-    name:        company.name,
-    description: company.description,
-    sector:      company.sector,
-    logo_base64: company.logo_base64,
+    name: company.name, description: company.description,
+    sector: company.sector, logo_base64: company.logo_base64,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    f('logo_base64', await readFileAsBase64(file));
-  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError('Company name is required'); return; }
     setSaving(true); setError('');
     try {
       const res = await fetch(`${BASE}/snowai-companies-of-interest/${company.id}/update/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
       else { const d = await res.json(); setError(d.error || 'Failed to save'); }
@@ -744,21 +1177,15 @@ function EditCompanyModal({ company, onClose, onSaved }) {
         </div>
         <div style={styles.modalBody}>
           {error && <div style={styles.error}>{error}</div>}
+          <div style={styles.formGroup}><label style={styles.label}>Company name *</label>
+            <input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} /></div>
+          <div style={styles.formGroup}><label style={styles.label}>Sector</label>
+            <input style={styles.input} value={form.sector} onChange={e => f('sector', e.target.value)} /></div>
+          <div style={styles.formGroup}><label style={styles.label}>Description</label>
+            <textarea style={styles.textarea} rows={3} value={form.description} onChange={e => f('description', e.target.value)} /></div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Company name *</label>
-            <input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Sector</label>
-            <input style={styles.input} value={form.sector} onChange={e => f('sector', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description</label>
-            <textarea style={styles.textarea} rows={3} value={form.description} onChange={e => f('description', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Logo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(replace image)</span></label>
-            <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
+            <label style={styles.label}>Logo</label>
+            <input type="file" accept="image/*" onChange={async e => { const f2 = e.target.files[0]; if (f2) f('logo_base64', await readFileAsBase64(f2)); }} style={{ fontSize: 13, color: '#185fa5' }} />
             {form.logo_base64 && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <img src={form.logo_base64} alt="preview" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', border: '1px solid #b5d4f4' }} />
@@ -778,30 +1205,17 @@ function EditCompanyModal({ company, onClose, onSaved }) {
 
 // ─── EDIT PERSON MODAL ────────────────────────────────────────────────────────
 function EditPersonModal({ person, onClose, onSaved }) {
-  const [form, setForm] = useState({
-    name:         person.name,
-    role:         person.role,
-    bio:          person.bio,
-    photo_base64: person.photo_base64,
-  });
+  const [form, setForm] = useState({ name: person.name, role: person.role, bio: person.bio, photo_base64: person.photo_base64 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    f('photo_base64', await readFileAsBase64(file));
-  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError('Name is required'); return; }
     setSaving(true); setError('');
     try {
       const res = await fetch(`${BASE}/snowai-companies-of-interest/update-person/${person.id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
       else { const d = await res.json(); setError(d.error || 'Failed to save'); }
@@ -819,21 +1233,12 @@ function EditPersonModal({ person, onClose, onSaved }) {
         </div>
         <div style={styles.modalBody}>
           {error && <div style={styles.error}>{error}</div>}
+          <div style={styles.formGroup}><label style={styles.label}>Full name *</label><input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} /></div>
+          <div style={styles.formGroup}><label style={styles.label}>Role / title</label><input style={styles.input} value={form.role} onChange={e => f('role', e.target.value)} /></div>
+          <div style={styles.formGroup}><label style={styles.label}>Bio / notes</label><textarea style={styles.textarea} rows={3} value={form.bio} onChange={e => f('bio', e.target.value)} /></div>
           <div style={styles.formGroup}>
-            <label style={styles.label}>Full name *</label>
-            <input style={styles.input} value={form.name} onChange={e => f('name', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Role / title</label>
-            <input style={styles.input} value={form.role} onChange={e => f('role', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Bio / notes</label>
-            <textarea style={styles.textarea} rows={3} value={form.bio} onChange={e => f('bio', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Profile photo <span style={{ color: '#85b7eb', textTransform: 'none' }}>(replace)</span></label>
-            <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ fontSize: 13, color: '#185fa5' }} />
+            <label style={styles.label}>Profile photo</label>
+            <input type="file" accept="image/*" onChange={async e => { const fl = e.target.files[0]; if (fl) f('photo_base64', await readFileAsBase64(fl)); }} style={{ fontSize: 13, color: '#185fa5' }} />
             {form.photo_base64 && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <img src={form.photo_base64} alt="preview" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1px solid #b5d4f4' }} />
@@ -863,9 +1268,7 @@ function EditLinkModal({ link, onClose, onSaved }) {
     setSaving(true); setError('');
     try {
       const res = await fetch(`${BASE}/snowai-companies-of-interest/update-link/${link.id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
       else { const d = await res.json(); setError(d.error || 'Failed to save'); }
@@ -873,26 +1276,18 @@ function EditLinkModal({ link, onClose, onSaved }) {
     finally { setSaving(false); }
   };
 
-  const typeLabel = { url: '🌐 Web link', pdf: '📄 PDF', youtube: '▶️ YouTube' }[link.link_type];
-
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modalBox}>
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>✏️</span>
-          <h2 style={styles.modalTitle}>Edit {typeLabel}</h2>
+          <h2 style={styles.modalTitle}>Edit link</h2>
           <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
         </div>
         <div style={styles.modalBody}>
           {error && <div style={styles.error}>{error}</div>}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Title</label>
-            <input style={styles.input} value={form.title} onChange={e => f('title', e.target.value)} />
-          </div>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>URL</label>
-            <input style={styles.input} value={form.url} onChange={e => f('url', e.target.value)} />
-          </div>
+          <div style={styles.formGroup}><label style={styles.label}>Title</label><input style={styles.input} value={form.title} onChange={e => f('title', e.target.value)} /></div>
+          <div style={styles.formGroup}><label style={styles.label}>URL</label><input style={styles.input} value={form.url} onChange={e => f('url', e.target.value)} /></div>
         </div>
         <div style={styles.modalFooter}>
           <button style={styles.btnSecondary} onClick={onClose}>Cancel</button>
@@ -903,21 +1298,59 @@ function EditLinkModal({ link, onClose, onSaved }) {
   );
 }
 
-// ─── YOUTUBE PLAYER MODAL ─────────────────────────────────────────────────────
+// ─── YOUTUBE PLAYER MODAL (with recording panel) ──────────────────────────────
 function YouTubeModal({ link, onClose }) {
   const videoId = extractYouTubeId(link.url);
+  const [recordingLanguage, setRecordingLanguage] = useState('en-US');
+  const [savedTranscript, setSavedTranscript] = useState(null);
+  const [savingTranscript, setSavingTranscript] = useState(false);
+
+  const {
+    isSupported, isRecording, finalTranscript, interimTranscript, elapsed, error: recError,
+    start: startRec, stop: stopRec, reset: resetRec,
+  } = useTranscriptionRecorder({ language: recordingLanguage });
+
+  const handleSaveTranscript = async () => {
+    const text = finalTranscript.trim();
+    if (!text) return;
+    setSavingTranscript(true);
+    try {
+      const payload = {
+        full_transcript_text:  text,
+        youtube_url:           link.url,
+        youtube_video_id:      videoId,
+        video_title:           link.title,
+        transcript_language:   recordingLanguage,
+        transcription_method:  'browser_speech_api',
+        video_duration_seconds: elapsed,
+        processing_status:     'completed',
+      };
+      const res = await fetch(`${BASE}/snowai-vtr/transcripts/save/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSavedTranscript(data.transcript);
+        resetRec();
+      }
+    } catch {}
+    finally { setSavingTranscript(false); }
+  };
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.ytModalBox} onClick={e => e.stopPropagation()}>
+      <style>{pulseStyle}</style>
+      <div style={{ ...styles.ytModalBox, maxWidth: 900 }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
         <div style={styles.ytModalHeader}>
-          <div style={styles.ytLogo}>
-            <span>▶</span>
-            <span>SnowAI YouTube</span>
-          </div>
+          <div style={styles.ytLogo}><span>▶</span><span>SnowAI YouTube</span></div>
           <span style={styles.ytTitle}>{link.title}</span>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: 22, cursor: 'pointer', padding: '2px 6px' }}>×</button>
         </div>
+
+        {/* Video */}
         {videoId ? (
           <iframe
             style={styles.ytIframe}
@@ -928,9 +1361,71 @@ function YouTubeModal({ link, onClose }) {
           />
         ) : (
           <div style={{ padding: 40, textAlign: 'center', color: '#aaa', fontSize: 14 }}>
-            Could not extract YouTube video ID from this URL.
+            Could not extract YouTube video ID.
           </div>
         )}
+
+        {/* Recording Panel */}
+        <div style={{ background: '#111', padding: '14px 16px', borderTop: '1px solid #222' }}>
+          {savedTranscript && (
+            <div style={{ background: '#1a3a1a', border: '1px solid #2d6a2d', borderRadius: 8, padding: '8px 12px', color: '#6fcf97', fontSize: 12, marginBottom: 10 }}>
+              ✅ Transcript saved — {savedTranscript.word_count} words ({savedTranscript.transcript_language})
+            </div>
+          )}
+
+          {recError && (
+            <div style={{ background: '#3a1a1a', border: '1px solid #c0392b', borderRadius: 8, padding: '8px 12px', color: '#f1948a', fontSize: 12, marginBottom: 10 }}>
+              {recError}
+            </div>
+          )}
+
+          {/* Transcript display */}
+          {(finalTranscript || interimTranscript) && (
+            <div style={{ ...styles.transcriptBox, background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0', marginBottom: 10 }}>
+              <span>{finalTranscript}</span>
+              {interimTranscript && <span style={{ color: '#888', fontStyle: 'italic' }}>{interimTranscript}</span>}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {/* Language select */}
+            <select
+              style={{ ...styles.langSelect, background: '#222', color: '#ccc', border: '1px solid #444', fontSize: 12 }}
+              value={recordingLanguage}
+              onChange={e => setRecordingLanguage(e.target.value)}
+              disabled={isRecording}
+            >
+              {SUPPORTED_LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+
+            {/* Recording controls */}
+            {!isRecording ? (
+              <button style={{ ...styles.btnRecord, fontSize: 12, padding: '7px 14px' }} onClick={startRec} disabled={!isSupported}>
+                🎙 Record
+              </button>
+            ) : (
+              <button style={{ ...styles.btnRecordStop, fontSize: 12, padding: '7px 14px' }} onClick={stopRec}>
+                ⏹ Stop <span style={{ fontVariantNumeric: 'tabular-nums', opacity: 0.8 }}>({formatDuration(elapsed)})</span>
+              </button>
+            )}
+
+            {finalTranscript && !isRecording && (
+              <button style={{ ...styles.btnPrimary, fontSize: 12, padding: '7px 14px' }} onClick={handleSaveTranscript} disabled={savingTranscript}>
+                {savingTranscript ? 'Saving…' : '💾 Save transcript'}
+              </button>
+            )}
+
+            {(finalTranscript || interimTranscript) && (
+              <button style={{ background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 7, padding: '7px 12px', fontSize: 12, cursor: 'pointer' }} onClick={resetRec}>
+                Clear
+              </button>
+            )}
+
+            {isRecording && <span style={{ color: '#e74c3c', fontSize: 11, marginLeft: 4 }}>● LIVE</span>}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -944,16 +1439,10 @@ function PDFModal({ link, onClose }) {
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 18 }}>📄</span>
           <h2 style={{ ...styles.modalTitle, flex: 1 }}>{link.title}</h2>
-          <a href={link.url} target="_blank" rel="noreferrer" style={{ color: '#85b7eb', fontSize: 12, marginRight: 8, textDecoration: 'none' }}>
-            ↗ Open in tab
-          </a>
+          <a href={link.url} target="_blank" rel="noreferrer" style={{ color: '#85b7eb', fontSize: 12, marginRight: 8, textDecoration: 'none' }}>↗ Open in tab</a>
           <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
         </div>
-        <iframe
-          style={styles.pdfIframe}
-          src={`${link.url}#view=fitH`}
-          title={link.title}
-        />
+        <iframe style={styles.pdfIframe} src={`${link.url}#view=fitH`} title={link.title} />
       </div>
     </div>
   );
@@ -970,15 +1459,15 @@ function CompanyCard({ company, onRefresh }) {
   const [editingPerson, setEditingPerson] = useState(null);
   const [editingLink, setEditingLink] = useState(null);
 
-  const deletePerson = async (personId) => {
+  const deletePerson = async (id) => {
     if (!window.confirm('Remove this person?')) return;
-    await fetch(`${BASE}/snowai-companies-of-interest/delete-person/${personId}/`, { method: 'POST' });
+    await fetch(`${BASE}/snowai-companies-of-interest/delete-person/${id}/`, { method: 'POST' });
     onRefresh();
   };
 
-  const deleteLink = async (linkId) => {
+  const deleteLink = async (id) => {
     if (!window.confirm('Remove this link?')) return;
-    await fetch(`${BASE}/snowai-companies-of-interest/delete-link/${linkId}/`, { method: 'POST' });
+    await fetch(`${BASE}/snowai-companies-of-interest/delete-link/${id}/`, { method: 'POST' });
     onRefresh();
   };
 
@@ -1006,30 +1495,21 @@ function CompanyCard({ company, onRefresh }) {
 
       <div style={styles.card}>
         <div style={styles.cardTopBar} />
-
-        {/* Card header */}
         <div style={styles.cardHead}>
           <div style={styles.logoCircle}>
-            {company.logo_base64
-              ? <img src={company.logo_base64} alt={company.name} style={styles.logoImg} />
-              : company.name.charAt(0).toUpperCase()
-            }
+            {company.logo_base64 ? <img src={company.logo_base64} alt={company.name} style={styles.logoImg} /> : company.name.charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={styles.companyName}>{company.name}</p>
             {company.sector && <span style={styles.sectorBadge}>{company.sector}</span>}
           </div>
-          <button style={styles.btnSmall} onClick={() => setEditingCompany(true)} title="Edit company">✏️</button>
-          <button style={styles.btnDanger} onClick={deleteCompany} title="Delete company">✕</button>
+          <button style={styles.btnSmall} onClick={() => setEditingCompany(true)}>✏️</button>
+          <button style={styles.btnDanger} onClick={deleteCompany}>✕</button>
         </div>
 
-        {/* Description */}
         <div style={styles.cardBody}>
-          {company.description && (
-            <p style={styles.description}>{company.description}</p>
-          )}
+          {company.description && <p style={styles.description}>{company.description}</p>}
 
-          {/* Stats row */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             {[
               { label: `${company.key_people.length} people`, icon: '👥' },
@@ -1037,58 +1517,43 @@ function CompanyCard({ company, onRefresh }) {
               { label: `${linkCounts.pdf} PDFs`, icon: '📄' },
               { label: `${linkCounts.youtube} videos`, icon: '▶️' },
             ].map((s, i) => (
-              <span key={i} style={{
-                fontSize: 11, color: '#185fa5',
-                background: '#e6f1fb', border: '1px solid #b5d4f4',
-                borderRadius: 6, padding: '2px 8px',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}>
+              <span key={i} style={{ fontSize: 11, color: '#185fa5', background: '#e6f1fb', border: '1px solid #b5d4f4', borderRadius: 6, padding: '2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
                 {s.icon} {s.label}
               </span>
             ))}
           </div>
 
-          {/* Tabs */}
           <div style={styles.tabRow}>
             {[
-              { key: 'people',  label: '👥 People' },
-              { key: 'links',   label: '🌐 Links' },
-              { key: 'pdfs',    label: '📄 PDFs' },
+              { key: 'people', label: '👥 People' },
+              { key: 'links', label: '🌐 Links' },
+              { key: 'pdfs', label: '📄 PDFs' },
               { key: 'youtube', label: '▶️ Videos' },
             ].map(t => (
-              <button key={t.key} style={styles.tab(tab === t.key)} onClick={() => setTab(t.key)}>
-                {t.label}
-              </button>
+              <button key={t.key} style={styles.tab(tab === t.key)} onClick={() => setTab(t.key)}>{t.label}</button>
             ))}
           </div>
 
           {/* People tab */}
           {tab === 'people' && (
             <>
-              {company.key_people.length === 0 && (
-                <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No key people added yet.</p>
-              )}
+              {company.key_people.length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No key people added yet.</p>}
               {company.key_people.map(person => (
                 <div key={person.id} style={styles.personCard}>
                   <div style={styles.personPhoto}>
-                    {person.photo_base64
-                      ? <img src={person.photo_base64} alt={person.name} style={styles.personPhotoImg} />
-                      : person.name.charAt(0).toUpperCase()
-                    }
+                    {person.photo_base64 ? <img src={person.photo_base64} alt={person.name} style={styles.personPhotoImg} /> : person.name.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={styles.personName}>{person.name}</p>
                     {person.role && <p style={styles.personRole}>{person.role}</p>}
                     {person.bio && <p style={styles.personBio}>{person.bio}</p>}
                   </div>
-                  <button style={styles.btnSmall} onClick={() => setEditingPerson(person)} title="Edit">✏️</button>
+                  <button style={styles.btnSmall} onClick={() => setEditingPerson(person)}>✏️</button>
                   <button style={styles.btnDanger} onClick={() => deletePerson(person.id)}>✕</button>
                 </div>
               ))}
               <div style={styles.addSection}>
-                <button style={styles.btnSmall} onClick={() => setShowAddPerson(true)}>
-                  <span>+</span> Add person
-                </button>
+                <button style={styles.btnSmall} onClick={() => setShowAddPerson(true)}><span>+</span> Add person</button>
               </div>
             </>
           )}
@@ -1096,102 +1561,66 @@ function CompanyCard({ company, onRefresh }) {
           {/* Links tab */}
           {tab === 'links' && (
             <>
-              {company.links.filter(l => l.link_type === 'url').length === 0 && (
-                <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No web links added yet.</p>
-              )}
+              {company.links.filter(l => l.link_type === 'url').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No web links added yet.</p>}
               {company.links.filter(l => l.link_type === 'url').map(link => (
                 <div key={link.id} style={styles.linkItem}>
                   <span style={styles.linkIcon}>🌐</span>
                   <span style={styles.linkTitle}>{link.title}</span>
                   <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗ Open</a>
-                  <button style={styles.btnSmall} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
+                  <button style={styles.btnSmall} onClick={() => setEditingLink(link)}>✏️</button>
                   <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
                 </div>
               ))}
-              <div style={styles.addSection}>
-                <button style={styles.btnSmall} onClick={() => setShowAddLink(true)}>
-                  <span>+</span> Add link
-                </button>
-              </div>
+              <div style={styles.addSection}><button style={styles.btnSmall} onClick={() => setShowAddLink(true)}><span>+</span> Add link</button></div>
             </>
           )}
 
           {/* PDFs tab */}
           {tab === 'pdfs' && (
             <>
-              {company.links.filter(l => l.link_type === 'pdf').length === 0 && (
-                <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No PDFs added yet.</p>
-              )}
+              {company.links.filter(l => l.link_type === 'pdf').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No PDFs added yet.</p>}
               {company.links.filter(l => l.link_type === 'pdf').map(link => (
                 <div key={link.id} style={styles.linkItem}>
                   <span style={styles.linkIcon}>📄</span>
                   <span style={styles.linkTitle}>{link.title}</span>
                   <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setViewingPdf(link)}>👁 View</button>
                   <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗</a>
-                  <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
+                  <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)}>✏️</button>
                   <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
                 </div>
               ))}
-              <div style={styles.addSection}>
-                <button style={styles.btnSmall} onClick={() => setShowAddLink(true)}>
-                  <span>+</span> Add PDF
-                </button>
-              </div>
+              <div style={styles.addSection}><button style={styles.btnSmall} onClick={() => setShowAddLink(true)}><span>+</span> Add PDF</button></div>
             </>
           )}
 
           {/* YouTube tab */}
           {tab === 'youtube' && (
             <>
-              {company.links.filter(l => l.link_type === 'youtube').length === 0 && (
-                <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No videos added yet.</p>
-              )}
+              {company.links.filter(l => l.link_type === 'youtube').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No videos added yet.</p>}
               {company.links.filter(l => l.link_type === 'youtube').map(link => {
                 const videoId = extractYouTubeId(link.url);
                 return (
                   <div key={link.id} style={{ ...styles.linkItem, alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
                     {videoId && (
-                      <div
-                        onClick={() => setPlayingVideo(link)}
-                        style={{ position: 'relative', width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
-                      >
-                        <img
-                          src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
-                          alt={link.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <div style={{
-                          position: 'absolute', inset: 0, display: 'flex',
-                          alignItems: 'center', justifyContent: 'center',
-                          background: 'rgba(0,0,0,0.35)',
-                        }}>
-                          <span style={{
-                            background: '#ff0000', borderRadius: 5,
-                            width: 28, height: 20,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, color: '#fff',
-                          }}>▶</span>
+                      <div onClick={() => setPlayingVideo(link)} style={{ position: 'relative', width: 100, height: 56, borderRadius: 8, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}>
+                        <img src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`} alt={link.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                          <span style={{ background: '#ff0000', borderRadius: 5, width: 28, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>▶</span>
                         </div>
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ ...styles.linkTitle, whiteSpace: 'normal', fontSize: 12, fontWeight: 500, color: '#042c53', margin: '0 0 6px' }}>
-                        {link.title}
-                      </p>
+                      <p style={{ ...styles.linkTitle, whiteSpace: 'normal', fontSize: 12, fontWeight: 500, color: '#042c53', margin: '0 0 6px' }}>{link.title}</p>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setPlayingVideo(link)}>▶ Play</button>
-                        <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)} title="Edit">✏️</button>
+                        <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)}>✏️</button>
                         <button style={{ ...styles.btnDanger, fontSize: 11 }} onClick={() => deleteLink(link.id)}>✕</button>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              <div style={styles.addSection}>
-                <button style={styles.btnSmall} onClick={() => setShowAddLink(true)}>
-                  <span>+</span> Add video
-                </button>
-              </div>
+              <div style={styles.addSection}><button style={styles.btnSmall} onClick={() => setShowAddLink(true)}><span>+</span> Add video</button></div>
             </>
           )}
         </div>
@@ -1222,7 +1651,6 @@ export default function CompaniesofInterest() {
   useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 
   const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort();
-
   const filtered = companies.filter(c => {
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.description.toLowerCase().includes(search.toLowerCase()) || c.sector.toLowerCase().includes(search.toLowerCase());
     const matchSector = !sectorFilter || c.sector === sectorFilter;
@@ -1237,51 +1665,31 @@ export default function CompaniesofInterest() {
           onSaved={() => { fetchCompanies(); setShowAddCompany(false); }}
         />
       )}
-
-      <div className="header">
-        <Header />
-      </div>
+      <div className="header"><Header /></div>
       <div className="main-page-body">
         <SideNavs />
         <div className="main-body-info">
-
-          {/* Page header */}
           <div style={styles.header}>
             <h5 style={styles.pageTitle}>
               <span style={styles.pageTitleAccent} />
               SnowAI Companies of Interest
             </h5>
-            <button style={styles.btnPrimary} onClick={() => setShowAddCompany(true)}>
-              + Add company
-            </button>
+            <button style={styles.btnPrimary} onClick={() => setShowAddCompany(true)}>+ Add company</button>
           </div>
 
-          {/* Search + filter */}
           <div style={styles.searchBar}>
-            <input
-              style={styles.searchInput}
-              placeholder="Search companies, sectors, descriptions..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+            <input style={styles.searchInput} placeholder="Search companies, sectors, descriptions..." value={search} onChange={e => setSearch(e.target.value)} />
             {sectors.length > 0 && (
-              <select
-                style={{ ...styles.select, width: 'auto', minWidth: 140 }}
-                value={sectorFilter}
-                onChange={e => setSectorFilter(e.target.value)}
-              >
+              <select style={{ ...styles.select, width: 'auto', minWidth: 140 }} value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}>
                 <option value="">All sectors</option>
                 {sectors.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             )}
             {(search || sectorFilter) && (
-              <button style={styles.btnSecondary} onClick={() => { setSearch(''); setSectorFilter(''); }}>
-                Clear
-              </button>
+              <button style={styles.btnSecondary} onClick={() => { setSearch(''); setSectorFilter(''); }}>Clear</button>
             )}
           </div>
 
-          {/* Content */}
           {loading ? (
             <div style={styles.empty}>
               <div className="spinner-border text-primary" role="status" />
@@ -1289,16 +1697,13 @@ export default function CompaniesofInterest() {
             </div>
           ) : filtered.length === 0 ? (
             <div style={styles.empty}>
-              {companies.length === 0
-                ? <>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>🏢</div>
-                    <p>No companies yet. Add your first company of interest.</p>
-                    <button style={{ ...styles.btnPrimary, margin: '12px auto', display: 'inline-flex' }} onClick={() => setShowAddCompany(true)}>
-                      + Add first company
-                    </button>
-                  </>
-                : <p>No companies match your search.</p>
-              }
+              {companies.length === 0 ? (
+                <>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🏢</div>
+                  <p>No companies yet. Add your first company of interest.</p>
+                  <button style={{ ...styles.btnPrimary, margin: '12px auto', display: 'inline-flex' }} onClick={() => setShowAddCompany(true)}>+ Add first company</button>
+                </>
+              ) : <p>No companies match your search.</p>}
             </div>
           ) : (
             <>
@@ -1312,7 +1717,6 @@ export default function CompaniesofInterest() {
               </div>
             </>
           )}
-
           <br />
         </div>
       </div>
