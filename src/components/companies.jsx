@@ -403,8 +403,9 @@ const styles = {
     background: '#000',
     borderRadius: 16,
     width: '100%',
-    maxWidth: 860,
-    maxHeight: '95vh',
+    maxWidth: 900,
+    height: '92vh',
+    maxHeight: '92vh',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
@@ -439,7 +440,7 @@ const styles = {
   ytIframe: {
     width: '100%',
     flex: '1 1 auto',
-    minHeight: 0,
+    minHeight: 360,
     border: 'none',
     display: 'block',
   },
@@ -1466,7 +1467,7 @@ function EditLinkModal({ link, onClose, onSaved }) {
 }
 
 // ─── YOUTUBE PLAYER MODAL (with recording panel) ──────────────────────────────
-function YouTubeModal({ link, onClose }) {
+function YouTubeModal({ link, company, onClose }) {
   const videoId = extractYouTubeId(link.url);
   const [recordingLanguage, setRecordingLanguage] = useState('en-US');
   const [savedTranscript, setSavedTranscript] = useState(null);
@@ -1483,16 +1484,18 @@ function YouTubeModal({ link, onClose }) {
     setSavingTranscript(true);
     try {
       const payload = {
-        full_transcript_text:  text,
-        youtube_url:           link.url,
-        youtube_video_id:      videoId,
-        video_title:           link.title,
-        transcript_language:   recordingLanguage,
-        transcription_method:  'browser_speech_api',
-        video_duration_seconds: elapsed,
-        processing_status:     'completed',
+        company_name:              company.name,
+        source_title:              link.title,
+        source_url:                link.url,
+        youtube_video_id:          videoId,
+        source_type:               'youtube',
+        full_transcript_text:      text,
+        transcript_language:       recordingLanguage,
+        transcription_method:      'browser_speech_api',
+        recording_duration_seconds: elapsed,
+        status:                    'raw',
       };
-      const res = await fetch(`${BASE}/snowai-vtr/transcripts/save/`, {
+      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/save/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1509,7 +1512,7 @@ function YouTubeModal({ link, onClose }) {
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
       <style>{pulseStyle}</style>
-      <div style={{ ...styles.ytModalBox, maxWidth: 900 }} onClick={e => e.stopPropagation()}>
+      <div style={{ ...styles.ytModalBox }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.ytModalHeader}>
           <div style={styles.ytLogo}><span>▶</span><span>SnowAI YouTube</span></div>
@@ -1536,7 +1539,7 @@ function YouTubeModal({ link, onClose }) {
         <div style={{ background: '#111', padding: '12px 16px', borderTop: '1px solid #222', flexShrink: 0 }}>
           {savedTranscript && (
             <div style={{ background: '#1a3a1a', border: '1px solid #2d6a2d', borderRadius: 8, padding: '8px 12px', color: '#6fcf97', fontSize: 12, marginBottom: 10 }}>
-              ✅ Transcript saved — {savedTranscript.word_count} words ({savedTranscript.transcript_language})
+              ✅ Saved to <strong>{company.name}</strong> — {savedTranscript.word_count} words ({savedTranscript.transcript_language})
             </div>
           )}
 
@@ -2024,11 +2027,10 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
 
 // ─── COMPANY TRANSCRIPTS TAB ──────────────────────────────────────────────────
 function CompanyTranscriptsTab({ company }) {
-  const [transcripts, setTranscripts]     = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [viewingTx, setViewingTx]         = useState(null);
-  const [showRecord, setShowRecord]       = useState(false);
-  const [statusFilter, setStatusFilter]   = useState('');
+  const [transcripts, setTranscripts]   = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [viewingTx, setViewingTx]       = useState(null);
+  const [statusFilter, setStatusFilter] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -2061,18 +2063,11 @@ function CompanyTranscriptsTab({ company }) {
           onDelete={handleDelete}
         />
       )}
-      {showRecord && (
-        <RecordForCompanyModal
-          company={company}
-          onClose={() => setShowRecord(false)}
-          onSaved={load}
-        />
-      )}
 
-      {/* Controls bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
         <select
-          style={{ ...styles.langSelect, fontSize: 11, flex: 1, minWidth: 110 }}
+          style={{ ...styles.langSelect, fontSize: 11, flex: 1 }}
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
@@ -2081,10 +2076,7 @@ function CompanyTranscriptsTab({ company }) {
           <option value="reviewed">✅ Reviewed</option>
           <option value="processed">🔬 Processed</option>
         </select>
-        <button style={{ ...styles.btnRecord, fontSize: 11, padding: '5px 12px', borderRadius: 8 }}
-                onClick={() => setShowRecord(true)}>
-          🎙 New recording
-        </button>
+        <button style={styles.btnSmall} onClick={load} title="Refresh">↺ Refresh</button>
       </div>
 
       {/* List */}
@@ -2093,13 +2085,9 @@ function CompanyTranscriptsTab({ company }) {
       ) : transcripts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px 10px' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🎙</div>
-          <p style={{ fontSize: 12, color: '#85b7eb', margin: '0 0 10px' }}>
-            No transcripts yet. Record your first one.
+          <p style={{ fontSize: 12, color: '#85b7eb', margin: 0 }}>
+            No transcripts yet — play a video and hit Record to capture one.
           </p>
-          <button style={{ ...styles.btnRecord, fontSize: 11, padding: '7px 14px', margin: '0 auto' }}
-                  onClick={() => setShowRecord(true)}>
-            🎙 Start recording
-          </button>
         </div>
       ) : (
         transcripts.map(tx => {
@@ -2184,7 +2172,7 @@ function CompanyCard({ company, onRefresh }) {
     <>
       {showAddPerson && <AddPersonModal companyId={company.id} onClose={() => setShowAddPerson(false)} onSaved={onRefresh} />}
       {showAddLink && <AddLinkModal companyId={company.id} onClose={() => setShowAddLink(false)} onSaved={onRefresh} />}
-      {playingVideo && <YouTubeModal link={playingVideo} onClose={() => setPlayingVideo(null)} />}
+      {playingVideo && <YouTubeModal link={playingVideo} company={company} onClose={() => setPlayingVideo(null)} />}
       {viewingPdf && <PDFModal link={viewingPdf} onClose={() => setViewingPdf(null)} />}
       {editingCompany && <EditCompanyModal company={company} onClose={() => setEditingCompany(false)} onSaved={() => { onRefresh(); setEditingCompany(false); }} />}
       {editingPerson && <EditPersonModal person={editingPerson} onClose={() => setEditingPerson(null)} onSaved={() => { onRefresh(); setEditingPerson(null); }} />}
