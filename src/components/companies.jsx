@@ -404,7 +404,10 @@ const styles = {
     borderRadius: 16,
     width: '100%',
     maxWidth: 860,
+    maxHeight: '95vh',
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
   ytModalHeader: {
     background: '#111',
@@ -435,7 +438,8 @@ const styles = {
   },
   ytIframe: {
     width: '100%',
-    aspectRatio: '16/9',
+    flex: '1 1 auto',
+    minHeight: 0,
     border: 'none',
     display: 'block',
   },
@@ -1366,7 +1370,7 @@ function YouTubeModal({ link, onClose }) {
         )}
 
         {/* Recording Panel */}
-        <div style={{ background: '#111', padding: '14px 16px', borderTop: '1px solid #222' }}>
+        <div style={{ background: '#111', padding: '12px 16px', borderTop: '1px solid #222', flexShrink: 0 }}>
           {savedTranscript && (
             <div style={{ background: '#1a3a1a', border: '1px solid #2d6a2d', borderRadius: 8, padding: '8px 12px', color: '#6fcf97', fontSize: 12, marginBottom: 10 }}>
               ✅ Transcript saved — {savedTranscript.word_count} words ({savedTranscript.transcript_language})
@@ -1381,7 +1385,7 @@ function YouTubeModal({ link, onClose }) {
 
           {/* Transcript display */}
           {(finalTranscript || interimTranscript) && (
-            <div style={{ ...styles.transcriptBox, background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0', marginBottom: 10 }}>
+            <div style={{ ...styles.transcriptBox, background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0', marginBottom: 8, maxHeight: 80, minHeight: 'unset' }}>
               <span>{finalTranscript}</span>
               {interimTranscript && <span style={{ color: '#888', fontStyle: 'italic' }}>{interimTranscript}</span>}
             </div>
