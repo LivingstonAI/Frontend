@@ -1715,19 +1715,18 @@ const STATUS_LABELS = { raw: '⏳ Raw', reviewed: '✅ Reviewed', processed: '�
 
 // ─── TRANSCRIPT VIEWER MODAL ──────────────────────────────────────────────────
 function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, onDelete }) {
-  const [t, setT]                     = useState(initialT);
+  const [t, setT]                           = useState(initialT);
   const [statusChanging, setStatusChanging] = useState(false);
   const [confirmDelete, setConfirmDelete]   = useState(false);
-
-  // AI summary state
-  const [showAI, setShowAI]           = useState(false);
-  const [promptCopied, setPromptCopied] = useState(false);
+  const [showAI, setShowAI]                 = useState(false);
+  const [promptCopied, setPromptCopied]     = useState(false);
+  const [txCopied, setTxCopied]             = useState(false);
   const [pastedResponse, setPastedResponse] = useState('');
-  const [parsing, setParsing]         = useState(false);
-  const [parseError, setParseError]   = useState('');
-  const [applying, setApplying]       = useState(false);
-  const [applied, setApplied]         = useState(false);
-  const [parsedData, setParsedData]   = useState(null);
+  const [parsing, setParsing]               = useState(false);
+  const [parseError, setParseError]         = useState('');
+  const [applying, setApplying]             = useState(false);
+  const [applied, setApplied]               = useState(false);
+  const [parsedData, setParsedData]         = useState(null);
 
   const handleStatus = async (newStatus) => {
     setStatusChanging(true);
