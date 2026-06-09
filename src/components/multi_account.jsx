@@ -316,9 +316,14 @@ function EquityChart({ data, initialCapital, theme }) {
 }
 
 // ─── Sector Chart ─────────────────────────────────────────────────────────────
-function SectorChart({ sectorData }) {
+function SectorChart({ sectorData, theme }) {
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
+  const isLight = theme === 'light';
+  const gridCol  = isLight ? '#bfdbfe' : '#1e2530';
+  const gridMid  = isLight ? '#93c5fd' : '#334155';
+  const axisCol  = isLight ? '#1e40af' : '#475569';
+  const labelCol = isLight ? '#1e40af' : '#64748b';
   if (!sectorData || sectorData.length === 0) return <div className="mac-loading">No sector data</div>;
 
   // For each sector: bars showing avg ROI per sector
@@ -346,8 +351,8 @@ function SectorChart({ sectorData }) {
           const v = r * maxAbs;
           return (
             <g key={i}>
-              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke={r === 0 ? '#334155' : '#1e2530'} strokeWidth={r === 0 ? 1.5 : 1} />
-              <text x={pad.left - 6} y={y + 4} fill="#475569" fontSize="10" textAnchor="end" fontFamily="DM Mono,monospace">
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke={r === 0 ? gridMid : gridCol} strokeWidth={r === 0 ? 1.5 : 1} />
+              <text x={pad.left - 6} y={y + 4} fill={axisCol} fontSize="10" textAnchor="end" fontFamily="DM Mono,monospace">
                 {v.toFixed(0)}%
               </text>
             </g>
@@ -371,7 +376,7 @@ function SectorChart({ sectorData }) {
               <text
                 x={x + barW / 2}
                 y={H - pad.bottom + 14}
-                fill="#64748b"
+                fill={labelCol}
                 fontSize="10"
                 textAnchor="middle"
                 fontFamily="DM Mono,monospace"
@@ -388,8 +393,12 @@ function SectorChart({ sectorData }) {
 }
 
 // ─── Multi-account comparison line chart ──────────────────────────────────────
-function ComparisonChart({ curvesData }) {
+function ComparisonChart({ curvesData, theme }) {
   if (!curvesData || curvesData.length === 0) return <div className="mac-loading">Loading…</div>;
+  const isLight = theme === 'light';
+  const gridCol = isLight ? '#bfdbfe' : '#1e2530';
+  const axisCol = isLight ? '#1e40af' : '#475569';
+  const legendCol = isLight ? '#1e40af' : '#94a3b8';
 
   const W = 1000, H = 320;
   const pad = { top: 20, right: 30, bottom: 40, left: 72 };
@@ -407,7 +416,7 @@ function ComparisonChart({ curvesData }) {
     <div>
       <div className="sector-legend" style={{ marginBottom: 14 }}>
         {curvesData.map((c, i) => (
-          <div key={c.account_id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', fontFamily: 'DM Mono,monospace' }}>
+          <div key={c.account_id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: legendCol, fontFamily: 'DM Mono,monospace' }}>
             <div style={{ width: 24, height: 3, background: SECTOR_PALETTE[i % SECTOR_PALETTE.length], borderRadius: 2 }} />
             {c.account_name}
           </div>
@@ -419,8 +428,8 @@ function ComparisonChart({ curvesData }) {
           const v = minB + r * (maxB - minB);
           return (
             <g key={i}>
-              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#1e2530" strokeWidth="1" strokeDasharray="4" />
-              <text x={pad.left - 8} y={y + 4} fill="#475569" fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke={gridCol} strokeWidth="1" strokeDasharray="4" />
+              <text x={pad.left - 8} y={y + 4} fill={axisCol} fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
                 ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}
               </text>
             </g>
@@ -437,7 +446,7 @@ function ComparisonChart({ curvesData }) {
 }
 
 // ─── Monte Carlo Modal ────────────────────────────────────────────────────────
-function MonteCarloModal({ results, onClose }) {
+function MonteCarloModal({ results, onClose, theme }) {
   if (!results) return null;
   const stats = results.statistics;
   return (
@@ -483,7 +492,7 @@ function MonteCarloModal({ results, onClose }) {
 }
 
 // ─── Synthesise Modal ─────────────────────────────────────────────────────────
-function SynthesiseModal({ accounts, onClose, onSynthesize }) {
+function SynthesiseModal({ accounts, onClose, onSynthesize, theme }) {
   const [selected, setSelected] = useState([]);
   const [saving, setSaving] = useState(false);
   const [wantSave, setWantSave] = useState(false);
@@ -683,7 +692,7 @@ function EditTradeModal({ trade, onClose, onSaved }) {
 }
 
 // ─── Account Trades Table ─────────────────────────────────────────────────────
-function AccountTradesPanel({ accountId, accountName }) {
+function AccountTradesPanel({ accountId, accountName, theme }) {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editTrade, setEditTrade] = useState(null);
@@ -709,46 +718,54 @@ function AccountTradesPanel({ accountId, accountName }) {
   const pages = Math.ceil(trades.length / PER_PAGE);
   const paginated = trades.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+  const isLight = theme === 'light';
+  const tBorder  = isLight ? '#bfdbfe' : '#1e2530';
+  const tMuted   = isLight ? '#1e40af' : '#475569';
+  const tSub     = isLight ? '#2563eb' : '#94a3b8';
+  const tDim     = isLight ? '#3b82f6' : '#64748b';
+  const tAsset   = isLight ? '#1d4ed8' : '#a78bfa';
+  const tLoss    = isLight ? '#1d4ed8' : '#ff4d6d';
+
   return (
     <div>
       {editTrade && <EditTradeModal trade={editTrade} onClose={() => setEditTrade(null)} onSaved={load} />}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontFamily: 'DM Mono,monospace' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #1e2530' }}>
+            <tr style={{ borderBottom: `1px solid ${tBorder}` }}>
               {['#', 'Asset', 'Type', 'Strategy', 'Sector', 'Session', 'Outcome', 'Amount', 'Date', 'Edit'].map(h => (
-                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
+                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: tMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 10 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {paginated.map((t, i) => (
-              <tr key={t.id} style={{ borderBottom: '1px solid #1e253033' }}
+              <tr key={t.id} style={{ borderBottom: `1px solid ${tBorder}66` }}
                 onMouseEnter={e => e.currentTarget.style.background = '#7c3aed08'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <td style={{ padding: '8px 12px', color: '#475569' }}>{(page - 1) * PER_PAGE + i + 1}</td>
-                <td style={{ padding: '8px 12px', color: '#a78bfa', fontWeight: 700 }}>{t.asset}</td>
-                <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{t.order_type}</td>
-                <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{t.strategy}</td>
-                <td style={{ padding: '8px 12px', color: '#64748b' }}>{t.sector || '—'}</td>
-                <td style={{ padding: '8px 12px', color: '#64748b' }}>{t.trading_session_entered}</td>
+                <td style={{ padding: '8px 12px', color: tMuted }}>{(page - 1) * PER_PAGE + i + 1}</td>
+                <td style={{ padding: '8px 12px', color: tAsset, fontWeight: 700 }}>{t.asset}</td>
+                <td style={{ padding: '8px 12px', color: tSub }}>{t.order_type}</td>
+                <td style={{ padding: '8px 12px', color: tSub }}>{t.strategy}</td>
+                <td style={{ padding: '8px 12px', color: tDim }}>{t.sector || '—'}</td>
+                <td style={{ padding: '8px 12px', color: tDim }}>{t.trading_session_entered}</td>
                 <td style={{ padding: '8px 12px' }}>
-                  <span style={{ color: t.outcome === 'Win' ? '#00e5a0' : '#ff4d6d', fontWeight: 700 }}>
+                  <span style={{ color: t.outcome === 'Win' ? '#00e5a0' : tLoss, fontWeight: 700 }}>
                     {t.outcome === 'Win' ? '▲' : '▼'} {t.outcome}
                   </span>
                 </td>
                 <td style={{ padding: '8px 12px', color: pnl2col(t.outcome === 'Win' ? t.amount : -t.amount, theme), fontWeight: 700 }}>
                   {t.outcome === 'Win' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}
                 </td>
-                <td style={{ padding: '8px 12px', color: '#475569' }}>
+                <td style={{ padding: '8px 12px', color: tMuted }}>
                   {t.date_entered ? new Date(t.date_entered).toLocaleDateString() : '—'}
                 </td>
                 <td style={{ padding: '8px 12px' }}>
                   <button
-                    style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid #1e2530', background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 11, fontFamily: 'DM Mono,monospace' }}
+                    style={{ padding: '4px 10px', borderRadius: 4, border: `1px solid ${tBorder}`, background: 'transparent', color: tDim, cursor: 'pointer', fontSize: 11, fontFamily: 'DM Mono,monospace' }}
                     onClick={() => setEditTrade(t)}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.color = '#a78bfa'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#1e2530'; e.currentTarget.style.color = '#64748b'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = tBorder; e.currentTarget.style.color = tDim; }}
                   >✎</button>
                 </td>
               </tr>
@@ -1025,7 +1042,7 @@ export default function MultiAccountAnalytics() {
                         </div>
                       ))}
                     </div>
-                    <SectorChart sectorData={sectorData} />
+                    <SectorChart sectorData={sectorData} theme={theme} />
                     <div style={{ marginTop: 28 }}>
                       <div className="sec-hdr">Sector Details</div>
                       <div style={{ overflowX: 'auto' }}>
@@ -1071,7 +1088,7 @@ export default function MultiAccountAnalytics() {
                 <div className="sec-hdr">All Accounts — Equity Curve Comparison</div>
                 {!comparisonData
                   ? <div className="mac-loading"><div className="spinner" />&nbsp;Loading…</div>
-                  : <ComparisonChart curvesData={comparisonData} />
+                  : <ComparisonChart curvesData={comparisonData} theme={theme} />
                 }
                 {comparisonData && (
                   <div style={{ marginTop: 28 }}>
@@ -1104,7 +1121,7 @@ export default function MultiAccountAnalytics() {
                   ))}
                 </div>
                 {tradesAccount
-                  ? <AccountTradesPanel accountId={tradesAccount} accountName={overview.all_accounts.find(a => a.account_id === tradesAccount)?.account_name} />
+                  ? <AccountTradesPanel accountId={tradesAccount} accountName={overview.all_accounts.find(a => a.account_id === tradesAccount)?.account_name} theme={theme} />
                   : <div className="mac-loading" style={{ color: themeVars.muted }}>Select an account above to view and edit its trades</div>
                 }
               </div>
@@ -1115,12 +1132,13 @@ export default function MultiAccountAnalytics() {
       </div>
 
       {/* Modals */}
-      {mcResults && <MonteCarloModal results={mcResults} onClose={() => setMcResults(null)} />}
+      {mcResults && <MonteCarloModal results={mcResults} onClose={() => setMcResults(null)} theme={theme} />}
       {showSynth && overview && (
         <SynthesiseModal
           accounts={overview.all_accounts}
           onClose={() => setShowSynth(false)}
           onSynthesize={loadOverview}
+          theme={theme}
         />
       )}
     </div>
