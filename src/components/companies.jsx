@@ -610,8 +610,8 @@ const styles = {
     background: '#fff',
     borderRadius: 20,
     width: '100%',
-    maxWidth: 780,
-    maxHeight: '92vh',
+    maxWidth: 860,
+    maxHeight: '96vh',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -779,9 +779,9 @@ const styles = {
     fontFamily: "'Fira Code', 'Consolas', monospace",
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
-    maxHeight: 220,
+    maxHeight: 160,
     overflowY: 'auto',
-    position: 'relative',
+    overflowX: 'hidden',
   },
   pasteArea: {
     width: '100%',
@@ -1818,15 +1818,14 @@ Rules:
     setApplying(true);
     try {
       const payload = {
-        summary:          parsedData.summary        || '',
-        key_points:       parsedData.key_points      || [],
-        topics:           parsedData.topics          || [],
-        sentiment_score:  parsedData.sentiment_score ?? null,
-        analyst_notes:    parsedData.analyst_notes   || '',
-        status:           'processed',
+        summary:         parsedData.summary        || '',
+        key_points:      parsedData.key_points      || [],
+        topics:          parsedData.topics          || [],
+        sentiment_score: parsedData.sentiment_score ?? null,
+        analyst_notes:   parsedData.analyst_notes   || '',
       };
       const res = await fetch(
-        `${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/update/`,
+        `${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/apply-ai/`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       if (res.ok) {
@@ -1905,16 +1904,17 @@ Rules:
           {/* ── AI SUMMARY PANEL ── */}
           <div style={styles.aiPanel}>
             <div style={styles.aiPanelHead}>
-              <span style={{ fontSize: 18 }}>🤖</span>
-              <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>🤖</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>AI Analysis</p>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>
-                  {hasAnalysis ? 'Analysis saved — regenerate anytime' : 'Generate via any LLM — free, no API key needed'}
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.65)',
+                             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {hasAnalysis ? 'Analysis saved — regenerate anytime' : 'Free — paste into any LLM, no API key needed'}
                 </p>
               </div>
               <button
                 style={{ ...styles.btnSmall, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
-                         color: '#fff', fontSize: 12 }}
+                         color: '#fff', fontSize: 12, flexShrink: 0 }}
                 onClick={() => { setShowAI(p => !p); setParseError(''); setParsedData(null); }}
               >
                 {showAI ? '▲ Collapse' : (hasAnalysis ? '✏️ Regenerate' : '✨ Generate')}
@@ -2062,12 +2062,22 @@ Rules:
           <div style={styles.viewerSection}>
             <div style={{ ...styles.viewerSectionHead, justifyContent: 'space-between' }}>
               <span>📄 Full Transcript</span>
-              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6a8fb5' }}>
-                {wordCount.toLocaleString()} words
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6a8fb5' }}>
+                  {wordCount.toLocaleString()} words
+                </span>
+                <button
+                  style={{ ...styles.btnSmall, fontSize: 10, padding: '3px 8px' }}
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(t.full_transcript_text);
+                  }}
+                  title="Copy full transcript"
+                >
+                  📋 Copy
+                </button>
+              </div>
             </div>
-            <div style={{ ...styles.viewerSectionBody, maxHeight: 280, overflowY: 'auto',
-                          background: '#fff', fontSize: 13.5, lineHeight: 1.8 }}>
+            <div style={{ ...styles.viewerSectionBody, background: '#fff', fontSize: 13.5, lineHeight: 1.8 }}>
               {t.full_transcript_text}
             </div>
           </div>
