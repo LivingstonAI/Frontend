@@ -605,23 +605,26 @@ const styles = {
                 status === 'processed' ? '#93b4f8' : '#ddd'}`,
   }),
 
-  // ── Transcript viewer modal ──
+  // ── Transcript viewer modal — FIXED for scrolling ──
   viewerModalBox: {
     background: '#fff',
     borderRadius: 20,
     width: '100%',
     maxWidth: 860,
+    // FIX: use height + max-height together, and let flex children manage overflow
     height: '92vh',
+    maxHeight: '92vh',
     display: 'flex',
     flexDirection: 'column',
+    // FIX: overflow visible at container level so children can scroll independently
     overflow: 'hidden',
     boxShadow: '0 24px 80px rgba(4,44,83,0.22)',
   },
   viewerHeader: {
     background: 'linear-gradient(135deg, #042c53 0%, #0c447c 60%, #185fa5 100%)',
     padding: '18px 22px',
+    // FIX: flexShrink 0 so header never compresses
     flexShrink: 0,
-    minHeight: 0,
   },
   viewerHeaderTop: {
     display: 'flex',
@@ -665,10 +668,11 @@ const styles = {
     alignItems: 'center',
     gap: 5,
   },
+  // FIX: This is the key — flex:1, minHeight:0, overflowY:auto
   viewerBody: {
     flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
+    minHeight: 0,          // ← CRITICAL: allows flex child to shrink below content size
+    overflowY: 'auto',     // ← scrolls here, not on the modal box
     padding: '20px 24px',
     display: 'flex',
     flexDirection: 'column',
@@ -679,6 +683,8 @@ const styles = {
     border: '1px solid #e2edf8',
     borderRadius: 12,
     overflow: 'hidden',
+    // FIX: don't let sections shrink or collapse
+    flexShrink: 0,
   },
   viewerSectionHead: {
     padding: '10px 16px',
@@ -701,6 +707,7 @@ const styles = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
   },
+  // FIX: footer must be flexShrink:0 so it stays pinned at bottom
   viewerFooter: {
     padding: '14px 22px',
     borderTop: '1px solid #e6f1fb',
@@ -708,9 +715,9 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 10,
-    flexShrink: 0,
+    flexShrink: 0,         // ← CRITICAL: footer never gets squished
     flexWrap: 'wrap',
-    minHeight: 0,
+    borderRadius: '0 0 20px 20px',
   },
 
   // ── Record-into-company modal ──
@@ -761,6 +768,7 @@ const styles = {
     border: '1.5px solid #c5d8f8',
     borderRadius: 14,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   aiPanelHead: {
     padding: '12px 16px',
@@ -964,13 +972,12 @@ function useTranscriptionRecorder({ language, onTranscriptUpdate }) {
     };
 
     recognition.onerror = (e) => {
-      if (e.error === 'no-speech') return; // ignore silence
+      if (e.error === 'no-speech') return;
       setError(`Recognition error: ${e.error}`);
       stopRecording();
     };
 
     recognition.onend = () => {
-      // Auto-restart if still recording (browser stops after ~60s of silence)
       if (isRecording || recognitionRef.current?._shouldRestart) {
         try { recognition.start(); } catch {}
       }
@@ -1168,12 +1175,11 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
     start: startRec, stop: stopRec, reset: resetRec, fullText,
   } = useTranscriptionRecorder({ language: recordingLanguage });
 
-  // Auto-detect YouTube title when URL is pasted
   const handleUrlChange = async (url) => {
     f('url', url);
     if (form.link_type !== 'youtube') return;
     const videoId = extractYouTubeId(url);
-    if (!videoId || form.title) return; // don't overwrite existing title
+    if (!videoId || form.title) return;
     setFetchingTitle(true);
     try {
       const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
@@ -1185,11 +1191,10 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
         const data = await res.json();
         if (data.title) f('title', data.title);
       }
-    } catch { /* silent fail */ }
+    } catch { }
     finally { setFetchingTitle(false); }
   };
 
-  // Also trigger auto-detect when link_type changes to youtube and URL is already filled
   const handleTypeChange = async (type) => {
     f('link_type', type);
     if (type === 'youtube' && form.url && !form.title) {
@@ -1311,7 +1316,6 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
             />
           </div>
 
-          {/* Recording section — only for YouTube */}
           {isYoutube && (
             <div style={styles.recordingBox}>
               <div style={styles.recordingHeader}>
@@ -1593,14 +1597,12 @@ function YouTubeModal({ link, company, onClose }) {
     <div style={styles.modalOverlay} onClick={onClose}>
       <style>{pulseStyle}</style>
       <div style={{ ...styles.ytModalBox }} onClick={e => e.stopPropagation()}>
-        {/* Header */}
         <div style={styles.ytModalHeader}>
           <div style={styles.ytLogo}><span>▶</span><span>SnowAI YouTube</span></div>
           <span style={styles.ytTitle}>{link.title}</span>
           <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: 22, cursor: 'pointer', padding: '2px 6px' }}>×</button>
         </div>
 
-        {/* Video */}
         {videoId ? (
           <iframe
             style={styles.ytIframe}
@@ -1615,7 +1617,6 @@ function YouTubeModal({ link, company, onClose }) {
           </div>
         )}
 
-        {/* Recording Panel */}
         <div style={{ background: '#111', padding: '12px 16px', borderTop: '1px solid #222', flexShrink: 0 }}>
           {savedTranscript && (
             <div style={{ background: '#1a3a1a', border: '1px solid #2d6a2d', borderRadius: 8, padding: '8px 12px', color: '#6fcf97', fontSize: 12, marginBottom: 10 }}>
@@ -1629,7 +1630,6 @@ function YouTubeModal({ link, company, onClose }) {
             </div>
           )}
 
-          {/* Transcript display */}
           {(finalTranscript || interimTranscript) && (
             <div style={{ ...styles.transcriptBox, background: '#1a1a1a', border: '1px solid #333', color: '#e0e0e0', marginBottom: 8, maxHeight: 80, minHeight: 'unset' }}>
               <span>{finalTranscript}</span>
@@ -1638,7 +1638,6 @@ function YouTubeModal({ link, company, onClose }) {
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {/* Language select */}
             <select
               style={{ ...styles.langSelect, background: '#222', color: '#ccc', border: '1px solid #444', fontSize: 12 }}
               value={recordingLanguage}
@@ -1650,7 +1649,6 @@ function YouTubeModal({ link, company, onClose }) {
               ))}
             </select>
 
-            {/* Recording controls */}
             {!isRecording ? (
               <button style={{ ...styles.btnRecord, fontSize: 12, padding: '7px 14px' }} onClick={startRec} disabled={!isSupported}>
                 🎙 Record
@@ -1720,7 +1718,6 @@ function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, 
   const [confirmDelete, setConfirmDelete]   = useState(false);
   const [showAI, setShowAI]                 = useState(false);
   const [promptCopied, setPromptCopied]     = useState(false);
-  const [txCopied, setTxCopied]             = useState(false);
   const [pastedResponse, setPastedResponse] = useState('');
   const [parsing, setParsing]               = useState(false);
   const [parseError, setParseError]         = useState('');
@@ -1749,7 +1746,6 @@ function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, 
     } catch {}
   };
 
-  // Build the prompt — fills in all the real values from the transcript
   const buildPrompt = () => {
     const meta = [
       t.company_name   && `Company: ${t.company_name}`,
@@ -1794,17 +1790,14 @@ Rules:
     setTimeout(() => setPromptCopied(false), 2500);
   };
 
-  // Parse whatever the LLM returned — strips markdown fences if present
   const handleParseResponse = () => {
     setParseError('');
     setParsedData(null);
     setParsing(true);
     try {
       let raw = pastedResponse.trim();
-      // strip ```json ... ``` or ``` ... ```
       raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
       const data = JSON.parse(raw);
-      // basic validation
       if (!data.summary && !data.key_points)
         throw new Error('Missing summary or key_points in response');
       setParsedData(data);
@@ -1850,9 +1843,17 @@ Rules:
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
+      {/*
+        ─── THE FIX ───────────────────────────────────────────────────────────
+        viewerModalBox:  display:flex, flexDirection:column, height:92vh, overflow:hidden
+        viewerHeader:    flexShrink:0  → never compressed
+        viewerBody:      flex:1, minHeight:0, overflowY:auto  → THE scroll container
+        viewerFooter:    flexShrink:0  → always visible at bottom
+        ────────────────────────────────────────────────────────────────────── 
+      */}
       <div style={styles.viewerModalBox} onClick={e => e.stopPropagation()}>
 
-        {/* ── Gradient header ── */}
+        {/* ── Gradient header — fixed at top, never shrinks ── */}
         <div style={styles.viewerHeader}>
           <div style={styles.viewerHeaderTop}>
             <div style={styles.viewerIcon}>{sourceIcon}</div>
@@ -1874,23 +1875,22 @@ Rules:
           </div>
         </div>
 
-        {/* ── Scrollable body ── */}
+        {/* ── THE SCROLL CONTAINER — flex:1, minHeight:0, overflowY:auto ── */}
         <div style={styles.viewerBody}>
 
-          {/* Applied confirmation */}
           {applied && (
             <div style={{ background: '#e8f8f0', border: '1px solid #a3e4bf', borderRadius: 10,
                           padding: '10px 14px', fontSize: 13, color: '#1a6b3c', display: 'flex',
-                          alignItems: 'center', gap: 8 }}>
+                          alignItems: 'center', gap: 8, flexShrink: 0 }}>
               ✅ AI analysis applied and saved — status updated to <strong>Processed</strong>
             </div>
           )}
 
-          {/* YouTube thumbnail */}
           {ytId && (
             <a href={t.source_url} target="_blank" rel="noreferrer"
                style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
-                        background: '#111', borderRadius: 12, overflow: 'hidden', border: '1px solid #222' }}>
+                        background: '#111', borderRadius: 12, overflow: 'hidden', border: '1px solid #222',
+                        flexShrink: 0 }}>
               <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt="thumbnail"
                    style={{ width: 120, height: 68, objectFit: 'cover', flexShrink: 0 }} />
               <div style={{ padding: '8px 12px 8px 0' }}>
@@ -1925,7 +1925,6 @@ Rules:
 
             {showAI && (
               <div style={styles.aiPanelBody}>
-                {/* Step 1 — copy prompt */}
                 <div style={{ marginBottom: 14 }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18,
@@ -1943,7 +1942,6 @@ Rules:
                   </button>
                 </div>
 
-                {/* Step 2 — paste response */}
                 <div style={{ marginBottom: 12 }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18,
@@ -1979,7 +1977,6 @@ Rules:
                   </div>
                 </div>
 
-                {/* Preview parsed data */}
                 {parsedData && (
                   <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 10,
                                 padding: '12px 14px', fontSize: 12, color: '#1b5e20' }}>
@@ -1993,7 +1990,6 @@ Rules:
               </div>
             )}
 
-            {/* Show saved analysis inline if collapsed */}
             {!showAI && hasAnalysis && (
               <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {t.summary && (
@@ -2070,9 +2066,7 @@ Rules:
                 </span>
                 <button
                   style={{ ...styles.btnSmall, fontSize: 10, padding: '3px 8px' }}
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(t.full_transcript_text);
-                  }}
+                  onClick={async () => { await navigator.clipboard.writeText(t.full_transcript_text); }}
                   title="Copy full transcript"
                 >
                   📋 Copy
@@ -2085,8 +2079,9 @@ Rules:
           </div>
 
         </div>
+        {/* ── END SCROLL CONTAINER ── */}
 
-        {/* ── Footer ── */}
+        {/* ── Footer — fixed at bottom, never shrinks ── */}
         <div style={styles.viewerFooter}>
           <span style={{ fontSize: 11, color: '#aaa', flex: 1 }}>
             Recorded {fmtDate(t.recorded_at)} · {t.transcription_method?.replace(/_/g, ' ')}
@@ -2115,6 +2110,7 @@ Rules:
             <button style={{ ...styles.btnDanger, fontSize: 12 }} onClick={() => setConfirmDelete(true)}>🗑 Delete</button>
           )}
         </div>
+
       </div>
     </div>
   );
@@ -2188,7 +2184,6 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
             <div style={styles.success}>✅ Transcript saved to {company.name}!</div>
           )}
 
-          {/* Source info */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div style={styles.formGroup}>
               <label style={styles.label}>Source type</label>
@@ -2239,7 +2234,6 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
                    value={form.event_name} onChange={e => f('event_name', e.target.value)} />
           </div>
 
-          {/* Recording box */}
           <div style={styles.recordingBox}>
             <div style={styles.recordingHeader}>
               <div style={styles.recordingDot(isRecording)} />
@@ -2326,7 +2320,6 @@ function CompanyTranscriptsTab({ company }) {
         />
       )}
 
-      {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
         <select
           style={{ ...styles.langSelect, fontSize: 11, flex: 1 }}
@@ -2341,7 +2334,6 @@ function CompanyTranscriptsTab({ company }) {
         <button style={styles.btnSmall} onClick={load} title="Refresh">↺ Refresh</button>
       </div>
 
-      {/* List */}
       {loading ? (
         <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>Loading…</p>
       ) : transcripts.length === 0 ? (
@@ -2416,13 +2408,11 @@ function GlobalTranscriptSearch({ onClose }) {
     finally { setLoading(false); }
   }, []);
 
-  // Debounce — search 400ms after typing stops
   useEffect(() => {
     const t = setTimeout(() => doSearch(query), 400);
     return () => clearTimeout(t);
   }, [query, doSearch]);
 
-  // Highlight matching text in a snippet
   const highlight = (text, q) => {
     if (!q || !text) return text;
     const idx = text.toLowerCase().indexOf(q.toLowerCase());
@@ -2430,7 +2420,7 @@ function GlobalTranscriptSearch({ onClose }) {
     const start = Math.max(0, idx - 60);
     const end   = Math.min(text.length, idx + q.length + 80);
     const snippet = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
-    const rel = idx - start + (start > 0 ? 1 : 0); // adjusted for '…'
+    const rel = idx - start + (start > 0 ? 1 : 0);
     const before = snippet.slice(0, rel);
     const match  = snippet.slice(rel, rel + q.length);
     const after  = snippet.slice(rel + q.length);
@@ -2449,14 +2439,12 @@ function GlobalTranscriptSearch({ onClose }) {
       )}
       <div style={styles.txSearchModalBox} onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>🔍</span>
           <h2 style={styles.modalTitle}>Search all transcripts</h2>
           <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
         </div>
 
-        {/* Search input */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e6f1fb', flexShrink: 0 }}>
           <input
             ref={inputRef}
@@ -2472,8 +2460,7 @@ function GlobalTranscriptSearch({ onClose }) {
           )}
         </div>
 
-        {/* Results */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {!query && (
             <div style={{ textAlign: 'center', padding: '48px 20px', color: '#85b7eb' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
@@ -2502,7 +2489,6 @@ function GlobalTranscriptSearch({ onClose }) {
                   {SOURCE_ICONS[tx.source_type] || '📝'}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Title + company */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#042c53' }}>
                       {tx.source_title || 'Untitled'}
@@ -2513,7 +2499,6 @@ function GlobalTranscriptSearch({ onClose }) {
                     </span>
                     <span style={styles.ctrStatusBadge(tx.status)}>{STATUS_LABELS[tx.status]}</span>
                   </div>
-                  {/* Meta row */}
                   <div style={{ fontSize: 11, color: '#6a8fb5', display: 'flex', gap: '4px 12px',
                                 flexWrap: 'wrap', marginBottom: 5 }}>
                     {tx.speaker_name && <span>👤 {tx.speaker_name}</span>}
@@ -2521,11 +2506,9 @@ function GlobalTranscriptSearch({ onClose }) {
                     {tx.word_count > 0 && <span>📝 {tx.word_count.toLocaleString()} words</span>}
                     {tx.transcript_language && <span>🌐 {tx.transcript_language}</span>}
                   </div>
-                  {/* Snippet with highlight */}
                   <p style={{ fontSize: 12, color: '#4a6fa5', margin: 0, lineHeight: 1.6 }}>
                     {highlight(tx.summary || tx.full_transcript_text, query)}
                   </p>
-                  {/* Topics */}
                   {tx.topics?.length > 0 && (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
                       {tx.topics.map(tp => (
@@ -2634,7 +2617,6 @@ function CompanyCard({ company, onRefresh }) {
             ))}
           </div>
 
-          {/* People tab */}
           {tab === 'people' && (
             <>
               {company.key_people.length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No key people added yet.</p>}
@@ -2658,7 +2640,6 @@ function CompanyCard({ company, onRefresh }) {
             </>
           )}
 
-          {/* Links tab */}
           {tab === 'links' && (
             <>
               {company.links.filter(l => l.link_type === 'url').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No web links added yet.</p>}
@@ -2675,7 +2656,6 @@ function CompanyCard({ company, onRefresh }) {
             </>
           )}
 
-          {/* PDFs tab */}
           {tab === 'pdfs' && (
             <>
               {company.links.filter(l => l.link_type === 'pdf').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No PDFs added yet.</p>}
@@ -2693,7 +2673,6 @@ function CompanyCard({ company, onRefresh }) {
             </>
           )}
 
-          {/* YouTube tab */}
           {tab === 'youtube' && (
             <>
               {company.links.filter(l => l.link_type === 'youtube').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No videos added yet.</p>}
@@ -2724,7 +2703,6 @@ function CompanyCard({ company, onRefresh }) {
             </>
           )}
 
-          {/* Transcripts tab */}
           {tab === 'transcripts' && (
             <CompanyTranscriptsTab company={company} />
           )}
@@ -2736,12 +2714,12 @@ function CompanyCard({ company, onRefresh }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function CompaniesofInterest() {
-  const [companies, setCompanies]       = useState([]);
-  const [loading, setLoading]           = useState(true);
+  const [companies, setCompanies]           = useState([]);
+  const [loading, setLoading]               = useState(true);
   const [showAddCompany, setShowAddCompany] = useState(false);
-  const [showSearch, setShowSearch]     = useState(false);
-  const [search, setSearch]             = useState('');
-  const [sectorFilter, setSectorFilter] = useState('');
+  const [showSearch, setShowSearch]         = useState(false);
+  const [search, setSearch]                 = useState('');
+  const [sectorFilter, setSectorFilter]     = useState('');
 
   const fetchCompanies = useCallback(async () => {
     try {
