@@ -720,6 +720,83 @@ const styles = {
     overflowY: 'auto',
     boxShadow: '0 24px 80px rgba(4,44,83,0.2)',
   },
+
+  // ── Global transcript search modal ──
+  txSearchModalBox: {
+    background: '#fff',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 700,
+    maxHeight: '88vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    boxShadow: '0 24px 80px rgba(4,44,83,0.22)',
+  },
+  txSearchInput: {
+    width: '100%',
+    border: '1.5px solid #b5d4f4',
+    borderRadius: 12,
+    padding: '12px 16px',
+    fontSize: 15,
+    color: '#042c53',
+    background: '#f4f8fd',
+    outline: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  },
+  txSearchResult: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #e6f1fb',
+    cursor: 'pointer',
+    transition: 'background 0.12s',
+  },
+
+  // ── AI summary panel (inside viewer) ──
+  aiPanel: {
+    background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%)',
+    border: '1.5px solid #c5d8f8',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  aiPanelHead: {
+    padding: '12px 16px',
+    background: 'linear-gradient(135deg, #1a56db, #185fa5)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  aiPanelBody: {
+    padding: '14px 16px',
+  },
+  promptBox: {
+    background: '#1e1e2e',
+    borderRadius: 10,
+    padding: '14px 16px',
+    fontSize: 12,
+    color: '#cdd6f4',
+    lineHeight: 1.7,
+    fontFamily: "'Fira Code', 'Consolas', monospace",
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    maxHeight: 220,
+    overflowY: 'auto',
+    position: 'relative',
+  },
+  pasteArea: {
+    width: '100%',
+    border: '1.5px dashed #b5d4f4',
+    borderRadius: 10,
+    padding: '10px 12px',
+    fontSize: 13,
+    color: '#042c53',
+    background: '#f4f8fd',
+    outline: 'none',
+    fontFamily: 'inherit',
+    resize: 'vertical',
+    boxSizing: 'border-box',
+    minHeight: 100,
+  },
 };
 
 // Pulse animation style injected once
@@ -1634,9 +1711,20 @@ const SOURCE_ICONS = { youtube: '▶️', meeting: '🎙', earnings_call: '📊'
 const STATUS_LABELS = { raw: '⏳ Raw', reviewed: '✅ Reviewed', processed: '🔬 Processed', archived: '📦 Archived' };
 
 // ─── TRANSCRIPT VIEWER MODAL ──────────────────────────────────────────────────
-function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelete }) {
+function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, onDelete }) {
+  const [t, setT]                     = useState(initialT);
   const [statusChanging, setStatusChanging] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete]   = useState(false);
+
+  // AI summary state
+  const [showAI, setShowAI]           = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [pastedResponse, setPastedResponse] = useState('');
+  const [parsing, setParsing]         = useState(false);
+  const [parseError, setParseError]   = useState('');
+  const [applying, setApplying]       = useState(false);
+  const [applied, setApplied]         = useState(false);
+  const [parsedData, setParsedData]   = useState(null);
 
   const handleStatus = async (newStatus) => {
     setStatusChanging(true);
@@ -1645,6 +1733,7 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
+      setT(prev => ({ ...prev, status: newStatus }));
       onStatusChange && onStatusChange(newStatus);
     } catch {}
     finally { setStatusChanging(false); }
@@ -1658,9 +1747,105 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
     } catch {}
   };
 
+  // Build the prompt — fills in all the real values from the transcript
+  const buildPrompt = () => {
+    const meta = [
+      t.company_name   && `Company: ${t.company_name}`,
+      t.source_title   && `Source: ${t.source_title}`,
+      t.speaker_name   && `Speaker: ${t.speaker_name}${t.speaker_role ? ` (${t.speaker_role})` : ''}`,
+      t.event_name     && `Event: ${t.event_name}`,
+      t.event_date     && `Date: ${t.event_date}`,
+      t.transcript_language && `Language: ${t.transcript_language}`,
+    ].filter(Boolean).join('\n');
+
+    return `You are a financial/business research analyst. Analyse the following transcript and respond with ONLY a valid JSON object — no markdown, no explanation, just the raw JSON.
+
+CONTEXT
+${meta}
+
+TRANSCRIPT
+${t.full_transcript_text}
+
+RESPOND WITH THIS EXACT JSON STRUCTURE:
+{
+  "summary": "2-4 sentence executive summary of what was said",
+  "key_points": [
+    "First key point or claim made",
+    "Second key point",
+    "Third key point"
+  ],
+  "topics": ["topic_one", "topic_two", "topic_three"],
+  "sentiment_score": 0.0,
+  "analyst_notes": "Any notable context, red flags, or follow-up questions worth investigating"
+}
+
+Rules:
+- sentiment_score must be a float between -1.0 (very negative) and 1.0 (very positive)
+- topics should be short snake_case strings like "monetary_policy", "revenue_growth", "layoffs"
+- key_points should be 3-6 items, each a single clear sentence
+- Return ONLY the JSON object, nothing else`;
+  };
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(buildPrompt());
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2500);
+  };
+
+  // Parse whatever the LLM returned — strips markdown fences if present
+  const handleParseResponse = () => {
+    setParseError('');
+    setParsedData(null);
+    setParsing(true);
+    try {
+      let raw = pastedResponse.trim();
+      // strip ```json ... ``` or ``` ... ```
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const data = JSON.parse(raw);
+      // basic validation
+      if (!data.summary && !data.key_points)
+        throw new Error('Missing summary or key_points in response');
+      setParsedData(data);
+    } catch (e) {
+      setParseError(`Couldn't parse the response: ${e.message}. Make sure you copied the full JSON.`);
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!parsedData) return;
+    setApplying(true);
+    try {
+      const payload = {
+        summary:          parsedData.summary        || '',
+        key_points:       parsedData.key_points      || [],
+        topics:           parsedData.topics          || [],
+        sentiment_score:  parsedData.sentiment_score ?? null,
+        analyst_notes:    parsedData.analyst_notes   || '',
+        status:           'processed',
+      };
+      const res = await fetch(
+        `${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/update/`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setT(data.transcript);
+        setApplied(true);
+        setPastedResponse('');
+        setParsedData(null);
+        setShowAI(false);
+        onStatusChange && onStatusChange('processed');
+      }
+    } catch {}
+    finally { setApplying(false); }
+  };
+
   const wordCount  = t.word_count || t.full_transcript_text?.split(/\s+/).filter(Boolean).length || 0;
   const sourceIcon = SOURCE_ICONS[t.source_type] || '📝';
   const ytId       = t.youtube_video_id;
+  const hasAnalysis = !!(t.summary || t.key_points?.length || t.analyst_notes);
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -1674,59 +1859,157 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
               <p style={styles.viewerTitle}>{t.source_title || 'Untitled Transcript'}</p>
               <p style={styles.viewerSubtitle}>{t.company_name || `Company #${t.company_id}`}</p>
             </div>
-            <div style={styles.ctrStatusBadge(t.status)}>{STATUS_LABELS[t.status] || t.status}</div>
+            <span style={styles.ctrStatusBadge(t.status)}>{STATUS_LABELS[t.status] || t.status}</span>
             <button style={{ ...styles.modalCloseBtn, marginLeft: 6 }} onClick={onClose}>×</button>
           </div>
-
-          {/* Meta chips */}
           <div style={styles.viewerMeta}>
-            {t.speaker_name && (
-              <span style={styles.viewerMetaChip}>👤 {t.speaker_name}{t.speaker_role ? ` · ${t.speaker_role}` : ''}</span>
-            )}
-            {t.event_name && <span style={styles.viewerMetaChip}>🏛 {t.event_name}</span>}
-            {t.event_date && <span style={styles.viewerMetaChip}>📅 {fmtDate(t.event_date)}</span>}
+            {t.speaker_name && <span style={styles.viewerMetaChip}>👤 {t.speaker_name}{t.speaker_role ? ` · ${t.speaker_role}` : ''}</span>}
+            {t.event_name   && <span style={styles.viewerMetaChip}>🏛 {t.event_name}</span>}
+            {t.event_date   && <span style={styles.viewerMetaChip}>📅 {fmtDate(t.event_date)}</span>}
             {t.transcript_language && <span style={styles.viewerMetaChip}>🌐 {t.transcript_language}</span>}
-            {wordCount > 0 && <span style={styles.viewerMetaChip}>📝 {wordCount.toLocaleString()} words</span>}
-            {t.recording_duration_seconds > 0 && (
-              <span style={styles.viewerMetaChip}>⏱ {formatDurationHMS(t.recording_duration_seconds)}</span>
-            )}
-            {t.recorded_at && <span style={styles.viewerMetaChip}>🕐 {fmtDate(t.recorded_at)}</span>}
+            {wordCount > 0  && <span style={styles.viewerMetaChip}>📝 {wordCount.toLocaleString()} words</span>}
+            {t.recording_duration_seconds > 0 && <span style={styles.viewerMetaChip}>⏱ {formatDurationHMS(t.recording_duration_seconds)}</span>}
+            {t.recorded_at  && <span style={styles.viewerMetaChip}>🕐 {fmtDate(t.recorded_at)}</span>}
           </div>
         </div>
 
         {/* ── Scrollable body ── */}
         <div style={styles.viewerBody}>
 
-          {/* YouTube thumbnail link */}
+          {/* Applied confirmation */}
+          {applied && (
+            <div style={{ background: '#e8f8f0', border: '1px solid #a3e4bf', borderRadius: 10,
+                          padding: '10px 14px', fontSize: 13, color: '#1a6b3c', display: 'flex',
+                          alignItems: 'center', gap: 8 }}>
+              ✅ AI analysis applied and saved — status updated to <strong>Processed</strong>
+            </div>
+          )}
+
+          {/* YouTube thumbnail */}
           {ytId && (
-            <a
-              href={t.source_url} target="_blank" rel="noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
-                       background: '#111', borderRadius: 12, overflow: 'hidden', border: '1px solid #222' }}
-            >
-              <img
-                src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
-                alt="thumbnail"
-                style={{ width: 120, height: 68, objectFit: 'cover', flexShrink: 0 }}
-              />
+            <a href={t.source_url} target="_blank" rel="noreferrer"
+               style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
+                        background: '#111', borderRadius: 12, overflow: 'hidden', border: '1px solid #222' }}>
+              <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} alt="thumbnail"
+                   style={{ width: 120, height: 68, objectFit: 'cover', flexShrink: 0 }} />
               <div style={{ padding: '8px 12px 8px 0' }}>
                 <p style={{ margin: 0, fontSize: 12, color: '#eee', fontWeight: 600 }}>{t.source_title}</p>
                 <p style={{ margin: '3px 0 0', fontSize: 11, color: '#888' }}>↗ Open on YouTube</p>
               </div>
-              <div style={{ marginLeft: 'auto', paddingRight: 14,
-                            background: '#ff0000', borderRadius: 5, width: 28, height: 20,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 10, color: '#fff', flexShrink: 0 }}>▶</div>
+              <div style={{ marginLeft: 'auto', paddingRight: 14, background: '#ff0000', borderRadius: 5,
+                            width: 28, height: 20, display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', fontSize: 10, color: '#fff', flexShrink: 0 }}>▶</div>
             </a>
           )}
 
-          {/* Summary */}
-          {t.summary && (
-            <div style={styles.viewerSection}>
-              <div style={styles.viewerSectionHead}>💡 Summary</div>
-              <div style={styles.viewerSectionBody}>{t.summary}</div>
+          {/* ── AI SUMMARY PANEL ── */}
+          <div style={styles.aiPanel}>
+            <div style={styles.aiPanelHead}>
+              <span style={{ fontSize: 18 }}>🤖</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>AI Analysis</p>
+                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>
+                  {hasAnalysis ? 'Analysis saved — regenerate anytime' : 'Generate via any LLM — free, no API key needed'}
+                </p>
+              </div>
+              <button
+                style={{ ...styles.btnSmall, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)',
+                         color: '#fff', fontSize: 12 }}
+                onClick={() => { setShowAI(p => !p); setParseError(''); setParsedData(null); }}
+              >
+                {showAI ? '▲ Collapse' : (hasAnalysis ? '✏️ Regenerate' : '✨ Generate')}
+              </button>
             </div>
-          )}
+
+            {showAI && (
+              <div style={styles.aiPanelBody}>
+                {/* Step 1 — copy prompt */}
+                <div style={{ marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18,
+                                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>1</span>
+                    Copy this prompt → paste into ChatGPT, Claude, Gemini, etc.
+                  </p>
+                  <div style={styles.promptBox}>
+                    <span style={{ userSelect: 'all' }}>{buildPrompt()}</span>
+                  </div>
+                  <button
+                    style={{ ...styles.btnPrimary, marginTop: 8, fontSize: 12 }}
+                    onClick={handleCopyPrompt}
+                  >
+                    {promptCopied ? '✅ Copied!' : '📋 Copy prompt'}
+                  </button>
+                </div>
+
+                {/* Step 2 — paste response */}
+                <div style={{ marginBottom: 12 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18,
+                                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>2</span>
+                    Paste the AI's JSON response here
+                  </p>
+                  <textarea
+                    style={styles.pasteArea}
+                    placeholder={'Paste the AI response here...\n\n{"summary": "...", "key_points": [...], ...}'}
+                    value={pastedResponse}
+                    onChange={e => { setPastedResponse(e.target.value); setParseError(''); setParsedData(null); setApplied(false); }}
+                  />
+                  {parseError && (
+                    <div style={{ ...styles.error, marginTop: 6, fontSize: 12 }}>{parseError}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button
+                      style={{ ...styles.btnSecondary, fontSize: 12 }}
+                      onClick={handleParseResponse}
+                      disabled={!pastedResponse.trim() || parsing}
+                    >
+                      {parsing ? 'Parsing…' : '🔍 Parse response'}
+                    </button>
+                    {parsedData && (
+                      <button
+                        style={{ ...styles.btnPrimary, fontSize: 12 }}
+                        onClick={handleApply}
+                        disabled={applying}
+                      >
+                        {applying ? 'Saving…' : '💾 Apply & save to transcript'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Preview parsed data */}
+                {parsedData && (
+                  <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 10,
+                                padding: '12px 14px', fontSize: 12, color: '#1b5e20' }}>
+                    <p style={{ margin: '0 0 6px', fontWeight: 700 }}>✅ Parsed successfully — preview:</p>
+                    {parsedData.summary && <p style={{ margin: '0 0 4px' }}><strong>Summary:</strong> {parsedData.summary.slice(0, 120)}{parsedData.summary.length > 120 ? '…' : ''}</p>}
+                    {parsedData.key_points?.length > 0 && <p style={{ margin: '0 0 4px' }}><strong>Key points:</strong> {parsedData.key_points.length} items</p>}
+                    {parsedData.topics?.length > 0 && <p style={{ margin: '0 0 4px' }}><strong>Topics:</strong> {parsedData.topics.join(', ')}</p>}
+                    {parsedData.sentiment_score != null && <p style={{ margin: 0 }}><strong>Sentiment:</strong> {parsedData.sentiment_score > 0 ? '+' : ''}{parsedData.sentiment_score}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Show saved analysis inline if collapsed */}
+            {!showAI && hasAnalysis && (
+              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {t.summary && (
+                  <p style={{ margin: 0, fontSize: 13, color: '#2c3e50', lineHeight: 1.6 }}>{t.summary}</p>
+                )}
+                {t.topics?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {t.topics.map(tag => (
+                      <span key={tag} style={{ fontSize: 11, padding: '2px 9px', borderRadius: 20,
+                                              background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Key points */}
           {t.key_points?.length > 0 && (
@@ -1735,33 +2018,13 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
               <div style={{ padding: '12px 16px' }}>
                 {t.key_points.map((pt, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
-                    <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%',
-                                   width: 20, height: 20, display: 'flex', alignItems: 'center',
-                                   justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
-                      {i + 1}
-                    </span>
+                    <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 20, height: 20,
+                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                   fontSize: 10, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
                     <span style={{ fontSize: 13, color: '#2c3e50', lineHeight: 1.6 }}>{pt}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Topics + tags */}
-          {(t.topics?.length > 0 || t.custom_tags?.length > 0) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {t.topics?.map(tag => (
-                <span key={tag} style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20,
-                                         background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
-                  {tag}
-                </span>
-              ))}
-              {t.custom_tags?.map(tag => (
-                <span key={tag} style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20,
-                                         background: '#e6f1fb', color: '#185fa5', border: '1px solid #b5d4f4' }}>
-                  #{tag}
-                </span>
-              ))}
             </div>
           )}
 
@@ -1773,20 +2036,6 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
             </div>
           )}
 
-          {/* Full transcript */}
-          <div style={styles.viewerSection}>
-            <div style={{ ...styles.viewerSectionHead, justifyContent: 'space-between' }}>
-              <span>📄 Full Transcript</span>
-              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6a8fb5' }}>
-                {wordCount.toLocaleString()} words
-              </span>
-            </div>
-            <div style={{ ...styles.viewerSectionBody, maxHeight: 320, overflowY: 'auto',
-                          background: '#fff', fontSize: 13.5, lineHeight: 1.8 }}>
-              {t.full_transcript_text}
-            </div>
-          </div>
-
           {/* Sentiment bar */}
           {t.sentiment_score != null && (
             <div style={styles.viewerSection}>
@@ -1795,12 +2044,10 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 12, color: '#e74c3c', fontWeight: 600 }}>–</span>
                   <div style={{ flex: 1, height: 8, background: '#e6f1fb', borderRadius: 4, overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', borderRadius: 4,
-                      width: `${((t.sentiment_score + 1) / 2) * 100}%`,
-                      background: t.sentiment_score > 0.2 ? '#2ecc71' : t.sentiment_score < -0.2 ? '#e74c3c' : '#f39c12',
-                      transition: 'width 0.4s ease',
-                    }} />
+                    <div style={{ height: '100%', borderRadius: 4,
+                                  width: `${((t.sentiment_score + 1) / 2) * 100}%`,
+                                  background: t.sentiment_score > 0.2 ? '#2ecc71' : t.sentiment_score < -0.2 ? '#e74c3c' : '#f39c12',
+                                  transition: 'width 0.4s ease' }} />
                   </div>
                   <span style={{ fontSize: 12, color: '#2ecc71', fontWeight: 600 }}>+</span>
                   <span style={{ fontSize: 12, color: '#042c53', fontWeight: 600, minWidth: 36 }}>
@@ -1810,36 +2057,41 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
               </div>
             </div>
           )}
+
+          {/* Full transcript */}
+          <div style={styles.viewerSection}>
+            <div style={{ ...styles.viewerSectionHead, justifyContent: 'space-between' }}>
+              <span>📄 Full Transcript</span>
+              <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: '#6a8fb5' }}>
+                {wordCount.toLocaleString()} words
+              </span>
+            </div>
+            <div style={{ ...styles.viewerSectionBody, maxHeight: 280, overflowY: 'auto',
+                          background: '#fff', fontSize: 13.5, lineHeight: 1.8 }}>
+              {t.full_transcript_text}
+            </div>
+          </div>
+
         </div>
 
-        {/* ── Footer actions ── */}
+        {/* ── Footer ── */}
         <div style={styles.viewerFooter}>
           <span style={{ fontSize: 11, color: '#aaa', flex: 1 }}>
             Recorded {fmtDate(t.recorded_at)} · {t.transcription_method?.replace(/_/g, ' ')}
           </span>
-
-          {/* Status cycle */}
           {t.status !== 'archived' && (
-            <select
-              style={{ ...styles.langSelect, fontSize: 12 }}
-              value={t.status}
-              disabled={statusChanging}
-              onChange={e => handleStatus(e.target.value)}
-            >
+            <select style={{ ...styles.langSelect, fontSize: 12 }} value={t.status}
+                    disabled={statusChanging} onChange={e => handleStatus(e.target.value)}>
               <option value="raw">⏳ Raw</option>
               <option value="reviewed">✅ Reviewed</option>
               <option value="processed">🔬 Processed</option>
               <option value="archived">📦 Archive</option>
             </select>
           )}
-
           {t.source_url && (
             <a href={t.source_url} target="_blank" rel="noreferrer"
-               style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 12 }}>
-              ↗ Source
-            </a>
+               style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 12 }}>↗ Source</a>
           )}
-
           {confirmDelete ? (
             <>
               <span style={{ fontSize: 12, color: '#c0392b', fontWeight: 600 }}>Sure?</span>
@@ -1848,9 +2100,7 @@ function TranscriptViewerModal({ transcript: t, onClose, onStatusChange, onDelet
                       onClick={() => setConfirmDelete(false)}>Cancel</button>
             </>
           ) : (
-            <button style={{ ...styles.btnDanger, fontSize: 12 }} onClick={() => setConfirmDelete(true)}>
-              🗑 Delete
-            </button>
+            <button style={{ ...styles.btnDanger, fontSize: 12 }} onClick={() => setConfirmDelete(true)}>🗑 Delete</button>
           )}
         </div>
       </div>
@@ -2133,6 +2383,158 @@ function CompanyTranscriptsTab({ company }) {
   );
 }
 
+// ─── GLOBAL TRANSCRIPT SEARCH MODAL ──────────────────────────────────────────
+function GlobalTranscriptSearch({ onClose }) {
+  const [query, setQuery]         = useState('');
+  const [results, setResults]     = useState([]);
+  const [loading, setLoading]     = useState(false);
+  const [searched, setSearched]   = useState(false);
+  const [viewingTx, setViewingTx] = useState(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const doSearch = useCallback(async (q) => {
+    if (!q.trim()) { setResults([]); setSearched(false); return; }
+    setLoading(true); setSearched(true);
+    try {
+      const res = await fetch(`${BASE}/snowai-ctr/transcripts/?search=${encodeURIComponent(q)}&page_size=40`);
+      if (res.ok) setResults((await res.json()).transcripts || []);
+    } catch {}
+    finally { setLoading(false); }
+  }, []);
+
+  // Debounce — search 400ms after typing stops
+  useEffect(() => {
+    const t = setTimeout(() => doSearch(query), 400);
+    return () => clearTimeout(t);
+  }, [query, doSearch]);
+
+  // Highlight matching text in a snippet
+  const highlight = (text, q) => {
+    if (!q || !text) return text;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text.slice(0, 120) + '…';
+    const start = Math.max(0, idx - 60);
+    const end   = Math.min(text.length, idx + q.length + 80);
+    const snippet = (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+    const rel = idx - start + (start > 0 ? 1 : 0); // adjusted for '…'
+    const before = snippet.slice(0, rel);
+    const match  = snippet.slice(rel, rel + q.length);
+    const after  = snippet.slice(rel + q.length);
+    return <span>{before}<mark style={{ background: '#fff3b0', borderRadius: 3, padding: '0 2px' }}>{match}</mark>{after}</span>;
+  };
+
+  return (
+    <div style={styles.modalOverlay} onClick={onClose}>
+      {viewingTx && (
+        <TranscriptViewerModal
+          transcript={viewingTx}
+          onClose={() => setViewingTx(null)}
+          onStatusChange={(s) => setViewingTx(p => ({ ...p, status: s }))}
+          onDelete={() => { setViewingTx(null); doSearch(query); }}
+        />
+      )}
+      <div style={styles.txSearchModalBox} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={styles.modalHeader}>
+          <span style={{ fontSize: 20 }}>🔍</span>
+          <h2 style={styles.modalTitle}>Search all transcripts</h2>
+          <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
+        </div>
+
+        {/* Search input */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e6f1fb', flexShrink: 0 }}>
+          <input
+            ref={inputRef}
+            style={styles.txSearchInput}
+            placeholder="Search by keyword, speaker, company, topic…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+          {query && (
+            <p style={{ fontSize: 11, color: '#85b7eb', margin: '7px 0 0' }}>
+              {loading ? 'Searching…' : searched ? `${results.length} result${results.length !== 1 ? 's' : ''} across all companies` : ''}
+            </p>
+          )}
+        </div>
+
+        {/* Results */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {!query && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#85b7eb' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+              <p style={{ margin: 0, fontSize: 14 }}>Type to search across every transcript you've recorded</p>
+              <p style={{ margin: '6px 0 0', fontSize: 12 }}>Searches title, speaker, full text, and summaries</p>
+            </div>
+          )}
+
+          {searched && !loading && results.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: '#85b7eb' }}>
+              <div style={{ fontSize: 36, marginBottom: 10 }}>🤷</div>
+              <p style={{ margin: 0, fontSize: 14 }}>No transcripts match <strong>"{query}"</strong></p>
+            </div>
+          )}
+
+          {results.map(tx => (
+            <div
+              key={tx.id}
+              style={styles.txSearchResult}
+              onClick={() => setViewingTx(tx)}
+              onMouseEnter={e => e.currentTarget.style.background = '#f4f8fd'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1.2 }}>
+                  {SOURCE_ICONS[tx.source_type] || '📝'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Title + company */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#042c53' }}>
+                      {tx.source_title || 'Untitled'}
+                    </span>
+                    <span style={{ fontSize: 11, background: '#e6f1fb', color: '#185fa5',
+                                   border: '1px solid #b5d4f4', borderRadius: 5, padding: '1px 7px' }}>
+                      {tx.company_name || `Company #${tx.company_id}`}
+                    </span>
+                    <span style={styles.ctrStatusBadge(tx.status)}>{STATUS_LABELS[tx.status]}</span>
+                  </div>
+                  {/* Meta row */}
+                  <div style={{ fontSize: 11, color: '#6a8fb5', display: 'flex', gap: '4px 12px',
+                                flexWrap: 'wrap', marginBottom: 5 }}>
+                    {tx.speaker_name && <span>👤 {tx.speaker_name}</span>}
+                    {tx.recorded_at  && <span>📅 {fmtDate(tx.recorded_at)}</span>}
+                    {tx.word_count > 0 && <span>📝 {tx.word_count.toLocaleString()} words</span>}
+                    {tx.transcript_language && <span>🌐 {tx.transcript_language}</span>}
+                  </div>
+                  {/* Snippet with highlight */}
+                  <p style={{ fontSize: 12, color: '#4a6fa5', margin: 0, lineHeight: 1.6 }}>
+                    {highlight(tx.summary || tx.full_transcript_text, query)}
+                  </p>
+                  {/* Topics */}
+                  {tx.topics?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 5 }}>
+                      {tx.topics.map(tp => (
+                        <span key={tp} style={{ fontSize: 10, padding: '1px 7px', borderRadius: 10,
+                                               background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                          {tp}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: 16, color: '#b5d4f4', flexShrink: 0 }}>›</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── COMPANY CARD ─────────────────────────────────────────────────────────────
 function CompanyCard({ company, onRefresh }) {
   const [tab, setTab] = useState('people');
@@ -2322,10 +2724,11 @@ function CompanyCard({ company, onRefresh }) {
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function CompaniesofInterest() {
-  const [companies, setCompanies] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [companies, setCompanies]       = useState([]);
+  const [loading, setLoading]           = useState(true);
   const [showAddCompany, setShowAddCompany] = useState(false);
-  const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch]     = useState(false);
+  const [search, setSearch]             = useState('');
   const [sectorFilter, setSectorFilter] = useState('');
 
   const fetchCompanies = useCallback(async () => {
@@ -2350,6 +2753,7 @@ export default function CompaniesofInterest() {
 
   return (
     <div style={styles.page}>
+      {showSearch && <GlobalTranscriptSearch onClose={() => setShowSearch(false)} />}
       {showAddCompany && (
         <AddCompanyModal
           onClose={() => setShowAddCompany(false)}
@@ -2365,7 +2769,12 @@ export default function CompaniesofInterest() {
               <span style={styles.pageTitleAccent} />
               SnowAI Companies of Interest
             </h5>
-            <button style={styles.btnPrimary} onClick={() => setShowAddCompany(true)}>+ Add company</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={styles.btnSecondary} onClick={() => setShowSearch(true)}>
+                🔍 Search transcripts
+              </button>
+              <button style={styles.btnPrimary} onClick={() => setShowAddCompany(true)}>+ Add company</button>
+            </div>
           </div>
 
           <div style={styles.searchBar}>
