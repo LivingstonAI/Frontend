@@ -611,7 +611,7 @@ const styles = {
     borderRadius: 20,
     width: '100%',
     maxWidth: 860,
-    maxHeight: '96vh',
+    height: '92vh',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -621,6 +621,7 @@ const styles = {
     background: 'linear-gradient(135deg, #042c53 0%, #0c447c 60%, #185fa5 100%)',
     padding: '18px 22px',
     flexShrink: 0,
+    minHeight: 0,
   },
   viewerHeaderTop: {
     display: 'flex',
@@ -666,6 +667,7 @@ const styles = {
   },
   viewerBody: {
     flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
     padding: '20px 24px',
     display: 'flex',
@@ -708,6 +710,7 @@ const styles = {
     gap: 10,
     flexShrink: 0,
     flexWrap: 'wrap',
+    minHeight: 0,
   },
 
   // ── Record-into-company modal ──
