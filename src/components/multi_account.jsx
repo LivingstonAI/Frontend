@@ -5,8 +5,8 @@ import SideNavs from "./side_navs";
 const baseUrl = 'https://backend-production-c0ab.up.railway.app';
 
 // ─── Colour helpers ───────────────────────────────────────────────────────────
-const roi2col  = v => v > 0 ? '#00e5a0' : v < 0 ? '#ff4d6d' : '#8b949e';
-const pnl2col  = v => v > 0 ? '#00e5a0' : v < 0 ? '#ff4d6d' : '#8b949e';
+const roi2col  = (v, theme) => v > 0 ? '#00e5a0' : v < 0 ? (theme === 'light' ? '#1d4ed8' : '#ff4d6d') : '#8b949e';
+const pnl2col  = (v, theme) => v > 0 ? '#00e5a0' : v < 0 ? (theme === 'light' ? '#1d4ed8' : '#ff4d6d') : '#8b949e';
 
 const SECTOR_PALETTE = [
   '#7c3aed','#0ea5e9','#f59e0b','#10b981',
@@ -213,7 +213,12 @@ function MiniSparkline({ data, color = '#7c3aed', width = 120, height = 36 }) {
 }
 
 // ─── Equity Curve Chart ───────────────────────────────────────────────────────
-function EquityChart({ data, initialCapital }) {
+function EquityChart({ data, initialCapital, theme }) {
+  const isLight = theme === 'light';
+  const axisCol = isLight ? '#1e40af' : '#475569';
+  const gridCol = isLight ? '#bfdbfe' : '#1e2530';
+  const dotWin  = '#00e5a0';
+  const dotLoss = isLight ? '#1d4ed8' : '#ff4d6d';
   const [tooltip, setTooltip] = useState(null);
   const svgRef = useRef(null);
   if (!data || data.length === 0) return <div className="mac-loading">No trade data available</div>;
@@ -239,10 +244,10 @@ function EquityChart({ data, initialCapital }) {
         <div className="chart-tooltip" style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}>
           <div style={{ color: '#475569' }}>Trade #{tooltip.d.trade_number}</div>
           {tooltip.d.asset && <div style={{ color: '#a78bfa' }}>{tooltip.d.asset}</div>}
-          <div style={{ color: pnl2col(tooltip.d.trade_amount) }}>
+          <div style={{ color: pnl2col(tooltip.d.trade_amount, theme) }}>
             {tooltip.d.trade_amount > 0 ? '+' : ''}{tooltip.d.trade_amount}
           </div>
-          <div style={{ color: '#e2e8f0', fontWeight: 700 }}>${tooltip.d.balance?.toLocaleString()}</div>
+          <div style={{ color: themeVars.text, fontWeight: 700 }}>${tooltip.d.balance?.toLocaleString()}</div>
         </div>
       )}
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 340 }}>
@@ -259,8 +264,8 @@ function EquityChart({ data, initialCapital }) {
           const v = minB + r * (maxB - minB);
           return (
             <g key={i}>
-              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#1e2530" strokeWidth="1" strokeDasharray="4" />
-              <text x={pad.left - 8} y={y + 4} fill="#475569" fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke={gridCol} strokeWidth="1" strokeDasharray="4" />
+              <text x={pad.left - 8} y={y + 4} fill={axisCol} fontSize="11" textAnchor="end" fontFamily="DM Mono,monospace">
                 ${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0)}
               </text>
             </g>
@@ -270,7 +275,7 @@ function EquityChart({ data, initialCapital }) {
         {[0,.25,.5,.75,1].map((r, i) => {
           const x = pad.left + r * iW;
           return (
-            <text key={i} x={x} y={H - pad.bottom + 18} fill="#475569" fontSize="11" textAnchor="middle" fontFamily="DM Mono,monospace">
+            <text key={i} x={x} y={H - pad.bottom + 18} fill={axisCol} fontSize="11" textAnchor="middle" fontFamily="DM Mono,monospace">
               T{Math.round(r * maxT)}
             </text>
           );
@@ -290,8 +295,8 @@ function EquityChart({ data, initialCapital }) {
             cx={xS(p.trade_number)}
             cy={yS(p.balance)}
             r="5"
-            fill={p.outcome === 'Win' ? '#00e5a0' : p.outcome === 'Loss' ? '#ff4d6d' : '#7c3aed'}
-            stroke="#0d1117"
+            fill={p.outcome === 'Win' ? dotWin : p.outcome === 'Loss' ? dotLoss : '#7c3aed'}
+            stroke={isLight ? "#dbeafe" : "#0d1117"}
             strokeWidth="2"
             style={{ cursor: 'pointer' }}
             onMouseEnter={e => {
@@ -302,8 +307,8 @@ function EquityChart({ data, initialCapital }) {
           />
         ))}
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#475569', fontFamily: 'DM Mono,monospace', marginTop: 8 }}>
-        <span><span style={{ color: '#00e5a0' }}>●</span> Win &nbsp;<span style={{ color: '#ff4d6d' }}>●</span> Loss</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: axisCol, fontFamily: 'DM Mono,monospace', marginTop: 8 }}>
+        <span><span style={{ color: dotWin }}>●</span> Win &nbsp;<span style={{ color: dotLoss }}>●</span> Loss</span>
         <span style={{ color: '#f59e0b' }}>— Baseline</span>
       </div>
     </div>
@@ -329,7 +334,7 @@ function SectorChart({ sectorData }) {
       {tooltip && (
         <div className="chart-tooltip" style={{ left: tooltip.x + 12, top: tooltip.y - 40 }}>
           <div style={{ color: '#a78bfa', fontWeight: 700 }}>{tooltip.s.sector}</div>
-          <div>Avg ROI: <span style={{ color: roi2col(tooltip.s.avg_roi), fontWeight: 700 }}>{tooltip.s.avg_roi}%</span></div>
+          <div>Avg ROI: <span style={{ color: roi2col(tooltip.s.avg_roi, theme), fontWeight: 700 }}>{tooltip.s.avg_roi}%</span></div>
           <div>Trades: {tooltip.s.total_trades}</div>
           <div>Win Rate: {tooltip.s.win_rate}%</div>
         </div>
@@ -451,8 +456,8 @@ function MonteCarloModal({ results, onClose }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Initial Capital',     val: `$${results.initial_capital.toLocaleString()}`,              col: '#e2e8f0' },
-            { label: 'Mean Final Balance',  val: `$${stats.mean_final_balance.toLocaleString()}`,             col: pnl2col(stats.mean_final_balance - results.initial_capital) },
-            { label: 'Median Balance',      val: `$${stats.median_final_balance.toLocaleString()}`,           col: pnl2col(stats.median_final_balance - results.initial_capital) },
+            { label: 'Mean Final Balance',  val: `$${stats.mean_final_balance.toLocaleString()}`,             col: pnl2col(stats.mean_final_balance - results.initial_capital, theme) },
+            { label: 'Median Balance',      val: `$${stats.median_final_balance.toLocaleString()}`,           col: pnl2col(stats.median_final_balance - results.initial_capital, theme) },
             { label: 'Profit Probability',  val: `${stats.probability_of_profit}%`,                          col: stats.probability_of_profit > 50 ? '#00e5a0' : '#ff4d6d' },
             { label: '5th Pct (Worst)',     val: `$${stats.percentile_5.toLocaleString()}`,                  col: '#ff4d6d' },
             { label: '95th Pct (Best)',     val: `$${stats.percentile_95.toLocaleString()}`,                 col: '#00e5a0' },
@@ -517,14 +522,14 @@ function SynthesiseModal({ accounts, onClose, onSynthesize }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 24 }}>
             {[
               { label: 'Combined Capital', val: `$${s.initial_capital.toLocaleString()}` },
-              { label: 'Net P&L',          val: `$${s.net_pnl.toLocaleString()}`, col: pnl2col(s.net_pnl) },
-              { label: 'ROI',              val: `${s.roi}%`, col: roi2col(s.roi) },
+              { label: 'Net P&L',          val: `$${s.net_pnl.toLocaleString()}`, col: pnl2col(s.net_pnl, theme) },
+              { label: 'ROI',              val: `${s.roi}%`, col: roi2col(s.roi, theme) },
               { label: 'Win Rate',         val: `${s.win_rate}%` },
               { label: 'Total Trades',     val: s.total_trades },
             ].map(({ label, val, col }) => (
               <div key={label} style={{ background: '#0a0c10', border: '1px solid #1e2530', borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ fontSize: 11, color: '#475569', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5, fontFamily: 'DM Mono,monospace' }}>{label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: col || '#e2e8f0', fontFamily: 'DM Mono,monospace' }}>{val}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: col || themeVars.text, fontFamily: 'DM Mono,monospace' }}>{val}</div>
               </div>
             ))}
           </div>
@@ -557,7 +562,7 @@ function SynthesiseModal({ accounts, onClose, onSynthesize }) {
               <label htmlFor={`sc-${acc.account_id}`}>
                 <span className="chk-box">{selected.includes(acc.account_id) && <span style={{ fontSize: 10, color: '#0a0c10', fontWeight: 900 }}>✓</span>}</span>
                 <span>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#e2e8f0' }}>{acc.account_name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: themeVars.text }}>{acc.account_name}</div>
                   <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace' }}>{acc.main_assets}</div>
                 </span>
               </label>
@@ -732,7 +737,7 @@ function AccountTradesPanel({ accountId, accountName }) {
                     {t.outcome === 'Win' ? '▲' : '▼'} {t.outcome}
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: pnl2col(t.outcome === 'Win' ? t.amount : -t.amount), fontWeight: 700 }}>
+                <td style={{ padding: '8px 12px', color: pnl2col(t.outcome === 'Win' ? t.amount : -t.amount, theme), fontWeight: 700 }}>
                   {t.outcome === 'Win' ? '+' : '-'}${Math.abs(t.amount).toFixed(2)}
                 </td>
                 <td style={{ padding: '8px 12px', color: '#475569' }}>
@@ -764,7 +769,7 @@ function AccountTradesPanel({ accountId, accountName }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function MultiAccountAnalytics() {
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
   const [tab, setTab] = useState('overview');    // overview | sector | compare | trades
   const [overview, setOverview] = useState(null);
   const [equityData, setEquityData] = useState(null);
@@ -883,7 +888,7 @@ export default function MultiAccountAnalytics() {
             {/* Page header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
               <div>
-                <h1 style={{ fontSize: 26, fontWeight: 800, color: '#e2e8f0', margin: 0, letterSpacing: '-0.02em' }}>Multi-Account Analytics</h1>
+                <h1 style={{ fontSize: 26, fontWeight: 800, color: themeVars.text, margin: 0, letterSpacing: '-0.02em' }}>Multi-Account Analytics</h1>
                 <p style={{ margin: '4px 0 0', color: themeVars.muted, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>
                   {overview?.total_accounts || 0} accounts · live performance dashboard
                 </p>
@@ -909,11 +914,11 @@ export default function MultiAccountAnalytics() {
                   {overview.best_performer && (
                     <div className="mac-card mac-card-accent-green">
                       <div className="sec-hdr">🏆 Best Performer</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>{overview.best_performer.account_name}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: themeVars.text, marginBottom: 4 }}>{overview.best_performer.account_name}</div>
                       <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>{overview.best_performer.main_assets}</div>
                       <div className="met-grid">
                         <div><div className="met-label">ROI</div><div className="met-value" style={{ color: '#00e5a0' }}>{overview.best_performer.roi}%</div></div>
-                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.best_performer.net_pnl) }}>${overview.best_performer.net_pnl}</div></div>
+                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.best_performer.net_pnl, theme) }}>${overview.best_performer.net_pnl}</div></div>
                         <div><div className="met-label">Win Rate</div><div className="met-value">{overview.best_performer.win_rate}%</div></div>
                         <div><div className="met-label">Trades</div><div className="met-value">{overview.best_performer.total_trades}</div></div>
                       </div>
@@ -922,11 +927,11 @@ export default function MultiAccountAnalytics() {
                   {overview.worst_performer && (
                     <div className="mac-card mac-card-accent-red">
                       <div className="sec-hdr">📉 Worst Performer</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>{overview.worst_performer.account_name}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: themeVars.text, marginBottom: 4 }}>{overview.worst_performer.account_name}</div>
                       <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>{overview.worst_performer.main_assets}</div>
                       <div className="met-grid">
                         <div><div className="met-label">ROI</div><div className="met-value" style={{ color: '#ff4d6d' }}>{overview.worst_performer.roi}%</div></div>
-                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.worst_performer.net_pnl) }}>${overview.worst_performer.net_pnl}</div></div>
+                        <div><div className="met-label">Net P&L</div><div className="met-value" style={{ color: pnl2col(overview.worst_performer.net_pnl, theme) }}>${overview.worst_performer.net_pnl}</div></div>
                         <div><div className="met-label">Win Rate</div><div className="met-value">{overview.worst_performer.win_rate}%</div></div>
                         <div><div className="met-label">Trades</div><div className="met-value">{overview.worst_performer.total_trades}</div></div>
                       </div>
@@ -934,11 +939,11 @@ export default function MultiAccountAnalytics() {
                   )}
                   <div className="mac-card mac-card-accent-blue">
                     <div className="sec-hdr">📊 Portfolio Averages</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0', marginBottom: 4 }}>All {overview.total_accounts} Accounts</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: themeVars.text, marginBottom: 4 }}>All {overview.total_accounts} Accounts</div>
                     <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 12 }}>Combined portfolio</div>
                     <div className="met-grid">
-                      <div><div className="met-label">Avg ROI</div><div className="met-value" style={{ color: roi2col(overview.averages.avg_roi) }}>{overview.averages.avg_roi}%</div></div>
-                      <div><div className="met-label">Avg P&L</div><div className="met-value" style={{ color: pnl2col(overview.averages.avg_net_pnl) }}>${overview.averages.avg_net_pnl}</div></div>
+                      <div><div className="met-label">Avg ROI</div><div className="met-value" style={{ color: roi2col(overview.averages.avg_roi, theme) }}>{overview.averages.avg_roi}%</div></div>
+                      <div><div className="met-label">Avg P&L</div><div className="met-value" style={{ color: pnl2col(overview.averages.avg_net_pnl, theme) }}>${overview.averages.avg_net_pnl}</div></div>
                       <div><div className="met-label">Avg Win Rate</div><div className="met-value">{overview.averages.avg_win_rate}%</div></div>
                       <div><div className="met-label">Accounts</div><div className="met-value">{overview.total_accounts}</div></div>
                     </div>
@@ -963,16 +968,16 @@ export default function MultiAccountAnalytics() {
                         className={`acc-card${selectedAcc === acc.account_id ? ' selected' : ''}`}
                         onClick={() => setSelectedAcc(acc.account_id)}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: '#e2e8f0' }}>{acc.account_name}</div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: themeVars.text }}>{acc.account_name}</div>
                           <span className={`badge ${acc.roi >= 0 ? 'badge-green' : 'badge-red'}`}>
                             {acc.roi >= 0 ? '▲' : '▼'} {acc.roi}%
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: '#475569', fontFamily: 'DM Mono,monospace', marginBottom: 10 }}>{acc.main_assets}</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div><div className="met-label">P&L</div><div style={{ color: pnl2col(acc.net_pnl), fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>${acc.net_pnl}</div></div>
-                          <div><div className="met-label">Win Rate</div><div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.win_rate}%</div></div>
-                          <div><div className="met-label">Trades</div><div style={{ color: '#e2e8f0', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.total_trades}</div></div>
+                          <div><div className="met-label">P&L</div><div style={{ color: pnl2col(acc.net_pnl, theme), fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>${acc.net_pnl}</div></div>
+                          <div><div className="met-label">Win Rate</div><div style={{ color: themeVars.text, fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.win_rate}%</div></div>
+                          <div><div className="met-label">Trades</div><div style={{ color: themeVars.text, fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>{acc.total_trades}</div></div>
                           <div><div className="met-label">Balance</div><div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 13, fontFamily: 'DM Mono,monospace' }}>${acc.current_balance?.toFixed(2)}</div></div>
                         </div>
                         <button className="mc-btn" disabled={mcRunning}
@@ -997,7 +1002,7 @@ export default function MultiAccountAnalytics() {
                   </div>
                   {loadingEq
                     ? <div className="mac-loading"><div className="spinner" />&nbsp;Loading…</div>
-                    : <EquityChart data={equityData?.equity_curve} initialCapital={equityData?.initial_capital} />
+                    : <EquityChart data={equityData?.equity_curve} initialCapital={equityData?.initial_capital} theme={theme} />
                   }
                 </div>
               </>
@@ -1016,7 +1021,7 @@ export default function MultiAccountAnalytics() {
                         <div key={s.sector} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94a3b8', fontFamily: 'DM Mono,monospace' }}>
                           <div className="sector-dot" style={{ background: SECTOR_PALETTE[i % SECTOR_PALETTE.length] }} />
                           {s.sector}
-                          <span style={{ color: roi2col(s.avg_roi), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</span>
+                          <span style={{ color: roi2col(s.avg_roi, theme), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</span>
                         </div>
                       ))}
                     </div>
@@ -1046,9 +1051,9 @@ export default function MultiAccountAnalytics() {
                                 <td style={{ padding: '9px 12px', color: themeVars.subtext }}>{s.total_trades}</td>
                                 <td style={{ padding: '9px 12px', color: '#00e5a0' }}>{s.winning_trades}</td>
                                 <td style={{ padding: '9px 12px', color: '#ff4d6d' }}>{s.losing_trades}</td>
-                                <td style={{ padding: '9px 12px', color: '#e2e8f0', fontWeight: 700 }}>{s.win_rate}%</td>
-                                <td style={{ padding: '9px 12px', color: roi2col(s.avg_roi), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</td>
-                                <td style={{ padding: '9px 12px', color: pnl2col(s.net_pnl), fontWeight: 700 }}>${s.net_pnl}</td>
+                                <td style={{ padding: '9px 12px', color: themeVars.text, fontWeight: 700 }}>{s.win_rate}%</td>
+                                <td style={{ padding: '9px 12px', color: roi2col(s.avg_roi, theme), fontWeight: 700 }}>{s.avg_roi > 0 ? '+' : ''}{s.avg_roi}%</td>
+                                <td style={{ padding: '9px 12px', color: pnl2col(s.net_pnl, theme), fontWeight: 700 }}>${s.net_pnl}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1077,7 +1082,7 @@ export default function MultiAccountAnalytics() {
                           <div style={{ fontSize: 20, fontWeight: 800, color: i === 0 ? '#f59e0b' : themeVars.rankNum, fontFamily: 'DM Mono,monospace', minWidth: 28 }}>#{i + 1}</div>
                           <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: themeVars.text }}>{acc.account_name}</div>
-                            <div style={{ fontSize: 12, color: roi2col(acc.roi), fontFamily: 'DM Mono,monospace', fontWeight: 700 }}>{acc.roi > 0 ? '+' : ''}{acc.roi}%</div>
+                            <div style={{ fontSize: 12, color: roi2col(acc.roi, theme), fontFamily: 'DM Mono,monospace', fontWeight: 700 }}>{acc.roi > 0 ? '+' : ''}{acc.roi}%</div>
                           </div>
                         </div>
                       ))}
