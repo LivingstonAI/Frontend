@@ -810,7 +810,7 @@ const styles = {
   },
 };
 
-// Pulse animation style injected once
+// Pulse animation + global mobile overrides injected once
 const pulseStyle = `
   @keyframes pulse {
     0%   { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
@@ -818,6 +818,79 @@ const pulseStyle = `
     100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
   }
 `;
+
+// Global styles tag — injected once at app level via a component
+function GlobalStyles() {
+  return (
+    <style>{`
+      ${pulseStyle}
+
+      /* ── Mobile modal overrides ── */
+      @media (max-width: 640px) {
+        .snowai-modal-overlay {
+          padding: 0 !important;
+          align-items: flex-end !important;
+        }
+        .snowai-viewer-modal {
+          max-width: 100% !important;
+          width: 100% !important;
+          height: 100dvh !important;
+          max-height: 100dvh !important;
+          border-radius: 0 !important;
+        }
+        .snowai-pdf-modal {
+          max-width: 100% !important;
+          width: 100% !important;
+          max-height: 100dvh !important;
+          border-radius: 0 !important;
+        }
+        .snowai-search-modal {
+          max-width: 100% !important;
+          width: 100% !important;
+          max-height: 100dvh !important;
+          border-radius: 0 !important;
+        }
+        .snowai-yt-modal {
+          max-width: 100% !important;
+          width: 100% !important;
+          height: 100dvh !important;
+          max-height: 100dvh !important;
+          border-radius: 0 !important;
+        }
+        .snowai-viewer-header {
+          padding: 12px 14px !important;
+        }
+        .snowai-viewer-body {
+          padding: 14px !important;
+        }
+        .snowai-viewer-footer {
+          padding: 10px 14px !important;
+          gap: 6px !important;
+        }
+        .snowai-viewer-title {
+          font-size: 14px !important;
+        }
+        .snowai-viewer-meta-chip {
+          font-size: 10px !important;
+        }
+        .snowai-card-grid {
+          grid-template-columns: 1fr !important;
+        }
+        .snowai-page-header {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+        }
+        .snowai-tab-row {
+          gap: 2px !important;
+        }
+        .snowai-tab-btn {
+          padding: 5px 8px !important;
+          font-size: 11px !important;
+        }
+      }
+    `}</style>
+  );
+}
 
 // ─── SUPPORTED LANGUAGES ──────────────────────────────────────────────────────
 const SUPPORTED_LANGUAGES = [
@@ -1272,7 +1345,6 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
 
   return (
     <div style={styles.modalOverlay}>
-      <style>{pulseStyle}</style>
       <div style={{ ...styles.modalBox, maxWidth: isYoutube ? 600 : 520 }}>
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>🔗</span>
@@ -1595,8 +1667,7 @@ function YouTubeModal({ link, company, onClose }) {
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
-      <style>{pulseStyle}</style>
-      <div style={{ ...styles.ytModalBox }} onClick={e => e.stopPropagation()}>
+      <div className="snowai-yt-modal" style={{ ...styles.ytModalBox }} onClick={e => e.stopPropagation()}>
         <div style={styles.ytModalHeader}>
           <div style={styles.ytLogo}><span>▶</span><span>SnowAI YouTube</span></div>
           <span style={styles.ytTitle}>{link.title}</span>
@@ -1679,18 +1750,233 @@ function YouTubeModal({ link, company, onClose }) {
   );
 }
 
-// ─── PDF VIEWER MODAL ─────────────────────────────────────────────────────────
-function PDFModal({ link, onClose }) {
+// ─── PDF VIEWER MODAL (with AI analysis) ──────────────────────────────────────
+function PDFModal({ link, company, onClose }) {
+  const [showAI, setShowAI]             = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [pastedResponse, setPastedResponse] = useState('');
+  const [parsing, setParsing]           = useState(false);
+  const [parseError, setParseError]     = useState('');
+  const [applying, setApplying]         = useState(false);
+  const [applied, setApplied]           = useState(false);
+  const [parsedData, setParsedData]     = useState(null);
+  const [pdfAnalysis, setPdfAnalysis]   = useState(link.ai_analysis || null);  // cached on link obj
+
+  const hasAnalysis = !!(pdfAnalysis?.summary || pdfAnalysis?.key_points?.length);
+
+  // Build a prompt tailored for PDF documents
+  const buildPdfPrompt = () => {
+    const meta = [
+      company?.name  && `Company: ${company.name}`,
+      link.title     && `Document: ${link.title}`,
+      link.url       && `URL: ${link.url}`,
+    ].filter(Boolean).join('\n');
+
+    return `You are a financial/business research analyst. The user has saved a PDF document for research. Analyse the document at the link below and respond with ONLY a valid JSON object — no markdown, no explanation, just the raw JSON.
+
+CONTEXT
+${meta}
+
+Note: If you cannot access the PDF directly, the user will paste relevant excerpts or describe its content for you to analyse.
+
+RESPOND WITH THIS EXACT JSON STRUCTURE:
+{
+  "summary": "2-4 sentence executive summary of the document",
+  "key_points": [
+    "First key finding or claim",
+    "Second key finding",
+    "Third key finding"
+  ],
+  "topics": ["topic_one", "topic_two", "topic_three"],
+  "sentiment_score": 0.0,
+  "analyst_notes": "Any notable context, red flags, or follow-up questions worth investigating"
+}
+
+Rules:
+- sentiment_score must be a float between -1.0 (very negative) and 1.0 (very positive)
+- topics should be short snake_case strings like "monetary_policy", "revenue_growth", "annual_report"
+- key_points should be 3-6 items, each a single clear sentence
+- Return ONLY the JSON object, nothing else`;
+  };
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(buildPdfPrompt());
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2500);
+  };
+
+  const handleParseResponse = () => {
+    setParseError(''); setParsedData(null); setParsing(true);
+    try {
+      let raw = pastedResponse.trim();
+      raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const data = JSON.parse(raw);
+      if (!data.summary && !data.key_points) throw new Error('Missing summary or key_points');
+      setParsedData(data);
+    } catch (e) {
+      setParseError(`Couldn't parse: ${e.message}. Make sure you copied the full JSON.`);
+    } finally { setParsing(false); }
+  };
+
+  const handleApply = async () => {
+    if (!parsedData || !company) return;
+    setApplying(true);
+    try {
+      const payload = {
+        link_id:         link.id,
+        summary:         parsedData.summary        || '',
+        key_points:      parsedData.key_points      || [],
+        topics:          parsedData.topics          || [],
+        sentiment_score: parsedData.sentiment_score ?? null,
+        analyst_notes:   parsedData.analyst_notes   || '',
+      };
+      const res = await fetch(
+        `${BASE}/snowai-companies-of-interest/${company.id}/links/${link.id}/apply-ai/`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPdfAnalysis(data.analysis);
+        // Patch the link object so the next open shows it
+        link.ai_analysis = data.analysis;
+        setApplied(true);
+        setPastedResponse('');
+        setParsedData(null);
+        setShowAI(false);
+      }
+    } catch {}
+    finally { setApplying(false); }
+  };
+
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.pdfModalBox} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
+    <div className="snowai-modal-overlay" style={styles.modalOverlay} onClick={onClose}>
+      <div
+        className="snowai-pdf-modal"
+        style={{
+          ...styles.pdfModalBox,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '92vh',
+          maxHeight: '92vh',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ ...styles.modalHeader, flexShrink: 0 }}>
           <span style={{ fontSize: 18 }}>📄</span>
           <h2 style={{ ...styles.modalTitle, flex: 1 }}>{link.title}</h2>
-          <a href={link.url} target="_blank" rel="noreferrer" style={{ color: '#85b7eb', fontSize: 12, marginRight: 8, textDecoration: 'none' }}>↗ Open in tab</a>
+          <a href={link.url} target="_blank" rel="noreferrer"
+             style={{ color: '#85b7eb', fontSize: 12, marginRight: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            ↗ Open
+          </a>
           <button style={styles.modalCloseBtn} onClick={onClose}>×</button>
         </div>
-        <iframe style={styles.pdfIframe} src={`${link.url}#view=fitH`} title={link.title} />
+
+        {/* PDF iframe — flex fill */}
+        <iframe
+          style={{ flex: 1, border: 'none', width: '100%', minHeight: 0 }}
+          src={`${link.url}#view=fitH`}
+          title={link.title}
+        />
+
+        {/* AI Analysis panel — pinned at bottom, collapsible */}
+        <div style={{
+          background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%)',
+          border: '1.5px solid #c5d8f8',
+          borderTop: 'none',
+          flexShrink: 0,
+          maxHeight: showAI ? 440 : 52,
+          overflowY: showAI ? 'auto' : 'hidden',
+          transition: 'max-height 0.3s ease',
+        }}>
+          {/* Panel header */}
+          <div style={{ ...styles.aiPanelHead, position: 'sticky', top: 0 }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>🤖</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>AI Analysis</p>
+            </div>
+            {applied && (
+              <span style={{ fontSize: 11, color: '#6fcf97', marginRight: 8 }}>✅ Saved</span>
+            )}
+            <button
+              style={{ ...styles.btnSmall, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12, flexShrink: 0 }}
+              onClick={() => { setShowAI(p => !p); setParseError(''); setParsedData(null); }}
+            >
+              {showAI ? '▲ Collapse' : (hasAnalysis ? '✏️ Regenerate' : '✨ Analyse')}
+            </button>
+          </div>
+
+          {/* Saved analysis preview when collapsed */}
+          {!showAI && hasAnalysis && (
+            <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {pdfAnalysis.summary && (
+                <p style={{ margin: 0, fontSize: 12, color: '#2c3e50', lineHeight: 1.6 }}>
+                  {pdfAnalysis.summary}
+                </p>
+              )}
+              {pdfAnalysis.topics?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {pdfAnalysis.topics.map(t => (
+                    <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                                          background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showAI && (
+            <div style={styles.aiPanelBody}>
+              {/* Step 1 */}
+              <div style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>1</span>
+                  Copy this prompt → paste into ChatGPT, Claude, Gemini, etc.
+                </p>
+                <div style={styles.promptBox}><span style={{ userSelect: 'all' }}>{buildPdfPrompt()}</span></div>
+                <button style={{ ...styles.btnPrimary, marginTop: 8, fontSize: 12 }} onClick={handleCopyPrompt}>
+                  {promptCopied ? '✅ Copied!' : '📋 Copy prompt'}
+                </button>
+              </div>
+
+              {/* Step 2 */}
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>2</span>
+                  Paste the AI's JSON response here
+                </p>
+                <textarea
+                  style={styles.pasteArea}
+                  placeholder={'Paste the AI response here...\n\n{"summary": "...", "key_points": [...], ...}'}
+                  value={pastedResponse}
+                  onChange={e => { setPastedResponse(e.target.value); setParseError(''); setParsedData(null); }}
+                />
+                {parseError && <div style={{ ...styles.error, marginTop: 6, fontSize: 12 }}>{parseError}</div>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button style={{ ...styles.btnSecondary, fontSize: 12 }} onClick={handleParseResponse} disabled={!pastedResponse.trim() || parsing}>
+                    {parsing ? 'Parsing…' : '🔍 Parse response'}
+                  </button>
+                  {parsedData && (
+                    <button style={{ ...styles.btnPrimary, fontSize: 12 }} onClick={handleApply} disabled={applying}>
+                      {applying ? 'Saving…' : '💾 Save analysis'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {parsedData && (
+                <div style={{ background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#1b5e20' }}>
+                  <p style={{ margin: '0 0 6px', fontWeight: 700 }}>✅ Parsed — preview:</p>
+                  {parsedData.summary && <p style={{ margin: '0 0 4px' }}><strong>Summary:</strong> {parsedData.summary.slice(0, 120)}{parsedData.summary.length > 120 ? '…' : ''}</p>}
+                  {parsedData.key_points?.length > 0 && <p style={{ margin: '0 0 4px' }}><strong>Key points:</strong> {parsedData.key_points.length} items</p>}
+                  {parsedData.topics?.length > 0 && <p style={{ margin: 0 }}><strong>Topics:</strong> {parsedData.topics.join(', ')}</p>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -1842,7 +2128,7 @@ Rules:
   const hasAnalysis = !!(t.summary || t.key_points?.length || t.analyst_notes);
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
+    <div className="snowai-modal-overlay" style={styles.modalOverlay} onClick={onClose}>
       {/*
         ─── THE FIX ───────────────────────────────────────────────────────────
         viewerModalBox:  display:flex, flexDirection:column, height:92vh, overflow:hidden
@@ -1851,10 +2137,10 @@ Rules:
         viewerFooter:    flexShrink:0  → always visible at bottom
         ────────────────────────────────────────────────────────────────────── 
       */}
-      <div style={styles.viewerModalBox} onClick={e => e.stopPropagation()}>
+      <div className="snowai-viewer-modal" style={styles.viewerModalBox} onClick={e => e.stopPropagation()}>
 
         {/* ── Gradient header — fixed at top, never shrinks ── */}
-        <div style={styles.viewerHeader}>
+        <div className="snowai-viewer-header" style={styles.viewerHeader}>
           <div style={styles.viewerHeaderTop}>
             <div style={styles.viewerIcon}>{sourceIcon}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -1876,7 +2162,7 @@ Rules:
         </div>
 
         {/* ── THE SCROLL CONTAINER — flex:1, minHeight:0, overflowY:auto ── */}
-        <div style={styles.viewerBody}>
+        <div className="snowai-viewer-body" style={styles.viewerBody}>
 
           {applied && (
             <div style={{ background: '#e8f8f0', border: '1px solid #a3e4bf', borderRadius: 10,
@@ -2082,7 +2368,7 @@ Rules:
         {/* ── END SCROLL CONTAINER ── */}
 
         {/* ── Footer — fixed at bottom, never shrinks ── */}
-        <div style={styles.viewerFooter}>
+        <div className="snowai-viewer-footer" style={styles.viewerFooter}>
           <span style={{ fontSize: 11, color: '#aaa', flex: 1 }}>
             Recorded {fmtDate(t.recorded_at)} · {t.transcription_method?.replace(/_/g, ' ')}
           </span>
@@ -2172,7 +2458,6 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
 
   return (
     <div style={styles.modalOverlay}>
-      <style>{pulseStyle}</style>
       <div style={styles.recordModalBox}>
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>🎙</span>
@@ -2437,7 +2722,7 @@ function GlobalTranscriptSearch({ onClose }) {
           onDelete={() => { setViewingTx(null); doSearch(query); }}
         />
       )}
-      <div style={styles.txSearchModalBox} onClick={e => e.stopPropagation()}>
+      <div className="snowai-search-modal" style={styles.txSearchModalBox} onClick={e => e.stopPropagation()}>
 
         <div style={styles.modalHeader}>
           <span style={{ fontSize: 20 }}>🔍</span>
@@ -2570,7 +2855,7 @@ function CompanyCard({ company, onRefresh }) {
       {showAddPerson && <AddPersonModal companyId={company.id} onClose={() => setShowAddPerson(false)} onSaved={onRefresh} />}
       {showAddLink && <AddLinkModal companyId={company.id} onClose={() => setShowAddLink(false)} onSaved={onRefresh} />}
       {playingVideo && <YouTubeModal link={playingVideo} company={company} onClose={() => setPlayingVideo(null)} />}
-      {viewingPdf && <PDFModal link={viewingPdf} onClose={() => setViewingPdf(null)} />}
+      {viewingPdf && <PDFModal link={viewingPdf} company={company} onClose={() => setViewingPdf(null)} />}
       {editingCompany && <EditCompanyModal company={company} onClose={() => setEditingCompany(false)} onSaved={() => { onRefresh(); setEditingCompany(false); }} />}
       {editingPerson && <EditPersonModal person={editingPerson} onClose={() => setEditingPerson(null)} onSaved={() => { onRefresh(); setEditingPerson(null); }} />}
       {editingLink && <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} onSaved={() => { onRefresh(); setEditingLink(null); }} />}
@@ -2605,7 +2890,7 @@ function CompanyCard({ company, onRefresh }) {
             ))}
           </div>
 
-          <div style={styles.tabRow}>
+          <div className="snowai-tab-row" style={styles.tabRow}>
             {[
               { key: 'people', label: '👥 People' },
               { key: 'links', label: '🌐 Links' },
@@ -2613,7 +2898,7 @@ function CompanyCard({ company, onRefresh }) {
               { key: 'youtube', label: '▶️ Videos' },
               { key: 'transcripts', label: '🎙 Transcripts' },
             ].map(t => (
-              <button key={t.key} style={styles.tab(tab === t.key)} onClick={() => setTab(t.key)}>{t.label}</button>
+              <button key={t.key} className="snowai-tab-btn" style={styles.tab(tab === t.key)} onClick={() => setTab(t.key)}>{t.label}</button>
             ))}
           </div>
 
@@ -2743,6 +3028,7 @@ export default function CompaniesofInterest() {
 
   return (
     <div style={styles.page}>
+      <GlobalStyles />
       {showSearch && <GlobalTranscriptSearch onClose={() => setShowSearch(false)} />}
       {showAddCompany && (
         <AddCompanyModal
@@ -2754,7 +3040,7 @@ export default function CompaniesofInterest() {
       <div className="main-page-body">
         <SideNavs />
         <div className="main-body-info">
-          <div style={styles.header}>
+          <div className="snowai-page-header" style={styles.header}>
             <h5 style={styles.pageTitle}>
               <span style={styles.pageTitleAccent} />
               SnowAI Companies of Interest
@@ -2800,7 +3086,7 @@ export default function CompaniesofInterest() {
               <p style={{ fontSize: 12, color: '#85b7eb', marginBottom: 16 }}>
                 Showing {filtered.length} of {companies.length} {companies.length === 1 ? 'company' : 'companies'}
               </p>
-              <div style={styles.grid}>
+              <div className="snowai-card-grid" style={styles.grid}>
                 {filtered.map(company => (
                   <CompanyCard key={company.id} company={company} onRefresh={fetchCompanies} />
                 ))}
