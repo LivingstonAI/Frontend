@@ -2093,7 +2093,7 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                                 <span style={{ fontSize: '13px', color: '#666', fontWeight: '600', letterSpacing: '0.05em' }}>
-                                    😼 Sabrina's Analysis
+                                    {analysis?.source === 'external' ? '🤖 External AI Analysis' : '😼 Sabrina\'s Analysis'}
                                 </span>
                                 <span style={{ fontSize: '11px', color: '#888', backgroundColor: '#fff', border: '1px solid #e0e0e0', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
                                     {ticker}
@@ -2164,6 +2164,25 @@ function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isA
 
                 {/* Body */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#fff' }}>
+
+                    {analysis?.sourceList?.length > 0 && (
+    <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '8px' }}>
+            SOURCES READ
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {analysis.sourceList.map((src, i) => (
+                <span key={i} style={{
+                    backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0',
+                    color: '#475569', padding: '3px 10px',
+                    borderRadius: '20px', fontSize: '12px', fontWeight: '500',
+                }}>
+                    {src}
+                </span>
+            ))}
+        </div>
+    </div>
+)}
 
                     {/* TL;DR */}
                     {analysis?.tldr && (
@@ -2372,6 +2391,10 @@ function EnhancedNewsSection({
     const setCachedAnalyses    = setHoistedCachedAnalyses   || useState({})[1];
     const [isAnalysing,    setIsAnalysing]    = useState(false);
     const [analysisError,  setAnalysisError]  = useState(null);
+    const [showExternalPasteModal, setShowExternalPasteModal] = useState(false);
+    const [showPromptModal,        setShowPromptModal]        = useState(false);
+    const [externalPasteText,      setExternalPasteText]      = useState('');
+    const [externalParseError,     setExternalParseError]     = useState(null);
 
     // Load cached analyses from storage on mount (only once)
     useEffect(() => {
@@ -2386,6 +2409,90 @@ function EnhancedNewsSection({
         };
         loadCached();
     }, []);
+
+    const buildExternalPrompt = () => {
+            const stockContext = stockData ? `
+        Stock: ${stockData.longName || ticker} (${ticker})
+        Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}
+        Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+        P/E Ratio: ${stockData.trailingPE?.toFixed(2) || 'N/A'}
+        52W High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'} | 52W Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}` 
+            : `Stock: ${ticker}`;
+
+            return `You are a financial analyst. Search the web for as many recent news articles as possible about ${ticker} (${stockData?.longName || ticker}). Cast a wide net — aim for at least 15-20 articles from diverse sources (Bloomberg, Reuters, WSJ, CNBC, Seeking Alpha, earnings call transcripts, analyst reports, Reddit sentiment, etc).
+
+        ${stockContext}
+
+        After reading all articles, return ONLY a JSON object with no markdown, no backticks, no preamble:
+
+        {
+        "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+        "confidence": <integer 0-100>,
+        "tldr": "<one punchy sentence — the single most important thing to know right now>",
+        "themes": ["<theme1>", "<theme2>", "<theme3>", "<theme4>"],
+        "summary": "<4-6 paragraph deep analysis referencing specific articles and sources, use **bold** for key figures and turning points>",
+        "catalysts": ["<specific catalyst 1>", "<specific catalyst 2>", "<specific catalyst 3>", "<catalyst 4>"],
+        "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+        "recommendation": "<a sharp, opinionated 2-3 sentence take. First person. Be direct.>",
+        "articleCount": <number of articles you actually found and read>,
+        "sourceList": ["<source1>", "<source2>", "<source3>"]
+        }
+
+        Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+        };
+
+    const handleExternalPaste = async () => {
+        setExternalParseError(null);
+        
+        if (!externalPasteText.trim()) {
+            setExternalParseError('Paste the JSON response first.');
+            return;
+        }
+
+        let parsed;
+        try {
+            // Strip accidental code fences a user might have copy-pasted
+            const clean = externalPasteText
+                .replace(/```json/gi, '')
+                .replace(/```/g, '')
+                .trim();
+            parsed = JSON.parse(clean);
+        } catch (e) {
+            setExternalParseError(
+                `Invalid JSON — couldn't parse. Make sure you copied the full response. Error: ${e.message}`
+            );
+            return;
+        }
+
+        // Schema validation — these fields are required for the modal to render
+        const required = ['bias', 'confidence', 'tldr', 'summary'];
+        const missing  = required.filter(k => parsed[k] == null);
+        if (missing.length > 0) {
+            setExternalParseError(
+                `JSON is missing required fields: ${missing.join(', ')}. ` +
+                `Make sure the AI followed the prompt format exactly.`
+            );
+            return;
+        }
+
+        // Normalise bias to uppercase in case the AI lowercased it
+        parsed.bias = String(parsed.bias).toUpperCase();
+        if (!['BULLISH', 'BEARISH', 'NEUTRAL', 'MIXED'].includes(parsed.bias)) {
+            parsed.bias = 'MIXED';
+        }
+
+        // Tag it so the modal can show a different source label
+        const analysis = {
+            ...parsed,
+            generatedAt:   new Date().toLocaleString(),
+            source:        'external', // used in the modal header below
+        };
+
+        await saveAnalysis(analysis); // reuses the exact same save function Sabrina uses
+        setShowExternalPasteModal(false);
+        setExternalPasteText('');
+        setHoistedShowAnalysisModal(true);
+    };
 
     const currentAnalysis = cachedAnalyses[ticker] || null;
 
@@ -2619,6 +2726,25 @@ Return this exact JSON structure:
                         )}
                     </button>
                 )}
+
+                <button
+                    onClick={() => setShowPromptModal(true)}
+                    style={{
+                        padding: '8px 16px', borderRadius: '20px',
+                        border: '2px solid rgba(99,102,241,0.5)',
+                        backgroundColor: '#fff',
+                        color: '#6366f1',
+                        fontWeight: '700', fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '7px',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.backgroundColor = '#eef2ff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.backgroundColor = '#fff'; }}
+                >
+                    🤖 Ask External AI
+                </button>
 
                 {/* Re-run option if cached analysis exists */}
                 {currentAnalysis && (
@@ -2951,6 +3077,254 @@ Return this exact JSON structure:
                 onReanalyse={() => { setShowAnalysisModal(false); runNewsAnalysis(); }}
                 isAnalysing={isAnalysing}
             />
+
+            {showPromptModal && (
+                <div
+                    onClick={() => setShowPromptModal(false)}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 10003, padding: '20px',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(680px, 100%)',
+                            maxHeight: '85vh',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '20px 24px 16px',
+                            background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                            flexShrink: 0,
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+                                        🤖 External AI Prompt — {ticker}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+                                        Copy this prompt → paste into Perplexity / Gemini / GPT / Claude → 
+                                        copy their JSON response → hit "Paste Response" below
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowPromptModal(false)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.12)', border: 'none',
+                                        borderRadius: '50%', width: '32px', height: '32px',
+                                        color: '#fff', fontSize: '17px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0,
+                                    }}
+                                >×</button>
+                            </div>
+                        </div>
+
+                        {/* Prompt text */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                            <div style={{
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '10px',
+                                padding: '16px',
+                                fontSize: '13px',
+                                lineHeight: 1.7,
+                                color: '#333',
+                                fontFamily: 'monospace',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                            }}>
+                                {buildExternalPrompt()}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            padding: '14px 24px',
+                            borderTop: '1px solid #e2e8f0',
+                            display: 'flex', gap: '10px',
+                            flexShrink: 0,
+                            backgroundColor: '#f8fafc',
+                        }}>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(buildExternalPrompt());
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px',
+                                    background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                                    border: 'none', borderRadius: '9px',
+                                    color: '#fff', fontWeight: '700', fontSize: '14px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                📋 Copy Prompt to Clipboard
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowPromptModal(false);
+                                    setShowExternalPasteModal(true);
+                                }}
+                                style={{
+                                    flex: 1, padding: '10px',
+                                    backgroundColor: '#fff',
+                                    border: '2px solid #2563eb', borderRadius: '9px',
+                                    color: '#2563eb', fontWeight: '700', fontSize: '14px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                → I've got the response, paste it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showExternalPasteModal && (
+                <div
+                    onClick={() => { setShowExternalPasteModal(false); setExternalParseError(null); }}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 10003, padding: '20px',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(640px, 100%)',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                            display: 'flex', flexDirection: 'column',
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '18px 22px 14px',
+                            background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                            flexShrink: 0,
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+                                        📥 Paste AI Response — {ticker}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
+                                        Paste the raw JSON the AI returned. It will be validated before saving.
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => { setShowExternalPasteModal(false); setExternalParseError(null); }}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.15)', border: 'none',
+                                        borderRadius: '50%', width: '32px', height: '32px',
+                                        color: '#fff', fontSize: '17px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                >×</button>
+                            </div>
+                        </div>
+
+                        {/* Textarea */}
+                        <div style={{ padding: '20px 22px 0' }}>
+                            <textarea
+                                autoFocus
+                                value={externalPasteText}
+                                onChange={e => { setExternalPasteText(e.target.value); setExternalParseError(null); }}
+                                placeholder={`Paste the JSON here. Should start with {\n  "bias": "BULLISH",\n  "confidence": 82,\n  ...\n}`}
+                                style={{
+                                    width: '100%',
+                                    height: '260px',
+                                    padding: '14px',
+                                    borderRadius: '10px',
+                                    border: `2px solid ${externalParseError ? '#ef4444' : '#e2e8f0'}`,
+                                    fontSize: '13px',
+                                    fontFamily: 'monospace',
+                                    lineHeight: 1.6,
+                                    resize: 'vertical',
+                                    outline: 'none',
+                                    boxSizing: 'border-box',
+                                    color: '#1a1a1a',
+                                    backgroundColor: externalParseError ? '#fef2f2' : '#f8fafc',
+                                    transition: 'border-color 0.15s, background-color 0.15s',
+                                }}
+                            />
+
+                            {externalParseError && (
+                                <div style={{
+                                    marginTop: '10px',
+                                    padding: '10px 14px',
+                                    backgroundColor: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    color: '#b91c1c',
+                                    lineHeight: 1.5,
+                                }}>
+                                    ⚠️ {externalParseError}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            padding: '16px 22px',
+                            display: 'flex', gap: '10px',
+                            backgroundColor: '#fff',
+                        }}>
+                            <button
+                                onClick={handleExternalPaste}
+                                disabled={!externalPasteText.trim()}
+                                style={{
+                                    flex: 1, padding: '11px',
+                                    background: !externalPasteText.trim()
+                                        ? 'rgba(124,58,237,0.3)'
+                                        : 'linear-gradient(135deg, #7c3aed, #4c1d95)',
+                                    border: 'none', borderRadius: '9px',
+                                    color: '#fff', fontWeight: '700', fontSize: '14px',
+                                    cursor: !externalPasteText.trim() ? 'not-allowed' : 'pointer',
+                                    transition: 'background 0.15s',
+                                }}
+                            >
+                                ✓ Parse & Display
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowExternalPasteModal(false);
+                                    setShowPromptModal(true);
+                                    setExternalParseError(null);
+                                }}
+                                style={{
+                                    padding: '11px 16px',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e2e8f0', borderRadius: '9px',
+                                    color: '#64748b', fontWeight: '600', fontSize: '14px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ← Back to prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
