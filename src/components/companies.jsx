@@ -1907,7 +1907,7 @@ function YouTubeModal({ link, company, onClose }) {
 }
 
 // ─── PDF VIEWER MODAL (with AI analysis) ──────────────────────────────────────
-function PDFModal({ link, company, onClose }) {
+function PDFModal({ link, company, onClose, onAnalysisSaved }) {
   const [showAI, setShowAI]             = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [pastedResponse, setPastedResponse] = useState('');
@@ -1993,12 +1993,12 @@ Rules:
       if (res.ok) {
         const data = await res.json();
         setPdfAnalysis(data.analysis);
-        // Patch the link object so the next open shows it
-        link.ai_analysis = data.analysis;
         setApplied(true);
         setPastedResponse('');
         setParsedData(null);
         setShowAI(false);
+        // Notify parent so card list and state both update
+        onAnalysisSaved && onAnalysisSaved(data.analysis);
       }
     } catch {}
     finally { setApplying(false); }
@@ -2041,9 +2041,9 @@ Rules:
           border: '1.5px solid #c5d8f8',
           borderTop: 'none',
           flexShrink: 0,
-          maxHeight: showAI ? 440 : 52,
-          overflowY: showAI ? 'auto' : 'hidden',
-          transition: 'max-height 0.3s ease',
+          maxHeight: showAI ? 480 : (hasAnalysis ? 220 : 52),
+          overflowY: 'auto',
+          transition: 'max-height 0.35s ease',
         }}>
           {/* Panel header */}
           <div style={{ ...styles.aiPanelHead, position: 'sticky', top: 0 }}>
@@ -2064,22 +2064,60 @@ Rules:
 
           {/* Saved analysis preview when collapsed */}
           {!showAI && hasAnalysis && (
-            <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8,
+                          borderTop: '1px solid #d5e8f7' }}>
+              {/* Summary */}
               {pdfAnalysis.summary && (
-                <p style={{ margin: 0, fontSize: 12, color: '#2c3e50', lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: 13, color: '#2c3e50', lineHeight: 1.65 }}>
                   {pdfAnalysis.summary}
                 </p>
               )}
-              {pdfAnalysis.topics?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {pdfAnalysis.topics.map(t => (
-                    <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                                          background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
-                      {t}
-                    </span>
+              {/* Key points */}
+              {pdfAnalysis.key_points?.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {pdfAnalysis.key_points.map((pt, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%',
+                                     width: 17, height: 17, flexShrink: 0, marginTop: 1,
+                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                     fontSize: 9, fontWeight: 700 }}>{i + 1}</span>
+                      <span style={{ fontSize: 12, color: '#2c3e50', lineHeight: 1.55 }}>{pt}</span>
+                    </div>
                   ))}
                 </div>
               )}
+              {/* Analyst notes */}
+              {pdfAnalysis.analyst_notes && (
+                <div style={{ background: '#fffbea', border: '1px solid #f5d090', borderRadius: 8,
+                              padding: '7px 10px', fontSize: 11, color: '#7a5c00', lineHeight: 1.5 }}>
+                  🖊 {pdfAnalysis.analyst_notes}
+                </div>
+              )}
+              {/* Topics + sentiment row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {pdfAnalysis.topics?.map(t => (
+                  <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                                        background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                    {t}
+                  </span>
+                ))}
+                {pdfAnalysis.sentiment_score != null && (
+                  <span style={{
+                    fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600,
+                    background: pdfAnalysis.sentiment_score > 0.2 ? '#e8f8f0' : pdfAnalysis.sentiment_score < -0.2 ? '#fcebeb' : '#fff8e6',
+                    color:      pdfAnalysis.sentiment_score > 0.2 ? '#1a6b3c' : pdfAnalysis.sentiment_score < -0.2 ? '#791f1f' : '#7a5c00',
+                    border:     `1px solid ${pdfAnalysis.sentiment_score > 0.2 ? '#a3e4bf' : pdfAnalysis.sentiment_score < -0.2 ? '#f7c1c1' : '#f5d090'}`,
+                    marginLeft: 'auto',
+                  }}>
+                    Sentiment: {pdfAnalysis.sentiment_score > 0 ? '+' : ''}{pdfAnalysis.sentiment_score.toFixed(2)}
+                  </span>
+                )}
+                {pdfAnalysis.analysed_at && (
+                  <span style={{ fontSize: 10, color: '#aabdd4', marginLeft: 'auto' }}>
+                    Analysed {new Date(pdfAnalysis.analysed_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -3004,7 +3042,19 @@ function CompanyCard({ company, onRefresh }) {
       {showAddPerson && <AddPersonModal companyId={company.id} onClose={() => setShowAddPerson(false)} onSaved={onRefresh} />}
       {showAddLink && <AddLinkModal companyId={company.id} onClose={() => setShowAddLink(false)} onSaved={onRefresh} />}
       {playingVideo && <YouTubeModal link={playingVideo} company={company} onClose={() => setPlayingVideo(null)} />}
-      {viewingPdf && <PDFModal link={viewingPdf} company={company} onClose={() => setViewingPdf(null)} />}
+      {viewingPdf && (
+        <PDFModal
+          link={viewingPdf}
+          company={company}
+          onClose={() => setViewingPdf(null)}
+          onAnalysisSaved={(analysis) => {
+            // Patch the link inside viewingPdf so the modal re-renders correctly
+            setViewingPdf(prev => prev ? { ...prev, ai_analysis: analysis } : prev);
+            // Also trigger a parent refresh so the card list updates
+            onRefresh();
+          }}
+        />
+      )}
       {editingCompany && <EditCompanyModal company={company} onClose={() => setEditingCompany(false)} onSaved={() => { onRefresh(); setEditingCompany(false); }} />}
       {editingPerson && <EditPersonModal person={editingPerson} onClose={() => setEditingPerson(null)} onSaved={() => { onRefresh(); setEditingPerson(null); }} />}
       {editingLink && <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} onSaved={() => { onRefresh(); setEditingLink(null); }} />}
@@ -3094,13 +3144,43 @@ function CompanyCard({ company, onRefresh }) {
             <>
               {company.links.filter(l => l.link_type === 'pdf').length === 0 && <p style={{ fontSize: 12, color: '#85b7eb', textAlign: 'center', padding: '12px 0' }}>No PDFs added yet.</p>}
               {company.links.filter(l => l.link_type === 'pdf').map(link => (
-                <div key={link.id} style={styles.linkItem}>
+                <div key={link.id} style={{ ...styles.linkItem, flexWrap: 'wrap', rowGap: 4 }}>
                   <span style={styles.linkIcon}>📄</span>
-                  <span style={styles.linkTitle}>{link.title}</span>
-                  <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setViewingPdf(link)}>👁 View</button>
-                  <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗</a>
-                  <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)}>✏️</button>
-                  <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={styles.linkTitle}>{link.title}</span>
+                    {link.ai_analysis && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                        {link.ai_analysis.summary && (
+                          <span style={{ fontSize: 11, color: '#4a6fa5', lineHeight: 1.4,
+                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                         maxWidth: '100%', display: 'block' }}>
+                            {link.ai_analysis.summary.slice(0, 90)}{link.ai_analysis.summary.length > 90 ? '…' : ''}
+                          </span>
+                        )}
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 20,
+                                         background: '#e8f8f0', color: '#1a6b3c', border: '1px solid #a3e4bf',
+                                         fontWeight: 600 }}>
+                            🤖 Analysed
+                          </span>
+                          {link.ai_analysis.topics?.slice(0, 2).map(t => (
+                            <span key={t} style={{ fontSize: 10, padding: '1px 7px', borderRadius: 20,
+                                                   background: '#e8f0fe', color: '#1a56db', border: '1px solid #93b4f8' }}>
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                    <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setViewingPdf(link)}>
+                      {link.ai_analysis ? '👁 View + Analysis' : '👁 View'}
+                    </button>
+                    <a href={link.url} target="_blank" rel="noreferrer" style={{ ...styles.btnSmall, textDecoration: 'none', fontSize: 11 }}>↗</a>
+                    <button style={{ ...styles.btnSmall, fontSize: 11 }} onClick={() => setEditingLink(link)}>✏️</button>
+                    <button style={styles.btnDanger} onClick={() => deleteLink(link.id)}>✕</button>
+                  </div>
                 </div>
               ))}
               <div style={styles.addSection}><button style={styles.btnSmall} onClick={() => setShowAddLink(true)}><span>+</span> Add PDF</button></div>
