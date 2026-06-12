@@ -2395,6 +2395,7 @@ function EnhancedNewsSection({
     const [showPromptModal,        setShowPromptModal]        = useState(false);
     const [externalPasteText,      setExternalPasteText]      = useState('');
     const [externalParseError,     setExternalParseError]     = useState(null);
+    const [copied, setCopied] = useState(false);
 
     // Load cached analyses from storage on mount (only once)
     useEffect(() => {
@@ -3079,118 +3080,234 @@ Return this exact JSON structure:
             />
 
             {showPromptModal && (
-                <div
-                    onClick={() => setShowPromptModal(false)}
-                    style={{
-                        position: 'fixed', inset: 0,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 10003, padding: '20px',
-                        backdropFilter: 'blur(3px)',
-                    }}
-                >
-                    <div
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                            width: 'min(680px, 100%)',
-                            maxHeight: '85vh',
-                            borderRadius: '16px',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            backgroundColor: '#fff',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-                            fontFamily: "'Segoe UI', system-ui, sans-serif",
-                        }}
-                    >
-                        {/* Header */}
-                        <div style={{
-                            padding: '20px 24px 16px',
-                            background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
-                            flexShrink: 0,
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
-                                        🤖 External AI Prompt — {ticker}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-                                        Copy this prompt → paste into Perplexity / Gemini / GPT / Claude → 
-                                        copy their JSON response → hit "Paste Response" below
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShowPromptModal(false)}
-                                    style={{
-                                        background: 'rgba(255,255,255,0.12)', border: 'none',
-                                        borderRadius: '50%', width: '32px', height: '32px',
-                                        color: '#fff', fontSize: '17px', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        flexShrink: 0,
-                                    }}
-                                >×</button>
-                            </div>
+    <div
+        onClick={() => setShowPromptModal(false)}
+        style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10003, padding: '20px',
+            backdropFilter: 'blur(3px)',
+        }}
+    >
+        <div
+            onClick={e => e.stopPropagation()}
+            style={{
+                width: 'min(680px, 100%)',
+                maxHeight: '85vh',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: '#fff',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                fontFamily: "'Segoe UI', system-ui, sans-serif",
+                animation: 'modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+        >
+            {/* Header */}
+            <div style={{
+                padding: '20px 24px 16px',
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '18px' }}>🤖</span>
+                            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>
+                                External AI Prompt — {ticker}
+                            </span>
                         </div>
-
-                        {/* Prompt text */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-                            <div style={{
-                                backgroundColor: '#f8fafc',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '10px',
-                                padding: '16px',
-                                fontSize: '13px',
-                                lineHeight: 1.7,
-                                color: '#333',
-                                fontFamily: 'monospace',
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
-                            }}>
-                                {buildExternalPrompt()}
-                            </div>
-                        </div>
-
-                        {/* Footer */}
-                        <div style={{
-                            padding: '14px 24px',
-                            borderTop: '1px solid #e2e8f0',
-                            display: 'flex', gap: '10px',
-                            flexShrink: 0,
-                            backgroundColor: '#f8fafc',
-                        }}>
-                            <button
-                                onClick={() => {
-                                    navigator.clipboard.writeText(buildExternalPrompt());
-                                }}
-                                style={{
-                                    flex: 1, padding: '10px',
-                                    background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
-                                    border: 'none', borderRadius: '9px',
-                                    color: '#fff', fontWeight: '700', fontSize: '14px',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                📋 Copy Prompt to Clipboard
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setShowPromptModal(false);
-                                    setShowExternalPasteModal(true);
-                                }}
-                                style={{
-                                    flex: 1, padding: '10px',
-                                    backgroundColor: '#fff',
-                                    border: '2px solid #2563eb', borderRadius: '9px',
-                                    color: '#2563eb', fontWeight: '700', fontSize: '14px',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                → I've got the response, paste it
-                            </button>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+                            Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"
                         </div>
                     </div>
+                    <button
+                        onClick={() => setShowPromptModal(false)}
+                        style={{
+                            background: 'rgba(255,255,255,0.12)', border: 'none',
+                            borderRadius: '50%', width: '32px', height: '32px',
+                            color: '#fff', fontSize: '17px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >×</button>
                 </div>
-            )}
+            </div>
+
+            {/* Prompt text area — scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                <div style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    fontSize: '13px',
+                    lineHeight: 1.7,
+                    color: '#333',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                }}>
+                    {buildExternalPrompt()}
+                </div>
+
+                {/* Perplexity callout — since it actually searches */}
+                <div style={{
+                    marginTop: '14px',
+                    padding: '10px 14px',
+                    backgroundColor: 'rgba(32,178,170,0.07)',
+                    border: '1px solid rgba(32,178,170,0.25)',
+                    borderRadius: '9px',
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
+                    <div style={{ fontSize: '12px', color: '#0f766e', lineHeight: 1.55 }}>
+                        <strong>Tip:</strong> Perplexity is the best pick here — it actually searches the web in real time and will pull fresh articles automatically. The others need web browsing enabled to do the same.
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+                padding: '14px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex', flexDirection: 'column', gap: '12px',
+                flexShrink: 0,
+                backgroundColor: '#f8fafc',
+            }}>
+                {/* AI launch buttons */}
+                <div>
+                    <div style={{
+                        fontSize: '10px', fontWeight: '700', color: '#94a3b8',
+                        letterSpacing: '0.08em', marginBottom: '8px',
+                    }}>
+                        OPEN DIRECTLY IN (prompt auto-filled)
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {[
+                            {
+                                name: 'Perplexity',
+                                icon: '🔍',
+                                color: '#20b2aa',
+                                bg: 'rgba(32,178,170,0.08)',
+                                border: 'rgba(32,178,170,0.35)',
+                                getUrl: (p) => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}`,
+                            },
+                            {
+                                name: 'ChatGPT',
+                                icon: '✦',
+                                color: '#10a37f',
+                                bg: 'rgba(16,163,127,0.08)',
+                                border: 'rgba(16,163,127,0.35)',
+                                getUrl: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}`,
+                            },
+                            {
+                                name: 'Gemini',
+                                icon: '✦',
+                                color: '#4285f4',
+                                bg: 'rgba(66,133,244,0.08)',
+                                border: 'rgba(66,133,244,0.35)',
+                                getUrl: (p) => `https://gemini.google.com/app?q=${encodeURIComponent(p)}`,
+                            },
+                            {
+                                name: 'Claude',
+                                icon: '◆',
+                                color: '#cc785c',
+                                bg: 'rgba(204,120,92,0.08)',
+                                border: 'rgba(204,120,92,0.35)',
+                                getUrl: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}`,
+                            },
+                        ].map(({ name, icon, color, bg, border, getUrl }) => (
+                            <button
+                                key={name}
+                                onClick={() => window.open(getUrl(buildExternalPrompt()), '_blank')}
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: '9px',
+                                    border: `1.5px solid ${border}`,
+                                    backgroundColor: bg,
+                                    color: color,
+                                    fontWeight: '700',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                    transition: 'all 0.15s',
+                                    whiteSpace: 'nowrap',
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = `0 4px 12px ${border}`;
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <span style={{ fontSize: '15px' }}>{icon}</span>
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', backgroundColor: '#e2e8f0' }} />
+
+                {/* Copy + Paste row */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => {
+                            navigator.clipboard.writeText(buildExternalPrompt());
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                        }}
+                        style={{
+                            flex: 1, padding: '10px',
+                            background: copied
+                                ? 'linear-gradient(135deg, #10b981, #059669)'
+                                : 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                            border: 'none', borderRadius: '9px',
+                            color: '#fff', fontWeight: '700', fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: '7px',
+                            transition: 'background 0.25s',
+                        }}
+                    >
+                        {copied ? (
+                            <><span>✓</span> Copied!</>
+                        ) : (
+                            <><span>📋</span> Copy Prompt</>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => {
+                            setShowPromptModal(false);
+                            setShowExternalPasteModal(true);
+                        }}
+                        style={{
+                            flex: 1, padding: '10px',
+                            backgroundColor: '#fff',
+                            border: '2px solid #2563eb',
+                            borderRadius: '9px',
+                            color: '#2563eb', fontWeight: '700', fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: '7px',
+                            transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                    >
+                        <span>📥</span> Paste Response
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
 
             {showExternalPasteModal && (
                 <div
