@@ -2386,14 +2386,14 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
               </div>
             )}
             <div className="mp-drill-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 800, fontSize: 16, color: MP_SNOW.navy }}>
-                        Global Indices
-                    </span>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>
-                        {curIdxData.length} indices · {tf}
-                    </span>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: 16, color: MP_SNOW.navy }}>
+                      Global Indices
+                  </span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>
+                      {curIdxData?.length ?? 0} indices · {tf}
+                  </span>
+              </div>
                 <DrillSentimentBtn
                     type="index"
                     name="Global Indices"
