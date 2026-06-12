@@ -5449,6 +5449,7 @@ Return ONLY a JSON object (no markdown, no backticks):
 
 // --- Chart & Insights Tab -----------------------------------------------------
 function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis, compactMode = false }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const chartContainerRef = useRef(null);
     const chartRef = useRef(null);
     const seriesRef = useRef(null);
