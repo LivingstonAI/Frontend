@@ -3116,7 +3116,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
 
                 {/* Parsed analysis result — shown after pasting */}
                 {drillParsedAnalysis && (
-                    <div style={{ marginTop: 16 }}>
+                    <div id="drill-parsed-result" style={{ marginTop: 16 }}>
                         {/* Bias header */}
                         {(() => {
                             const bColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#2563eb' };
@@ -3393,10 +3393,15 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                         if (missing.length) { setDrillParseError(`Missing required fields: ${missing.join(', ')}`); return; }
                         parsed.bias = String(parsed.bias).toUpperCase();
                         if (!['BULLISH','BEARISH','NEUTRAL','MIXED'].includes(parsed.bias)) parsed.bias = 'MIXED';
-                        setDrillParsedAnalysis(parsed);
-                        setDrillPasteText('');
-                        setDrillPasteOpen(false);
-                        setDrillSentimentOpen(true); // reopen prompt modal to show result
+                          setDrillParsedAnalysis(parsed);
+                          setDrillPasteText('');
+                          setDrillPasteOpen(false);
+                          setDrillSentimentOpen(true);
+                          // Auto-scroll to parsed result after modal re-renders
+                          setTimeout(() => {
+                              const el = document.getElementById('drill-parsed-result');
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 100);
                     }}
                     disabled={!drillPasteText.trim()}
                     style={{
