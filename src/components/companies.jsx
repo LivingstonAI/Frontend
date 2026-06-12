@@ -819,6 +819,162 @@ const pulseStyle = `
   }
 `;
 
+
+// ─── AI QUICK-LINKS ──────────────────────────────────────────────────────────
+// Opens the four major AI assistants with the prompt pre-filled where possible.
+const AI_TOOLS = [
+  {
+    id:      'claude',
+    label:   'Claude',
+    color:   '#d97757',
+    bg:      '#fff4f0',
+    border:  '#f5c4b0',
+    logo:    (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
+              fill="#d97757" opacity=".2"/>
+        <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z"
+              fill="#d97757"/>
+      </svg>
+    ),
+    // Claude.ai supports a text param but not a full prompt injection; open new chat
+    getUrl: (_prompt) => 'https://claude.ai/new',
+    hint: 'Opens a new Claude chat — paste prompt manually',
+  },
+  {
+    id:      'chatgpt',
+    label:   'ChatGPT',
+    color:   '#10a37f',
+    bg:      '#f0faf6',
+    border:  '#a8dece',
+    logo:    (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M22.28 9.28a5.998 5.998 0 0 0-.52-4.92 6.17 6.17 0 0 0-6.64-2.96A6.005 6.005 0 0 0 10.6 0a6.17 6.17 0 0 0-5.88 4.27 5.998 5.998 0 0 0-4 2.91 6.17 6.17 0 0 0 .76 7.23 5.998 5.998 0 0 0 .52 4.92 6.17 6.17 0 0 0 6.64 2.96A6.005 6.005 0 0 0 13.4 24a6.17 6.17 0 0 0 5.88-4.28 5.998 5.998 0 0 0 4-2.91 6.17 6.17 0 0 0-.76-7.23z"
+              fill="#10a37f" opacity=".25"/>
+        <circle cx="12" cy="12" r="4" fill="#10a37f"/>
+      </svg>
+    ),
+    getUrl: (_prompt) => 'https://chatgpt.com/',
+    hint: 'Opens ChatGPT — paste prompt manually',
+  },
+  {
+    id:      'gemini',
+    label:   'Gemini',
+    color:   '#1a73e8',
+    bg:      '#f0f4ff',
+    border:  '#a8c0f5',
+    logo:    (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2l2.5 7.5H22l-6.5 4.7 2.5 7.5L12 17l-6 4.7 2.5-7.5L2 9.5h7.5z"
+              fill="#1a73e8" opacity=".25"/>
+        <path d="M12 5l1.8 5.5H19l-4.6 3.3 1.8 5.5L12 15.8l-4.2 3.5 1.8-5.5L5 9.5h5.2z"
+              fill="#1a73e8"/>
+      </svg>
+    ),
+    getUrl: (_prompt) => 'https://gemini.google.com/app',
+    hint: 'Opens Gemini — paste prompt manually',
+  },
+  {
+    id:      'perplexity',
+    label:   'Perplexity',
+    color:   '#20b2aa',
+    bg:      '#f0fbfa',
+    border:  '#9de0db',
+    logo:    (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#20b2aa" opacity=".15"/>
+        <path d="M7 8h10M7 12h10M7 16h6" stroke="#20b2aa" strokeWidth="2"
+              strokeLinecap="round"/>
+      </svg>
+    ),
+    getUrl: (prompt) =>
+      `https://www.perplexity.ai/search?q=${encodeURIComponent(prompt.slice(0, 1800))}`,
+    hint: 'Opens Perplexity with prompt pre-filled',
+  },
+];
+
+function AIQuickLinks({ getPrompt, compact = false }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const handleOpen = (tool) => {
+    const prompt = getPrompt();
+    // Copy to clipboard first so user can paste in Claude/ChatGPT/Gemini
+    navigator.clipboard.writeText(prompt).catch(() => {});
+    window.open(tool.getUrl(prompt), '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCopyAll = async () => {
+    await navigator.clipboard.writeText(getPrompt());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div style={{
+      marginTop: compact ? 8 : 12,
+      padding: compact ? '10px 12px' : '12px 14px',
+      background: '#f7fafd',
+      border: '1px solid #e2edf8',
+      borderRadius: 12,
+    }}>
+      <p style={{
+        fontSize: 11, fontWeight: 700, color: '#6a8fb5',
+        textTransform: 'uppercase', letterSpacing: '0.5px',
+        margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <span style={{ fontSize: 13 }}>⚡</span> Open directly in AI
+        <span style={{ fontWeight: 400, textTransform: 'none', fontSize: 10,
+                       color: '#aabdd4', letterSpacing: 0 }}>
+          — prompt auto-copied to clipboard
+        </span>
+      </p>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+        {AI_TOOLS.map(tool => (
+          <button
+            key={tool.id}
+            title={tool.hint}
+            onClick={() => handleOpen(tool)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: tool.bg, border: `1px solid ${tool.border}`,
+              color: tool.color, borderRadius: 8,
+              padding: compact ? '5px 10px' : '6px 12px',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              transition: 'opacity 0.15s, transform 0.1s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            {tool.logo}
+            {tool.label}
+            <span style={{ fontSize: 10, opacity: 0.6 }}>↗</span>
+          </button>
+        ))}
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 24, background: '#dde8f5', margin: '0 2px' }} />
+
+        {/* Plain copy button */}
+        <button
+          onClick={handleCopyAll}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: copied ? '#e8f8f0' : '#e6f1fb',
+            border: `1px solid ${copied ? '#a3e4bf' : '#b5d4f4'}`,
+            color: copied ? '#1a6b3c' : '#185fa5',
+            borderRadius: 8, padding: compact ? '5px 10px' : '6px 12px',
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            transition: 'all 0.15s', whiteSpace: 'nowrap',
+          }}
+        >
+          {copied ? '✅ Copied!' : '📋 Copy prompt'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Global styles tag — injected once at app level via a component
 function GlobalStyles() {
   return (
@@ -1109,7 +1265,7 @@ function AddCompanyModal({ onClose, onSaved }) {
     if (!form.name.trim()) { setError('Company name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/add/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/add/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -1179,7 +1335,7 @@ function AddPersonModal({ companyId, onClose, onSaved }) {
     if (!form.name.trim()) { setError('Name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/${companyId}/add-person/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/${companyId}/add-person/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -1255,7 +1411,7 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
     if (!videoId || form.title) return;
     setFetchingTitle(true);
     try {
-      const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+      const res = await fetch(`${BASE}/snowvtr/youtube-metadata/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
@@ -1275,7 +1431,7 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
       if (videoId) {
         setFetchingTitle(true);
         try {
-          const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+          const res = await fetch(`${BASE}/snowvtr/youtube-metadata/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: form.url }),
@@ -1306,7 +1462,7 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
         video_duration_seconds: elapsed,
         processing_status:    'completed',
       };
-      const res = await fetch(`${BASE}/snowai-vtr/transcripts/save/`, {
+      const res = await fetch(`${BASE}/snowvtr/transcripts/save/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1324,7 +1480,7 @@ function AddLinkModal({ companyId, onClose, onSaved }) {
     if (!form.title.trim() || !form.url.trim()) { setError('Title and URL are required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/${companyId}/add-link/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/${companyId}/add-link/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -1482,7 +1638,7 @@ function EditCompanyModal({ company, onClose, onSaved }) {
     if (!form.name.trim()) { setError('Company name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/${company.id}/update/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/${company.id}/update/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
@@ -1538,7 +1694,7 @@ function EditPersonModal({ person, onClose, onSaved }) {
     if (!form.name.trim()) { setError('Name is required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/update-person/${person.id}/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/update-person/${person.id}/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
@@ -1591,7 +1747,7 @@ function EditLinkModal({ link, onClose, onSaved }) {
     if (!form.title.trim() || !form.url.trim()) { setError('Title and URL are required'); return; }
     setSaving(true); setError('');
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/update-link/${link.id}/`, {
+      const res = await fetch(`${BASE}/snowcoi/companies/update-link/${link.id}/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       if (res.ok) { onSaved(); onClose(); }
@@ -1651,7 +1807,7 @@ function YouTubeModal({ link, company, onClose }) {
         recording_duration_seconds: elapsed,
         status:                    'raw',
       };
-      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/save/`, {
+      const res = await fetch(`${BASE}/snowctr/company/${company.id}/transcripts/save/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -1831,7 +1987,7 @@ Rules:
         analyst_notes:   parsedData.analyst_notes   || '',
       };
       const res = await fetch(
-        `${BASE}/snowai-companies-of-interest/${company.id}/links/${link.id}/apply-ai/`,
+        `${BASE}/snowcoi/companies/${company.id}/links/${link.id}/apply-ai/`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       if (res.ok) {
@@ -1933,12 +2089,10 @@ Rules:
               <div style={{ marginBottom: 14 }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>1</span>
-                  Copy this prompt → paste into ChatGPT, Claude, Gemini, etc.
+                  Send this prompt to an AI assistant
                 </p>
                 <div style={styles.promptBox}><span style={{ userSelect: 'all' }}>{buildPdfPrompt()}</span></div>
-                <button style={{ ...styles.btnPrimary, marginTop: 8, fontSize: 12 }} onClick={handleCopyPrompt}>
-                  {promptCopied ? '✅ Copied!' : '📋 Copy prompt'}
-                </button>
+                <AIQuickLinks getPrompt={buildPdfPrompt} compact />
               </div>
 
               {/* Step 2 */}
@@ -2014,7 +2168,7 @@ function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, 
   const handleStatus = async (newStatus) => {
     setStatusChanging(true);
     try {
-      await fetch(`${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/status/`, {
+      await fetch(`${BASE}/snowctr/company/${t.company_id}/transcripts/${t.id}/status/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -2026,7 +2180,7 @@ function TranscriptViewerModal({ transcript: initialT, onClose, onStatusChange, 
 
   const handleDelete = async () => {
     try {
-      await fetch(`${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/delete/`, { method: 'POST' });
+      await fetch(`${BASE}/snowctr/company/${t.company_id}/transcripts/${t.id}/delete/`, { method: 'POST' });
       onDelete && onDelete();
       onClose();
     } catch {}
@@ -2106,7 +2260,7 @@ Rules:
         analyst_notes:   parsedData.analyst_notes   || '',
       };
       const res = await fetch(
-        `${BASE}/snowai-ctr/company/${t.company_id}/transcripts/${t.id}/apply-ai/`,
+        `${BASE}/snowctr/company/${t.company_id}/transcripts/${t.id}/apply-ai/`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
       );
       if (res.ok) {
@@ -2215,17 +2369,12 @@ Rules:
                   <p style={{ fontSize: 12, fontWeight: 600, color: '#185fa5', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ background: '#185fa5', color: '#fff', borderRadius: '50%', width: 18, height: 18,
                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>1</span>
-                    Copy this prompt → paste into ChatGPT, Claude, Gemini, etc.
+                    Send this prompt to an AI assistant
                   </p>
                   <div style={styles.promptBox}>
                     <span style={{ userSelect: 'all' }}>{buildPrompt()}</span>
                   </div>
-                  <button
-                    style={{ ...styles.btnPrimary, marginTop: 8, fontSize: 12 }}
-                    onClick={handleCopyPrompt}
-                  >
-                    {promptCopied ? '✅ Copied!' : '📋 Copy prompt'}
-                  </button>
+                  <AIQuickLinks getPrompt={buildPrompt} />
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
@@ -2426,7 +2575,7 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
     if (!videoId || form.source_title) return;
     setFetchingTitle(true);
     try {
-      const res = await fetch(`${BASE}/snowai-vtr/youtube-metadata/`, {
+      const res = await fetch(`${BASE}/snowvtr/youtube-metadata/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
@@ -2439,7 +2588,7 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
     if (!finalTranscript.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/save/`, {
+      const res = await fetch(`${BASE}/snowctr/company/${company.id}/transcripts/save/`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
@@ -2577,7 +2726,7 @@ function CompanyTranscriptsTab({ company }) {
     setLoading(true);
     try {
       const params = statusFilter ? `?status=${statusFilter}` : '';
-      const res = await fetch(`${BASE}/snowai-ctr/company/${company.id}/transcripts/${params}`);
+      const res = await fetch(`${BASE}/snowctr/company/${company.id}/transcripts/${params}`);
       if (res.ok) setTranscripts((await res.json()).transcripts || []);
     } catch {}
     finally { setLoading(false); }
@@ -2687,7 +2836,7 @@ function GlobalTranscriptSearch({ onClose }) {
     if (!q.trim()) { setResults([]); setSearched(false); return; }
     setLoading(true); setSearched(true);
     try {
-      const res = await fetch(`${BASE}/snowai-ctr/transcripts/?search=${encodeURIComponent(q)}&page_size=40`);
+      const res = await fetch(`${BASE}/snowctr/transcripts/?search=${encodeURIComponent(q)}&page_size=40`);
       if (res.ok) setResults((await res.json()).transcripts || []);
     } catch {}
     finally { setLoading(false); }
@@ -2828,19 +2977,19 @@ function CompanyCard({ company, onRefresh }) {
 
   const deletePerson = async (id) => {
     if (!window.confirm('Remove this person?')) return;
-    await fetch(`${BASE}/snowai-companies-of-interest/delete-person/${id}/`, { method: 'POST' });
+    await fetch(`${BASE}/snowcoi/companies/delete-person/${id}/`, { method: 'POST' });
     onRefresh();
   };
 
   const deleteLink = async (id) => {
     if (!window.confirm('Remove this link?')) return;
-    await fetch(`${BASE}/snowai-companies-of-interest/delete-link/${id}/`, { method: 'POST' });
+    await fetch(`${BASE}/snowcoi/companies/delete-link/${id}/`, { method: 'POST' });
     onRefresh();
   };
 
   const deleteCompany = async () => {
     if (!window.confirm(`Delete ${company.name}? This removes all associated data.`)) return;
-    await fetch(`${BASE}/snowai-companies-of-interest/${company.id}/delete/`, { method: 'POST' });
+    await fetch(`${BASE}/snowcoi/companies/${company.id}/delete/`, { method: 'POST' });
     onRefresh();
   };
 
@@ -3008,7 +3157,7 @@ export default function CompaniesofInterest() {
 
   const fetchCompanies = useCallback(async () => {
     try {
-      const res = await fetch(`${BASE}/snowai-companies-of-interest/`);
+      const res = await fetch(`${BASE}/snowcoi/companies/`);
       if (res.ok) setCompanies(await res.json());
     } catch (e) {
       console.error('Failed to fetch companies:', e);
