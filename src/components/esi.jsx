@@ -1771,6 +1771,16 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const drillRef       = useRef(null);
   const drillChart     = useRef(null);
 
+  const [drillSentimentOpen,    setDrillSentimentOpen]    = useState(false);
+  const [drillSentimentContext, setDrillSentimentContext] = useState(null); 
+  // { type: 'sector'|'index'|'commodity', name, data, regime }
+  const [drillCompareTicker,    setDrillCompareTicker]    = useState('');
+  const [drillPasteOpen,        setDrillPasteOpen]        = useState(false);
+  const [drillPasteText,        setDrillPasteText]        = useState('');
+  const [drillParseError,       setDrillParseError]       = useState(null);
+  const [drillParsedAnalysis,   setDrillParsedAnalysis]   = useState(null);
+  const [drillCopied,           setDrillCopied]           = useState(false);
+
   // ── helpers ──
   const setLoading = (key, val) => setLoadingKeys(p => ({ ...p, [key]: val }));
   const isLoading  = (key) => loadingKeys[key] || false;
@@ -2191,6 +2201,153 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const curCmdData    = cmdCache[`cmd-${activeCmdGroup}-${tf}`];
   const curCorrData   = corrCache[curSectorKey];
 
+  const buildDrillPrompt = (ctx, compareTicker) => {
+      if (!ctx) return '';
+
+      const { type, name, data, regime } = ctx;
+
+      // Pull performance stats from the actual normalized series
+      const normSeries = (() => {
+          if (type === 'sector') {
+              const key = `${name}-${tf}`;
+              const sd = sectorCache[key];
+              return sd?.normIdx || null;
+          }
+          if (type === 'index') {
+              const key = `indices-${tf}`;
+              const d = indexCache[key];
+              const entry = d?.find(i => i.name === name);
+              return entry?.norm || null;
+          }
+          if (type === 'commodity') {
+              const key = `cmd-${name}-${tf}`;
+              const d = cmdCache[key];
+              return d?.entries?.[0]?.norm || null;
+          }
+          return null;
+      })();
+
+      const perfStats = (() => {
+          if (!normSeries?.length) return 'Performance data not available.';
+          const valid = normSeries.filter(v => v != null);
+          if (valid.length < 2) return 'Insufficient data points.';
+          const start = valid[0];
+          const end = valid[valid.length - 1];
+          const change = ((end - start) / start * 100).toFixed(2);
+          const max = Math.max(...valid);
+          const min = Math.min(...valid);
+          const maxPct = ((max - start) / start * 100).toFixed(2);
+          const minPct = ((min - start) / start * 100).toFixed(2);
+          return `Return over ${tf}: ${change >= 0 ? '+' : ''}${change}% | Peak: +${maxPct}% | Trough: ${minPct}%`;
+      })();
+
+      // Top stocks for sector context
+      const topStocksLine = (() => {
+          if (type !== 'sector') return '';
+          const key = `${name}-${tf}`;
+          const sd = sectorCache[key];
+          if (!sd?.stocks?.length) return '';
+          const top5 = sd.stocks
+              .filter(s => !s.noData)
+              .slice(0, 5)
+              .map(s => `${s.symbol} (${parseFloat(s.ret) >= 0 ? '+' : ''}${s.ret}%)`)
+              .join(', ');
+          return `\nTop performers: ${top5}`;
+      })();
+
+      // Commodity instruments
+      const instrumentsLine = (() => {
+          if (type !== 'commodity') return '';
+          const key = `cmd-${name}-${tf}`;
+          const d = cmdCache[key];
+          if (!d?.entries) return '';
+          return `\nInstruments: ${d.entries.map(e => `${e.name} (${parseFloat(e.ret) >= 0 ? '+' : ''}${e.ret}%)`).join(', ')}`;
+      })();
+
+      // Index components
+      const indicesLine = (() => {
+          if (type !== 'index') return '';
+          const key = `indices-${tf}`;
+          const d = indexCache[key];
+          if (!d) return '';
+          const others = d
+              .filter(i => i.name !== name)
+              .slice(0, 4)
+              .map(i => `${i.name} (${parseFloat(i.ret) >= 0 ? '+' : ''}${i.ret}%)`)
+              .join(', ');
+          return others ? `\nRelated indices for context: ${others}` : '';
+      })();
+
+      const typeLabel = {
+          sector: `the ${name} stock sector (market-cap weighted index)`,
+          index: `the ${name} market index`,
+          commodity: `the ${name} commodity group`,
+      }[type];
+
+      const searchInstructions = {
+          sector: `Search for: recent news about ${name} sector stocks, sector rotation flows, institutional activity, regulatory developments, earnings trends, and macroeconomic factors affecting ${name} companies.`,
+          index: `Search for: recent news driving the ${name} index, constituent stock performance, economic data releases affecting the index, central bank policy impacts, and technical market structure.`,
+          commodity: `Search for: supply and demand news for ${name} commodities, geopolitical events affecting prices, storage/inventory data, production reports, and macro factors like dollar strength and inflation.`,
+      }[type];
+
+      const compareBlock = compareTicker?.trim()
+          ? `\nADDITIONAL SEARCH: Also search specifically for recent news, earnings, analyst upgrades/downgrades, and catalysts for ${compareTicker.toUpperCase()}. Include a separate paragraph in your analysis comparing how ${compareTicker.toUpperCase()} fits within the broader ${name} ${type} picture — is it leading, lagging, or diverging from the group?`
+          : '';
+
+      return `You are a professional financial analyst and market researcher. I need a comprehensive sentiment analysis for ${typeLabel}.
+
+  CURRENT MARKET DATA (${tf} timeframe):
+  - Regime: ${regime?.label || 'Unknown'} ${regime?.emoji || ''}
+  - ${perfStats}${topStocksLine}${instrumentsLine}${indicesLine}
+  - Timeframe analyzed: ${tf}
+
+  YOUR TASK:
+  Search for as many recent news articles as possible — aim for 15-20+ sources including Bloomberg, Reuters, WSJ, CNBC, Financial Times, Seeking Alpha, analyst reports, and sector-specific publications.
+  ${searchInstructions}${compareBlock}
+
+  After reading all articles, return ONLY a JSON object with no markdown, no backticks, no preamble:
+
+  {
+    "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+    "confidence": <integer 0-100>,
+    "tldr": "<one punchy sentence — the single most important thing happening right now>",
+    "themes": ["<theme1>", "<theme2>", "<theme3>", "<theme4>"],
+    "summary": "<4-6 paragraph deep analysis. Reference specific articles and data points. Use **bold** for key figures and turning points. Cover: current momentum, key drivers, risks, and outlook.>",
+    "catalysts": ["<catalyst 1>", "<catalyst 2>", "<catalyst 3>", "<catalyst 4>"],
+    "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+    "recommendation": "<a sharp, opinionated 2-3 sentence take on what to watch for. First person. Be direct.>",
+    "articleCount": <number of articles you actually found and read>,
+    "sourceList": ["<source1>", "<source2>", "<source3>"]${compareTicker?.trim() ? `,\n  "stockTake": "<2-3 sentence focused take on ${compareTicker.toUpperCase()} specifically and how it relates to the broader ${name} picture>"` : ''}
+  }
+
+  Return only the JSON object. It must be parseable by JSON.parse() with no surrounding text.`;
+  };
+
+  const DrillSentimentBtn = ({ type, name, regime }) => (
+      <button
+          onClick={() => {
+              setDrillSentimentContext({ type, name, regime });
+              setDrillCompareTicker('');
+              setDrillParsedAnalysis(null);
+              setDrillParseError(null);
+              setDrillSentimentOpen(true);
+          }}
+          style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 14px',
+              background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+              color: 'white', border: 'none', borderRadius: '8px',
+              fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+              transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
+              boxShadow: '0 3px 10px rgba(124,58,237,0.3)',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 5px 16px rgba(124,58,237,0.4)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(124,58,237,0.3)'; }}
+      >
+          🤖 AI Sentiment
+      </button>
+  );
+
   return (
     <div className="mp-wrap">
       {/* ── TOP BAR ── */}
@@ -2228,6 +2385,30 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                 <p>Indices · Sector indices (market-cap weighted) · Commodity groups</p>
               </div>
             )}
+            <div className="mp-drill-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 800, fontSize: 16, color: MP_SNOW.navy }}>
+                        Global Indices
+                    </span>
+                    <span style={{ fontSize: 11, color: '#64748b' }}>
+                        {curIdxData.length} indices · {tf}
+                    </span>
+                </div>
+                <DrillSentimentBtn
+                    type="index"
+                    name="Global Indices"
+                    regime={(() => {
+                        const key = `indices-${tf}`;
+                        const d = indexCache[key];
+                        if (!d?.length) return { label: 'Unknown', emoji: '' };
+                        const rets = d.map(i => parseFloat(i.ret));
+                        const avg = rets.reduce((a, b) => a + b, 0) / rets.length;
+                        return avg > 1 ? { label: 'Bull Trend', emoji: '🟢' } :
+                              avg < -1 ? { label: 'Bear Trend', emoji: '🔴' } :
+                              { label: 'Ranging', emoji: '🟡' };
+                    })()}
+                />
+            </div>
             {overviewData && !overviewLoading && (
               <>
                 <div className="mp-chart-box">
@@ -2377,6 +2558,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                     <button className="mp-corr-btn" onClick={() => fetchCorr(activeSector)} disabled={corrLoading[curSectorKey]}>
                       {corrLoading[curSectorKey] ? <><div className="mp-spinner-sm"/>Computing…</> : '🔗 Correlate All'}
                     </button>
+                    <DrillSentimentBtn type="sector" name={activeSector} regime={curSectorData.regime} />
                   </div>
                 </div>
 
@@ -2735,6 +2917,7 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
                     <span style={{ fontSize:11, color:'#64748b' }}>{curCmdData.entries.length} instruments · {tf}</span>
                   </div>
                 </div>
+                <DrillSentimentBtn type="commodity" name={activeCmdGroup} regime={curCmdData.entries?.[0] ? mpRegime(curCmdData.entries[0].vals) : { label: 'Unknown', emoji: '' }} />
                 <div className="mp-chart-box">
                   <div ref={cmdDrillRef} style={{ width:'100%', height:320 }} />
                   <div className="mp-chart-sub">Normalized to 100 · {tf}</div>
@@ -2798,7 +2981,443 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
           onClose={() => setCompareModal(null)}
         />
       )}
+      {/* ── DRILL SENTIMENT MODAL ── */}
+{drillSentimentOpen && drillSentimentContext && (
+    <div
+        onClick={() => setDrillSentimentOpen(false)}
+        style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10010, padding: '20px',
+            backdropFilter: 'blur(4px)',
+        }}
+    >
+        <div
+            onClick={e => e.stopPropagation()}
+            style={{
+                width: 'min(700px, 100%)',
+                maxHeight: '88vh',
+                borderRadius: '18px',
+                overflow: 'hidden',
+                display: 'flex', flexDirection: 'column',
+                backgroundColor: '#fff',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily: "'Segoe UI', system-ui, sans-serif",
+                animation: 'esi-modal-in 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+        >
+            {/* Header */}
+            <div style={{
+                padding: '18px 22px 14px',
+                background: 'linear-gradient(135deg, #0f172a, #4c1d95)',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontSize: 18 }}>🤖</span>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+                                AI Sentiment — {drillSentimentContext.name}
+                            </span>
+                            {drillSentimentContext.regime && (
+                                <span style={{
+                                    fontSize: 11, fontWeight: 700,
+                                    padding: '2px 9px', borderRadius: 20,
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                    color: '#fff',
+                                }}>
+                                    {drillSentimentContext.regime.emoji} {drillSentimentContext.regime.label}
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+                            Copy prompt → paste into any AI → copy their JSON response → hit Paste Response
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setDrillSentimentOpen(false)}
+                        style={{
+                            background: 'rgba(255,255,255,0.12)', border: 'none',
+                            borderRadius: '50%', width: 32, height: 32,
+                            color: '#fff', fontSize: 17, cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >×</button>
+                </div>
+
+                {/* Optional comparison ticker input */}
+                <div style={{
+                    marginTop: 14,
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    flexWrap: 'wrap',
+                }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                        + Include stock comparison (optional):
+                    </span>
+                    <input
+                        type="text"
+                        value={drillCompareTicker}
+                        onChange={e => setDrillCompareTicker(e.target.value.toUpperCase())}
+                        placeholder="e.g. AAPL, NVDA, TSLA..."
+                        maxLength={10}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            border: '1.5px solid rgba(255,255,255,0.25)',
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            color: '#fff', fontSize: 13, fontWeight: 600,
+                            outline: 'none', width: 160,
+                            fontFamily: "'IBM Plex Mono', monospace",
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#a78bfa'}
+                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.25)'}
+                    />
+                    {drillCompareTicker && (
+                        <span style={{ fontSize: 11, color: '#a78bfa' }}>
+                            AI will search {drillCompareTicker} separately and synthesise
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Prompt preview — scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
+                <div style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    padding: 16,
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    color: '#334155',
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                }}>
+                    {buildDrillPrompt(drillSentimentContext, drillCompareTicker)}
+                </div>
+
+                {/* Perplexity tip */}
+                <div style={{
+                    marginTop: 12,
+                    padding: '10px 14px',
+                    backgroundColor: 'rgba(32,178,170,0.07)',
+                    border: '1px solid rgba(32,178,170,0.25)',
+                    borderRadius: 9,
+                    display: 'flex', gap: 10, alignItems: 'flex-start',
+                }}>
+                    <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
+                    <div style={{ fontSize: 12, color: '#0f766e', lineHeight: 1.55 }}>
+                        <strong>Perplexity is best here</strong> — it actually searches the web in real time and pulls fresh articles automatically. The others need browsing mode enabled to do the same.
+                    </div>
+                </div>
+
+                {/* Parsed analysis result — shown after pasting */}
+                {drillParsedAnalysis && (
+                    <div style={{ marginTop: 16 }}>
+                        {/* Bias header */}
+                        {(() => {
+                            const bColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#2563eb' };
+                            const bIcons  = { BULLISH: '📈', BEARISH: '📉', NEUTRAL: '➡️', MIXED: '🔀' };
+                            const bc = bColors[drillParsedAnalysis.bias] || '#2563eb';
+                            return (
+                                <div style={{
+                                    padding: '14px 16px',
+                                    backgroundColor: bc + '10',
+                                    border: `2px solid ${bc}30`,
+                                    borderLeft: `4px solid ${bc}`,
+                                    borderRadius: 12, marginBottom: 12,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: 16 }}>{bIcons[drillParsedAnalysis.bias]}</span>
+                                        <span style={{ fontSize: 15, fontWeight: 800, color: bc }}>{drillParsedAnalysis.bias}</span>
+                                        <span style={{ backgroundColor: bc, color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>
+                                            {drillParsedAnalysis.confidence}% confidence
+                                        </span>
+                                        {drillParsedAnalysis.articleCount && (
+                                            <span style={{ fontSize: 11, color: '#888' }}>
+                                                · {drillParsedAnalysis.articleCount} articles
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: 14, color: '#1a1a1a', fontWeight: 600, lineHeight: 1.5, marginBottom: 10 }}>
+                                        {drillParsedAnalysis.tldr}
+                                    </div>
+                                    {/* Themes */}
+                                    {drillParsedAnalysis.themes?.length > 0 && (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                                            {drillParsedAnalysis.themes.map((t, i) => (
+                                                <span key={i} style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>
+                                                    {t}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Summary */}
+                                    {drillParsedAnalysis.summary && (
+                                        <div style={{ fontSize: 13, color: '#333', lineHeight: 1.7, backgroundColor: '#fff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 10 }}
+                                            dangerouslySetInnerHTML={{ __html: drillParsedAnalysis.summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
+                                        />
+                                    )}
+                                    {/* Stock take if present */}
+                                    {drillParsedAnalysis.stockTake && (
+                                        <div style={{ padding: '10px 14px', backgroundColor: '#faf5ff', border: '1px solid #ddd6fe', borderLeft: '3px solid #7c3aed', borderRadius: 8, marginBottom: 10 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                                🔍 {drillCompareTicker} TAKE
+                                            </div>
+                                            <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+                                                {drillParsedAnalysis.stockTake}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {/* Catalysts + Risks side by side */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                        {drillParsedAnalysis.catalysts?.length > 0 && (
+                                            <div>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', letterSpacing: '0.07em', marginBottom: 6 }}>🚀 CATALYSTS</div>
+                                                {drillParsedAnalysis.catalysts.map((c, i) => (
+                                                    <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 4, display: 'flex', gap: 6 }}>
+                                                        <span style={{ color: '#10b981', fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>{c}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {drillParsedAnalysis.risks?.length > 0 && (
+                                            <div>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', letterSpacing: '0.07em', marginBottom: 6 }}>⚠️ RISKS</div>
+                                                {drillParsedAnalysis.risks.map((r, i) => (
+                                                    <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 4, display: 'flex', gap: 6 }}>
+                                                        <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0 }}>▼</span>{r}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Recommendation */}
+                                    {drillParsedAnalysis.recommendation && (
+                                        <div style={{ marginTop: 10, padding: '10px 14px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '3px solid #2563eb', borderRadius: 8, fontSize: 13, color: '#1e3a5f', fontStyle: 'italic', lineHeight: 1.6 }}>
+                                            {drillParsedAnalysis.recommendation}
+                                        </div>
+                                    )}
+                                    {/* Source list */}
+                                    {drillParsedAnalysis.sourceList?.length > 0 && (
+                                        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                            {drillParsedAnalysis.sourceList.map((s, i) => (
+                                                <span key={i} style={{ backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>
+                                                    {s}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+                padding: '14px 22px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex', flexDirection: 'column', gap: 12,
+                flexShrink: 0,
+                backgroundColor: '#f8fafc',
+            }}>
+                {/* AI Launchers */}
+                <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', marginBottom: 8 }}>
+                        OPEN DIRECTLY IN (prompt auto-filled)
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {[
+                            { name: 'Perplexity', icon: '🔍', color: '#20b2aa', bg: 'rgba(32,178,170,0.08)', border: 'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                            { name: 'ChatGPT',    icon: '✦',  color: '#10a37f', bg: 'rgba(16,163,127,0.08)', border: 'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                            { name: 'Gemini',     icon: '✦',  color: '#4285f4', bg: 'rgba(66,133,244,0.08)', border: 'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                            { name: 'Claude',     icon: '◆',  color: '#cc785c', bg: 'rgba(204,120,92,0.08)', border: 'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                        ].map(({ name, icon, color, bg, border, getUrl }) => (
+                            <button
+                                key={name}
+                                onClick={() => window.open(getUrl(buildDrillPrompt(drillSentimentContext, drillCompareTicker)), '_blank')}
+                                style={{
+                                    padding: '8px 14px', borderRadius: 9,
+                                    border: `1.5px solid ${border}`,
+                                    backgroundColor: bg, color,
+                                    fontWeight: 700, fontSize: 13,
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${border}`; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                            >
+                                <span style={{ fontSize: 14 }}>{icon}</span> {name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ height: 1, backgroundColor: '#e2e8f0' }} />
+
+                {/* Copy + Paste row */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                        onClick={() => {
+                            navigator.clipboard.writeText(buildDrillPrompt(drillSentimentContext, drillCompareTicker));
+                            setDrillCopied(true);
+                            setTimeout(() => setDrillCopied(false), 2000);
+                        }}
+                        style={{
+                            flex: 1, padding: 10,
+                            background: drillCopied
+                                ? 'linear-gradient(135deg, #10b981, #059669)'
+                                : 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                            border: 'none', borderRadius: 9,
+                            color: '#fff', fontWeight: 700, fontSize: 14,
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                            transition: 'background 0.25s',
+                        }}
+                    >
+                        {drillCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                    </button>
+                    <button
+                        onClick={() => { setDrillSentimentOpen(false); setDrillPasteOpen(true); setDrillParseError(null); }}
+                        style={{
+                            flex: 1, padding: 10,
+                            backgroundColor: '#fff',
+                            border: '2px solid #7c3aed',
+                            borderRadius: 9, color: '#7c3aed',
+                            fontWeight: 700, fontSize: 14,
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#faf5ff'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                    >
+                        <span>📥</span> Paste Response
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
+)}
+
+{/* ── DRILL PASTE MODAL ── */}
+{drillPasteOpen && (
+    <div
+        onClick={() => { setDrillPasteOpen(false); setDrillParseError(null); }}
+        style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10010, padding: 20,
+            backdropFilter: 'blur(4px)',
+        }}
+    >
+        <div
+            onClick={e => e.stopPropagation()}
+            style={{
+                width: 'min(640px, 100%)',
+                borderRadius: 16, overflow: 'hidden',
+                backgroundColor: '#fff',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                fontFamily: "'Segoe UI', system-ui, sans-serif",
+                display: 'flex', flexDirection: 'column',
+                animation: 'esi-modal-in 0.2s ease',
+            }}
+        >
+            <div style={{
+                padding: '18px 22px 14px',
+                background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                            📥 Paste AI Response
+                            {drillSentimentContext && <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: 8 }}>— {drillSentimentContext.name}</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                            Paste the raw JSON the AI returned. It will be validated and displayed inline.
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => { setDrillPasteOpen(false); setDrillParseError(null); }}
+                        style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >×</button>
+                </div>
+            </div>
+
+            <div style={{ padding: '18px 22px 0' }}>
+                <textarea
+                    autoFocus
+                    value={drillPasteText}
+                    onChange={e => { setDrillPasteText(e.target.value); setDrillParseError(null); }}
+                    placeholder={'Paste the JSON here. Should start with {\n  "bias": "BULLISH",\n  "confidence": 82,\n  ...\n}'}
+                    style={{
+                        width: '100%', height: 240,
+                        padding: 14, borderRadius: 10,
+                        border: `2px solid ${drillParseError ? '#ef4444' : '#ddd6fe'}`,
+                        fontSize: 12, fontFamily: "'IBM Plex Mono', monospace",
+                        lineHeight: 1.6, resize: 'vertical', outline: 'none',
+                        boxSizing: 'border-box', color: '#1a1a1a',
+                        backgroundColor: drillParseError ? '#fef2f2' : '#faf5ff',
+                        transition: 'border-color 0.15s',
+                    }}
+                />
+                {drillParseError && (
+                    <div style={{ marginTop: 8, padding: '8px 12px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#b91c1c', lineHeight: 1.5 }}>
+                        ⚠️ {drillParseError}
+                    </div>
+                )}
+            </div>
+
+            <div style={{ padding: 18, display: 'flex', gap: 10 }}>
+                <button
+                    onClick={() => {
+                        setDrillParseError(null);
+                        if (!drillPasteText.trim()) { setDrillParseError('Paste the JSON response first.'); return; }
+                        let parsed;
+                        try {
+                            const clean = drillPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                            parsed = JSON.parse(clean);
+                        } catch (e) {
+                            setDrillParseError(`Invalid JSON — ${e.message}. Make sure you copied the full response.`);
+                            return;
+                        }
+                        const required = ['bias', 'confidence', 'tldr', 'summary'];
+                        const missing = required.filter(k => parsed[k] == null);
+                        if (missing.length) { setDrillParseError(`Missing required fields: ${missing.join(', ')}`); return; }
+                        parsed.bias = String(parsed.bias).toUpperCase();
+                        if (!['BULLISH','BEARISH','NEUTRAL','MIXED'].includes(parsed.bias)) parsed.bias = 'MIXED';
+                        setDrillParsedAnalysis(parsed);
+                        setDrillPasteText('');
+                        setDrillPasteOpen(false);
+                        setDrillSentimentOpen(true); // reopen prompt modal to show result
+                    }}
+                    disabled={!drillPasteText.trim()}
+                    style={{
+                        flex: 1, padding: 11,
+                        background: !drillPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7c3aed, #4c1d95)',
+                        border: 'none', borderRadius: 9,
+                        color: '#fff', fontWeight: 700, fontSize: 14,
+                        cursor: !drillPasteText.trim() ? 'not-allowed' : 'pointer',
+                        transition: 'background 0.15s',
+                    }}
+                >✓ Parse &amp; Display</button>
+                <button
+                    onClick={() => { setDrillPasteOpen(false); setDrillSentimentOpen(true); }}
+                    style={{ padding: '11px 16px', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                >← Back</button>
+            </div>
+        </div>
+    </div>
+)}
+    </div>
+    
   );
 }
 
