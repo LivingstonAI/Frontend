@@ -332,6 +332,11 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose }) {
                 }
 
                 chart.timeScale().fitContent();
+                // At the end of loadData() in Effect A, after fitContent():
+                if (positions.length > 0) {
+                    // small timeout so the series is fully settled before drawing
+                    setTimeout(() => drawPositionLines(positions), 50);
+                }
             } catch (e) {
                 setChartError(e.message);
             } finally {
@@ -5538,6 +5543,12 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
     const [showOptionsPanel,   setShowOptionsPanel]   = useState(false);
     const [optionsExpiry,      setOptionsExpiry]      = useState(null);
 
+    const [positions,         setPositions]         = useState([]);
+    const [positionsLoading,  setPositionsLoading]  = useState(false);
+    const [showPositions,     setShowPositions]      = useState(true);
+    const positionLinesRef    = useRef({}); 
+    // { [positionId]: { entry, sl, tp, current } } — holds priceLine refs per position
+
     useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
     useEffect(() => { showEarningsMarkersRef.current = showEarningsMarkers; }, [showEarningsMarkers]);
     useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
@@ -5878,6 +5889,100 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
         } finally {
             setAnalystLoading(false);
         }
+    };
+
+    const fetchPositions = async (sym) => {
+        if (!sym) return;
+        setPositionsLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/positions/?asset=${sym}`);
+            const json = await res.json();
+            setPositions(json.positions || []);
+        } catch (e) {
+            console.error('[Positions]', e);
+        } finally {
+            setPositionsLoading(false);
+        }
+    };
+
+    const clearPositionLines = () => {
+    if (!seriesRef.current) return;
+    Object.values(positionLinesRef.current).forEach(group => {
+        Object.values(group).forEach(pl => {
+            try { seriesRef.current.removePriceLine(pl); } catch (_) {}
+        });
+    });
+    positionLinesRef.current = {};
+};
+
+    const drawPositionLines = (positionList) => {
+        if (!seriesRef.current || !showPositions) return;
+        clearPositionLines();
+
+        positionList.forEach(pos => {
+            const isLong = pos.direction === 'long';
+            const lines  = {};
+
+            // Entry line — blue/white
+            if (pos.entry_price) {
+                lines.entry = seriesRef.current.createPriceLine({
+                    price:            pos.entry_price,
+                    color:            '#3b82f6',
+                    lineWidth:        2,
+                    lineStyle:        0, // solid
+                    axisLabelVisible: true,
+                    title:            `${pos.asset} Entry${pos.direction === 'short' ? ' (S)' : ' (L)'}  $${pos.entry_price}`,
+                });
+            }
+
+            // SL line — always red
+            if (pos.sl_price) {
+                const slLabel = pos.sl_dollars
+                    ? `SL  $${pos.sl_price}  (-$${Math.abs(pos.sl_dollars).toFixed(2)})`
+                    : `SL  $${pos.sl_price}`;
+                lines.sl = seriesRef.current.createPriceLine({
+                    price:            pos.sl_price,
+                    color:            '#ef4444',
+                    lineWidth:        1,
+                    lineStyle:        2, // dashed
+                    axisLabelVisible: true,
+                    title:            slLabel,
+                });
+            }
+
+            // TP line — always green
+            if (pos.tp_price) {
+                const tpLabel = pos.tp_dollars
+                    ? `TP  $${pos.tp_price}  (+$${Math.abs(pos.tp_dollars).toFixed(2)})`
+                    : `TP  $${pos.tp_price}`;
+                lines.tp = seriesRef.current.createPriceLine({
+                    price:            pos.tp_price,
+                    color:            '#10b981',
+                    lineWidth:        1,
+                    lineStyle:        2,
+                    axisLabelVisible: true,
+                    title:            tpLabel,
+                });
+            }
+
+            // Current price line — amber, only if different from entry
+            if (pos.current_price && Math.abs(pos.current_price - pos.entry_price) > 0.001) {
+                const pnl = isLong
+                    ? pos.current_price - pos.entry_price
+                    : pos.entry_price  - pos.current_price;
+                const pnlLabel = `${pnl >= 0 ? '▲' : '▼'} Now  $${pos.current_price}  (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`;
+                lines.current = seriesRef.current.createPriceLine({
+                    price:            pos.current_price,
+                    color:            pnl >= 0 ? '#f59e0b' : '#fb923c',
+                    lineWidth:        1,
+                    lineStyle:        1, // dotted
+                    axisLabelVisible: true,
+                    title:            pnlLabel,
+                });
+            }
+
+            positionLinesRef.current[pos.id] = lines;
+        });
     };
 
     // -- Helper: remove a series safely --------------------------------------
@@ -6232,6 +6337,27 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
                 applyEarningsMarkers(seriesRef.current, json.candles);
                 checkAlerts(json.candles);
+                // After checkAlerts in refreshData():
+                const latestClose = json.candles?.[json.candles.length - 1]?.close;
+                if (latestClose && positions.length > 0) {
+                    setPositions(prev => prev.map(pos => {
+                        const isLong = pos.direction === 'long';
+                        const pnl    = isLong
+                            ? latestClose - pos.entry_price
+                            : pos.entry_price - latestClose;
+                        // Recalculate dollar distances live — these don't change, 
+                        // but current_price drives the floating P&L line
+                        return { ...pos, current_price: latestClose };
+                    }));
+                    // PATCH the backend for persistence
+                    positions.forEach(pos => {
+                        fetch(`${BACKEND}/api/positions/${pos.id}/price/`, {
+                            method:  'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ current_price: latestClose }),
+                        }).catch(() => {});
+                    });
+                }
 
                 // Restore logical position -- this runs AFTER the internal fit
                 // so it wins. Only skip if we have no prior range (first load).
@@ -6240,6 +6366,10 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
                 }
                 // If no prior range, leave whatever LWC fitted -- it's correct for first load
                 setLastRefreshed(new Date());
+                // End of refreshData() in Effect B, after setLastRefreshed:
+                if (positions.length > 0 && showPositions) {
+                    setTimeout(() => drawPositionLines(positions), 50);
+                }
             } catch (e) {
                 setChartError('Refresh failed. Check connection.');
             } finally {
@@ -6249,6 +6379,19 @@ function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, op
 
         refreshData();
     }, [chartInterval, refreshTick, prePost]); // < interval . manual refresh . prePost toggle
+
+    useEffect(() => {
+        if (ticker) fetchPositions(ticker);
+    }, [ticker]);
+
+    useEffect(() => {
+        if (!positions.length) { clearPositionLines(); return; }
+        if (showPositions && seriesRef.current) {
+            drawPositionLines(positions);
+        } else {
+            clearPositionLines();
+        }
+    }, [positions, showPositions]);
 
     // -- Auto-refresh interval (30s) --
     useEffect(() => {
@@ -6585,6 +6728,123 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                     );
                 })()}
 
+                {/* Position detail panel */}
+                {showPositions && positions.length > 0 && (
+                    <div style={{
+                        padding:         '12px 16px',
+                        borderTop:       `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e2e8f0'}`,
+                        backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#fffbeb',
+                        display:         'flex', flexDirection: 'column', gap: '10px',
+                    }}>
+                        <div style={{
+                            fontSize: '10px', fontWeight: '700',
+                            color: '#f59e0b', letterSpacing: '0.08em',
+                        }}>
+                            📌 OPEN POSITIONS — {ticker}
+                        </div>
+
+                        {positions.map(pos => {
+                            const isLong   = pos.direction === 'long';
+                            const pnl      = pos.current_price
+                                ? (isLong
+                                    ? pos.current_price - pos.entry_price
+                                    : pos.entry_price   - pos.current_price)
+                                : null;
+                            const pnlPct   = pnl != null
+                                ? (pnl / pos.entry_price * 100).toFixed(2)
+                                : null;
+                            const rr = pos.sl_dollars && pos.tp_dollars
+                                ? (Math.abs(pos.tp_dollars) / Math.abs(pos.sl_dollars)).toFixed(2)
+                                : null;
+
+                            return (
+                                <div key={pos.id} style={{
+                                    display:         'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                                    gap:             '8px',
+                                    padding:         '10px 12px',
+                                    backgroundColor: chartTheme==='dark'||chartTheme==='hud' ? '#1e1e2e' : '#fff',
+                                    borderRadius:    '8px',
+                                    border:          `1px solid ${isLong ? '#3b82f630' : '#f8717130'}`,
+                                    borderLeft:      `3px solid ${isLong ? '#3b82f6' : '#f87171'}`,
+                                }}>
+                                    {/* Asset + direction */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>
+                                            POSITION
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: isLong ? '#3b82f6' : '#f87171' }}>
+                                            {isLong ? '▲ LONG' : '▼ SHORT'}
+                                        </div>
+                                        {pos.notes && (
+                                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                                                {pos.notes.slice(0, 30)}{pos.notes.length > 30 ? '…' : ''}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Entry */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>ENTRY</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#3b82f6', fontFamily: 'monospace' }}>
+                                            ${pos.entry_price}
+                                        </div>
+                                    </div>
+
+                                    {/* SL */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>STOP LOSS</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#ef4444', fontFamily: 'monospace' }}>
+                                            ${pos.sl_price ?? '—'}
+                                        </div>
+                                        {pos.sl_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '1px' }}>
+                                                -${Math.abs(pos.sl_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* TP */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>TAKE PROFIT</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981', fontFamily: 'monospace' }}>
+                                            ${pos.tp_price ?? '—'}
+                                        </div>
+                                        {pos.tp_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#10b981', marginTop: '1px' }}>
+                                                +${Math.abs(pos.tp_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Current price + live P&L */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>NOW</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#f59e0b', fontFamily: 'monospace' }}>
+                                            ${pos.current_price?.toFixed(2) ?? '—'}
+                                        </div>
+                                        {pnl != null && (
+                                            <div style={{ fontSize: '10px', color: pnl >= 0 ? '#10b981' : '#ef4444', marginTop: '1px', fontWeight: '700' }}>
+                                                {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPct}%)
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* R:R */}
+                                    {rr && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>R:R</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: parseFloat(rr) >= 2 ? '#10b981' : parseFloat(rr) >= 1 ? '#f59e0b' : '#ef4444', fontFamily: 'monospace' }}>
+                                                1:{rr}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
                 {/* Indicator legend strip */}
                 {(showEMA || showBB || (showRSI && rsiVal !== null)) && (() => {
                     const stripBg  = chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#f8f8ff';
@@ -6764,6 +7024,30 @@ Respond ONLY with a JSON object (no markdown, no backticks):
                         {optionsLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🎯'} Options
                     </button>
                     <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Position lines toggle */}
+                    <button
+                        onClick={() => setShowPositions(p => !p)}
+                        title={positions.length > 0 ? `${positions.length} position(s) for ${ticker}` : 'No positions for this ticker'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showPositions && positions.length > 0 ? '#3b82f6' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showPositions && positions.length > 0
+                                ? 'rgba(59,130,246,0.12)'
+                                : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showPositions && positions.length > 0
+                                ? '#3b82f6'
+                                : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            opacity: positionsLoading ? 0.6 : 1,
+                        }}
+                    >
+                        {positionsLoading
+                            ? <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span>
+                            : '📌'}
+                        {positions.length > 0 ? `${positions.length} Position${positions.length > 1 ? 's' : ''}` : 'Positions'}
+                    </button>
                     <button
                         onClick={captureAndAnalyse}
                         disabled={sabrinaLoading || screenshotting || !chartLoaded}
