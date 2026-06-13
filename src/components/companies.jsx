@@ -2839,6 +2839,8 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [fetchingTitle, setFetchingTitle] = useState(false);
+  const [recMode, setRecMode] = useState('record');           // ← ADD
+  const [geminiPasteText, setGeminiPasteText] = useState(''); // ← ADD
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const {
@@ -2870,15 +2872,36 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          company_name:              company.name,
-          full_transcript_text:      finalTranscript.trim(),
-          transcript_language:       recordingLanguage,
+          company_name:               company.name,
+          full_transcript_text:       finalTranscript.trim(),
+          transcript_language:        recordingLanguage,
           recording_duration_seconds: elapsed,
-          transcription_method:      'browser_speech_api',
-          status:                    'raw',
+          transcription_method:       'browser_speech_api',
+          status:                     'raw',
         }),
       });
       if (res.ok) { setSaved(true); resetRec(); onSaved && onSaved(); }
+    } catch {}
+    finally { setSaving(false); }
+  };
+
+  // ← ADD: save Gemini-pasted transcript
+  const handleSaveGeminiRec = async () => {
+    if (!geminiPasteText.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${BASE}/snowctr/company/${company.id}/transcripts/save/`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          company_name:         company.name,
+          full_transcript_text: geminiPasteText.trim(),
+          transcript_language:  recordingLanguage,
+          transcription_method: 'gemini_ai',
+          status:               'raw',
+        }),
+      });
+      if (res.ok) { setSaved(true); setGeminiPasteText(''); onSaved && onSaved(); }
     } catch {}
     finally { setSaving(false); }
   };
@@ -2918,7 +2941,9 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
           </div>
 
           <div style={styles.formGroup}>
-            <label style={styles.label}>URL {fetchingTitle && <span style={{ color: '#85b7eb', textTransform: 'none', fontWeight: 400 }}>⏳ detecting title…</span>}</label>
+            <label style={styles.label}>
+              URL {fetchingTitle && <span style={{ color: '#85b7eb', textTransform: 'none', fontWeight: 400 }}>⏳ detecting title…</span>}
+            </label>
             <input style={styles.input} placeholder="https://..." value={form.source_url}
                    onChange={e => handleUrlChange(e.target.value)} />
           </div>
@@ -2946,120 +2971,134 @@ function RecordForCompanyModal({ company, onClose, onSaved }) {
                    value={form.event_name} onChange={e => f('event_name', e.target.value)} />
           </div>
 
-          <div style={styles.recordingBox}>
-            <div style={styles.recordingHeader}>
-              <div style={styles.recordingDot(isRecording)} />
-              <span style={styles.recordingLabel}>
-                {isRecording ? `● Recording… ${formatDuration(elapsed)}` : 'Live transcript recorder'}
-              </span>
-            </div>
+          {/* Mode tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #e6f1fb', marginBottom: 14 }}>
+            {[
+              { id: 'record', label: '🎙 Live Record' },
+              { id: 'gemini', label: '✨ Gemini Transcript' },
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setRecMode(tab.id)} style={{
+                flex: 1, padding: '8px 0', fontSize: 12, fontWeight: 600,
+                background: recMode === tab.id ? '#e6f1fb' : 'transparent',
+                color: recMode === tab.id ? '#042c53' : '#85b7eb',
+                border: 'none',
+                borderBottom: recMode === tab.id ? '2px solid #185fa5' : '2px solid transparent',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>{tab.label}</button>
+            ))}
+          </div>
 
-            {recError && <div style={{ ...styles.error, marginBottom: 8 }}>{recError}</div>}
-            {!isSupported && <div style={{ ...styles.error, marginBottom: 8 }}>⚠️ Use Chrome or Edge for recording.</div>}
-
-            {(finalTranscript || interimTranscript) && (
-              <div style={styles.transcriptBox}>
-                <span>{finalTranscript}</span>
-                {interimTranscript && <span style={styles.interimText}>{interimTranscript}</span>}
+          {/* Live recording panel */}
+          {recMode === 'record' && (
+            <div style={styles.recordingBox}>
+              <div style={styles.recordingHeader}>
+                <div style={styles.recordingDot(isRecording)} />
+                <span style={styles.recordingLabel}>
+                  {isRecording ? `● Recording… ${formatDuration(elapsed)}` : 'Live transcript recorder'}
+                </span>
               </div>
-            )}
-            {!finalTranscript && !isRecording && (
-              <p style={{ fontSize: 12, color: '#bbb', textAlign: 'center', margin: '6px 0 10px' }}>
-                Hit record and speak — transcript appears here in real time.
-              </p>
-            )}
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-              {!isRecording
-                ? <button style={styles.btnRecord} onClick={startRec} disabled={!isSupported}>🎙 Start</button>
-                : <button style={styles.btnRecordStop} onClick={stopRec}>⏹ Stop</button>
-              }
-              {finalTranscript && !isRecording && (
-                <button style={{ ...styles.btnPrimary, fontSize: 12 }} onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving…' : '💾 Save transcript'}
-                </button>
-              )}
+              {recError && <div style={{ ...styles.error, marginBottom: 8 }}>{recError}</div>}
+              {!isSupported && <div style={{ ...styles.error, marginBottom: 8 }}>⚠️ Use Chrome or Edge for recording.</div>}
+
               {(finalTranscript || interimTranscript) && (
-                <button style={{ ...styles.btnSecondary, fontSize: 12 }} onClick={resetRec}>Clear</button>
+                <div style={styles.transcriptBox}>
+                  <span>{finalTranscript}</span>
+                  {interimTranscript && <span style={styles.interimText}>{interimTranscript}</span>}
+                </div>
               )}
-            </div>
-                  </div>
+              {!finalTranscript && !isRecording && (
+                <p style={{ fontSize: 12, color: '#bbb', textAlign: 'center', margin: '6px 0 10px' }}>
+                  Hit record and speak — transcript appears here in real time.
+                </p>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                {!isRecording
+                  ? <button style={styles.btnRecord} onClick={startRec} disabled={!isSupported}>🎙 Start</button>
+                  : <button style={styles.btnRecordStop} onClick={stopRec}>⏹ Stop</button>
+                }
+                {finalTranscript && !isRecording && (
+                  <button style={{ ...styles.btnPrimary, fontSize: 12 }} onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving…' : '💾 Save transcript'}
+                  </button>
                 )}
-
-                {/* Gemini transcript panel */}
-                {recMode === 'gemini' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Step 1 */}
-                    <div style={{
-                      background: '#e8f0fe', border: '1px solid #a8c0f5',
-                      borderRadius: 10, padding: '10px 14px',
-                      display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
-                    }}>
-                      <div style={{ flex: 1, minWidth: 160 }}>
-                        <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 700, color: '#1a56db' }}>
-                          Step 1 — Open Gemini
-                        </p>
-                        <p style={{ margin: 0, fontSize: 11, color: '#4a6fa5', lineHeight: 1.45 }}>
-                          {form.source_url
-                            ? 'Prompt auto-copied — paste into Gemini and ask it to transcribe the video.'
-                            : 'Fill in the URL above first, then open Gemini to transcribe it.'}
-                        </p>
-                      </div>
-                      <button
-                        disabled={!form.source_url}
-                        onClick={() => {
-                          const ytPrompt = `Please provide a full, verbatim transcript of this YouTube video:\n${form.source_url}\n\nReturn ONLY the transcript text — no commentary, no timestamps, no section headers. Just the raw spoken words in order.`;
-                          navigator.clipboard.writeText(ytPrompt).catch(() => {});
-                          window.open('https://gemini.google.com/app', '_blank', 'noopener,noreferrer');
-                        }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                          background: form.source_url ? 'linear-gradient(135deg, #1a73e8, #4285f4)' : '#ccc',
-                          border: 'none', color: '#fff', borderRadius: 8,
-                          padding: '8px 14px', fontSize: 12, fontWeight: 700,
-                          cursor: form.source_url ? 'pointer' : 'not-allowed',
-                        }}
-                      >
-                        Open Gemini ↗
-                      </button>
-                    </div>
-
-                    {/* Step 2 — paste */}
-                    <div style={styles.formGroup}>
-                      <label style={styles.label}>Step 2 — Paste transcript</label>
-                      <textarea
-                        style={{ ...styles.textarea, minHeight: 120 }}
-                        placeholder="Paste the transcript Gemini gives you here…"
-                        value={geminiPasteText}
-                        onChange={e => setGeminiPasteText(e.target.value)}
-                      />
-                    </div>
-
-                    {geminiPasteText.trim() && (
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, color: '#85b7eb' }}>
-                          {geminiPasteText.trim().split(/\s+/).filter(Boolean).length} words
-                        </span>
-                        <button
-                          style={{ ...styles.btnPrimary, fontSize: 12 }}
-                          onClick={handleSaveGeminiRec}
-                          disabled={saving}
-                        >
-                          {saving ? 'Saving…' : '💾 Save transcript'}
-                        </button>
-                        <button
-                          style={{ ...styles.btnSecondary, fontSize: 12 }}
-                          onClick={() => setGeminiPasteText('')}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                {(finalTranscript || interimTranscript) && (
+                  <button style={{ ...styles.btnSecondary, fontSize: 12 }} onClick={resetRec}>Clear</button>
                 )}
               </div>
-            );
-          })()}
+            </div>
+          )}
+
+          {/* Gemini transcript panel */}
+          {recMode === 'gemini' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{
+                background: '#e8f0fe', border: '1px solid #a8c0f5',
+                borderRadius: 10, padding: '10px 14px',
+                display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
+              }}>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 700, color: '#1a56db' }}>
+                    Step 1 — Open Gemini
+                  </p>
+                  <p style={{ margin: 0, fontSize: 11, color: '#4a6fa5', lineHeight: 1.45 }}>
+                    {form.source_url
+                      ? 'Prompt auto-copied — paste into Gemini and ask it to transcribe the video.'
+                      : 'Fill in the URL above first, then open Gemini to transcribe it.'}
+                  </p>
+                </div>
+                <button
+                  disabled={!form.source_url}
+                  onClick={() => {
+                    const ytPrompt = `Please provide a full, verbatim transcript of this YouTube video:\n${form.source_url}\n\nReturn ONLY the transcript text — no commentary, no timestamps, no section headers. Just the raw spoken words in order.`;
+                    navigator.clipboard.writeText(ytPrompt).catch(() => {});
+                    window.open('https://gemini.google.com/app', '_blank', 'noopener,noreferrer');
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                    background: form.source_url ? 'linear-gradient(135deg, #1a73e8, #4285f4)' : '#ccc',
+                    border: 'none', color: '#fff', borderRadius: 8,
+                    padding: '8px 14px', fontSize: 12, fontWeight: 700,
+                    cursor: form.source_url ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  Open Gemini ↗
+                </button>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Step 2 — Paste transcript</label>
+                <textarea
+                  style={{ ...styles.textarea, minHeight: 120 }}
+                  placeholder="Paste the transcript Gemini gives you here…"
+                  value={geminiPasteText}
+                  onChange={e => setGeminiPasteText(e.target.value)}
+                />
+              </div>
+
+              {geminiPasteText.trim() && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#85b7eb' }}>
+                    {geminiPasteText.trim().split(/\s+/).filter(Boolean).length} words
+                  </span>
+                  <button
+                    style={{ ...styles.btnPrimary, fontSize: 12 }}
+                    onClick={handleSaveGeminiRec}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving…' : '💾 Save transcript'}
+                  </button>
+                  <button
+                    style={{ ...styles.btnSecondary, fontSize: 12 }}
+                    onClick={() => setGeminiPasteText('')}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div style={styles.modalFooter}>
           <button style={styles.btnSecondary} onClick={onClose}>Close</button>
