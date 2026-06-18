@@ -930,7 +930,11 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                             </div>
                             <div style={{ fontSize:'12px', color:'#94a3b8', lineHeight:1.6 }}>
                                 Calculating ADX, ROC, volume velocity & breakout patterns.<br/>
-                                This takes ~30-60 seconds. Grab a coffee ☕
+                                This takes <strong>2-4 minutes</strong> for the full universe. Grab a coffee ☕<br/>
+                                <span style={{ fontSize:'11px', color:'#cbd5e1', marginTop:'4px', display:'block' }}>
+                                    Running in batches to avoid rate limits — hang tight
+                                </span>
+
                             </div>
                             <div style={{ display:'flex', justifyContent:'center', gap:'6px', marginTop:'18px' }}>
                                 {[0,1,2,3,4].map(i => (
