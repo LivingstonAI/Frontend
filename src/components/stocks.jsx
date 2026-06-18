@@ -17,7 +17,7 @@ const COMPARE_ASSETS = {
         'ADBE','CRM','AVGO','QCOM','TXN','AMAT','LRCX','KLAC','SNPS','CDNS','MRVL','NXPI',
         'MU','ADI','MPWR','SWKS','QRVO','ON','IBM','AAOI','ACLS','ACN','ADSK','AKAM',
         'ANSS','APH','ANET','ASML','AVAV','KEYS','MCHP','MTSI','MSI','MDB','NTAP','NTNX',
-        'PAYC','PTC','ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','ZBRA',
+        'PAYC','PTC','ROP','SAP','SLAB','STX','TER','TSM','TYL','UMC','VRSN','WDC','ZBRA','SPCX',
         // Software & Cloud
         'NOW','INTU','WDAY','PANW','CRWD','ZS','DDOG','NET','SNOW','PLTR','TEAM','FTNT','OKTA','S','CYBR',
         // Fintech & Payments
@@ -538,6 +538,54 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [chartTicker, setChartTicker] = React.useState(null);
     const [chartInterval, setChartInterval] = React.useState('1D');
 
+
+    // -- Watchlist state --
+    const [watchlist,        setWatchlist]        = React.useState([]);
+    const [watchlistLoading, setWatchlistLoading] = React.useState(false);
+    const [addInput,         setAddInput]         = React.useState('');
+    const [addCategory,      setAddCategory]      = React.useState('stocks');
+    const [useWatchlistOnly, setUseWatchlistOnly] = React.useState(false);
+
+    // Fetch on mount
+    React.useEffect(() => { fetchWatchlist(); }, []);
+
+    const fetchWatchlist = async () => {
+        setWatchlistLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_watchlist_list/`);
+            const json = await res.json();
+            setWatchlist(json.assets || []);
+        } catch(e) { console.error('[Watchlist]', e); }
+        finally { setWatchlistLoading(false); }
+    };
+
+    const addToWatchlist = async (sym, category) => {
+        if (!sym.trim()) return;
+        await fetch(`${BACKEND}/api/snowvault_watchlist_add/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ symbol: sym.trim().toUpperCase(), category }),
+        });
+        fetchWatchlist();
+        setAddInput('');
+    };
+
+    const removeFromWatchlist = async (sym) => {
+        await fetch(`${BACKEND}/api/snowvault_watchlist_remove/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ symbol: sym }),
+        });
+        fetchWatchlist();
+    };
+
+    // When running the scanner, swap tickers based on toggle:
+    // Replace the existing `ALL_TICKERS` in run() with:
+    const tickersToScan = useWatchlistOnly
+        ? watchlist.map(a => a.symbol)
+        : [...new Set([...ALL_TICKERS, ...watchlist.map(a => a.symbol)])];
+    // then pass tickersToScan into the POST body instead of ALL_TICKERS
+
     const CAP_OPTIONS = {
         '1B':   1_000_000_000,
         '10B':  10_000_000_000,
@@ -575,7 +623,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body:    JSON.stringify({
-                    tickers:      ALL_TICKERS,
+                    tickers:      tickersToScan,
                     minMarketCap: CAP_OPTIONS[minCap],
                     topN:         30,
                 }),
@@ -714,6 +762,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                         )}
                     </div>
                 </div>
+                
 
                 {/* ── Filter bar ── */}
                 {results && !loading && (
@@ -792,6 +841,67 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                         </div>
                     </div>
                 )}
+
+                {/* ── Watchlist panel ── */}
+                <div style={{ padding:'12px 14px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
+                    <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', marginBottom:'10px' }}>
+                        <span style={{ fontSize:'12px', fontWeight:'700', color:'#1e3a5f' }}>📌 My Watchlist</span>
+                        <button onClick={() => setUseWatchlistOnly(w => !w)} style={{
+                            padding:'3px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700',
+                            border:'1px solid',
+                            borderColor:   useWatchlistOnly ? '#2563eb' : '#e2e8f0',
+                            backgroundColor: useWatchlistOnly ? '#eff6ff' : '#fff',
+                            color:           useWatchlistOnly ? '#2563eb' : '#94a3b8',
+                            cursor:'pointer',
+                        }}>
+                            {useWatchlistOnly ? 'Watchlist Only' : 'All + Watchlist'}
+                        </button>
+                    </div>
+
+                    {/* Add row */}
+                    <div style={{ display:'flex', gap:'6px', marginBottom:'10px', flexWrap:'wrap' }}>
+                        <input
+                            value={addInput}
+                            onChange={e => setAddInput(e.target.value.toUpperCase())}
+                            onKeyDown={e => e.key === 'Enter' && addToWatchlist(addInput, addCategory)}
+                            placeholder="Add ticker e.g. TSLA"
+                            style={{ padding:'5px 10px', borderRadius:'7px', border:'1px solid #e2e8f0', fontSize:'12px', width:'130px', outline:'none' }}
+                        />
+                        <select value={addCategory} onChange={e => setAddCategory(e.target.value)}
+                            style={{ padding:'5px 8px', borderRadius:'7px', border:'1px solid #e2e8f0', fontSize:'12px', color:'#333' }}>
+                            {['stocks','forex','crypto','indices','commodities','bonds','etf','other'].map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                        <button onClick={() => addToWatchlist(addInput, addCategory)} style={{
+                            padding:'5px 12px', borderRadius:'7px', backgroundColor:'#2563eb',
+                            color:'#fff', border:'none', fontSize:'12px', fontWeight:'700', cursor:'pointer',
+                        }}>+ Add</button>
+                    </div>
+
+                    {/* Watchlist chips */}
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                        {watchlist.length === 0 && (
+                            <span style={{ fontSize:'11px', color:'#94a3b8' }}>No assets yet — add some above</span>
+                        )}
+                        {watchlist.map(a => (
+                            <div key={a.symbol} style={{
+                                display:'flex', alignItems:'center', gap:'5px',
+                                padding:'3px 10px', borderRadius:'20px',
+                                backgroundColor:'#eff6ff', border:'1px solid #bfdbfe',
+                                fontSize:'12px', fontWeight:'700', color:'#1d4ed8',
+                            }}>
+                                {a.symbol}
+                                <span style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'400' }}>{a.category}</span>
+                                <button onClick={() => removeFromWatchlist(a.symbol)} style={{
+                                    background:'none', border:'none', cursor:'pointer',
+                                    color:'#94a3b8', fontSize:'13px', fontWeight:'900',
+                                    lineHeight:1, padding:0,
+                                }}>×</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
                 {/* ── Body ── */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
