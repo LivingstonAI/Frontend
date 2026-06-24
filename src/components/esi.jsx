@@ -1712,6 +1712,7 @@ function MpCompareModal({ symA, symB, score, baseUrl, onClose }) {
 // ─── GLOBAL MARKET SCAN ──────────────────────────────────────────────────────
 
 const GLOBAL_SCAN_MARKETS = [
+  { id:'usa',       label:'United States',    flag:'🇺🇸', index:'^GSPC'    },
   { id:'korea',     label:'South Korea',      flag:'🇰🇷', index:'^KS11'    },
   { id:'japan',     label:'Japan',            flag:'🇯🇵', index:'^N225'    },
   { id:'uk',        label:'United Kingdom',   flag:'🇬🇧', index:'^FTSE'    },
@@ -1889,8 +1890,8 @@ function GlobalMarketScan({ baseUrl }) {
 
               {/* Top N selector */}
               <select value={topN} onChange={e => setTopN(parseInt(e.target.value))}
-                style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid #4338ca', background: 'rgba(255,255,255,0.1)', color: '#e0e7ff', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
-                {[10,15,20,25,30].map(n => <option key={n} value={n}>Top {n}</option>)}
+                style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid #4338ca', background: '#312e81', color: '#ffffff', fontSize: 12, fontWeight: 700, cursor: 'pointer', outline: 'none' }}>
+                {[10,15,20,25,30].map(n => <option key={n} value={n} style={{ background: '#1e1b4b', color: '#ffffff' }}>Top {n}</option>)}
               </select>
 
               <button onClick={() => setOpen(false)}
@@ -1920,7 +1921,10 @@ function GlobalMarketScan({ baseUrl }) {
                     boxShadow: activeMarket === m.id ? '0 3px 12px rgba(99,102,241,0.4)' : 'none',
                   }}
                 >
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>{m.flag}</span>
+                  <span role="img" aria-label={m.label}
+                    style={{ fontSize: 18, lineHeight: 1, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Twemoji Mozilla',sans-serif" }}>
+                    {m.flag}
+                  </span>
                   {m.label}
                 </button>
               ))}
@@ -1964,7 +1968,10 @@ function GlobalMarketScan({ baseUrl }) {
                 <>
                   {/* Result header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 28 }}>{data.flag}</span>
+                    <span role="img" aria-label={data.label}
+                      style={{ fontSize: 28, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Twemoji Mozilla',sans-serif" }}>
+                      {data.flag}
+                    </span>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 16, color: '#1e1b4b' }}>{data.label}</div>
                       <div style={{ fontSize: 11, color: '#6366f1' }}>
@@ -2040,7 +2047,10 @@ function GlobalMarketScan({ baseUrl }) {
 
                             {/* Row 3: action buttons */}
                             <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                              <span style={{ fontSize: 18, lineHeight: 1 }}>{data.flag}</span>
+                              <span role="img" aria-label={data.label}
+                                style={{ fontSize: 18, lineHeight: 1, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Twemoji Mozilla',sans-serif" }}>
+                                {data.flag}
+                              </span>
                               <button
                                 onClick={() => togglePanel(stock.symbol)}
                                 style={{
