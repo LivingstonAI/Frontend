@@ -20,7 +20,7 @@ const SECTOR_MAPPINGS = {
   'NOW':'Technology','INTU':'Technology','WDAY':'Technology','PANW':'Technology','CRWD':'Technology','ZS':'Technology','DDOG':'Technology','NET':'Technology','SNOW':'Technology','PLTR':'Technology','TEAM':'Technology','FTNT':'Technology','OKTA':'Technology','S':'Technology','CYBR':'Technology',
   'BRK-B':'Financial','PGR':'Financial','ALL':'Financial','TRV':'Financial','AIG':'Financial','MET':'Financial','PRU':'Financial',
   'BABA':'Technology','JD':'Consumer Cyclical','PDD':'Consumer Cyclical','BIDU':'Technology','NIO':'Consumer Cyclical','XPEV':'Consumer Cyclical','LI':'Consumer Cyclical',
-  'IBM':'Technology','ACN':'Technology','ADSK':'Technology','AKAM':'Technology','ANSS':'Technology','APH':'Technology','ANET':'Technology','ASML':'Technology','KEYS':'Technology','MCHP':'Technology','MSI':'Technology','MDB':'Technology','NTAP':'Technology','NTNX':'Technology','PAYC':'Technology','PTC':'Technology','ROP':'Technology','SAP':'Technology','STX':'Technology','TER':'Technology','TSM':'Technology','TYL':'Technology','VRSN':'Technology','WDC':'Technology','ZBRA':'Technology','ZM':'Technology','DOCU':'Technology','TWLO':'Technology','SQ':'Technology','UBER':'Technology','LYFT':'Technology','DASH':'Technology','PINS':'Technology','SNAP':'Technology','SPOT':'Technology','ROKU':'Technology','AFRM':'Technology','COIN':'Technology','HOOD':'Technology','SOFI':'Technology','ASTS':'Technology',
+  'IBM':'Technology', 'SPCX':'Technology','ACN':'Technology','ADSK':'Technology','AKAM':'Technology','ANSS':'Technology','APH':'Technology','ANET':'Technology','ASML':'Technology','KEYS':'Technology','MCHP':'Technology','MSI':'Technology','MDB':'Technology','NTAP':'Technology','NTNX':'Technology','PAYC':'Technology','PTC':'Technology','ROP':'Technology','SAP':'Technology','STX':'Technology','TER':'Technology','TSM':'Technology','TYL':'Technology','VRSN':'Technology','WDC':'Technology','ZBRA':'Technology','ZM':'Technology','DOCU':'Technology','TWLO':'Technology','SQ':'Technology','UBER':'Technology','LYFT':'Technology','DASH':'Technology','PINS':'Technology','SNAP':'Technology','SPOT':'Technology','ROKU':'Technology','AFRM':'Technology','COIN':'Technology','HOOD':'Technology','SOFI':'Technology','ASTS':'Technology',
   'AFL':'Financial','AMG':'Financial','AON':'Financial','AJG':'Financial','AMP':'Financial','BEN':'Financial','CBOE':'Financial','CINF':'Financial','DFS':'Financial','ERIE':'Financial','FITB':'Financial','GL':'Financial','HBAN':'Financial','HIG':'Financial','IVZ':'Financial','JKHY':'Financial','KEY':'Financial','L':'Financial','LNC':'Financial','MTB':'Financial','NTRS':'Financial','NDAQ':'Financial','PFG':'Financial','RF':'Financial','RJF':'Financial','STT':'Financial','SYF':'Financial','TROW':'Financial','WRB':'Financial','ZION':'Financial','CFG':'Financial','CMA':'Financial','FHN':'Financial','EWBC':'Financial','WAL':'Financial','WBS':'Financial','ALLY':'Financial',
   'ALGN':'Healthcare','BAX':'Healthcare','BDX':'Healthcare','BIO':'Healthcare','BSX':'Healthcare','DXCM':'Healthcare','EW':'Healthcare','EXAS':'Healthcare','HOLX':'Healthcare','HSIC':'Healthcare','ILMN':'Healthcare','INCY':'Healthcare','IQV':'Healthcare','LH':'Healthcare','MDT':'Healthcare','MOH':'Healthcare','NBIX':'Healthcare','PKI':'Healthcare','PODD':'Healthcare','RMD':'Healthcare','STE':'Healthcare','SYK':'Healthcare','TFX':'Healthcare','UHS':'Healthcare','WST':'Healthcare','XRAY':'Healthcare','ZBH':'Healthcare','ZTS':'Healthcare','TDOC':'Healthcare','DOCS':'Healthcare','VEEV':'Healthcare','HALO':'Healthcare','NVAX':'Healthcare','IONS':'Healthcare','UTHR':'Healthcare',
   'AZO':'Consumer Cyclical','BBY':'Consumer Cyclical','BURL':'Consumer Cyclical','CPRT':'Consumer Cyclical','DHI':'Consumer Cyclical','DRI':'Consumer Cyclical','EXPE':'Consumer Cyclical','GPC':'Consumer Cyclical','GRMN':'Consumer Cyclical','HAS':'Consumer Cyclical','HLT':'Consumer Cyclical','KMX':'Consumer Cyclical','LEN':'Consumer Cyclical','LVS':'Consumer Cyclical','MGM':'Consumer Cyclical','MHK':'Consumer Cyclical','NVR':'Consumer Cyclical','ORLY':'Consumer Cyclical','PHM':'Consumer Cyclical','POOL':'Consumer Cyclical','RL':'Consumer Cyclical','TSCO':'Consumer Cyclical','TPR':'Consumer Cyclical','ULTA':'Consumer Cyclical','VFC':'Consumer Cyclical','WHR':'Consumer Cyclical','WYNN':'Consumer Cyclical','APTV':'Consumer Cyclical','BWA':'Consumer Cyclical','DG':'Consumer Cyclical','DLTR':'Consumer Cyclical','DDS':'Consumer Cyclical','FIVE':'Consumer Cyclical','FL':'Consumer Cyclical','GPS':'Consumer Cyclical','GT':'Consumer Cyclical','HBI':'Consumer Cyclical','LAD':'Consumer Cyclical','LKQ':'Consumer Cyclical','M':'Consumer Cyclical','NCLH':'Consumer Cyclical','NWL':'Consumer Cyclical','PVH':'Consumer Cyclical',
@@ -649,6 +649,7 @@ const MP_INDICES = [
   { symbol:'^N225', name:'Nikkei 225',   color:'#059669' },
   { symbol:'^HSI',  name:'Hang Seng',    color:'#f59e0b' },
   { symbol:'^AXJO', name:'ASX 200',      color:'#8b5cf6' },
+  { symbol:'^KS11', name:'KOSPI',        color:'#e63946' },
 ];
 
 // ── Live market cap cache ──
@@ -1705,6 +1706,388 @@ function MpCompareModal({ symA, symB, score, baseUrl, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── GLOBAL MARKET SCAN ──────────────────────────────────────────────────────
+
+const GLOBAL_SCAN_MARKETS = [
+  { id:'korea',     label:'South Korea',      flag:'🇰🇷', index:'^KS11'    },
+  { id:'japan',     label:'Japan',            flag:'🇯🇵', index:'^N225'    },
+  { id:'uk',        label:'United Kingdom',   flag:'🇬🇧', index:'^FTSE'    },
+  { id:'germany',   label:'Germany',          flag:'🇩🇪', index:'^GDAXI'   },
+  { id:'france',    label:'France',           flag:'🇫🇷', index:'^FCHI'    },
+  { id:'china',     label:'China (HK)',       flag:'🇨🇳', index:'^HSI'     },
+  { id:'australia', label:'Australia',        flag:'🇦🇺', index:'^AXJO'    },
+  { id:'canada',    label:'Canada',           flag:'🇨🇦', index:'^GSPTSE'  },
+  { id:'india',     label:'India',            flag:'🇮🇳', index:'^BSESN'   },
+  { id:'brazil',    label:'Brazil',           flag:'🇧🇷', index:'^BVSP'    },
+];
+
+const SCAN_PERIODS = [
+  { value:'1wk',  label:'1W'  },
+  { value:'1mo',  label:'1M'  },
+  { value:'3mo',  label:'3M'  },
+  { value:'6mo',  label:'6M'  },
+  { value:'1y',   label:'1Y'  },
+];
+
+function GlobalMarketScan({ baseUrl }) {
+  const [open,        setOpen]        = useState(false);
+  const [activeMarket,setActiveMarket]= useState(null);   // market id string
+  const [period,      setPeriod]      = useState('1mo');
+  const [topN,        setTopN]        = useState(15);
+  const [loading,     setLoading]     = useState(false);
+  const [data,        setData]        = useState(null);   // last scan result
+  const [error,       setError]       = useState('');
+  // Cache: { [`${market}-${period}`]: result }
+  const [cache,       setCache]       = useState({});
+  // Which stock panels are open — reuse AssetDetailPanel
+  const [openPanels,  setOpenPanels]  = useState(new Set());
+
+  const togglePanel = (sym) => setOpenPanels(p => {
+    const n = new Set(p); n.has(sym) ? n.delete(sym) : n.add(sym); return n;
+  });
+
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  const scan = async (marketId, per) => {
+    const key = `${marketId}-${per}`;
+    // Use cache if available
+    if (cache[key]) { setData(cache[key]); setActiveMarket(marketId); return; }
+
+    setLoading(true);
+    setError('');
+    setData(null);
+    setActiveMarket(marketId);
+    setOpenPanels(new Set());
+
+    try {
+      const res = await fetch(`${baseUrl}/api/global_market_scan_v1/`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ market: marketId, period: per, top_n: topN }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Scan failed');
+      setData(json);
+      setCache(c => ({ ...c, [key]: json }));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Re-scan when period changes and a market is already selected
+  const handlePeriodChange = (per) => {
+    setPeriod(per);
+    if (activeMarket) scan(activeMarket, per);
+  };
+
+  const fmtCap = (v) => {
+    if (!v) return '—';
+    if (v >= 1e12) return (v/1e12).toFixed(1)+'T';
+    if (v >= 1e9)  return (v/1e9).toFixed(1)+'B';
+    if (v >= 1e6)  return (v/1e6).toFixed(0)+'M';
+    return v.toLocaleString();
+  };
+
+  const fmtPrice = (v, ccy) => {
+    if (!v) return '—';
+    const formatted = v >= 1000
+      ? v.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : v >= 1 ? v.toFixed(2)
+      : v.toFixed(4);
+    return `${formatted} ${ccy || ''}`;
+  };
+
+  return (
+    <>
+      {/* ── TRIGGER BUTTON ── */}
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '11px 22px', margin: '0 0 16px',
+          background: 'linear-gradient(135deg, #1d4ed8, #6366f1)',
+          color: 'white', border: 'none', borderRadius: 10,
+          fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          boxShadow: '0 4px 18px rgba(99,102,241,0.4)',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(99,102,241,0.5)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(99,102,241,0.4)'; }}
+      >
+        🌍 Global Market Scan
+        <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 6, padding: '1px 8px', fontSize: 10, fontWeight: 800 }}>
+          {GLOBAL_SCAN_MARKETS.length} MARKETS
+        </span>
+      </button>
+
+      {/* ── MODAL ── */}
+      {open && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9998,
+            background: 'rgba(0,0,0,0.82)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: window.innerWidth < 700 ? 0 : 16,
+          }}
+        >
+          <div style={{
+            display: 'flex', flexDirection: 'column',
+            width: '100%', maxWidth: 1200,
+            height: window.innerWidth < 700 ? '100dvh' : '92vh',
+            maxHeight: window.innerWidth < 700 ? '100dvh' : 940,
+            borderRadius: window.innerWidth < 700 ? 0 : 18,
+            overflow: 'hidden',
+            background: '#ffffff',
+            boxShadow: '0 40px 120px rgba(0,0,0,0.6)',
+            border: '1.5px solid #e0e7ff',
+            animation: 'esi-modal-in 0.18s ease',
+          }}>
+
+            {/* ── HEADER ── */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              padding: '12px 16px', flexShrink: 0,
+              background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+              borderBottom: '1.5px solid #4338ca',
+            }}>
+              <span style={{ fontSize: 20 }}>🌍</span>
+              <span style={{ fontWeight: 800, fontSize: 15, color: '#e0e7ff' }}>Global Market Scan</span>
+              <span style={{ fontSize: 11, color: '#a5b4fc' }}>Top performers by country/bloc</span>
+
+              {/* Period pills */}
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 3, background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 3 }}>
+                {SCAN_PERIODS.map(p => (
+                  <button key={p.value} onClick={() => handlePeriodChange(p.value)}
+                    style={{
+                      padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                      fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700,
+                      background: period === p.value ? '#6366f1' : 'transparent',
+                      color: period === p.value ? '#fff' : '#a5b4fc',
+                      transition: 'all 0.12s',
+                    }}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Top N selector */}
+              <select value={topN} onChange={e => setTopN(parseInt(e.target.value))}
+                style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid #4338ca', background: 'rgba(255,255,255,0.1)', color: '#e0e7ff', fontSize: 12, cursor: 'pointer', outline: 'none' }}>
+                {[10,15,20,25,30].map(n => <option key={n} value={n}>Top {n}</option>)}
+              </select>
+
+              <button onClick={() => setOpen(false)}
+                style={{ padding: '5px 11px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 7, background: 'rgba(255,255,255,0.08)', color: '#a5b4fc', cursor: 'pointer', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
+                ✕
+              </button>
+            </div>
+
+            {/* ── MARKET SELECTOR GRID ── */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 14px',
+              background: '#f5f3ff', borderBottom: '1.5px solid #e0e7ff', flexShrink: 0,
+            }}>
+              {GLOBAL_SCAN_MARKETS.map(m => (
+                <button key={m.id}
+                  onClick={() => scan(m.id, period)}
+                  disabled={loading}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '7px 13px', border: '2px solid',
+                    borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                    transition: 'all 0.15s', whiteSpace: 'nowrap',
+                    borderColor: activeMarket === m.id ? '#6366f1' : '#c7d2fe',
+                    background: activeMarket === m.id ? '#6366f1' : 'white',
+                    color: activeMarket === m.id ? 'white' : '#4338ca',
+                    opacity: loading ? 0.6 : 1,
+                    boxShadow: activeMarket === m.id ? '0 3px 12px rgba(99,102,241,0.4)' : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>{m.flag}</span>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ── BODY ── */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px', background: '#fafafa' }}>
+
+              {/* Loading */}
+              {loading && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300, gap: 14, color: '#6366f1' }}>
+                  <div style={{ width: 36, height: 36, border: '3.5px solid #e0e7ff', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'esi-spin 0.7s linear infinite' }} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>
+                    Scanning {GLOBAL_SCAN_MARKETS.find(m => m.id === activeMarket)?.flag} {GLOBAL_SCAN_MARKETS.find(m => m.id === activeMarket)?.label}…
+                  </span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>Fetching {topN}+ stocks via yfinance — takes ~8s</span>
+                </div>
+              )}
+
+              {/* Error */}
+              {error && !loading && (
+                <div style={{ padding: '14px 18px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, color: '#b91c1c', fontSize: 13, marginBottom: 12 }}>
+                  ⚠️ {error}
+                  <button onClick={() => scan(activeMarket, period)} style={{ marginLeft: 12, padding: '4px 12px', background: '#6366f1', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Retry</button>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!loading && !data && !error && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 320, gap: 12, color: '#94a3b8' }}>
+                  <span style={{ fontSize: 40 }}>🌍</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>Select a market above to scan</span>
+                  <span style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', maxWidth: 340 }}>
+                    Each scan fetches live yfinance data for 25–40 stocks, ranks them by {SCAN_PERIODS.find(p => p.value === period)?.label} return, and shows you the top {topN} performers.
+                  </span>
+                </div>
+              )}
+
+              {/* Results */}
+              {data && !loading && (
+                <>
+                  {/* Result header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 28 }}>{data.flag}</span>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: '#1e1b4b' }}>{data.label}</div>
+                      <div style={{ fontSize: 11, color: '#6366f1' }}>
+                        Scanned {data.scanned} stocks · {data.found} returned data · Top {data.results.length} by {SCAN_PERIODS.find(p => p.value === data.period)?.label} return
+                      </div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                      <span style={{ fontSize: 11, padding: '4px 10px', background: '#ede9fe', color: '#6d28d9', borderRadius: 20, fontWeight: 700 }}>
+                        Index: {data.index_symbol}
+                      </span>
+                      <span style={{ fontSize: 11, padding: '4px 10px', background: '#f0f9ff', color: '#0369a1', borderRadius: 20, fontWeight: 700 }}>
+                        CCY: {data.currency}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stock cards grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                    {data.results.map((stock, rank) => {
+                      const isPanelOpen = openPanels.has(stock.symbol);
+                      const retColor = stock.return_pct >= 0 ? '#16a34a' : '#dc2626';
+                      const retBg    = stock.return_pct >= 0 ? '#dcfce7' : '#fee2e2';
+                      return (
+                        <div key={stock.symbol} style={{ gridColumn: isPanelOpen ? '1 / -1' : 'auto' }}>
+                          {/* Card */}
+                          <div style={{
+                            background: 'white', borderRadius: 12,
+                            border: `1.5px solid ${isPanelOpen ? '#6366f1' : '#e2e8f0'}`,
+                            padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8,
+                            boxShadow: isPanelOpen ? '0 0 0 3px rgba(99,102,241,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
+                            transition: 'all 0.15s',
+                          }}>
+                            {/* Row 1: rank + symbol + return */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{
+                                width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: rank === 0 ? '#fbbf24' : rank === 1 ? '#94a3b8' : rank === 2 ? '#b45309' : '#e0e7ff',
+                                color: rank < 3 ? 'white' : '#6366f1',
+                                fontSize: 10, fontWeight: 800,
+                              }}>
+                                {rank + 1}
+                              </span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 800, fontSize: 13, color: '#1e1b4b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {stock.symbol}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {stock.name}
+                                </div>
+                              </div>
+                              <span style={{ background: retBg, color: retColor, fontWeight: 800, fontSize: 13, fontFamily: 'monospace', padding: '3px 9px', borderRadius: 8, flexShrink: 0 }}>
+                                {stock.return_pct >= 0 ? '+' : ''}{stock.return_pct.toFixed(2)}%
+                              </span>
+                            </div>
+
+                            {/* Row 2: price + sector + market cap */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#475569', background: '#f8fafc', padding: '2px 7px', borderRadius: 5, border: '1px solid #e2e8f0' }}>
+                                {fmtPrice(stock.current_price, stock.currency)}
+                              </span>
+                              {stock.sector && stock.sector !== '—' && (
+                                <span style={{ fontSize: 10, background: '#ede9fe', color: '#6d28d9', padding: '2px 7px', borderRadius: 5, fontWeight: 600, border: '1px solid #ddd6fe' }}>
+                                  {stock.sector}
+                                </span>
+                              )}
+                              {stock.market_cap && (
+                                <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 'auto', fontFamily: 'monospace' }}>
+                                  {fmtCap(stock.market_cap)}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Row 3: action buttons */}
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                              <span style={{ fontSize: 18, lineHeight: 1 }}>{data.flag}</span>
+                              <button
+                                onClick={() => togglePanel(stock.symbol)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 5,
+                                  padding: '5px 12px', borderRadius: 7, border: '1.5px solid',
+                                  borderColor: isPanelOpen ? '#6366f1' : '#c7d2fe',
+                                  background: isPanelOpen ? '#6366f1' : '#ede9fe',
+                                  color: isPanelOpen ? 'white' : '#4338ca',
+                                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                  transition: 'all 0.14s',
+                                }}
+                              >
+                                📊 {isPanelOpen ? 'Close Chart' : 'View Chart'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Expandable AssetDetailPanel — reuses your existing component */}
+                          {isPanelOpen && (
+                            <div style={{ marginTop: 4, border: '1.5px solid #6366f1', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 20px rgba(99,102,241,0.15)' }}>
+                              <AssetDetailPanel
+                                key={`gms-panel-${stock.symbol}`}
+                                symbol={stock.symbol}
+                                baseUrl={baseUrl}
+                                defaultLookback={60}
+                                embedded
+                                onClose={() => togglePanel(stock.symbol)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ marginTop: 16, padding: '10px 14px', background: '#f5f3ff', border: '1px solid #e0e7ff', borderRadius: 10, fontSize: 11, color: '#6d28d9', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                    <span>📡 Data via yfinance · {data.failed > 0 ? `${data.failed} tickers had no data` : 'All tickers returned data'}</span>
+                    <span>Scanned at {new Date().toLocaleTimeString()} · Period: {data.period}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -3925,6 +4308,10 @@ export default function EconomicStrengthIndex() {
               </div>
             )}
           </div>
+
+
+          {/* ── GLOBAL MARKET SCAN ── */}
+          <GlobalMarketScan baseUrl={baseUrl} />
 
           {/* ── MARKET PULSE ── */}
           <MarketPulse
