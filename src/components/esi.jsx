@@ -1750,6 +1750,16 @@ function GlobalMarketScan({ baseUrl }) {
     const n = new Set(p); n.has(sym) ? n.delete(sym) : n.add(sym); return n;
   });
 
+  // Sentiment modal state
+const [sentimentOpen,   setSentimentOpen]   = useState(false);
+const [sentimentMarket, setSentimentMarket] = useState(null); // the data object
+const [includeStocks,   setIncludeStocks]   = useState(false);
+const [gsmCopied,       setGsmCopied]       = useState(false);
+const [gsmPasteOpen,    setGsmPasteOpen]    = useState(false);
+const [gsmPasteText,    setGsmPasteText]    = useState('');
+const [gsmParseError,   setGsmParseError]   = useState(null);
+const [gsmAnalysis,     setGsmAnalysis]     = useState(null); // parsed result, keyed by market id
+
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -1812,6 +1822,64 @@ function GlobalMarketScan({ baseUrl }) {
       : v.toFixed(4);
     return `${formatted} ${ccy || ''}`;
   };
+
+  const buildGlobalScanPrompt = (marketData, includeStocks) => {
+  if (!marketData) return '';
+
+  const periodLabel = SCAN_PERIODS.find(p => p.value === marketData.period)?.label || marketData.period;
+
+  // Build top performers block
+  const topBlock = marketData.results
+    .slice(0, 15)
+    .map((s, i) => `${i + 1}. ${s.symbol} — ${s.name} | Return: ${s.return_pct >= 0 ? '+' : ''}${s.return_pct.toFixed(2)}% | Price: ${s.current_price} ${s.currency}${s.sector && s.sector !== '—' ? ' | Sector: ' + s.sector : ''}${s.market_cap ? ' | MCap: ' + (s.market_cap >= 1e12 ? (s.market_cap/1e12).toFixed(1)+'T' : s.market_cap >= 1e9 ? (s.market_cap/1e9).toFixed(1)+'B' : (s.market_cap/1e6).toFixed(0)+'M') : ''}`)
+    .join('\n');
+
+  // Full ticker list for the "include stocks" mode
+  const fullTickerList = marketData.results.map(s => s.symbol).join(', ');
+
+  const stockSearchBlock = includeStocks
+    ? `\nSTOCKS TO RESEARCH INDIVIDUALLY:\n${fullTickerList}\n\nFor each of these stocks, search for recent news, earnings reports, analyst upgrades/downgrades, and any material catalysts or risks. You MUST include a "stockPicks" array in your JSON response (see schema below) with your top 5 investment opportunities from this list, each with a recommendation and reasoning.`
+    : '';
+
+  const stockPicksField = includeStocks
+    ? `,\n  "stockPicks": [\n    {\n      "symbol": "<ticker>",\n      "name": "<company name>",\n      "rec": "BUY" | "HOLD" | "WATCH" | "AVOID",\n      "thesis": "<2-3 sentence investment thesis>",\n      "risk": "<main risk in one sentence>"\n    }\n  ]`
+    : '';
+
+  return `You are a professional global equity analyst and market researcher. I need a comprehensive sentiment and opportunity analysis for the ${marketData.label} stock market.
+
+MARKET DATA (${periodLabel} timeframe):
+- Index: ${marketData.index_symbol}
+- Market: ${marketData.label} ${marketData.flag}
+- Currency: ${marketData.currency}
+- Period analysed: ${periodLabel}
+- Universe scanned: ${marketData.scanned} stocks, ${marketData.found} returned data
+
+TOP ${marketData.results.length} PERFORMERS (${periodLabel}):
+${topBlock}
+${stockSearchBlock}
+
+YOUR TASK:
+Search for as many recent news articles as possible — aim for 15-20+ sources. Cover Bloomberg, Reuters, WSJ, CNBC, Financial Times, local financial media for ${marketData.label}, and sector-specific publications.
+
+Search for: overall market sentiment in ${marketData.label}, macroeconomic conditions, central bank policy, currency trends affecting ${marketData.currency}, sector rotation, foreign institutional flows, geopolitical factors, and any major corporate or regulatory events affecting the market.
+
+After reading all articles, return ONLY a JSON object — no markdown, no backticks, no preamble:
+
+{
+  "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "confidence": <integer 0-100>,
+  "tldr": "<one punchy sentence — the single most important thing happening in ${marketData.label} markets right now>",
+  "themes": ["<theme1>", "<theme2>", "<theme3>", "<theme4>"],
+  "summary": "<4-6 paragraph deep analysis. Reference specific articles and data points. Use **bold** for key figures and turning points. Cover: current market momentum, key macro drivers, sector leaders/laggards, risks, and forward outlook.>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>", "<catalyst 3>", "<catalyst 4>"],
+  "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+  "recommendation": "<a sharp, opinionated 2-3 sentence take on the overall market. First person. Be direct about whether this market is worth allocating to right now.>",
+  "articleCount": <number of articles you actually found and read>,
+  "sourceList": ["<source1>", "<source2>", "<source3>"]${stockPicksField}
+}
+
+Return only the JSON object. It must be parseable by JSON.parse() with no surrounding text.`;
+};
 
   return (
     <>
@@ -1988,6 +2056,62 @@ function GlobalMarketScan({ baseUrl }) {
                     </div>
                   </div>
 
+                   {/* AI Sentiment button + Include Stocks toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => {
+                        setSentimentMarket(data);
+                        setIncludeStocks(false);
+                        setGsmAnalysis(prev => ({ ...prev, [data.market]: null }));
+                        setSentimentOpen(true);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 7,
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                        color: 'white', border: 'none', borderRadius: 9,
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        boxShadow: '0 3px 12px rgba(124,58,237,0.35)',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 5px 18px rgba(124,58,237,0.5)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 3px 12px rgba(124,58,237,0.35)'; }}
+                    >
+                      🤖 AI Sentiment — {data.flag} {data.label}
+                    </button>
+
+                    {/* Include Stocks toggle — only shown after scan */}
+                    <button
+                      onClick={() => setIncludeStocks(s => !s)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 13px', borderRadius: 9, cursor: 'pointer',
+                        border: `2px solid ${includeStocks ? '#6366f1' : '#c7d2fe'}`,
+                        background: includeStocks ? '#ede9fe' : 'white',
+                        color: includeStocks ? '#4338ca' : '#94a3b8',
+                        fontSize: 12, fontWeight: 700, transition: 'all 0.14s',
+                      }}
+                    >
+                      <span style={{
+                        width: 16, height: 16, borderRadius: 4, border: '2px solid',
+                        borderColor: includeStocks ? '#6366f1' : '#c7d2fe',
+                        background: includeStocks ? '#6366f1' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, color: 'white', transition: 'all 0.12s', flexShrink: 0,
+                      }}>
+                        {includeStocks ? '✓' : ''}
+                      </span>
+                      Include Stocks
+                      {includeStocks && <span style={{ fontSize: 10, background: '#6366f1', color: 'white', padding: '1px 6px', borderRadius: 4 }}>ON — AI will research each stock</span>}
+                    </button>
+
+                    {gsmAnalysis?.[data.market] && (
+                      <span style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', padding: '4px 10px', borderRadius: 20, border: '1px solid #ddd6fe', fontWeight: 700 }}>
+                        ✓ Analysis cached
+                      </span>
+                    )}
+                  </div>
+
                   {/* Stock cards grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                     {data.results.map((stock, rank) => {
@@ -2093,6 +2217,333 @@ function GlobalMarketScan({ baseUrl }) {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── GLOBAL SCAN SENTIMENT MODAL ── */}
+      {sentimentOpen && sentimentMarket && (
+        <div
+          onClick={() => setSentimentOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10010,
+            background: 'rgba(0,0,0,0.65)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20, backdropFilter: 'blur(5px)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 'min(720px, 100%)', maxHeight: '90vh',
+              borderRadius: 18, overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+              background: '#fff',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
+              animation: 'esi-modal-in 0.2s ease',
+            }}
+          >
+            {/* Header */}
+            <div style={{ padding: '18px 22px 14px', background: 'linear-gradient(135deg, #1e1b4b, #4c1d95)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 20, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>
+                      {sentimentMarket.flag}
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
+                      AI Sentiment — {sentimentMarket.label}
+                    </span>
+                    {includeStocks && (
+                      <span style={{ fontSize: 10, background: '#7c3aed', color: 'white', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>
+                        + {sentimentMarket.results.length} stocks
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+                    Copy prompt → paste into any AI → copy their JSON → hit Paste Response
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSentimentOpen(false)}
+                  style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                >×</button>
+              </div>
+
+              {/* Include stocks toggle inside modal too */}
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => setIncludeStocks(s => !s)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
+                    border: `1.5px solid ${includeStocks ? '#a78bfa' : 'rgba(255,255,255,0.2)'}`,
+                    background: includeStocks ? 'rgba(167,139,250,0.2)' : 'rgba(255,255,255,0.08)',
+                    color: includeStocks ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                    fontSize: 12, fontWeight: 700, transition: 'all 0.14s',
+                  }}
+                >
+                  {includeStocks ? '✓' : '○'} Include {sentimentMarket.results.length} scanned stocks in analysis
+                </button>
+                {includeStocks && (
+                  <span style={{ fontSize: 11, color: '#a78bfa' }}>
+                    AI will research each stock + return top picks
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Prompt preview */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              <div style={{
+                background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
+                padding: 14, fontSize: 11.5, lineHeight: 1.7, color: '#334155',
+                fontFamily: "'IBM Plex Mono', monospace", whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>
+                {buildGlobalScanPrompt(sentimentMarket, includeStocks)}
+              </div>
+
+              {/* Perplexity tip */}
+              <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(32,178,170,0.07)', border: '1px solid rgba(32,178,170,0.25)', borderRadius: 9, display: 'flex', gap: 10 }}>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
+                <div style={{ fontSize: 12, color: '#0f766e', lineHeight: 1.55 }}>
+                  <strong>Perplexity is best here</strong> — real-time web search across global financial media. For {sentimentMarket.label}, it'll pull local sources too.
+                </div>
+              </div>
+
+              {/* Parsed analysis — shown after pasting */}
+              {gsmAnalysis?.[sentimentMarket.market] && (() => {
+                const parsed = gsmAnalysis[sentimentMarket.market];
+                const bColors = { BULLISH:'#10b981', BEARISH:'#ef4444', NEUTRAL:'#f59e0b', MIXED:'#2563eb' };
+                const bIcons  = { BULLISH:'📈', BEARISH:'📉', NEUTRAL:'➡️', MIXED:'🔀' };
+                const bc = bColors[parsed.bias] || '#2563eb';
+                return (
+                  <div id="gsm-parsed-result" style={{ marginTop: 16 }}>
+                    <div style={{ padding: '14px 16px', background: bc+'10', border: `2px solid ${bc}30`, borderLeft: `4px solid ${bc}`, borderRadius: 12, marginBottom: 12 }}>
+                      {/* Bias + confidence */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 16 }}>{bIcons[parsed.bias]}</span>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: bc }}>{parsed.bias}</span>
+                        <span style={{ background: bc, color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>{parsed.confidence}% confidence</span>
+                        {parsed.articleCount && <span style={{ fontSize: 11, color: '#888' }}>· {parsed.articleCount} articles</span>}
+                      </div>
+                      <div style={{ fontSize: 14, color: '#1a1a1a', fontWeight: 600, lineHeight: 1.5, marginBottom: 10 }}>{parsed.tldr}</div>
+
+                      {/* Themes */}
+                      {parsed.themes?.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                          {parsed.themes.map((t, i) => (
+                            <span key={i} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{t}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Summary */}
+                      {parsed.summary && (
+                        <div style={{ fontSize: 13, color: '#333', lineHeight: 1.7, background: '#fff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 10 }}
+                          dangerouslySetInnerHTML={{ __html: parsed.summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
+                        />
+                      )}
+
+                      {/* Catalysts + Risks */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                        {parsed.catalysts?.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', letterSpacing: '0.07em', marginBottom: 6 }}>🚀 CATALYSTS</div>
+                            {parsed.catalysts.map((c, i) => (
+                              <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 4, display: 'flex', gap: 6 }}>
+                                <span style={{ color: '#10b981', fontWeight: 700, flexShrink: 0 }}>{i+1}.</span>{c}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {parsed.risks?.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', letterSpacing: '0.07em', marginBottom: 6 }}>⚠️ RISKS</div>
+                            {parsed.risks.map((r, i) => (
+                              <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 4, display: 'flex', gap: 6 }}>
+                                <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0 }}>▼</span>{r}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Recommendation */}
+                      {parsed.recommendation && (
+                        <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '3px solid #2563eb', borderRadius: 8, fontSize: 13, color: '#1e3a5f', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 10 }}>
+                          {parsed.recommendation}
+                        </div>
+                      )}
+
+                      {/* Stock picks — only present if includeStocks was ON */}
+                      {parsed.stockPicks?.length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#4338ca', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>
+                            🏆 Top Stock Picks
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {parsed.stockPicks.map((pick, i) => {
+                              const recColors = { BUY:'#10b981', HOLD:'#f59e0b', WATCH:'#2563eb', AVOID:'#ef4444' };
+                              const rc = recColors[pick.rec] || '#6366f1';
+                              return (
+                                <div key={i} style={{ background: 'white', border: `1px solid ${rc}33`, borderLeft: `3px solid ${rc}`, borderRadius: 8, padding: '10px 12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 800, fontSize: 13, color: '#1e1b4b' }}>{pick.symbol}</span>
+                                    <span style={{ fontSize: 11, color: '#64748b' }}>{pick.name}</span>
+                                    <span style={{ marginLeft: 'auto', background: rc+'20', color: rc, border: `1px solid ${rc}44`, padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 800 }}>{pick.rec}</span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.55, marginBottom: 4 }}>{pick.thesis}</div>
+                                  {pick.risk && <div style={{ fontSize: 11, color: '#ef4444', fontStyle: 'italic' }}>⚠️ {pick.risk}</div>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sources */}
+                      {parsed.sourceList?.length > 0 && (
+                        <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {parsed.sourceList.map((s, i) => (
+                            <span key={i} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{s}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* AI launchers */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', marginBottom: 8 }}>OPEN DIRECTLY IN</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                    { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                    { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                    { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                  ].map(({ name, icon, color, bg, border, getUrl }) => (
+                    <button key={name}
+                      onClick={() => window.open(getUrl(buildGlobalScanPrompt(sentimentMarket, includeStocks)), '_blank')}
+                      style={{ padding: '8px 14px', borderRadius: 9, border: `1.5px solid ${border}`, background: bg, color, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${border}`; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      <span style={{ fontSize: 14 }}>{icon}</span> {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ height: 1, background: '#e2e8f0' }} />
+
+              {/* Copy + Paste */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(buildGlobalScanPrompt(sentimentMarket, includeStocks));
+                    setGsmCopied(true);
+                    setTimeout(() => setGsmCopied(false), 2000);
+                  }}
+                  style={{
+                    flex: 1, padding: 10, border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    background: gsmCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#1e1b4b,#4338ca)',
+                    transition: 'background 0.25s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  }}
+                >
+                  {gsmCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                </button>
+                <button
+                  onClick={() => { setSentimentOpen(false); setGsmPasteOpen(true); setGsmParseError(null); }}
+                  style={{ flex: 1, padding: 10, background: '#fff', border: '2px solid #7c3aed', borderRadius: 9, color: '#7c3aed', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                >
+                  <span>📥</span> Paste Response
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GLOBAL SCAN PASTE MODAL ── */}
+      {gsmPasteOpen && (
+        <div
+          onClick={() => { setGsmPasteOpen(false); setGsmParseError(null); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 10011, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: 'min(640px,100%)', borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', animation: 'esi-modal-in 0.2s ease' }}
+          >
+            <div style={{ padding: '18px 22px 14px', background: 'linear-gradient(135deg, #1e1b4b, #7c3aed)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                    📥 Paste AI Response
+                    {sentimentMarket && <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: 8 }}>— {sentimentMarket.label}</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>Paste the raw JSON. It will be validated and displayed inline.</div>
+                </div>
+                <button onClick={() => { setGsmPasteOpen(false); setGsmParseError(null); }}
+                  style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              </div>
+            </div>
+
+            <div style={{ padding: '18px 22px 0' }}>
+              <textarea
+                autoFocus
+                value={gsmPasteText}
+                onChange={e => { setGsmPasteText(e.target.value); setGsmParseError(null); }}
+                placeholder={'{\n  "bias": "BULLISH",\n  "confidence": 78,\n  "tldr": "...",\n  ...\n}'}
+                style={{ width: '100%', height: 240, padding: 14, borderRadius: 10, border: `2px solid ${gsmParseError ? '#ef4444' : '#ddd6fe'}`, fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box', color: '#1a1a1a', background: gsmParseError ? '#fef2f2' : '#faf5ff', transition: 'border-color 0.15s' }}
+              />
+              {gsmParseError && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#b91c1c' }}>⚠️ {gsmParseError}</div>
+              )}
+            </div>
+
+            <div style={{ padding: 18, display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  setGsmParseError(null);
+                  if (!gsmPasteText.trim()) { setGsmParseError('Paste the JSON response first.'); return; }
+                  let parsed;
+                  try {
+                    const clean = gsmPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    parsed = JSON.parse(clean);
+                  } catch (e) {
+                    setGsmParseError(`Invalid JSON — ${e.message}`);
+                    return;
+                  }
+                  const required = ['bias','confidence','tldr','summary'];
+                  const missing = required.filter(k => parsed[k] == null);
+                  if (missing.length) { setGsmParseError(`Missing fields: ${missing.join(', ')}`); return; }
+                  parsed.bias = String(parsed.bias).toUpperCase();
+                  if (!['BULLISH','BEARISH','NEUTRAL','MIXED'].includes(parsed.bias)) parsed.bias = 'MIXED';
+                  // Cache by market id
+                  setGsmAnalysis(prev => ({ ...prev, [sentimentMarket.market]: parsed }));
+                  setGsmPasteText('');
+                  setGsmPasteOpen(false);
+                  setSentimentOpen(true);
+                  setTimeout(() => {
+                    const el = document.getElementById('gsm-parsed-result');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 120);
+                }}
+                disabled={!gsmPasteText.trim()}
+                style={{ flex: 1, padding: 11, background: !gsmPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: !gsmPasteText.trim() ? 'not-allowed' : 'pointer' }}
+              >✓ Parse &amp; Display</button>
+              <button
+                onClick={() => { setGsmPasteOpen(false); setSentimentOpen(true); }}
+                style={{ padding: '11px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              >← Back</button>
             </div>
           </div>
         </div>
