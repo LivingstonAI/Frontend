@@ -546,6 +546,11 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [addCategory,      setAddCategory]      = React.useState('stocks');
     const [useWatchlistOnly, setUseWatchlistOnly] = React.useState(false);
 
+    const [isBackgroundRunning, setIsBackgroundRunning] = React.useState(false);
+    const [scannedAt, setScannedAt] = React.useState(null);
+    const [scannerError, setScannerError] = React.useState(null);
+    const pollRef = React.useRef(null);
+
     // Fetch on mount
     React.useEffect(() => { fetchWatchlist(); }, []);
 
@@ -739,26 +744,29 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                         ))}
                         <div style={{ width:'1px', height:'20px', backgroundColor:'rgba(255,255,255,0.15)', flexShrink:0 }}/>
                         <button
-                            onClick={run}
-                            disabled={loading}
+                            onClick={() => run(true)}   // was: onClick={run}
+                            disabled={loading || isBackgroundRunning}
                             style={{
                                 padding:'8px 20px', borderRadius:'9px',
-                                background: loading ? 'rgba(59,130,246,0.4)' : 'linear-gradient(135deg,#3b82f6,#2563eb)',
+                                background: (loading || isBackgroundRunning) ? 'rgba(59,130,246,0.4)' : 'linear-gradient(135deg,#3b82f6,#2563eb)',
                                 border:'none', color:'#fff',
                                 fontWeight:'800', fontSize:'13px',
-                                cursor: loading ? 'wait' : 'pointer',
+                                cursor: (loading || isBackgroundRunning) ? 'wait' : 'pointer',
                                 display:'flex', alignItems:'center', gap:'7px',
-                                boxShadow: loading ? 'none' : '0 4px 14px rgba(59,130,246,0.4)',
+                                boxShadow: (loading || isBackgroundRunning) ? 'none' : '0 4px 14px rgba(59,130,246,0.4)',
                                 transition:'all 0.2s',
                             }}
                         >
                             {loading
-                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block', fontSize:'15px' }}>⚡</span> Scanning...</>
-                                : <><span>🔭</span> Run Scanner</>}
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block', fontSize:'15px' }}>⚡</span> Loading...</>
+                                : isBackgroundRunning
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block', fontSize:'15px' }}>⚡</span> Scanning in background...</>
+                                : <><span>🔭</span> Run Fresh Scan</>}
                         </button>
                         {results && (
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
-                                {results.count} hits · {results.totalScanned} scanned · {results.scannedAt}
+                                {results.count} hits · {results.totalScanned} scanned
+                                {scannedAt ? ` · as of ${scannedAt}` : ''}
                             </span>
                         )}
                     </div>
@@ -907,17 +915,33 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                 {/* ── Body ── */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
 
+                    {isBackgroundRunning && (
+                        <div style={{
+                            padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe',
+                            display:'flex', alignItems:'center', gap:'8px', fontSize:'12px', color:'#1d4ed8', fontWeight:'600',
+                        }}>
+                            <span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span>
+                            A fresh scan is running in the background — showing the last cached results below until it finishes (auto-updates every 5s).
+                        </div>
+                    )}
+                    {scannerError && (
+                        <div style={{
+                            padding:'10px 20px', backgroundColor:'#fef2f2', borderBottom:'1px solid #fecaca',
+                            fontSize:'12px', color:'#b91c1c',
+                        }}>
+                            ⚠️ Last scan error: {scannerError}
+                        </div>
+                    )}
+
                     {/* Empty prompt */}
-                    {!loading && !results && !error && (
+                    {!loading && results && filtered.length === 0 && !isBackgroundRunning && (
                         <div style={{ padding:'60px 20px', textAlign:'center' }}>
                             <div style={{ fontSize:'48px', marginBottom:'14px' }}>🔭</div>
                             <div style={{ fontSize:'16px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>
-                                Ready to scan
+                                No hits at this cap threshold
                             </div>
                             <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'380px', margin:'0 auto', lineHeight:1.6 }}>
-                                Set your minimum market cap above then hit <strong>Run Scanner</strong>.
-                                We'll check all {ALL_TICKERS.length} stocks for ranging→trending
-                                transitions and rising velocity.
+                                Try a lower market cap, or hit <strong>Run Fresh Scan</strong> to check right now.
                             </div>
                         </div>
                     )}
@@ -3689,133 +3713,208 @@ function EarningsCalendar({ onSelectTicker, openaiKey }) {
 
     React.useEffect(() => { run(); }, [ticker]);
 
-    const run = async () => {
-        if (!ticker) return;
-        setStep('fetching');
-        setError(null);
-        setPreview(null);
+    const run = async (forceRefresh = false) => {
+    setLoading(true);
+    setError(null);
+    setScannerError(null);
+    if (forceRefresh) {
+        setExpandedRow(null);
+        setChartTicker(null);
+        setSearch('');
+    }
+    try {
+        const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                tickers:      tickersToScan,
+                minMarketCap: CAP_OPTIONS[minCap],
+                topN:         30,
+                forceRefresh, // true = kick off a fresh background scan
+            }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
 
-        // ── Step 1: fetch raw data ──────────────────────────────────────────
-        let data;
-        try {
-            const res  = await fetch(`${BACKEND}/api/snowai_earnings_preview_vault/`, {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ ticker }),
-            });
-            data = await res.json();
-            if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
-            setRawData(data);
-        } catch (e) {
-            setError(e.message);
-            setStep('error');
-            return;
+        setResults(json);
+        setScannedAt(json.scannedAt);
+        setScannerError(json.lastError || null);
+        setIsBackgroundRunning(!!json.isRunning);
+
+        // If a fresh scan just kicked off, start polling for it to finish
+        if (json.isRunning && !pollRef.current) {
+            pollRef.current = setInterval(async () => {
+                try {
+                    const pRes  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({
+                            tickers:      tickersToScan,
+                            minMarketCap: CAP_OPTIONS[minCap],
+                            topN:         30,
+                            forceRefresh: false, // just checking cache, not re-triggering
+                        }),
+                    });
+                    const pJson = await pRes.json();
+                    setResults(pJson);
+                    setScannedAt(pJson.scannedAt);
+                    setScannerError(pJson.lastError || null);
+                    setIsBackgroundRunning(!!pJson.isRunning);
+
+                    if (!pJson.isRunning) {
+                        clearInterval(pollRef.current);
+                        pollRef.current = null;
+                    }
+                } catch (e) {
+                    console.error('[Scanner poll]', e);
+                }
+            }, 5000); // poll every 5s
         }
+    } catch (e) {
+        setError(e.message);
+    } finally {
+        setLoading(false);
+    }
+};
 
-        if (!openaiKey) {
-            // Show data without AI narrative
-            setStep('done');
-            return;
-        }
-
-        // ── Step 2: ask Sabrina ─────────────────────────────────────────────
-        setStep('thinking');
-
-        const fmt = (v, prefix = '$') =>
-            v != null ? `${prefix}${typeof v === 'number' ? v.toFixed(2) : v}` : 'N/A';
-
-        const fmtRev = (v) => {
-            if (!v) return 'N/A';
-            if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
-            if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
-            if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
-            return `$${v}`;
-        };
-
-        const histSummary = (data.historical || []).slice(0, 6).map((q, i) =>
-            `Q-${i+1} (${q.date}): EPS ${fmt(q.epsActual)} vs est ${fmt(q.epsEstimate)} ` +
-            `${q.surprisePct != null ? `(${q.surprisePct >= 0 ? '+' : ''}${q.surprisePct}% surprise)` : ''} ` +
-            `→ ${q.beat === true ? 'BEAT' : q.beat === false ? 'MISS' : 'N/A'}`
-        ).join('\n');
-
-        const trendSummary = (data.earningsTrend || []).slice(0, 2).map(t =>
-            `${t.period}: EPS est $${t.epsAvg?.toFixed(2) || 'N/A'} ` +
-            `(was $${t.eps30dAgo?.toFixed(2) || 'N/A'} 30d ago, $${t.eps90dAgo?.toFixed(2) || 'N/A'} 90d ago) ` +
-            `growth: ${t.growth != null ? (t.growth * 100).toFixed(1) + '%' : 'N/A'}`
-        ).join('\n');
-
-        const prompt = `You are Sabrina, a sharp AI stock analyst. Generate a comprehensive earnings preview report for ${ticker}.
-
-STOCK CONTEXT:
-Name: ${data.stockInfo?.name}
-Price: ${fmt(data.stockInfo?.currentPrice)} | Market Cap: ${data.stockInfo?.marketCap ? fmtRev(data.stockInfo.marketCap) : 'N/A'}
-Sector: ${data.stockInfo?.sector} | Industry: ${data.stockInfo?.industry}
-P/E: ${data.stockInfo?.trailingPE?.toFixed(1) || 'N/A'} | Fwd P/E: ${data.stockInfo?.forwardPE?.toFixed(1) || 'N/A'}
-Beta: ${data.stockInfo?.beta?.toFixed(2) || 'N/A'} | Short Ratio: ${data.stockInfo?.shortRatio?.toFixed(1) || 'N/A'}
-52W High: ${fmt(data.stockInfo?.fiftyTwoWeekHigh)} | 52W Low: ${fmt(data.stockInfo?.fiftyTwoWeekLow)}
-
-UPCOMING EARNINGS:
-Date: ${data.upcomingDate || 'Unknown'} (${data.daysUntil != null ? data.daysUntil + ' days away' : 'N/A'})
-EPS Estimate: ${fmt(data.epsEstimate)}
-Revenue Estimate: ${fmtRev(data.revenueEstimate)}
-
-ESTIMATE REVISIONS (bullish if trending UP):
-${trendSummary || 'No revision data available'}
-
-OPTIONS / MARKET POSITIONING:
-Implied Move: ±${data.impliedMove || 'N/A'}% (what options market expects)
-ATM IV: ${data.atmIV || 'N/A'}%
-Historical Avg Move on Earnings Day: ±${data.avgHistMove || 'N/A'}%
-${data.impliedMove && data.avgHistMove
-    ? `Options are ${data.impliedMove > data.avgHistMove ? 'EXPENSIVE' : 'CHEAP'} vs history`
-    : ''}
-
-HISTORICAL BEAT RATE:
-Beat Rate: ${data.beatRate || 'N/A'}% (${data.beatCount}B / ${data.missCount}M over ${data.totalQuarters}Q)
-Avg EPS Surprise: ${data.avgSurprise != null ? (data.avgSurprise >= 0 ? '+' : '') + data.avgSurprise + '%' : 'N/A'}
-
-LAST 6 QUARTERS:
-${histSummary || 'No historical data'}
-
-Return ONLY a JSON object (no markdown, no backticks):
-{
-  "verdict": "BEAT_LIKELY" | "MISS_LIKELY" | "IN_LINE" | "HIGH_UNCERTAINTY",
-  "confidence": <0-100>,
-  "tldr": "<one punchy sentence — the single most important thing to know>",
-  "impliedMoveVerdict": "<are options cheap or expensive vs history — 1 sentence>",
-  "estimateRevisionSignal": "<are estimates going up or down lately — 1 sentence>",
-  "beatPatternSignal": "<what does beat history tell us — 1 sentence>",
-  "keyThings": ["<thing to watch 1>", "<thing to watch 2>", "<thing to watch 3>"],
-  "bullCase": "<why they beat and stock pops — 2 sentences>",
-  "bearCase": "<why they miss and stock drops — 2 sentences>",
-  "optionsPlay": "<how to think about positioning given the IV vs history data — 1-2 sentences>",
-  "sabrinaQuote": "<Sabrina's personal punchy take in 1 sentence, first person, with personality>"
-}`;
-
-        try {
-            const res  = await fetch('https://api.openai.com/v1/chat/completions', {
-                method:  'POST',
-                headers: {
-                    'Content-Type':  'application/json',
-                    'Authorization': `Bearer ${openaiKey}`,
-                },
-                body: JSON.stringify({
-                    model:       'gpt-4o-mini',
-                    messages:    [{ role: 'user', content: prompt }],
-                    max_tokens:  900,
-                    temperature: 0.65,
-                }),
-            });
-            const aiData = await res.json();
-            const raw    = aiData.choices?.[0]?.message?.content || '';
-            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
-            setPreview(parsed);
-        } catch (e) {
-            console.error('[EarningsPreview] AI error:', e);
-            // Still show data panel without narrative
-        }
-        setStep('done');
+// Load cached results instantly when the modal opens — no forceRefresh
+React.useEffect(() => {
+    if (isOpen && !results) {
+        run(false);
+    }
+    return () => {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
+}, [isOpen]);
+
+
+//     const run = async () => {
+//         if (!ticker) return;
+//         setStep('fetching');
+//         setError(null);
+//         setPreview(null);
+
+//         // ── Step 1: fetch raw data ──────────────────────────────────────────
+//         let data;
+//         try {
+//             const res  = await fetch(`${BACKEND}/api/snowai_earnings_preview_vault/`, {
+//                 method:  'POST',
+//                 headers: { 'Content-Type': 'application/json' },
+//                 body:    JSON.stringify({ ticker }),
+//             });
+//             data = await res.json();
+//             if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
+//             setRawData(data);
+//         } catch (e) {
+//             setError(e.message);
+//             setStep('error');
+//             return;
+//         }
+
+//         if (!openaiKey) {
+//             // Show data without AI narrative
+//             setStep('done');
+//             return;
+//         }
+
+//         // ── Step 2: ask Sabrina ─────────────────────────────────────────────
+//         setStep('thinking');
+
+//         const fmt = (v, prefix = '$') =>
+//             v != null ? `${prefix}${typeof v === 'number' ? v.toFixed(2) : v}` : 'N/A';
+
+//         const fmtRev = (v) => {
+//             if (!v) return 'N/A';
+//             if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+//             if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+//             if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+//             return `$${v}`;
+//         };
+
+//         const histSummary = (data.historical || []).slice(0, 6).map((q, i) =>
+//             `Q-${i+1} (${q.date}): EPS ${fmt(q.epsActual)} vs est ${fmt(q.epsEstimate)} ` +
+//             `${q.surprisePct != null ? `(${q.surprisePct >= 0 ? '+' : ''}${q.surprisePct}% surprise)` : ''} ` +
+//             `→ ${q.beat === true ? 'BEAT' : q.beat === false ? 'MISS' : 'N/A'}`
+//         ).join('\n');
+
+//         const trendSummary = (data.earningsTrend || []).slice(0, 2).map(t =>
+//             `${t.period}: EPS est $${t.epsAvg?.toFixed(2) || 'N/A'} ` +
+//             `(was $${t.eps30dAgo?.toFixed(2) || 'N/A'} 30d ago, $${t.eps90dAgo?.toFixed(2) || 'N/A'} 90d ago) ` +
+//             `growth: ${t.growth != null ? (t.growth * 100).toFixed(1) + '%' : 'N/A'}`
+//         ).join('\n');
+
+//         const prompt = `You are Sabrina, a sharp AI stock analyst. Generate a comprehensive earnings preview report for ${ticker}.
+
+// STOCK CONTEXT:
+// Name: ${data.stockInfo?.name}
+// Price: ${fmt(data.stockInfo?.currentPrice)} | Market Cap: ${data.stockInfo?.marketCap ? fmtRev(data.stockInfo.marketCap) : 'N/A'}
+// Sector: ${data.stockInfo?.sector} | Industry: ${data.stockInfo?.industry}
+// P/E: ${data.stockInfo?.trailingPE?.toFixed(1) || 'N/A'} | Fwd P/E: ${data.stockInfo?.forwardPE?.toFixed(1) || 'N/A'}
+// Beta: ${data.stockInfo?.beta?.toFixed(2) || 'N/A'} | Short Ratio: ${data.stockInfo?.shortRatio?.toFixed(1) || 'N/A'}
+// 52W High: ${fmt(data.stockInfo?.fiftyTwoWeekHigh)} | 52W Low: ${fmt(data.stockInfo?.fiftyTwoWeekLow)}
+
+// UPCOMING EARNINGS:
+// Date: ${data.upcomingDate || 'Unknown'} (${data.daysUntil != null ? data.daysUntil + ' days away' : 'N/A'})
+// EPS Estimate: ${fmt(data.epsEstimate)}
+// Revenue Estimate: ${fmtRev(data.revenueEstimate)}
+
+// ESTIMATE REVISIONS (bullish if trending UP):
+// ${trendSummary || 'No revision data available'}
+
+// OPTIONS / MARKET POSITIONING:
+// Implied Move: ±${data.impliedMove || 'N/A'}% (what options market expects)
+// ATM IV: ${data.atmIV || 'N/A'}%
+// Historical Avg Move on Earnings Day: ±${data.avgHistMove || 'N/A'}%
+// ${data.impliedMove && data.avgHistMove
+//     ? `Options are ${data.impliedMove > data.avgHistMove ? 'EXPENSIVE' : 'CHEAP'} vs history`
+//     : ''}
+
+// HISTORICAL BEAT RATE:
+// Beat Rate: ${data.beatRate || 'N/A'}% (${data.beatCount}B / ${data.missCount}M over ${data.totalQuarters}Q)
+// Avg EPS Surprise: ${data.avgSurprise != null ? (data.avgSurprise >= 0 ? '+' : '') + data.avgSurprise + '%' : 'N/A'}
+
+// LAST 6 QUARTERS:
+// ${histSummary || 'No historical data'}
+
+// Return ONLY a JSON object (no markdown, no backticks):
+// {
+//   "verdict": "BEAT_LIKELY" | "MISS_LIKELY" | "IN_LINE" | "HIGH_UNCERTAINTY",
+//   "confidence": <0-100>,
+//   "tldr": "<one punchy sentence — the single most important thing to know>",
+//   "impliedMoveVerdict": "<are options cheap or expensive vs history — 1 sentence>",
+//   "estimateRevisionSignal": "<are estimates going up or down lately — 1 sentence>",
+//   "beatPatternSignal": "<what does beat history tell us — 1 sentence>",
+//   "keyThings": ["<thing to watch 1>", "<thing to watch 2>", "<thing to watch 3>"],
+//   "bullCase": "<why they beat and stock pops — 2 sentences>",
+//   "bearCase": "<why they miss and stock drops — 2 sentences>",
+//   "optionsPlay": "<how to think about positioning given the IV vs history data — 1-2 sentences>",
+//   "sabrinaQuote": "<Sabrina's personal punchy take in 1 sentence, first person, with personality>"
+// }`;
+
+//         try {
+//             const res  = await fetch('https://api.openai.com/v1/chat/completions', {
+//                 method:  'POST',
+//                 headers: {
+//                     'Content-Type':  'application/json',
+//                     'Authorization': `Bearer ${openaiKey}`,
+//                 },
+//                 body: JSON.stringify({
+//                     model:       'gpt-4o-mini',
+//                     messages:    [{ role: 'user', content: prompt }],
+//                     max_tokens:  900,
+//                     temperature: 0.65,
+//                 }),
+//             });
+//             const aiData = await res.json();
+//             const raw    = aiData.choices?.[0]?.message?.content || '';
+//             const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+//             setPreview(parsed);
+//         } catch (e) {
+//             console.error('[EarningsPreview] AI error:', e);
+//             // Still show data panel without narrative
+//         }
+//         setStep('done');
+//     };
 
     // ── Verdict config ────────────────────────────────────────────────────────
     const VERDICT = {
@@ -8370,6 +8469,7 @@ export default function SnowAIStockScreener() {
                     <h5 className="major-upcoming-news-events-header" style={{ padding: '15px', margin: 0 }}>SnowAI Stock Screener</h5>
 
                     <div style={styles.container}>
+
                         {/* Search Section */}
                         <div style={styles.searchSection}>
                             <div style={styles.searchForm}>
