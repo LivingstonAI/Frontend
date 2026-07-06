@@ -622,11 +622,12 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
             const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({
-                    tickers:      tickersToScan,
-                    minMarketCap: CAP_OPTIONS[minCap],
-                    topN:         30,
-                }),
+                body: JSON.stringify({
+                tickers:      tickersToScan,
+                minMarketCap: CAP_OPTIONS[minCap],
+                topN:         30,
+                forceRefresh: true,   // user explicitly asked for fresh data
+            }),
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
