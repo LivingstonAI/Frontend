@@ -106,9 +106,14 @@ const loadGoogleMapsScript = (apiKey, callback) => {
 // ---- Styles (plain JS objects, no Tailwind required) ----
 const styles = {
   container: {
-    position: 'relative',
-    width: '100%',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100vw',
     height: '100vh',
+    zIndex: 9999,
     backgroundColor: '#0f172a',
     overflow: 'hidden',
     fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -618,7 +623,7 @@ export default function StreetViewExplorer() {
           <div style={styles.headerRow}>
             <div style={styles.logoRow}>
               <Globe style={{ width: 24, height: 24, color: '#60a5fa' }} />
-              <h1 style={styles.appTitle}>World Walker</h1>
+              <h1 style={styles.appTitle}>SnowAI World Walker</h1>
             </div>
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -738,13 +743,6 @@ export default function StreetViewExplorer() {
             </div>
 
             <div style={styles.modalBody}>
-              <div style={styles.infoBox}>
-                <Info style={{ width: 20, height: 20, flexShrink: 0, marginTop: 2 }} />
-                <p style={styles.infoText}>
-                  The app runs in <strong>Development Mode</strong> by default. This fully allows you to walk around, but displays a faint "For development purposes only" watermark. To remove it, enter your free Google Maps JavaScript API key below.
-                </p>
-              </div>
-
               <div>
                 <label style={styles.label}>
                   Google Maps API Key
