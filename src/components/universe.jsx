@@ -168,6 +168,42 @@ const styles = {
     flexDirection: 'column',
     gap: 16
   },
+  sidebarMobile: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 30,
+    width: '100%',
+    maxHeight: '100dvh',
+    height: '100dvh',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    padding: 16,
+    boxSizing: 'border-box',
+    backgroundColor: '#0f172a'
+  },
+  toggleButton: {
+    position: 'fixed',
+    top: 16,
+    left: 16,
+    zIndex: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    border: '1px solid rgba(51, 65, 85, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+  },
   card: {
     backgroundColor: 'rgba(15, 23, 42, 0.82)',
     backdropFilter: 'blur(12px)',
@@ -468,6 +504,12 @@ export default function StreetViewExplorer() {
   const [activeKey, setActiveKey] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth <= 768
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    !(typeof window !== 'undefined' && window.innerWidth <= 768)
+  );
 
   const [currentLocation, setCurrentLocation] = useState(LOCATION_GROUPS[0].locations[0]);
   const [customLat, setCustomLat] = useState('');
@@ -477,6 +519,21 @@ export default function StreetViewExplorer() {
   const mapRef = useRef(null);
   const panoramaRef = useRef(null);
   const svServiceRef = useRef(null);
+
+  // Track viewport width so the sidebar can switch to a full-screen mobile menu
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile((prevMobile) => {
+        if (prevMobile !== mobile) {
+          setSidebarOpen(!mobile);
+        }
+        return mobile;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Initialize Maps Script
   useEffect(() => {
@@ -588,6 +645,7 @@ export default function StreetViewExplorer() {
     const customLoc = { id: 'custom', name: 'Custom Location', lat, lng };
     setCurrentLocation(customLoc);
     jumpToLocation(customLoc);
+    if (isMobile) setSidebarOpen(false);
   };
 
   const handleInputKeyDown = (e) => {
@@ -615,8 +673,20 @@ export default function StreetViewExplorer() {
         </div>
       )}
 
+      {/* Floating toggle button - mobile only, shown when sidebar is closed */}
+      {isMobile && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={styles.toggleButton}
+          title="Open menu"
+        >
+          <Map style={{ width: 20, height: 20 }} />
+        </button>
+      )}
+
       {/* Main UI Overlay - Sidebar */}
-      <div style={styles.sidebar}>
+      {(!isMobile || sidebarOpen) && (
+      <div style={isMobile ? styles.sidebarMobile : styles.sidebar}>
 
         {/* App Header */}
         <div style={{ ...styles.card, ...styles.headerCard }}>
@@ -625,14 +695,26 @@ export default function StreetViewExplorer() {
               <Globe style={{ width: 24, height: 24, color: '#60a5fa' }} />
               <h1 style={styles.appTitle}>SnowAI World Walker</h1>
             </div>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              style={styles.settingsButton}
-              title="Settings"
-              {...withHover(styles.settingsButton, { backgroundColor: '#334155' })}
-            >
-              <Settings style={{ width: 16, height: 16 }} />
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                style={styles.settingsButton}
+                title="Settings"
+                {...withHover(styles.settingsButton, { backgroundColor: '#334155' })}
+              >
+                <Settings style={{ width: 16, height: 16 }} />
+              </button>
+              {isMobile && (
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  style={styles.settingsButton}
+                  title="Close menu"
+                  {...withHover(styles.settingsButton, { backgroundColor: '#334155' })}
+                >
+                  <X style={{ width: 16, height: 16 }} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -656,7 +738,10 @@ export default function StreetViewExplorer() {
                   return (
                     <button
                       key={loc.id}
-                      onClick={() => setCurrentLocation(loc)}
+                      onClick={() => {
+                        setCurrentLocation(loc);
+                        if (isMobile) setSidebarOpen(false);
+                      }}
                       style={base}
                       {...(!isActive
                         ? withHover(styles.locationButton, { backgroundColor: 'rgba(51, 65, 85, 0.5)' })
@@ -711,6 +796,7 @@ export default function StreetViewExplorer() {
 
         </div>
       </div>
+      )}
 
       {/* Error Message Toast */}
       {errorMsg && (
