@@ -95,6 +95,7 @@ import SnowAIMoments from './components/moments.jsx';
 import DataTracker from './components/data_tracker.jsx';
 import SnowMeet from './components/snow_meet.jsx';
 import CompaniesofInterest from './components/companies.jsx';
+import StreetViewExplorer from './components/universe.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -632,6 +633,12 @@ function App() {
             <Route path='/companies' element={
               <ProtectedRoute>
                 <CompaniesofInterest />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/universe' element={
+              <ProtectedRoute>
+                <StreetViewExplorer />
               </ProtectedRoute>
             } />
 
