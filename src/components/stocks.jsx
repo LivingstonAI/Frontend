@@ -654,6 +654,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
             if (sortBy === 'roc')   return (b.roc20||0) - (a.roc20||0);
             if (sortBy === 'vol')   return (b.volRatio||0) - (a.volRatio||0);
             if (sortBy === 'cap')   return (b.marketCap||0) - (a.marketCap||0);
+            if (sortBy === 'ext')   return Math.abs(b.extendedChangePct||0) - Math.abs(a.extendedChangePct||0);
             return 0;
         });
 
@@ -744,7 +745,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                         ))}
                         <div style={{ width:'1px', height:'20px', backgroundColor:'rgba(255,255,255,0.15)', flexShrink:0 }}/>
                         <button
-                            onClick={() => run(true)}   // was: onClick={run}
+                            onClick={() => run(true)}
                             disabled={loading || isBackgroundRunning}
                             style={{
                                 padding:'8px 20px', borderRadius:'9px',
@@ -767,6 +768,15 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
                                 {results.count} hits · {results.totalScanned} scanned
                                 {scannedAt ? ` · as of ${scannedAt}` : ''}
+                            </span>
+                        )}
+                        {results?.marketSession && (
+                            <span style={{
+                                padding:'3px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'800',
+                                backgroundColor: results.marketSession === 'pre' ? 'rgba(59,130,246,0.15)' : results.marketSession === 'post' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.08)',
+                                color: results.marketSession === 'pre' ? '#93c5fd' : results.marketSession === 'post' ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+                            }}>
+                                {results.marketSession === 'pre' ? '🌅 Pre-Market' : results.marketSession === 'post' ? '🌆 After-Hours' : results.marketSession === 'regular' ? '🟢 Regular' : '🌙 Closed'}
                             </span>
                         )}
                     </div>
@@ -838,7 +848,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                         {/* Sort */}
                         <div style={{ marginLeft:'auto', display:'flex', gap:'4px', alignItems:'center', flexWrap:'wrap' }}>
                             <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600' }}>Sort:</span>
-                            {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Vol'],['cap','Cap']].map(([k,l]) => (
+                                {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Vol'],['cap','Cap'],['ext','Ext Move']].map(([k,l]) => (
                                 <button key={k} onClick={() => setSortBy(k)}
                                     style={{
                                         padding:'3px 8px', borderRadius:'6px',
@@ -1063,6 +1073,16 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                                                     </div>
                                                     <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'600' }}>VOL</div>
                                                 </div>
+                                                {r.extendedChangePct != null && (
+                                                    <div style={{ textAlign:'center', minWidth:'48px' }}>
+                                                        <div style={{ fontSize:'13px', fontWeight:'800', color: r.extendedChangePct >= 0 ? '#10b981' : '#ef4444' }}>
+                                                            {r.extendedChangePct >= 0 ? '+' : ''}{r.extendedChangePct}%
+                                                        </div>
+                                                        <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'600' }}>
+                                                            {r.marketSession === 'pre' ? 'PRE' : 'POST'}{r.extendedMoveConfirms ? ' ✓' : ''}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div style={{ textAlign:'right', minWidth:'55px' }}>
                                                     <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>
                                                         {r.currentPrice != null ? `$${r.currentPrice}` : '—'}
