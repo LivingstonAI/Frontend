@@ -1760,6 +1760,16 @@ const [gsmPasteText,    setGsmPasteText]    = useState('');
 const [gsmParseError,   setGsmParseError]   = useState(null);
 const [gsmAnalysis,     setGsmAnalysis]     = useState(null); // parsed result, keyed by market id
 
+// Per-stock sentiment state
+const [stockSentimentOpen,   setStockSentimentOpen]   = useState(false);
+const [stockSentimentTarget, setStockSentimentTarget] = useState(null); // { stock, marketData }
+const [stockCopied,          setStockCopied]          = useState(false);
+const [stockPasteOpen,       setStockPasteOpen]       = useState(false);
+const [stockPasteText,       setStockPasteText]       = useState('');
+const [stockParseError,      setStockParseError]      = useState(null);
+// Cache: { [symbol]: parsedAnalysis }
+const [stockAnalysisCache,   setStockAnalysisCache]   = useState({});
+
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -1876,6 +1886,67 @@ After reading all articles, return ONLY a JSON object — no markdown, no backti
   "recommendation": "<a sharp, opinionated 2-3 sentence take on the overall market. First person. Be direct about whether this market is worth allocating to right now.>",
   "articleCount": <number of articles you actually found and read>,
   "sourceList": ["<source1>", "<source2>", "<source3>"]${stockPicksField}
+}
+
+Return only the JSON object. It must be parseable by JSON.parse() with no surrounding text.`;
+};
+
+const buildStockPrompt = (stock, marketData) => {
+  if (!stock || !marketData) return '';
+
+  const periodLabel = SCAN_PERIODS.find(p => p.value === marketData.period)?.label || marketData.period;
+
+  // Find rank in the scan results
+  const rank = marketData.results.findIndex(s => s.symbol === stock.symbol) + 1;
+
+  // Find peers from same sector in the scan results
+  const peers = marketData.results
+    .filter(s => s.symbol !== stock.symbol && s.sector === stock.sector && s.sector && s.sector !== '—')
+    .slice(0, 4)
+    .map(s => `${s.symbol} (${s.return_pct >= 0 ? '+' : ''}${s.return_pct.toFixed(2)}%)`)
+    .join(', ');
+
+  return `You are a professional equity analyst specialising in ${marketData.label} stocks. I need a deep investment analysis for ${stock.symbol} — ${stock.name}.
+
+STOCK DATA:
+- Symbol: ${stock.symbol}
+- Company: ${stock.name}
+- Market: ${marketData.label} ${marketData.flag} (${marketData.index_symbol})
+- Currency: ${stock.currency || marketData.currency}
+- Current Price: ${stock.current_price} ${stock.currency || marketData.currency}
+- Return (${periodLabel}): ${stock.return_pct >= 0 ? '+' : ''}${stock.return_pct.toFixed(2)}%
+- Ranked #${rank} of ${marketData.results.length} top performers in ${marketData.label} scan
+${stock.sector && stock.sector !== '—' ? `- Sector: ${stock.sector}` : ''}
+${stock.market_cap ? `- Market Cap: ${stock.market_cap >= 1e12 ? (stock.market_cap/1e12).toFixed(1)+'T' : stock.market_cap >= 1e9 ? (stock.market_cap/1e9).toFixed(1)+'B' : (stock.market_cap/1e6).toFixed(0)+'M'} ${stock.currency || marketData.currency}` : ''}
+${peers ? `- Sector peers in scan: ${peers}` : ''}
+
+YOUR TASK:
+Search extensively for recent information on ${stock.symbol} / ${stock.name}. Aim for 10-15+ sources including:
+- Recent earnings reports and guidance
+- Analyst upgrades/downgrades and price target changes
+- News about the company in the last 30-90 days
+- Competitive position and sector trends in ${marketData.label}
+- Any macro factors specific to ${marketData.label} affecting this stock
+- Institutional ownership changes, insider activity
+- Technical momentum context (the stock is up ${stock.return_pct.toFixed(2)}% over ${periodLabel})
+
+After reading all sources, return ONLY a JSON object — no markdown, no backticks, no preamble:
+
+{
+  "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "confidence": <integer 0-100>,
+  "rec": "BUY" | "HOLD" | "WATCH" | "AVOID",
+  "targetUpside": <estimated % upside/downside as a number, e.g. 15.5 for +15.5%, negative for downside>,
+  "tldr": "<one punchy sentence — the single most important thing about ${stock.symbol} right now>",
+  "companySnapshot": "<2-3 sentences on what ${stock.name} actually does and its competitive position>",
+  "themes": ["<theme1>", "<theme2>", "<theme3>"],
+  "summary": "<4-5 paragraph deep analysis. Reference specific earnings, analyst calls, news events. Use **bold** for key figures. Cover: recent momentum, fundamental picture, competitive position, sector tailwinds/headwinds, outlook.>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>", "<catalyst 3>"],
+  "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+  "recommendation": "<sharp, opinionated 2-3 sentence investment take. First person. Would you buy this right now and why/why not?>",
+  "analystConsensus": "<what the analyst community is saying — consensus rating and average target if findable, or 'Data not found'>",
+  "articleCount": <number of sources consulted>,
+  "sourceList": ["<source1>", "<source2>", "<source3>"]
 }
 
 Return only the JSON object. It must be parseable by JSON.parse() with no surrounding text.`;
@@ -2170,11 +2241,33 @@ Return only the JSON object. It must be parseable by JSON.parse() with no surrou
                             </div>
 
                             {/* Row 3: action buttons */}
-                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
                               <span role="img" aria-label={data.label}
-                                style={{ fontSize: 18, lineHeight: 1, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Twemoji Mozilla',sans-serif" }}>
+                                style={{ fontSize: 18, lineHeight: 1, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>
                                 {data.flag}
                               </span>
+
+                              {/* AI analysis button */}
+                              <button
+                                onClick={() => {
+                                  setStockSentimentTarget({ stock, marketData: data });
+                                  setStockParseError(null);
+                                  setStockSentimentOpen(true);
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 5,
+                                  padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+                                  border: '1.5px solid #ddd6fe',
+                                  background: stockAnalysisCache[stock.symbol] ? '#7c3aed' : '#f5f3ff',
+                                  color: stockAnalysisCache[stock.symbol] ? 'white' : '#7c3aed',
+                                  fontSize: 11, fontWeight: 700, transition: 'all 0.14s',
+                                }}
+                                title="Get AI analysis for this stock"
+                              >
+                                🤖 {stockAnalysisCache[stock.symbol] ? 'View Analysis' : 'AI Analysis'}
+                              </button>
+
+                              {/* Chart button */}
                               <button
                                 onClick={() => togglePanel(stock.symbol)}
                                 style={{
@@ -2542,6 +2635,313 @@ Return only the JSON object. It must be parseable by JSON.parse() with no surrou
               >✓ Parse &amp; Display</button>
               <button
                 onClick={() => { setGsmPasteOpen(false); setSentimentOpen(true); }}
+                style={{ padding: '11px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              >← Back</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── PER-STOCK SENTIMENT MODAL ── */}
+      {stockSentimentOpen && stockSentimentTarget && (() => {
+        const { stock, marketData } = stockSentimentTarget;
+        const cached = stockAnalysisCache[stock.symbol];
+        const retColor = stock.return_pct >= 0 ? '#16a34a' : '#dc2626';
+        const rank = marketData.results.findIndex(s => s.symbol === stock.symbol) + 1;
+
+        return (
+          <div
+            onClick={() => setStockSentimentOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 10012, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(6px)' }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ width: 'min(740px,100%)', maxHeight: '92vh', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: '#fff', boxShadow: '0 28px 90px rgba(0,0,0,0.35)', animation: 'esi-modal-in 0.2s ease' }}
+            >
+              {/* Header */}
+              <div style={{ padding: '16px 22px 14px', background: 'linear-gradient(135deg, #0f172a, #1e1b4b, #4c1d95)', flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 22, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{marketData.flag}</span>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 800, fontSize: 16, color: '#fff' }}>{stock.symbol}</span>
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{stock.name}</span>
+                        <span style={{ background: (stock.return_pct >= 0 ? '#16a34a' : '#dc2626')+'33', color: retColor, border: `1px solid ${retColor}55`, padding: '2px 8px', borderRadius: 6, fontFamily: 'monospace', fontSize: 12, fontWeight: 800 }}>
+                          {stock.return_pct >= 0 ? '+' : ''}{stock.return_pct.toFixed(2)}%
+                        </span>
+                        <span style={{ background: 'rgba(255,255,255,0.1)', color: '#a5b4fc', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
+                          #{rank} in {marketData.label}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+                        {stock.current_price} {stock.currency || marketData.currency}
+                        {stock.sector && stock.sector !== '—' && ` · ${stock.sector}`}
+                        {stock.market_cap && ` · ${stock.market_cap >= 1e9 ? (stock.market_cap/1e9).toFixed(1)+'B' : (stock.market_cap/1e6).toFixed(0)+'M'}`}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setStockSentimentOpen(false)}
+                    style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                  Copy prompt → paste into any AI → copy their JSON → Paste Response
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                {/* Prompt preview */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, fontSize: 11.5, lineHeight: 1.7, color: '#334155', fontFamily: "'IBM Plex Mono',monospace", whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 12 }}>
+                  {buildStockPrompt(stock, marketData)}
+                </div>
+
+                <div style={{ padding: '10px 14px', background: 'rgba(32,178,170,0.07)', border: '1px solid rgba(32,178,170,0.25)', borderRadius: 9, display: 'flex', gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
+                  <div style={{ fontSize: 12, color: '#0f766e', lineHeight: 1.55 }}>
+                    <strong>Perplexity is best</strong> — it'll search recent earnings, analyst calls, and local {marketData.label} financial media for {stock.name} in real time.
+                  </div>
+                </div>
+
+                {/* Parsed analysis */}
+                {cached && (() => {
+                  const bColors = { BULLISH:'#10b981', BEARISH:'#ef4444', NEUTRAL:'#f59e0b', MIXED:'#2563eb' };
+                  const bIcons  = { BULLISH:'📈', BEARISH:'📉', NEUTRAL:'➡️', MIXED:'🔀' };
+                  const recColors = { BUY:'#10b981', HOLD:'#f59e0b', WATCH:'#2563eb', AVOID:'#ef4444' };
+                  const bc  = bColors[cached.bias] || '#6366f1';
+                  const rc  = recColors[cached.rec] || '#6366f1';
+                  return (
+                    <div id={`stock-parsed-${stock.symbol}`}>
+                      {/* Bias bar */}
+                      <div style={{ padding: '14px 16px', background: bc+'10', border: `2px solid ${bc}30`, borderLeft: `4px solid ${bc}`, borderRadius: 12, marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 18 }}>{bIcons[cached.bias]}</span>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: bc }}>{cached.bias}</span>
+                          <span style={{ background: bc, color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20 }}>{cached.confidence}% confidence</span>
+                          {/* Recommendation pill */}
+                          <span style={{ background: rc+'20', color: rc, border: `1px solid ${rc}44`, fontSize: 12, fontWeight: 800, padding: '3px 11px', borderRadius: 20 }}>{cached.rec}</span>
+                          {/* Upside */}
+                          {cached.targetUpside != null && (
+                            <span style={{ background: cached.targetUpside >= 0 ? '#dcfce7' : '#fee2e2', color: cached.targetUpside >= 0 ? '#15803d' : '#b91c1c', fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 20, fontFamily: 'monospace' }}>
+                              {cached.targetUpside >= 0 ? '▲' : '▼'} {Math.abs(cached.targetUpside).toFixed(1)}% est.
+                            </span>
+                          )}
+                          {cached.articleCount && <span style={{ fontSize: 11, color: '#94a3b8' }}>· {cached.articleCount} sources</span>}
+                        </div>
+
+                        {/* TL;DR */}
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.5, marginBottom: 10 }}>{cached.tldr}</div>
+
+                        {/* Company snapshot */}
+                        {cached.companySnapshot && (
+                          <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 7, border: '1px solid #e2e8f0' }}>
+                            {cached.companySnapshot}
+                          </div>
+                        )}
+
+                        {/* Themes */}
+                        {cached.themes?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                            {cached.themes.map((t, i) => (
+                              <span key={i} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>{t}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Summary */}
+                        {cached.summary && (
+                          <div style={{ fontSize: 13, color: '#333', lineHeight: 1.75, background: '#fff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 10 }}
+                            dangerouslySetInnerHTML={{ __html: cached.summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
+                          />
+                        )}
+
+                        {/* Catalysts + Risks */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                          {cached.catalysts?.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: '#10b981', letterSpacing: '0.07em', marginBottom: 6 }}>🚀 CATALYSTS</div>
+                              {cached.catalysts.map((c, i) => (
+                                <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 5, display: 'flex', gap: 6, lineHeight: 1.45 }}>
+                                  <span style={{ color: '#10b981', fontWeight: 700, flexShrink: 0 }}>{i+1}.</span>{c}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {cached.risks?.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', letterSpacing: '0.07em', marginBottom: 6 }}>⚠️ RISKS</div>
+                              {cached.risks.map((r, i) => (
+                                <div key={i} style={{ fontSize: 12, color: '#333', marginBottom: 5, display: 'flex', gap: 6, lineHeight: 1.45 }}>
+                                  <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0 }}>▼</span>{r}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Recommendation */}
+                        {cached.recommendation && (
+                          <div style={{ padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '3px solid #2563eb', borderRadius: 8, fontSize: 13, color: '#1e3a5f', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 10 }}>
+                            {cached.recommendation}
+                          </div>
+                        )}
+
+                        {/* Analyst consensus */}
+                        {cached.analystConsensus && cached.analystConsensus !== 'Data not found' && (
+                          <div style={{ padding: '8px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 12, color: '#15803d', marginBottom: 10 }}>
+                            🏦 <strong>Analyst Consensus:</strong> {cached.analystConsensus}
+                          </div>
+                        )}
+
+                        {/* Sources */}
+                        {cached.sourceList?.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                            {cached.sourceList.map((s, i) => (
+                              <span key={i} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', padding: '2px 8px', borderRadius: 20, fontSize: 11 }}>{s}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Regenerate button */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                        <button
+                          onClick={() => { setStockAnalysisCache(c => { const n = {...c}; delete n[stock.symbol]; return n; }); }}
+                          style={{ padding: '6px 14px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 7, color: '#7c3aed', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          🔄 Clear &amp; Regenerate
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* AI launchers */}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', marginBottom: 8 }}>OPEN DIRECTLY IN</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {[
+                      { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                      { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                      { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                      { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                    ].map(({ name, icon, color, bg, border, getUrl }) => (
+                      <button key={name}
+                        onClick={() => window.open(getUrl(buildStockPrompt(stock, marketData)), '_blank')}
+                        style={{ padding: '8px 14px', borderRadius: 9, border: `1.5px solid ${border}`, background: bg, color, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${border}`; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      >
+                        <span style={{ fontSize: 14 }}>{icon}</span> {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ height: 1, background: '#e2e8f0' }} />
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(buildStockPrompt(stock, marketData));
+                      setStockCopied(true);
+                      setTimeout(() => setStockCopied(false), 2000);
+                    }}
+                    style={{ flex: 1, padding: 10, border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', background: stockCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#1e1b4b,#4338ca)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, transition: 'background 0.25s' }}
+                  >
+                    {stockCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                  </button>
+                  <button
+                    onClick={() => { setStockSentimentOpen(false); setStockPasteOpen(true); setStockParseError(null); }}
+                    style={{ flex: 1, padding: 10, background: '#fff', border: '2px solid #7c3aed', borderRadius: 9, color: '#7c3aed', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  >
+                    <span>📥</span> Paste Response
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── PER-STOCK PASTE MODAL ── */}
+      {stockPasteOpen && stockSentimentTarget && (
+        <div
+          onClick={() => { setStockPasteOpen(false); setStockParseError(null); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 10013, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: 'min(640px,100%)', borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', animation: 'esi-modal-in 0.2s ease' }}
+          >
+            <div style={{ padding: '18px 22px 14px', background: 'linear-gradient(135deg, #0f172a, #7c3aed)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+                    📥 Paste AI Response
+                    <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: 8 }}>
+                      — {stockSentimentTarget.stock.symbol} · {stockSentimentTarget.stock.name}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Paste the raw JSON. Validated and displayed inline.</div>
+                </div>
+                <button onClick={() => { setStockPasteOpen(false); setStockParseError(null); }}
+                  style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              </div>
+            </div>
+
+            <div style={{ padding: '18px 22px 0' }}>
+              <textarea
+                autoFocus
+                value={stockPasteText}
+                onChange={e => { setStockPasteText(e.target.value); setStockParseError(null); }}
+                placeholder={'{\n  "bias": "BULLISH",\n  "confidence": 82,\n  "rec": "BUY",\n  "targetUpside": 18.5,\n  "tldr": "...",\n  ...\n}'}
+                style={{ width: '100%', height: 240, padding: 14, borderRadius: 10, border: `2px solid ${stockParseError ? '#ef4444' : '#ddd6fe'}`, fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box', color: '#1a1a1a', background: stockParseError ? '#fef2f2' : '#faf5ff', transition: 'border-color 0.15s' }}
+              />
+              {stockParseError && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#b91c1c' }}>⚠️ {stockParseError}</div>
+              )}
+            </div>
+
+            <div style={{ padding: 18, display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => {
+                  setStockParseError(null);
+                  if (!stockPasteText.trim()) { setStockParseError('Paste the JSON first.'); return; }
+                  let parsed;
+                  try {
+                    const clean = stockPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    parsed = JSON.parse(clean);
+                  } catch (e) {
+                    setStockParseError(`Invalid JSON — ${e.message}`);
+                    return;
+                  }
+                  const required = ['bias','confidence','rec','tldr','summary'];
+                  const missing = required.filter(k => parsed[k] == null);
+                  if (missing.length) { setStockParseError(`Missing fields: ${missing.join(', ')}`); return; }
+                  parsed.bias = String(parsed.bias).toUpperCase();
+                  if (!['BULLISH','BEARISH','NEUTRAL','MIXED'].includes(parsed.bias)) parsed.bias = 'MIXED';
+                  parsed.rec = String(parsed.rec).toUpperCase();
+                  if (!['BUY','HOLD','WATCH','AVOID'].includes(parsed.rec)) parsed.rec = 'HOLD';
+                  const sym = stockSentimentTarget.stock.symbol;
+                  setStockAnalysisCache(prev => ({ ...prev, [sym]: parsed }));
+                  setStockPasteText('');
+                  setStockPasteOpen(false);
+                  setStockSentimentOpen(true);
+                  setTimeout(() => {
+                    const el = document.getElementById(`stock-parsed-${sym}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 120);
+                }}
+                disabled={!stockPasteText.trim()}
+                style={{ flex: 1, padding: 11, background: !stockPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: !stockPasteText.trim() ? 'not-allowed' : 'pointer' }}
+              >✓ Parse &amp; Display</button>
+              <button
+                onClick={() => { setStockPasteOpen(false); setStockSentimentOpen(true); }}
                 style={{ padding: '11px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
               >← Back</button>
             </div>
