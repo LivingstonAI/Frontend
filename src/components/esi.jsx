@@ -1750,6 +1750,8 @@ function GlobalMarketScan({ baseUrl }) {
     const n = new Set(p); n.has(sym) ? n.delete(sym) : n.add(sym); return n;
   });
 
+
+
   // Sentiment modal state
 const [sentimentOpen,   setSentimentOpen]   = useState(false);
 const [sentimentMarket, setSentimentMarket] = useState(null); // the data object
@@ -1769,6 +1771,25 @@ const [stockPasteText,       setStockPasteText]       = useState('');
 const [stockParseError,      setStockParseError]      = useState(null);
 // Cache: { [symbol]: parsedAnalysis }
 const [stockAnalysisCache,   setStockAnalysisCache]   = useState({});
+const [showAllCharts,    setShowAllCharts]    = useState(false);
+const [chartsRendered,   setChartsRendered]   = useState(0);  // stagger counter
+
+  useEffect(() => {
+    if (!showAllCharts || !data?.results?.length) return;
+
+    // Reset counter first
+    setChartsRendered(0);
+
+    // Stagger: reveal one chart every 400ms so LWC has time to mount each one
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setChartsRendered(i);
+      if (i >= data.results.length) clearInterval(interval);
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [showAllCharts, data]);
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
@@ -1791,6 +1812,8 @@ const [stockAnalysisCache,   setStockAnalysisCache]   = useState({});
     setData(null);
     setActiveMarket(marketId);
     setOpenPanels(new Set());
+    setShowAllCharts(false);
+    setChartsRendered(0);
 
     try {
       const res = await fetch(`${baseUrl}/api/global_market_scan_v1/`, {
@@ -2176,6 +2199,41 @@ Return only the JSON object. It must be parseable by JSON.parse() with no surrou
                       {includeStocks && <span style={{ fontSize: 10, background: '#6366f1', color: 'white', padding: '1px 6px', borderRadius: 4 }}>ON — AI will research each stock</span>}
                     </button>
 
+                    <button
+                      onClick={() => {
+                        if (showAllCharts) {
+                          // Collapse all
+                          setShowAllCharts(false);
+                          setChartsRendered(0);
+                          setOpenPanels(new Set());
+                        } else {
+                          // Expand all — close any individually opened panels first
+                          setOpenPanels(new Set());
+                          setShowAllCharts(true);
+                        }
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                        border: `2px solid ${showAllCharts ? '#0ea5e9' : '#bae6fd'}`,
+                        background: showAllCharts ? '#0ea5e9' : 'white',
+                        color: showAllCharts ? 'white' : '#0369a1',
+                        fontSize: 12, fontWeight: 700, transition: 'all 0.15s',
+                      }}
+                    >
+                      {showAllCharts ? '📉 Hide All Charts' : '📈 Show All Charts'}
+                      {!showAllCharts && data?.results?.length && (
+                        <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, padding: '1px 6px', borderRadius: 4, fontWeight: 800 }}>
+                          {data.results.length}
+                        </span>
+                      )}
+                      {showAllCharts && chartsRendered < data?.results?.length && (
+                        <span style={{ fontSize: 10, opacity: 0.8 }}>
+                          {chartsRendered}/{data.results.length}
+                        </span>
+                      )}
+                    </button>
+
                     {gsmAnalysis?.[data.market] && (
                       <span style={{ fontSize: 11, color: '#7c3aed', background: '#f5f3ff', padding: '4px 10px', borderRadius: 20, border: '1px solid #ddd6fe', fontWeight: 700 }}>
                         ✓ Analysis cached
@@ -2186,7 +2244,7 @@ Return only the JSON object. It must be parseable by JSON.parse() with no surrou
                   {/* Stock cards grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
                     {data.results.map((stock, rank) => {
-                      const isPanelOpen = openPanels.has(stock.symbol);
+                      const isPanelOpen = openPanels.has(stock.symbol) || (showAllCharts && rank < chartsRendered);
                       const retColor = stock.return_pct >= 0 ? '#16a34a' : '#dc2626';
                       const retBg    = stock.return_pct >= 0 ? '#dcfce7' : '#fee2e2';
                       return (
@@ -2280,7 +2338,7 @@ Return only the JSON object. It must be parseable by JSON.parse() with no surrou
                                   transition: 'all 0.14s',
                                 }}
                               >
-                                📊 {isPanelOpen ? 'Close Chart' : 'View Chart'}
+                                📊 {isPanelOpen && !showAllCharts ? 'Close' : isPanelOpen ? 'Showing' : 'Chart'}
                               </button>
                             </div>
                           </div>
