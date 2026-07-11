@@ -652,6 +652,127 @@ const MP_INDICES = [
   { symbol:'^KS11', name:'KOSPI',        color:'#e63946' },
 ];
 
+// ─── GLOBAL SECTOR LENS ──────────────────────────────────────────────────────
+// For each sector, one representative ETF/proxy per country that yfinance supports.
+// These are the most liquid, widely-tracked proxies for each sector in each market.
+
+const GSL_SECTORS = [
+  'Technology',
+  'Financials',
+  'Healthcare',
+  'Energy',
+  'Industrials',
+  'Consumer',
+  'Materials',
+  'Utilities',
+  'Real Estate',
+];
+
+const GSL_PROXIES = {
+  Technology: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLK',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'091160.KS', color:'#e63946', name:'KODEX Semiconductor' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'1545.T',    color:'#f59e0b', name:'NASDAQ100 ETF (Japan)' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'SXLK.DE',   color:'#16a34a', name:'iShares Tech (Xetra)' },
+    { country:'China',         flag:'🇨🇳', symbol:'3033.HK',   color:'#dc2626', name:'CSOP HSTECH' },
+    { country:'Taiwan',        flag:'🇹🇼', symbol:'TSM',       color:'#7c3aed', name:'TSMC (US-listed proxy)' },
+    { country:'UK',            flag:'🇬🇧', symbol:'IITU.L',    color:'#0891b2', name:'iShares Tech (LSE)' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'TECH.AX',   color:'#ea580c', name:'Betashares Tech (ASX)' },
+    { country:'India',         flag:'🇮🇳', symbol:'INFY',      color:'#84cc16', name:'Infosys (US-listed proxy)' },
+  ],
+  Financials: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLF',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'105560.KS', color:'#e63946', name:'KB Financial' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'8306.T',    color:'#f59e0b', name:'Mitsubishi UFJ' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'DBK.DE',    color:'#16a34a', name:'Deutsche Bank' },
+    { country:'China',         flag:'🇨🇳', symbol:'2318.HK',   color:'#dc2626', name:'Ping An Insurance' },
+    { country:'UK',            flag:'🇬🇧', symbol:'HSBA.L',    color:'#0891b2', name:'HSBC' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'CBA.AX',    color:'#ea580c', name:'Commonwealth Bank' },
+    { country:'India',         flag:'🇮🇳', symbol:'HDFCBANK.NS', color:'#84cc16', name:'HDFC Bank' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'RY.TO',     color:'#f97316', name:'Royal Bank of Canada' },
+    { country:'Brazil',        flag:'🇧🇷', symbol:'ITUB4.SA',  color:'#14b8a6', name:'Itaú Unibanco' },
+  ],
+  Healthcare: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLV',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'068270.KS', color:'#e63946', name:'Celltrion' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'4519.T',    color:'#f59e0b', name:'Chugai Pharma' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'BAYN.DE',   color:'#16a34a', name:'Bayer' },
+    { country:'China',         flag:'🇨🇳', symbol:'6618.HK',   color:'#dc2626', name:'JD Health' },
+    { country:'UK',            flag:'🇬🇧', symbol:'AZN.L',     color:'#0891b2', name:'AstraZeneca' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'CSL.AX',    color:'#ea580c', name:'CSL Limited' },
+    { country:'India',         flag:'🇮🇳', symbol:'SUNPHARMA.NS', color:'#84cc16', name:'Sun Pharma' },
+    { country:'France',        flag:'🇫🇷', symbol:'SAN.PA',    color:'#8b5cf6', name:'Sanofi' },
+  ],
+  Energy: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLE',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'096770.KS', color:'#e63946', name:'SK Innovation' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'5020.T',    color:'#f59e0b', name:'ENEOS Holdings' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'RWE.DE',    color:'#16a34a', name:'RWE' },
+    { country:'China',         flag:'🇨🇳', symbol:'0857.HK',   color:'#dc2626', name:'PetroChina' },
+    { country:'UK',            flag:'🇬🇧', symbol:'SHEL.L',    color:'#0891b2', name:'Shell' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'WPL.AX',    color:'#ea580c', name:'Woodside Energy' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'CNQ.TO',    color:'#f97316', name:'Canadian Natural Resources' },
+    { country:'Brazil',        flag:'🇧🇷', symbol:'PETR4.SA',  color:'#14b8a6', name:'Petrobras' },
+    { country:'France',        flag:'🇫🇷', symbol:'TTE.PA',    color:'#8b5cf6', name:'TotalEnergies' },
+  ],
+  Industrials: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLI',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'042660.KS', color:'#e63946', name:'Hanwha Ocean' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'6501.T',    color:'#f59e0b', name:'Hitachi' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'SIE.DE',    color:'#16a34a', name:'Siemens' },
+    { country:'China',         flag:'🇨🇳', symbol:'1800.HK',   color:'#dc2626', name:'China Communications' },
+    { country:'UK',            flag:'🇬🇧', symbol:'BA.L',      color:'#0891b2', name:'BAE Systems' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'BHP.AX',    color:'#ea580c', name:'BHP (Industrials proxy)' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'CNR.TO',    color:'#f97316', name:'CN Rail' },
+    { country:'France',        flag:'🇫🇷', symbol:'HO.PA',     color:'#8b5cf6', name:'Thales' },
+    { country:'India',         flag:'🇮🇳', symbol:'LT.NS',     color:'#84cc16', name:'Larsen & Toubro' },
+  ],
+  Consumer: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLY',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'035420.KS', color:'#e63946', name:'NAVER' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'9983.T',    color:'#f59e0b', name:'Fast Retailing (Uniqlo)' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'ADS.DE',    color:'#16a34a', name:'Adidas' },
+    { country:'China',         flag:'🇨🇳', symbol:'9988.HK',   color:'#dc2626', name:'Alibaba' },
+    { country:'UK',            flag:'🇬🇧', symbol:'TSCO.L',    color:'#0891b2', name:'Tesco' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'WOW.AX',    color:'#ea580c', name:'Woolworths' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'ATD.TO',    color:'#f97316', name:'Couche-Tard' },
+    { country:'Brazil',        flag:'🇧🇷', symbol:'ABEV3.SA',  color:'#14b8a6', name:'Ambev' },
+    { country:'France',        flag:'🇫🇷', symbol:'MC.PA',     color:'#8b5cf6', name:'LVMH' },
+    { country:'India',         flag:'🇮🇳', symbol:'HINDUNILVR.NS', color:'#84cc16', name:'HUL' },
+  ],
+  Materials: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLB',      color:'#2563eb' },
+    { country:'South Korea',   flag:'🇰🇷', symbol:'051910.KS', color:'#e63946', name:'LG Chem' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'4063.T',    color:'#f59e0b', name:'Shin-Etsu Chemical' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'BAS.DE',    color:'#16a34a', name:'BASF' },
+    { country:'China',         flag:'🇨🇳', symbol:'3800.HK',   color:'#dc2626', name:'GCL Technology' },
+    { country:'UK',            flag:'🇬🇧', symbol:'RIO.L',     color:'#0891b2', name:'Rio Tinto' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'FMG.AX',    color:'#ea580c', name:'Fortescue' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'NTR.TO',    color:'#f97316', name:'Nutrien' },
+    { country:'Brazil',        flag:'🇧🇷', symbol:'VALE3.SA',  color:'#14b8a6', name:'Vale' },
+  ],
+  Utilities: [
+    { country:'United States', flag:'🇺🇸', symbol:'XLU',      color:'#2563eb' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'9501.T',    color:'#f59e0b', name:'Tokyo Electric' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'EON.DE',    color:'#16a34a', name:'E.ON' },
+    { country:'China',         flag:'🇨🇳', symbol:'2638.HK',   color:'#dc2626', name:'HK Electric' },
+    { country:'UK',            flag:'🇬🇧', symbol:'NG.L',      color:'#0891b2', name:'National Grid' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'AGL.AX',    color:'#ea580c', name:'AGL Energy' },
+    { country:'Brazil',        flag:'🇧🇷', symbol:'ELET3.SA',  color:'#14b8a6', name:'Eletrobras' },
+    { country:'France',        flag:'🇫🇷', symbol:'VIE.PA',    color:'#8b5cf6', name:'Veolia' },
+  ],
+  'Real Estate': [
+    { country:'United States', flag:'🇺🇸', symbol:'XLRE',     color:'#2563eb' },
+    { country:'Japan',         flag:'🇯🇵', symbol:'8952.T',    color:'#f59e0b', name:'Japan Real Estate REIT' },
+    { country:'Germany',       flag:'🇩🇪', symbol:'VNA.DE',    color:'#16a34a', name:'Vonovia' },
+    { country:'China',         flag:'🇨🇳', symbol:'0960.HK',   color:'#dc2626', name:'Longfor Group' },
+    { country:'UK',            flag:'🇬🇧', symbol:'SGRO.L',    color:'#0891b2', name:'Segro' },
+    { country:'Australia',     flag:'🇦🇺', symbol:'GMG.AX',    color:'#ea580c', name:'Goodman Group' },
+    { country:'Canada',        flag:'🇨🇦', symbol:'BAM.TO',    color:'#f97316', name:'Brookfield AM' },
+    { country:'Singapore',     flag:'🇸🇬', symbol:'C38U.SI',   color:'#84cc16', name:'CapitaLand REIT' },
+  ],
+};
+
 // ── Live market cap cache ──
 const _mpCapCache = {};
 const mpMarketCap = (sym) => _mpCapCache[sym] || 50e9;
@@ -3083,6 +3204,23 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   const [drillParsedAnalysis,   setDrillParsedAnalysis]   = useState(null);
   const [drillCopied,           setDrillCopied]           = useState(false);
 
+  // Global Sector Lens state
+const [gslSector,      setGslSector]      = useState(null);
+const [gslCache,       setGslCache]       = useState({});   // { [`${sector}-${tf}`]: entries[] }
+const [gslLoading,     setGslLoading]     = useState(false);
+const [gslOpenPanels,  setGslOpenPanels]  = useState(new Set());
+const [gslShowAll,     setGslShowAll]     = useState(false);
+const [gslRendered,    setGslRendered]    = useState(0);
+
+// GSL sentiment (same copy/paste pattern)
+const [gslSentOpen,    setGslSentOpen]    = useState(false);
+const [gslSentData,    setGslSentData]    = useState(null);   // { sector, entries, tf }
+const [gslSentCopied,  setGslSentCopied]  = useState(false);
+const [gslPasteOpen,   setGslPasteOpen]   = useState(false);
+const [gslPasteText,   setGslPasteText]   = useState('');
+const [gslParseError,  setGslParseError]  = useState(null);
+const [gslAnalysis,    setGslAnalysis]    = useState({});    // { [`${sector}-${tf}`]: parsed }
+
   // ── helpers ──
   const setLoading = (key, val) => setLoadingKeys(p => ({ ...p, [key]: val }));
   const isLoading  = (key) => loadingKeys[key] || false;
@@ -3168,6 +3306,139 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
     } catch(e) { console.error(e); }
     setOverviewLoading(false);
   }, [tf, baseUrl, sectors, allStocks]);
+
+// ── GSL fetch ──
+const fetchGSL = useCallback(async (sector) => {
+  const key = `${sector}-${tf}`;
+  if (gslCache[key]) return;
+  setGslLoading(true);
+  setGslShowAll(false);
+  setGslRendered(0);
+  setGslOpenPanels(new Set());
+  try {
+    const proxies = GSL_PROXIES[sector] || [];
+    const symbols = proxies.map(p => p.symbol);
+    const { interval, period } = tfObj;
+    const batch = await mpBatchFetch(symbols, interval, period, baseUrl);
+
+    const entries = proxies.map(proxy => {
+      const pts  = batch[proxy.symbol] || [];
+      const vals = pts.map(p => p.close).filter(Boolean);
+      const norm = mpNormalize(vals);
+      const ret  = vals.length > 1
+        ? ((vals[vals.length-1] - vals[0]) / vals[0]) * 100
+        : 0;
+      return {
+        ...proxy,
+        pts, vals, norm,
+        times:  pts.map(p => p.time),
+        regime: mpRegime(vals),
+        ret:    vals.length > 1 ? ret.toFixed(2) : null,
+        noData: pts.length < MP_MIN_PTS,
+      };
+    }).sort((a, b) => {
+      if (a.noData && !b.noData) return 1;
+      if (!a.noData && b.noData) return -1;
+      return parseFloat(b.ret || 0) - parseFloat(a.ret || 0);
+    });
+
+    setGslCache(c => ({ ...c, [key]: entries }));
+  } catch(e) { console.error('[fetchGSL]', e); }
+  setGslLoading(false);
+}, [tf, baseUrl]);
+
+// ── GSL stagger effect ──
+useEffect(() => {
+  const key = `${gslSector}-${tf}`;
+  const entries = gslCache[key];
+  if (!gslShowAll || !entries?.length) return;
+  setGslRendered(0);
+  let i = 0;
+  const iv = setInterval(() => {
+    i++;
+    setGslRendered(i);
+    if (i >= entries.length) clearInterval(iv);
+  }, 400);
+  return () => clearInterval(iv);
+}, [gslShowAll, gslCache, gslSector, tf]);
+
+// ── GSL chart ──
+const gslChartRef     = useRef(null);
+const gslChartInst    = useRef(null);
+
+useEffect(() => {
+  const key     = `${gslSector}-${tf}`;
+  const entries = gslCache[key];
+  if (!entries || !gslChartRef.current || tab !== 'globalsectors') return;
+  if (gslChartInst.current) { try { gslChartInst.current.remove(); } catch(_){} }
+  const validEntries = entries.filter(e => !e.noData);
+  const series = validEntries.map(e => ({
+    color: e.color, width: 2, name: `${e.flag} ${e.country}`, area: false, label: true,
+    data: e.times.map((t, i) => ({ time: t, value: e.norm[i] })).filter(p => p.value != null),
+  }));
+  buildMpChart(gslChartRef.current, series, { height: 360 })
+    .then(c => { gslChartInst.current = c; });
+}, [gslCache, gslSector, tf, tab]);
+
+// ── Auto-trigger ──
+useEffect(() => {
+  if (open && tab === 'globalsectors' && gslSector) fetchGSL(gslSector);
+}, [open, tab, gslSector, tf]);
+
+// ── GSL prompt builder ──
+const buildGslPrompt = (sentData) => {
+  if (!sentData) return '';
+  const { sector, entries, tf: sentTf } = sentData;
+  const valid = entries.filter(e => !e.noData);
+  const perfBlock = valid
+    .map(e => `${e.flag} ${e.country} (${e.symbol}${e.name ? ' — '+e.name : ''}): ${parseFloat(e.ret) >= 0 ? '+' : ''}${e.ret}% | Regime: ${e.regime.label}`)
+    .join('\n');
+  const leaders  = valid.filter(e => parseFloat(e.ret) >= 0).slice(0, 3).map(e => `${e.flag} ${e.country}`).join(', ');
+  const laggards = [...valid].sort((a,b) => parseFloat(a.ret)-parseFloat(b.ret)).slice(0, 3).map(e => `${e.flag} ${e.country}`).join(', ');
+
+  return `You are a professional global equity analyst. I need a cross-country sector comparison analysis for the ${sector} sector.
+
+SECTOR PERFORMANCE DATA (${sentTf} timeframe, all normalized to 100):
+${perfBlock}
+
+LEADERS:  ${leaders || '—'}
+LAGGARDS: ${laggards || '—'}
+
+YOUR TASK:
+Search extensively for what is driving divergence or convergence in the global ${sector} sector. Aim for 15-20+ sources. Cover:
+- Why are the leading countries outperforming? Country-specific policy, earnings, flows?
+- What macro or sector-specific headwinds are hitting the laggards?
+- Are there cross-border supply chain, regulatory, or currency themes connecting these markets?
+- Which country's ${sector} sector looks most attractive for international allocation right now?
+- Any upcoming catalysts (earnings seasons, policy decisions, elections, rate moves) that could shift the rankings?
+
+After reading all sources, return ONLY a JSON object — no markdown, no backticks, no preamble:
+
+{
+  "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "confidence": <integer 0-100>,
+  "tldr": "<one punchy sentence — the single most important cross-country theme in global ${sector} right now>",
+  "leader": "<country name that looks most attractive for ${sector} allocation>",
+  "leaderThesis": "<2-3 sentences on why this country's ${sector} is the standout>",
+  "themes": ["<theme1>", "<theme2>", "<theme3>", "<theme4>"],
+  "summary": "<4-6 paragraph deep analysis. Reference specific countries, ETFs, stocks, and macro events. Use **bold** for key figures and turning points. Cover: performance divergence, country-specific drivers, cross-border themes, risks, and outlook.>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>", "<catalyst 3>"],
+  "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+  "countryRankings": [
+    { "country": "<country>", "flag": "<flag emoji>", "rec": "OVERWEIGHT" | "NEUTRAL" | "UNDERWEIGHT", "reason": "<one sentence>" }
+  ],
+  "recommendation": "<sharp, opinionated 2-3 sentence global allocation take for ${sector}. First person. Where would you put money right now and why?>",
+  "articleCount": <number>,
+  "sourceList": ["<source1>", "<source2>", "<source3>"]
+}
+
+Return only the JSON object. It must be parseable by JSON.parse() with no surrounding text.`;
+};
+
+// ── GSL toggle panel ──
+const toggleGslPanel = (sym) => setGslOpenPanels(p => {
+  const n = new Set(p); n.has(sym) ? n.delete(sym) : n.add(sym); return n;
+});
 
   // ── FETCH ALL SECTORS CHART ──
   const fetchAllSectors = useCallback(async () => {
@@ -3490,12 +3761,13 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
   );
 
   const TABS = [
-    { id:'overview',    label:'🌐 Overview' },
-    { id:'allsectors',  label:'📊 All Sectors' },
-    { id:'sector',      label:'🏭 Sector Drill' },
-    { id:'indices',     label:'📈 Indices' },
-    { id:'commodities', label:'🛢️ Commodities' },
-  ];
+  { id:'overview',       label:'🌐 Overview' },
+  { id:'allsectors',     label:'📊 All Sectors' },
+  { id:'sector',         label:'🏭 Sector Drill' },
+  { id:'indices',        label:'📈 Indices' },
+  { id:'commodities',    label:'🛢️ Commodities' },
+  { id:'globalsectors',  label:'🌍 Global Sectors' },
+];
 
   const curSectorKey = `${activeSector}-${tf}`;
   const curSectorData = sectorCache[curSectorKey];
@@ -4271,6 +4543,256 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
           </>
         )}
 
+        {/* ══ GLOBAL SECTOR LENS ══ */}
+{tab === 'globalsectors' && (
+  <>
+    {/* Sector pills */}
+    <div className="mp-pill-strip">
+      {GSL_SECTORS.map(sec => (
+        <button key={sec}
+          className={`mp-sector-pill ${gslSector === sec ? 'active' : ''}`}
+          style={{ '--sc': SECTOR_COLORS[sec] || '#6366f1' }}
+          onClick={() => {
+            setGslSector(sec);
+            setGslShowAll(false);
+            setGslRendered(0);
+            setGslOpenPanels(new Set());
+            fetchGSL(sec);
+          }}>
+          {sec}
+        </button>
+      ))}
+    </div>
+
+    {!gslSector && (
+      <div className="mp-empty"><p>👆 Select a sector to compare across countries</p></div>
+    )}
+
+    {gslSector && gslLoading && (
+      <div className="mp-loading"><div className="mp-spinner"/><span>Loading {gslSector} proxies…</span></div>
+    )}
+
+    {gslSector && !gslLoading && (() => {
+      const key     = `${gslSector}-${tf}`;
+      const entries = gslCache[key];
+      if (!entries) return null;
+      const valid   = entries.filter(e => !e.noData);
+      const leader  = valid[0];
+
+      return (
+        <>
+          {/* Header */}
+          <div className="mp-drill-header">
+            <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+              <span style={{ fontWeight:800, fontSize:16, color:MP_SNOW.navy }}>{gslSector}</span>
+              <span style={{ fontSize:11, color:'#64748b' }}>{valid.length} countries · {tf}</span>
+              {leader && (
+                <span style={{ fontSize:11, background:'#dcfce7', color:'#15803d', padding:'2px 10px', borderRadius:20, fontWeight:700, border:'1px solid #bbf7d0' }}>
+                  👑 Leader: {leader.flag} {leader.country} (+{leader.ret}%)
+                </span>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+              {/* Show All Charts */}
+              <button
+                onClick={() => {
+                  if (gslShowAll) {
+                    setGslShowAll(false);
+                    setGslRendered(0);
+                    setGslOpenPanels(new Set());
+                  } else {
+                    setGslOpenPanels(new Set());
+                    setGslShowAll(true);
+                  }
+                }}
+                style={{ padding:'6px 13px', border:`1.5px solid ${gslShowAll ? '#0ea5e9' : '#bae6fd'}`, borderRadius:8, background:gslShowAll?'#0ea5e9':'white', color:gslShowAll?'white':'#0369a1', fontSize:12, fontWeight:700, cursor:'pointer', transition:'all 0.14s', display:'flex', alignItems:'center', gap:6 }}>
+                {gslShowAll ? '📉 Hide All Charts' : '📈 Show All Charts'}
+                {!gslShowAll && <span style={{ background:'#e0f2fe', color:'#0369a1', fontSize:10, padding:'1px 6px', borderRadius:4, fontWeight:800 }}>{valid.length}</span>}
+                {gslShowAll && gslRendered < valid.length && <span style={{ fontSize:10, opacity:0.8 }}>{gslRendered}/{valid.length}</span>}
+              </button>
+
+              {/* AI Sentiment */}
+              <button
+                onClick={() => {
+                  setGslSentData({ sector:gslSector, entries:valid, tf });
+                  setGslParseError(null);
+                  setGslSentOpen(true);
+                }}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', color:'white', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', boxShadow:'0 3px 10px rgba(124,58,237,0.3)', transition:'all 0.15s' }}
+                onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; }}
+                onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; }}>
+                🤖 AI Cross-Country Analysis
+              </button>
+
+              {gslAnalysis[key] && (
+                <span style={{ fontSize:11, color:'#7c3aed', background:'#f5f3ff', padding:'4px 10px', borderRadius:20, border:'1px solid #ddd6fe', fontWeight:700 }}>✓ Cached</span>
+              )}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="mp-chart-box">
+            <div ref={gslChartRef} style={{ width:'100%', height:360 }}/>
+            <div className="mp-chart-sub">All proxies normalized to 100 · {tf} · {valid.length} countries</div>
+          </div>
+
+          {/* Table */}
+          <div className="mp-table">
+            <div className="mp-table-head">
+              <span>Country</span><span>Proxy</span><span>Return ({tf})</span><span>Regime</span><span>MSS</span>
+            </div>
+            {entries.map((entry, idx) => {
+              const isPanelOpen = gslOpenPanels.has(entry.symbol) || (gslShowAll && idx < gslRendered);
+              const mss = mssCache[entry.symbol];
+              return (
+                <React.Fragment key={entry.symbol}>
+                  <div className={`mp-table-row ${isPanelOpen ? 'mp-table-row-active' : ''}`}>
+                    {/* Country */}
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:18, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{entry.flag}</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:MP_SNOW.navy }}>{entry.country}</span>
+                    </div>
+                    {/* Proxy */}
+                    <div>
+                      <span className="mp-sym" style={{ color: entry.color }}>{entry.symbol}</span>
+                      {entry.name && <span style={{ fontSize:9, color:'#94a3b8', display:'block', lineHeight:1.2 }}>{entry.name}</span>}
+                    </div>
+                    {/* Return */}
+                    {entry.noData ? (
+                      <span style={{ fontSize:11, color:'#94a3b8' }}>No data</span>
+                    ) : (
+                      <span style={{ fontFamily:'monospace', fontSize:12, fontWeight:700, color:parseFloat(entry.ret)>=0?'#22d3ee':'#f87171' }}>
+                        {parseFloat(entry.ret)>=0?'+':''}{entry.ret}%
+                      </span>
+                    )}
+                    {/* Regime */}
+                    {entry.noData
+                      ? <span style={{ fontSize:10, color:'#94a3b8' }}>—</span>
+                      : <RegimeBadge regime={entry.regime}/>
+                    }
+                    {/* MSS + actions */}
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      {mssLoading[entry.symbol]
+                        ? <span style={{ fontSize:10, color:'#94a3b8' }}>…</span>
+                        : <MssBadge mss={mss?.mss}/>
+                      }
+                      {!entry.noData && (
+                        <button
+                          className={`adp-open-btn ${isPanelOpen?'active':''}`}
+                          onClick={e=>{ e.stopPropagation(); toggleGslPanel(entry.symbol); }}
+                          title="View chart & data">📊</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isPanelOpen && !entry.noData && (
+                    <AssetDetailPanel
+                      key={`gsl-panel-${entry.symbol}`}
+                      symbol={entry.symbol}
+                      baseUrl={baseUrl}
+                      defaultLookback={mssLookback}
+                      embedded
+                      onClose={() => toggleGslPanel(entry.symbol)}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* Parsed AI analysis inline */}
+          {gslAnalysis[key] && (() => {
+            const parsed = gslAnalysis[key];
+            const bColors = { BULLISH:'#10b981', BEARISH:'#ef4444', NEUTRAL:'#f59e0b', MIXED:'#2563eb' };
+            const bc = bColors[parsed.bias] || '#6366f1';
+            const recColors = { OVERWEIGHT:'#10b981', NEUTRAL:'#f59e0b', UNDERWEIGHT:'#ef4444' };
+            return (
+              <div style={{ marginTop:14, background:'white', borderRadius:12, border:`1.5px solid ${bc}33`, borderLeft:`4px solid ${bc}`, padding:'14px 16px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
+                  <span style={{ fontSize:15, fontWeight:800, color:bc }}>{parsed.bias}</span>
+                  <span style={{ background:bc, color:'#fff', fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:20 }}>{parsed.confidence}% confidence</span>
+                  {parsed.leader && (
+                    <span style={{ background:'#dcfce7', color:'#15803d', fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:20, border:'1px solid #bbf7d0' }}>
+                      👑 {parsed.leader}
+                    </span>
+                  )}
+                  {parsed.articleCount && <span style={{ fontSize:11, color:'#94a3b8' }}>· {parsed.articleCount} sources</span>}
+                </div>
+                <div style={{ fontSize:14, fontWeight:600, color:'#1a1a1a', marginBottom:10, lineHeight:1.5 }}>{parsed.tldr}</div>
+                {parsed.leaderThesis && (
+                  <div style={{ fontSize:12, color:'#475569', fontStyle:'italic', padding:'8px 12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:7, marginBottom:10, lineHeight:1.6 }}>
+                    {parsed.leaderThesis}
+                  </div>
+                )}
+                {parsed.themes?.length > 0 && (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:10 }}>
+                    {parsed.themes.map((t,i) => <span key={i} style={{ background:'#eff6ff', border:'1px solid #bfdbfe', color:'#1d4ed8', padding:'3px 10px', borderRadius:20, fontSize:12 }}>{t}</span>)}
+                  </div>
+                )}
+                {parsed.summary && (
+                  <div style={{ fontSize:13, color:'#333', lineHeight:1.75, background:'#f8fafc', padding:'12px 14px', borderRadius:8, border:'1px solid #e2e8f0', marginBottom:10 }}
+                    dangerouslySetInnerHTML={{ __html: parsed.summary.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>') }}/>
+                )}
+                {/* Country rankings */}
+                {parsed.countryRankings?.length > 0 && (
+                  <div style={{ marginBottom:10 }}>
+                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:7 }}>Country Rankings</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:6 }}>
+                      {parsed.countryRankings.map((cr, i) => {
+                        const rc = recColors[cr.rec] || '#6366f1';
+                        return (
+                          <div key={i} style={{ background:'white', border:`1px solid ${rc}33`, borderLeft:`3px solid ${rc}`, borderRadius:7, padding:'8px 10px' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+                              <span style={{ fontSize:16, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{cr.flag}</span>
+                              <span style={{ fontWeight:700, fontSize:12, color:'#1e293b' }}>{cr.country}</span>
+                              <span style={{ marginLeft:'auto', background:rc+'20', color:rc, border:`1px solid ${rc}44`, padding:'1px 7px', borderRadius:20, fontSize:10, fontWeight:800 }}>{cr.rec}</span>
+                            </div>
+                            {cr.reason && <div style={{ fontSize:11, color:'#64748b', lineHeight:1.4 }}>{cr.reason}</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
+                  {parsed.catalysts?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize:10, fontWeight:700, color:'#10b981', letterSpacing:'0.07em', marginBottom:5 }}>🚀 CATALYSTS</div>
+                      {parsed.catalysts.map((c,i) => <div key={i} style={{ fontSize:12, color:'#333', marginBottom:4, display:'flex', gap:6 }}><span style={{ color:'#10b981', fontWeight:700, flexShrink:0 }}>{i+1}.</span>{c}</div>)}
+                    </div>
+                  )}
+                  {parsed.risks?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize:10, fontWeight:700, color:'#ef4444', letterSpacing:'0.07em', marginBottom:5 }}>⚠️ RISKS</div>
+                      {parsed.risks.map((r,i) => <div key={i} style={{ fontSize:12, color:'#333', marginBottom:4, display:'flex', gap:6 }}><span style={{ color:'#ef4444', fontWeight:700, flexShrink:0 }}>▼</span>{r}</div>)}
+                    </div>
+                  )}
+                </div>
+                {parsed.recommendation && (
+                  <div style={{ padding:'10px 14px', background:'#eff6ff', border:'1px solid #bfdbfe', borderLeft:'3px solid #2563eb', borderRadius:8, fontSize:13, color:'#1e3a5f', fontStyle:'italic', lineHeight:1.6, marginBottom:10 }}>
+                    {parsed.recommendation}
+                  </div>
+                )}
+                {parsed.sourceList?.length > 0 && (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                    {parsed.sourceList.map((s,i) => <span key={i} style={{ background:'#f1f5f9', border:'1px solid #e2e8f0', color:'#475569', padding:'2px 8px', borderRadius:20, fontSize:11 }}>{s}</span>)}
+                  </div>
+                )}
+                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
+                  <button onClick={() => setGslAnalysis(a => { const n={...a}; delete n[key]; return n; })}
+                    style={{ padding:'5px 14px', background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:7, color:'#7c3aed', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                    🔄 Clear &amp; Regenerate
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </>
+      );
+    })()}
+  </>
+)}
+
       </div>{/* mp-body */}
 
       {/* ── Heatmap Comparison Modal ── */}
@@ -4723,6 +5245,142 @@ function MarketPulse({ baseUrl, allStocks, sectorColors }) {
         </div>
     </div>
 )}
+
+{/* ── GSL SENTIMENT MODAL ── */}
+      {gslSentOpen && gslSentData && (
+        <div onClick={() => setGslSentOpen(false)}
+          style={{ position:'fixed', inset:0, zIndex:10010, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(5px)' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width:'min(720px,100%)', maxHeight:'90vh', borderRadius:18, overflow:'hidden', display:'flex', flexDirection:'column', background:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.3)', animation:'esi-modal-in 0.2s ease' }}>
+
+            {/* Header */}
+            <div style={{ padding:'16px 22px 14px', background:'linear-gradient(135deg,#1e1b4b,#4c1d95)', flexShrink:0 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'#fff', marginBottom:4 }}>
+                    🌍 AI Cross-Country Analysis — {gslSentData.sector}
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)' }}>
+                    {gslSentData.entries.length} countries · {gslSentData.tf} · Copy prompt → paste into AI → Paste Response
+                  </div>
+                </div>
+                <button onClick={() => setGslSentOpen(false)}
+                  style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:32, height:32, color:'#fff', fontSize:17, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+              </div>
+            </div>
+
+            {/* Prompt */}
+            <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
+              <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:14, fontSize:11.5, lineHeight:1.7, color:'#334155', fontFamily:"'IBM Plex Mono',monospace", whiteSpace:'pre-wrap', wordBreak:'break-word', marginBottom:12 }}>
+                {buildGslPrompt(gslSentData)}
+              </div>
+              <div style={{ padding:'10px 14px', background:'rgba(32,178,170,0.07)', border:'1px solid rgba(32,178,170,0.25)', borderRadius:9, display:'flex', gap:10 }}>
+                <span style={{ fontSize:15, flexShrink:0 }}>💡</span>
+                <div style={{ fontSize:12, color:'#0f766e', lineHeight:1.55 }}>
+                  <strong>Perplexity is best</strong> — it'll search across global financial media simultaneously for all {gslSentData.entries.length} countries.
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding:'14px 20px', borderTop:'1px solid #e2e8f0', background:'#f8fafc', flexShrink:0, display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {[
+                  { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                  { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                  { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                  { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                ].map(({ name, icon, color, bg, border, getUrl }) => (
+                  <button key={name}
+                    onClick={() => window.open(getUrl(buildGslPrompt(gslSentData)), '_blank')}
+                    style={{ padding:'8px 14px', borderRadius:9, border:`1.5px solid ${border}`, background:bg, color, fontWeight:700, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', gap:6, transition:'all 0.15s' }}
+                    onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; }}
+                    onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; }}>
+                    <span style={{ fontSize:14 }}>{icon}</span> {name}
+                  </button>
+                ))}
+              </div>
+              <div style={{ height:1, background:'#e2e8f0' }}/>
+              <div style={{ display:'flex', gap:10 }}>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(buildGslPrompt(gslSentData)); setGslSentCopied(true); setTimeout(()=>setGslSentCopied(false),2000); }}
+                  style={{ flex:1, padding:10, border:'none', borderRadius:9, color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', background:gslSentCopied?'linear-gradient(135deg,#10b981,#059669)':'linear-gradient(135deg,#1e1b4b,#4338ca)', display:'flex', alignItems:'center', justifyContent:'center', gap:7, transition:'background 0.25s' }}>
+                  {gslSentCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                </button>
+                <button
+                  onClick={() => { setGslSentOpen(false); setGslPasteOpen(true); setGslParseError(null); }}
+                  style={{ flex:1, padding:10, background:'#fff', border:'2px solid #7c3aed', borderRadius:9, color:'#7c3aed', fontWeight:700, fontSize:14, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}
+                  onMouseEnter={e=>e.currentTarget.style.background='#faf5ff'}
+                  onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                  <span>📥</span> Paste Response
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GSL PASTE MODAL ── */}
+      {gslPasteOpen && (
+        <div onClick={() => { setGslPasteOpen(false); setGslParseError(null); }}
+          style={{ position:'fixed', inset:0, zIndex:10011, background:'rgba(0,0,0,0.65)', display:'flex', alignItems:'center', justifyContent:'center', padding:20, backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ width:'min(640px,100%)', borderRadius:16, overflow:'hidden', background:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', display:'flex', flexDirection:'column', animation:'esi-modal-in 0.2s ease' }}>
+            <div style={{ padding:'18px 22px 14px', background:'linear-gradient(135deg,#1e1b4b,#7c3aed)', flexShrink:0 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:800, color:'#fff', marginBottom:4 }}>
+                    📥 Paste AI Response
+                    {gslSentData && <span style={{ fontSize:12, fontWeight:400, color:'rgba(255,255,255,0.6)', marginLeft:8 }}>— {gslSentData.sector}</span>}
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.55)' }}>Paste the raw JSON. Validated and displayed inline.</div>
+                </div>
+                <button onClick={() => { setGslPasteOpen(false); setGslParseError(null); }}
+                  style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:32, height:32, color:'#fff', fontSize:17, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+              </div>
+            </div>
+            <div style={{ padding:'18px 22px 0' }}>
+              <textarea autoFocus value={gslPasteText}
+                onChange={e => { setGslPasteText(e.target.value); setGslParseError(null); }}
+                placeholder={'{\n  "bias": "BULLISH",\n  "confidence": 74,\n  "leader": "United States",\n  ...\n}'}
+                style={{ width:'100%', height:240, padding:14, borderRadius:10, border:`2px solid ${gslParseError?'#ef4444':'#ddd6fe'}`, fontSize:12, fontFamily:"'IBM Plex Mono',monospace", lineHeight:1.6, resize:'vertical', outline:'none', boxSizing:'border-box', color:'#1a1a1a', background:gslParseError?'#fef2f2':'#faf5ff', transition:'border-color 0.15s' }}/>
+              {gslParseError && (
+                <div style={{ marginTop:8, padding:'8px 12px', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:8, fontSize:12, color:'#b91c1c' }}>⚠️ {gslParseError}</div>
+              )}
+            </div>
+            <div style={{ padding:18, display:'flex', gap:10 }}>
+              <button
+                onClick={() => {
+                  setGslParseError(null);
+                  if (!gslPasteText.trim()) { setGslParseError('Paste the JSON first.'); return; }
+                  let parsed;
+                  try {
+                    const clean = gslPasteText.replace(/```json/gi,'').replace(/```/g,'').trim();
+                    parsed = JSON.parse(clean);
+                  } catch(e) { setGslParseError(`Invalid JSON — ${e.message}`); return; }
+                  const required = ['bias','confidence','tldr','summary'];
+                  const missing = required.filter(k => parsed[k] == null);
+                  if (missing.length) { setGslParseError(`Missing fields: ${missing.join(', ')}`); return; }
+                  parsed.bias = String(parsed.bias).toUpperCase();
+                  if (!['BULLISH','BEARISH','NEUTRAL','MIXED'].includes(parsed.bias)) parsed.bias = 'MIXED';
+                  const key = `${gslSentData.sector}-${gslSentData.tf}`;
+                  setGslAnalysis(a => ({ ...a, [key]: parsed }));
+                  setGslPasteText('');
+                  setGslPasteOpen(false);
+                  setGslSentOpen(false);
+                }}
+                disabled={!gslPasteText.trim()}
+                style={{ flex:1, padding:11, background:!gslPasteText.trim()?'rgba(124,58,237,0.3)':'linear-gradient(135deg,#7c3aed,#4c1d95)', border:'none', borderRadius:9, color:'#fff', fontWeight:700, fontSize:14, cursor:!gslPasteText.trim()?'not-allowed':'pointer' }}>
+                ✓ Parse &amp; Display
+              </button>
+              <button onClick={() => { setGslPasteOpen(false); setGslSentOpen(true); }}
+                style={{ padding:'11px 16px', background:'#fff', border:'1px solid #e2e8f0', borderRadius:9, color:'#64748b', fontWeight:600, fontSize:14, cursor:'pointer' }}>
+                ← Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     
   );
