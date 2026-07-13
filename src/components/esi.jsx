@@ -3221,6 +3221,21 @@ const [gslPasteText,   setGslPasteText]   = useState('');
 const [gslParseError,  setGslParseError]  = useState(null);
 const [gslAnalysis,    setGslAnalysis]    = useState({});    // { [`${sector}-${tf}`]: parsed }
 
+// Country-Sector drill state
+const [csdOpen,        setCsdOpen]        = useState(false);
+const [csdTarget,      setCsdTarget]      = useState(null);   // { sector, entry } where entry is the proxy row
+const [csdCopied,      setCsdCopied]      = useState(false);
+const [csdPasteOpen,   setCsdPasteOpen]   = useState(false);
+const [csdPasteText,   setCsdPasteText]   = useState('');
+const [csdParseError,  setCsdParseError]  = useState(null);
+// Cache: { [`${sector}-${country}`]: { stocks: [], fetchedAt } }
+const [csdCache,       setCsdCache]       = useState({});
+// Which stock panels open inside the drill
+const [csdOpenPanels,  setCsdOpenPanels]  = useState(new Set());
+const [csdShowAll,     setCsdShowAll]     = useState(false);
+const [csdRendered,    setCsdRendered]    = useState(0);
+const [csdChartTf,     setCsdChartTf]     = useState('1D');
+
   // ── helpers ──
   const setLoading = (key, val) => setLoadingKeys(p => ({ ...p, [key]: val }));
   const isLoading  = (key) => loadingKeys[key] || false;
@@ -3362,6 +3377,21 @@ useEffect(() => {
   return () => clearInterval(iv);
 }, [gslShowAll, gslCache, gslSector, tf]);
 
+// CSD stagger
+useEffect(() => {
+  const key = csdTarget ? `${csdTarget.sector}-${csdTarget.entry.country}` : null;
+  const stocks = key ? csdCache[key]?.stocks : null;
+  if (!csdShowAll || !stocks?.length) return;
+  setCsdRendered(0);
+  let i = 0;
+  const iv = setInterval(() => {
+    i++;
+    setCsdRendered(i);
+    if (i >= stocks.length) clearInterval(iv);
+  }, 450);
+  return () => clearInterval(iv);
+}, [csdShowAll, csdCache, csdTarget]);
+
 // ── GSL chart ──
 const gslChartRef     = useRef(null);
 const gslChartInst    = useRef(null);
@@ -3384,6 +3414,73 @@ useEffect(() => {
 useEffect(() => {
   if (open && tab === 'globalsectors' && gslSector) fetchGSL(gslSector);
 }, [open, tab, gslSector, tf]);
+
+const buildCsdPrompt = (sector, entry, tf) => {
+  if (!sector || !entry) return '';
+
+  // Pull context from existing GSL data if available
+  const gslKey   = `${sector}-${tf}`;
+  const gslData  = gslCache[gslKey];
+  const allPerf  = gslData
+    ? gslData
+        .filter(e => !e.noData)
+        .map(e => `${e.flag} ${e.country}: ${e.ret >= 0 ? '+' : ''}${e.ret}% (${e.regime.label})`)
+        .join(', ')
+    : 'Not available';
+
+  const proxyRet = entry.noData ? 'No data' : `${parseFloat(entry.ret) >= 0 ? '+' : ''}${entry.ret}%`;
+
+  return `You are a professional equity analyst specialising in the ${entry.country} ${sector} sector. I need you to identify the most lucrative stock investment opportunities in this specific country-sector combination.
+
+CONTEXT:
+- Target: ${entry.flag} ${entry.country} — ${sector} sector
+- Sector proxy: ${entry.symbol}${entry.name ? ' ('+entry.name+')' : ''}
+- Proxy performance (${tf}): ${proxyRet}
+- Proxy regime: ${entry.regime?.label || 'Unknown'}
+- Global ${sector} sector context: ${allPerf}
+
+YOUR TASK:
+Search extensively for the best ${sector} stocks listed on ${entry.country} exchanges right now. Aim for 15-20+ sources including local financial media, analyst reports, earnings releases, and sector news specific to ${entry.country}.
+
+Find stocks that are:
+1. Listed on ${entry.country} exchanges (use proper yfinance ticker format with suffix — e.g. .KS for Korea, .T for Japan, .L for UK, .DE for Germany, .PA for France, .HK for Hong Kong, .AX for Australia, .TO for Canada, .NS for India, .SA for Brazil — or plain ticker for US)
+2. In the ${sector} sector or closely related
+3. Showing strong fundamentals, momentum, or a compelling catalyst right now
+4. A mix of large-cap stability and high-conviction growth names
+
+Research each stock you identify: recent earnings, analyst upgrades, price targets, insider activity, competitive position, and any near-term catalysts.
+
+Return ONLY a JSON object — no markdown, no backticks, no preamble:
+
+{
+  "country": "${entry.country}",
+  "flag": "${entry.flag}",
+  "sector": "${sector}",
+  "marketOutlook": "<2-3 sentence overview of the ${entry.country} ${sector} sector right now — macro backdrop, sentiment, key themes>",
+  "stocks": [
+    {
+      "symbol": "<exact yfinance ticker including suffix>",
+      "name": "<full English company name>",
+      "rec": "STRONG BUY" | "BUY" | "WATCH" | "HOLD",
+      "conviction": <integer 1-10>,
+      "price": "<last known price with currency, e.g. '71,200 KRW' or '$182.50' or '£24.30'>",
+      "marketCap": "<e.g. '$450B' or '₩85T' — use local currency>",
+      "thesis": "<3-4 sentence investment thesis — why this stock, why now>",
+      "catalysts": ["<catalyst 1>", "<catalyst 2>"],
+      "risk": "<main risk in one sentence>",
+      "analystTarget": "<analyst consensus price target if findable, else 'Not found'>",
+      "sector": "<specific sub-sector, e.g. Semiconductors, Cloud Software, etc>"
+    }
+  ],
+  "topPick": "<symbol of your single highest-conviction pick>",
+  "topPickReason": "<one punchy sentence on why this is the standout>",
+  "risks": ["<market-level risk 1>", "<market-level risk 2>", "<market-level risk 3>"],
+  "articleCount": <number of sources consulted>,
+  "sourceList": ["<source1>", "<source2>", "<source3>"]
+}
+
+Aim for 6-10 stocks. Include their exact yfinance ticker symbols so I can pull live charts. Return only the JSON object.`;
+};
 
 // ── GSL prompt builder ──
 const buildGslPrompt = (sentData) => {
@@ -4682,6 +4779,29 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                           onClick={e=>{ e.stopPropagation(); toggleGslPanel(entry.symbol); }}
                           title="View chart & data">📊</button>
                       )}
+                      {/* In the GSL table row's last cell, after the adp-open-btn: */}
+                      {!entry.noData && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setCsdTarget({ sector: gslSector, entry });
+                            setCsdOpenPanels(new Set());
+                            setCsdShowAll(false);
+                            setCsdRendered(0);
+                            setCsdOpen(true);
+                          }}
+                          style={{
+                            padding: '3px 8px', borderRadius: 6, border: '1.5px solid #ddd6fe',
+                            background: csdCache[`${gslSector}-${entry.country}`] ? '#7c3aed' : '#f5f3ff',
+                            color: csdCache[`${gslSector}-${entry.country}`] ? 'white' : '#7c3aed',
+                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                            transition: 'all 0.14s', whiteSpace: 'nowrap', flexShrink: 0,
+                          }}
+                          title={`Find top ${gslSector} stocks in ${entry.country}`}
+                        >
+                          🔍 {csdCache[`${gslSector}-${entry.country}`] ? 'View Picks' : 'Find Stocks'}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -5381,10 +5501,497 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
           </div>
         </div>
       )}
+
+      {/* ── COUNTRY-SECTOR DRILL MODAL ── */}
+{csdOpen && csdTarget && (() => {
+  const { sector, entry } = csdTarget;
+  const cacheKey  = `${sector}-${entry.country}`;
+  const cached    = csdCache[cacheKey];
+  const stocks    = cached?.stocks || [];
+  const isMobile  = window.innerWidth < 700;
+
+  const recColors = {
+    'STRONG BUY': '#10b981',
+    'BUY':        '#22d3ee',
+    'WATCH':      '#f59e0b',
+    'HOLD':       '#94a3b8',
+  };
+
+  const toggleCsdPanel = (sym) => setCsdOpenPanels(p => {
+    const n = new Set(p); n.has(sym) ? n.delete(sym) : n.add(sym); return n;
+  });
+
+  const TF_LIST = ['1D','1W','1M','3M','6M','1Y'];
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) setCsdOpen(false); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 10010,
+        background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: isMobile ? 0 : 16,
+      }}
+    >
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        width: '100%', maxWidth: 1100,
+        height: isMobile ? '100dvh' : '92vh',
+        borderRadius: isMobile ? 0 : 18,
+        overflow: 'hidden', background: '#ffffff',
+        boxShadow: '0 40px 120px rgba(0,0,0,0.6)',
+        border: '1.5px solid #e0e7ff',
+        animation: 'esi-modal-in 0.18s ease',
+      }}>
+
+        {/* ── HEADER ── */}
+        <div style={{
+          padding: '14px 18px', flexShrink: 0,
+          background: 'linear-gradient(135deg, #0f172a, #1e1b4b, #312e81)',
+          borderBottom: '1.5px solid #4338ca',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 26, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>
+                {entry.flag}
+              </span>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: 16, color: '#fff' }}>{entry.country}</span>
+                  <span style={{ fontSize: 13, color: '#a5b4fc' }}>·</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#a5b4fc' }}>{sector}</span>
+                  <span style={{ background: 'rgba(255,255,255,0.1)', color: '#c7d2fe', fontSize: 11, padding: '2px 8px', borderRadius: 6 }}>
+                    {entry.symbol}{entry.name ? ' — ' + entry.name : ''}
+                  </span>
+                  {!entry.noData && (
+                    <span style={{
+                      background: parseFloat(entry.ret) >= 0 ? '#16a34a33' : '#dc262633',
+                      color: parseFloat(entry.ret) >= 0 ? '#4ade80' : '#f87171',
+                      fontSize: 12, fontWeight: 800, fontFamily: 'monospace',
+                      padding: '2px 8px', borderRadius: 6,
+                    }}>
+                      {parseFloat(entry.ret) >= 0 ? '+' : ''}{entry.ret}%
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>
+                  {cached
+                    ? `${stocks.length} stocks found · fetched ${cached.fetchedAt}`
+                    : 'Use AI to discover top stocks in this country-sector'}
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setCsdOpen(false)}
+              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 34, height: 34, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              ✕
+            </button>
+          </div>
+
+          {/* Timeframe strip + Show All */}
+          {stocks.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em' }}>CHART TF:</span>
+              <div style={{ display: 'flex', gap: 2, background: 'rgba(0,0,0,0.2)', borderRadius: 7, padding: 3 }}>
+                {TF_LIST.map(tfl => (
+                  <button key={tfl} onClick={() => { setCsdChartTf(tfl); setCsdOpenPanels(new Set()); setCsdShowAll(false); setCsdRendered(0); }}
+                    style={{ padding: '3px 9px', border: 'none', borderRadius: 5, cursor: 'pointer', fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 700, background: csdChartTf === tfl ? '#6366f1' : 'transparent', color: csdChartTf === tfl ? '#fff' : '#a5b4fc', transition: 'all 0.12s' }}>
+                    {tfl}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  if (csdShowAll) { setCsdShowAll(false); setCsdRendered(0); setCsdOpenPanels(new Set()); }
+                  else            { setCsdOpenPanels(new Set()); setCsdShowAll(true); }
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', border: `1.5px solid ${csdShowAll ? '#0ea5e9' : 'rgba(255,255,255,0.2)'}`, borderRadius: 7, background: csdShowAll ? '#0ea5e9' : 'rgba(255,255,255,0.08)', color: csdShowAll ? '#fff' : '#a5b4fc', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
+                {csdShowAll ? '📉 Hide All' : '📈 Show All Charts'}
+                {!csdShowAll && <span style={{ background: 'rgba(255,255,255,0.15)', padding: '1px 6px', borderRadius: 4, fontSize: 10 }}>{stocks.length}</span>}
+                {csdShowAll && csdRendered < stocks.length && <span style={{ fontSize: 10, opacity: 0.7 }}>{csdRendered}/{stocks.length}</span>}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── BODY ── */}
+        <div style={{ flex: 1, overflowY: 'auto', background: '#fafafa' }}>
+
+          {/* Market outlook banner — shown when cached */}
+          {cached?.marketOutlook && (
+            <div style={{ padding: '12px 18px', background: 'linear-gradient(135deg, #ede9fe, #f5f3ff)', borderBottom: '1px solid #ddd6fe', fontSize: 13, color: '#3730a3', lineHeight: 1.6, fontStyle: 'italic' }}>
+              <strong>Market Outlook:</strong> {cached.marketOutlook}
+              {cached.topPick && cached.topPickReason && (
+                <span style={{ marginLeft: 12, background: '#7c3aed', color: 'white', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, fontStyle: 'normal' }}>
+                  👑 Top Pick: {cached.topPick} — {cached.topPickReason}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* ── Prompt + AI section ── */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid #e0e7ff' }}>
+            {/* Prompt preview (collapsible feel — always show a few lines) */}
+            <details style={{ marginBottom: 12 }}>
+              <summary style={{ fontSize: 12, fontWeight: 700, color: '#4338ca', cursor: 'pointer', padding: '6px 0', userSelect: 'none', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 14 }}>📋</span>
+                {cached ? 'View / Edit Prompt' : 'AI Discovery Prompt'}
+                <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>click to expand</span>
+              </summary>
+              <div style={{ marginTop: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, fontSize: 11, lineHeight: 1.7, color: '#334155', fontFamily: "'IBM Plex Mono',monospace", whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 280, overflowY: 'auto' }}>
+                {buildCsdPrompt(sector, entry, tf)}
+              </div>
+            </details>
+
+            {/* AI launchers */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', whiteSpace: 'nowrap' }}>Open in:</span>
+              {[
+                { name: 'Perplexity', icon: '🔍', color: '#20b2aa', bg: 'rgba(32,178,170,0.08)', border: 'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                { name: 'ChatGPT',    icon: '✦',  color: '#10a37f', bg: 'rgba(16,163,127,0.08)', border: 'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                { name: 'Gemini',     icon: '✦',  color: '#4285f4', bg: 'rgba(66,133,244,0.08)', border: 'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                { name: 'Claude',     icon: '◆',  color: '#cc785c', bg: 'rgba(204,120,92,0.08)', border: 'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+              ].map(({ name, icon, color, bg, border, getUrl }) => (
+                <button key={name}
+                  onClick={() => window.open(getUrl(buildCsdPrompt(sector, entry, tf)), '_blank')}
+                  style={{ padding: '7px 13px', borderRadius: 8, border: `1.5px solid ${border}`, background: bg, color, fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = `0 4px 10px ${border}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                  <span>{icon}</span> {name}
+                </button>
+              ))}
+
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(buildCsdPrompt(sector, entry, tf)); setCsdCopied(true); setTimeout(() => setCsdCopied(false), 2000); }}
+                  style={{ padding: '7px 14px', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', background: csdCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#1e1b4b,#4338ca)', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.25s' }}>
+                  {csdCopied ? '✓ Copied' : '📋 Copy Prompt'}
+                </button>
+                <button
+                  onClick={() => { setCsdPasteOpen(true); setCsdParseError(null); }}
+                  style={{ padding: '7px 14px', background: '#fff', border: '2px solid #7c3aed', borderRadius: 8, color: '#7c3aed', fontWeight: 700, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                  📥 Paste Response
+                </button>
+                {cached && (
+                  <button
+                    onClick={() => { setCsdCache(c => { const n = {...c}; delete n[cacheKey]; return n; }); setCsdOpenPanels(new Set()); setCsdShowAll(false); }}
+                    style={{ padding: '7px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#b91c1c', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    🔄 Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Stock results ── */}
+          {stocks.length === 0 && !cached && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 14, color: '#94a3b8', padding: 24 }}>
+              <span style={{ fontSize: 42, fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{entry.flag}</span>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+                  No stocks loaded yet
+                </div>
+                <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 380, lineHeight: 1.6 }}>
+                  Use the AI launchers above to discover top {sector} stocks in {entry.country}. Copy the prompt → paste into any AI → copy their JSON → click "Paste Response".
+                </div>
+              </div>
+              <div style={{ padding: '10px 16px', background: 'rgba(32,178,170,0.07)', border: '1px solid rgba(32,178,170,0.25)', borderRadius: 9, fontSize: 12, color: '#0f766e', maxWidth: 400, textAlign: 'center', lineHeight: 1.55 }}>
+                💡 <strong>Perplexity</strong> works best — it'll search local {entry.country} financial media, analyst reports, and exchange data in real time.
+              </div>
+            </div>
+          )}
+
+          {stocks.length > 0 && (
+            <div style={{ padding: '14px 18px' }}>
+              {/* Market-level risks */}
+              {cached?.risks?.length > 0 && (
+                <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: '#b91c1c', letterSpacing: '0.08em', marginBottom: 6 }}>⚠️ MARKET-LEVEL RISKS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {cached.risks.map((r, i) => (
+                      <span key={i} style={{ background: '#fee2e2', color: '#991b1b', fontSize: 12, padding: '3px 10px', borderRadius: 20, border: '1px solid #fecaca' }}>{r}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stock cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {stocks.map((stock, idx) => {
+                  const isPanelOpen = csdOpenPanels.has(stock.symbol) || (csdShowAll && idx < csdRendered);
+                  const rc = recColors[stock.rec] || '#6366f1';
+                  const isTopPick = stock.symbol === cached?.topPick;
+
+                  return (
+                    <div key={stock.symbol}>
+                      {/* Stock card */}
+                      <div style={{
+                        background: 'white',
+                        borderRadius: 12,
+                        border: `1.5px solid ${isPanelOpen ? '#6366f1' : isTopPick ? '#f59e0b' : '#e2e8f0'}`,
+                        boxShadow: isTopPick ? '0 0 0 2px rgba(245,158,11,0.2)' : isPanelOpen ? '0 0 0 3px rgba(99,102,241,0.15)' : '0 1px 4px rgba(0,0,0,0.06)',
+                        overflow: 'hidden',
+                        transition: 'all 0.15s',
+                      }}>
+                        {/* Top pick crown banner */}
+                        {isTopPick && (
+                          <div style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', padding: '4px 14px', fontSize: 11, fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            👑 TOP PICK — {cached.topPickReason}
+                          </div>
+                        )}
+
+                        <div style={{ padding: '12px 14px' }}>
+                          {/* Row 1: symbol + name + rec + conviction */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                                <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontWeight: 800, fontSize: 15, color: '#1e1b4b' }}>
+                                  {stock.symbol}
+                                </span>
+                                <span style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>
+                                  {stock.name}
+                                </span>
+                                {stock.sector && (
+                                  <span style={{ fontSize: 10, background: '#ede9fe', color: '#6d28d9', padding: '2px 7px', borderRadius: 5, fontWeight: 600, border: '1px solid #ddd6fe' }}>
+                                    {stock.sector}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                {stock.price && (
+                                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#64748b', background: '#f8fafc', padding: '2px 7px', borderRadius: 5, border: '1px solid #e2e8f0' }}>
+                                    {stock.price}
+                                  </span>
+                                )}
+                                {stock.marketCap && (
+                                  <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>
+                                    MCap: {stock.marketCap}
+                                  </span>
+                                )}
+                                {stock.analystTarget && stock.analystTarget !== 'Not found' && (
+                                  <span style={{ fontSize: 11, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 7px', borderRadius: 5 }}>
+                                    🎯 {stock.analystTarget}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Rec + conviction */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                              <span style={{ background: rc + '20', color: rc, border: `1.5px solid ${rc}44`, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+                                {stock.rec}
+                              </span>
+                              {stock.conviction && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span style={{ fontSize: 10, color: '#94a3b8' }}>Conviction</span>
+                                  <div style={{ display: 'flex', gap: 2 }}>
+                                    {Array.from({ length: 10 }, (_, i) => (
+                                      <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < stock.conviction ? rc : '#e2e8f0', transition: 'background 0.1s' }} />
+                                    ))}
+                                  </div>
+                                  <span style={{ fontSize: 10, fontWeight: 700, color: rc }}>{stock.conviction}/10</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Thesis */}
+                          {stock.thesis && (
+                            <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.65, marginBottom: 8, padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                              {stock.thesis}
+                            </div>
+                          )}
+
+                          {/* Catalysts + Risk row */}
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                            {stock.catalysts?.map((c, i) => (
+                              <span key={i} style={{ fontSize: 11, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '2px 9px', borderRadius: 20 }}>
+                                🚀 {c}
+                              </span>
+                            ))}
+                            {stock.risk && (
+                              <span style={{ fontSize: 11, background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', padding: '2px 9px', borderRadius: 20 }}>
+                                ⚠️ {stock.risk}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: '#94a3b8', flex: 1 }}>
+                              {stock.symbol}
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (isPanelOpen) {
+                                  setCsdOpenPanels(p => { const n = new Set(p); n.delete(stock.symbol); return n; });
+                                  if (csdShowAll) { setCsdShowAll(false); setCsdRendered(0); }
+                                } else {
+                                  toggleCsdPanel(stock.symbol);
+                                }
+                              }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '6px 13px', borderRadius: 7, border: '1.5px solid',
+                                borderColor: isPanelOpen ? '#6366f1' : '#c7d2fe',
+                                background: isPanelOpen ? '#6366f1' : '#ede9fe',
+                                color: isPanelOpen ? 'white' : '#4338ca',
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                transition: 'all 0.14s',
+                              }}
+                            >
+                              📊 {isPanelOpen ? 'Close Chart' : 'View Chart'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expandable AssetDetailPanel */}
+                      {isPanelOpen && (
+                        <div style={{ marginTop: 4, border: '1.5px solid #6366f1', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 20px rgba(99,102,241,0.15)' }}>
+                          <AssetDetailPanel
+                            key={`csd-${stock.symbol}-${csdChartTf}`}
+                            symbol={stock.symbol}
+                            baseUrl={baseUrl}
+                            defaultLookback={60}
+                            embedded
+                            onClose={() => toggleCsdPanel(stock.symbol)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Sources footer */}
+              {cached?.sourceList?.length > 0 && (
+                <div style={{ marginTop: 16, padding: '10px 14px', background: '#f5f3ff', border: '1px solid #e0e7ff', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#6d28d9' }}>📚 Sources ({cached.articleCount}):</span>
+                  {cached.sourceList.map((s, i) => (
+                    <span key={i} style={{ background: '#ede9fe', color: '#6d28d9', padding: '2px 8px', borderRadius: 20, fontSize: 11, border: '1px solid #ddd6fe' }}>{s}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+})()}
+
+{/* ── CSD PASTE MODAL ── */}
+{csdPasteOpen && csdTarget && (
+  <div
+    onClick={() => { setCsdPasteOpen(false); setCsdParseError(null); }}
+    style={{ position: 'fixed', inset: 0, zIndex: 10011, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(4px)' }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ width: 'min(660px,100%)', borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', animation: 'esi-modal-in 0.2s ease' }}
+    >
+      <div style={{ padding: '18px 22px 14px', background: 'linear-gradient(135deg,#0f172a,#7c3aed)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+              📥 Paste AI Response
+              <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,0.6)', marginLeft: 8 }}>
+                — {csdTarget.entry.flag} {csdTarget.entry.country} {csdTarget.sector}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+              Paste the JSON the AI returned. Stocks will be displayed with live charts.
+            </div>
+          </div>
+          <button onClick={() => { setCsdPasteOpen(false); setCsdParseError(null); }}
+            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 17, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        </div>
+      </div>
+
+      <div style={{ padding: '18px 22px 0' }}>
+        <textarea
+          autoFocus
+          value={csdPasteText}
+          onChange={e => { setCsdPasteText(e.target.value); setCsdParseError(null); }}
+          placeholder={'{\n  "country": "South Korea",\n  "flag": "🇰🇷",\n  "sector": "Technology",\n  "marketOutlook": "...",\n  "stocks": [\n    {\n      "symbol": "005930.KS",\n      "name": "Samsung Electronics",\n      "rec": "BUY",\n      "conviction": 8,\n      ...\n    }\n  ],\n  "topPick": "005930.KS",\n  ...\n}'}
+          style={{ width: '100%', height: 260, padding: 14, borderRadius: 10, border: `2px solid ${csdParseError ? '#ef4444' : '#ddd6fe'}`, fontSize: 12, fontFamily: "'IBM Plex Mono',monospace", lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box', color: '#1a1a1a', background: csdParseError ? '#fef2f2' : '#faf5ff', transition: 'border-color 0.15s' }}
+        />
+        {csdParseError && (
+          <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 12, color: '#b91c1c', lineHeight: 1.5 }}>
+            ⚠️ {csdParseError}
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: 18, display: 'flex', gap: 10 }}>
+        <button
+          onClick={() => {
+            setCsdParseError(null);
+            if (!csdPasteText.trim()) { setCsdParseError('Paste the JSON first.'); return; }
+
+            let parsed;
+            try {
+              const clean = csdPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+              parsed = JSON.parse(clean);
+            } catch(e) {
+              setCsdParseError(`Invalid JSON — ${e.message}. Make sure you copied the full response.`);
+              return;
+            }
+
+            // Validate
+            if (!Array.isArray(parsed.stocks) || parsed.stocks.length === 0) {
+              setCsdParseError('The JSON must contain a "stocks" array with at least one entry.');
+              return;
+            }
+
+            // Validate each stock has minimum required fields
+            const badStocks = parsed.stocks.filter(s => !s.symbol || !s.name);
+            if (badStocks.length > 0) {
+              setCsdParseError(`${badStocks.length} stock(s) are missing "symbol" or "name" fields.`);
+              return;
+            }
+
+            // Normalise rec values
+            const validRecs = ['STRONG BUY','BUY','WATCH','HOLD'];
+            parsed.stocks = parsed.stocks.map(s => ({
+              ...s,
+              rec: validRecs.includes(String(s.rec).toUpperCase()) ? String(s.rec).toUpperCase() : 'WATCH',
+              conviction: Math.min(10, Math.max(1, parseInt(s.conviction) || 5)),
+            }));
+
+            const cacheKey = `${csdTarget.sector}-${csdTarget.entry.country}`;
+            setCsdCache(c => ({
+              ...c,
+              [cacheKey]: {
+                ...parsed,
+                fetchedAt: new Date().toLocaleTimeString(),
+              },
+            }));
+
+            setCsdPasteText('');
+            setCsdPasteOpen(false);
+          }}
+          disabled={!csdPasteText.trim()}
+          style={{ flex: 1, padding: 11, background: !csdPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)', border: 'none', borderRadius: 9, color: '#fff', fontWeight: 700, fontSize: 14, cursor: !csdPasteText.trim() ? 'not-allowed' : 'pointer', transition: 'background 0.15s' }}>
+          ✓ Parse &amp; Display Stocks
+        </button>
+        <button
+          onClick={() => { setCsdPasteOpen(false); setCsdParseError(null); }}
+          style={{ padding: '11px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
     
   );
 }
+
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 
