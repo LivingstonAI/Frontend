@@ -559,6 +559,11 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [filterMinScore, setFilterMinScore] = React.useState(0);
     const [filterAiVerdict, setFilterAiVerdict] = React.useState('ALL');
 
+    // -- Daily snapshot save (for backtesting) --
+    const [snapshotSaving, setSnapshotSaving] = React.useState(false);
+    const [snapshotResult, setSnapshotResult] = React.useState(null);
+    const [snapshotError,  setSnapshotError]  = React.useState(null);
+
     React.useEffect(() => {
         const loadCached = async () => {
             try {
@@ -791,6 +796,26 @@ Do not include anything outside the JSON array. The response must be parseable b
         setAiPasteText('');
     };
 
+    const saveTodaySnapshot = async () => {
+        if (!filtered.length) return;
+        setSnapshotSaving(true);
+        setSnapshotError(null);
+        setSnapshotResult(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_save/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ stocks: filtered, aiAnalysis }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setSnapshotResult(json);
+        } catch (e) {
+            setSnapshotError(e.message);
+        } finally {
+            setSnapshotSaving(false);
+        }
+    };
 
     // ── Score ring ────────────────────────────────────────────────────────────
     const ScoreRing = ({ score }) => {
@@ -1041,6 +1066,27 @@ Do not include anything outside the JSON array. The response must be parseable b
                             🧠 AI Opportunity Scan ({filtered.length})
                         </button>
 
+                        
+
+                        <button
+                            onClick={saveTodaySnapshot}
+                            disabled={snapshotSaving || filtered.length === 0}
+                            title="Save today's snapshot of shown stocks + any AI analysis for backtesting later"
+                            style={{
+                                padding:'5px 12px', borderRadius:'20px',
+                                fontSize:'11px', fontWeight:'800', cursor: (snapshotSaving || filtered.length === 0) ? 'not-allowed' : 'pointer',
+                                border:'1px solid rgba(16,185,129,0.4)',
+                                backgroundColor: snapshotSaving ? 'rgba(16,185,129,0.1)' : '#10b981',
+                                color: snapshotSaving ? '#10b981' : '#fff',
+                                opacity: filtered.length === 0 ? 0.5 : 1,
+                                whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'5px',
+                            }}
+                        >
+                            {snapshotSaving
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>💾</span> Saving...</>
+                                : <>💾 Save Today's Snapshot</>}
+                        </button>
+
                         <button
                             onClick={() => setShowAllCharts(s => !s)}
                             style={{
@@ -1069,6 +1115,25 @@ Do not include anything outside the JSON array. The response must be parseable b
                                     }}>{l}</button>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {aiScanError && (
+                    <div style={{ padding:'8px 20px', backgroundColor:'#fef2f2', borderBottom:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c' }}>
+                        ⚠️ AI scan error: {aiScanError}
+                    </div>
+                )}
+
+                {snapshotResult && (
+                    <div style={{ padding:'8px 20px', backgroundColor:'#f0fdf4', borderBottom:'1px solid #bbf7d0', fontSize:'12px', color:'#065f46', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                        💾 Snapshot saved for {snapshotResult.date} — {snapshotResult.savedNew.length} new · {snapshotResult.updatedExisting.length} updated
+                        {snapshotResult.errors.length > 0 && ` · ${snapshotResult.errors.length} failed`}
+                        <button onClick={() => setSnapshotResult(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#065f46', cursor:'pointer', fontSize:'14px', fontWeight:'900', lineHeight:1, padding:0 }}>×</button>
+                    </div>
+                )}
+                {snapshotError && (
+                    <div style={{ padding:'8px 20px', backgroundColor:'#fef2f2', borderBottom:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c' }}>
+                        ⚠️ Snapshot save error: {snapshotError}
                     </div>
                 )}
 
