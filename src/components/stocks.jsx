@@ -1118,11 +1118,6 @@ Do not include anything outside the JSON array. The response must be parseable b
                     </div>
                 )}
 
-                {aiScanError && (
-                    <div style={{ padding:'8px 20px', backgroundColor:'#fef2f2', borderBottom:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c' }}>
-                        ⚠️ AI scan error: {aiScanError}
-                    </div>
-                )}
 
                 {snapshotResult && (
                     <div style={{ padding:'8px 20px', backgroundColor:'#f0fdf4', borderBottom:'1px solid #bbf7d0', fontSize:'12px', color:'#065f46', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
