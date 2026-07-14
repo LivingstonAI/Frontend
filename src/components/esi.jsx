@@ -3479,7 +3479,8 @@ Return ONLY a JSON object — no markdown, no backticks, no preamble:
   "sourceList": ["<source1>", "<source2>", "<source3>"]
 }
 
-Aim for 15-20 stocks minimum — include large caps, mid caps, and compelling smaller names. Cover the full breadth of the ${sector} sector in ${entry.country}, not just the obvious household names. Include their exact yfinance ticker symbols so I can pull live charts. Return only the JSON object.`;
+Aim for 15-20 stocks minimum — include large caps, mid caps, and compelling smaller names. Cover the full breadth of the ${sector} sector in ${entry.country}, not just the obvious household names. Include their exact yfinance ticker symbols so I can pull live charts. Return only the JSON object.
+If you find fewer than 15 stocks, search again with different queries before responding.`;
 
 };
 
