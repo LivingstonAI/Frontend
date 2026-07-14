@@ -546,6 +546,30 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     // Fetch on mount
     React.useEffect(() => { fetchWatchlist(); }, []);
 
+    // -- AI Opportunity Analysis (external AI, copy/paste pattern) --
+    const [aiAnalysis, setAiAnalysis] = React.useState({}); // keyed by ticker
+    const [aiPromptScope, setAiPromptScope] = React.useState(null); // 'bulk' | single row object
+    const [showAiPromptModal, setShowAiPromptModal] = React.useState(false);
+    const [showAiPasteModal, setShowAiPasteModal] = React.useState(false);
+    const [aiPasteText, setAiPasteText] = React.useState('');
+    const [aiPasteError, setAiPasteError] = React.useState(null);
+    const [aiCopied, setAiCopied] = React.useState(false);
+
+    React.useEffect(() => {
+        const loadCached = async () => {
+            try {
+                const result = await window.storage.get('scanner-ai-analyses');
+                if (result?.value) setAiAnalysis(JSON.parse(result.value));
+            } catch {}
+        };
+        loadCached();
+    }, []);
+
+    const saveAiAnalyses = async (updated) => {
+        setAiAnalysis(updated);
+        try { await window.storage.set('scanner-ai-analyses', JSON.stringify(updated)); } catch {}
+    };
+
     const fetchWatchlist = async () => {
         setWatchlistLoading(true);
         try {
@@ -601,6 +625,28 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
         WATCH:               { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'👁',  label:'Watch'            },
     };
 
+    const AI_VERDICT_CONFIG = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'⛔' },
+    };
+
+    const SNOWVAULT_SECTOR_ETF_HINTS = {
+        'Technology':          'XLK',
+        'Financial':            'XLF',
+        'Healthcare':           'XLV',
+        'Consumer Cyclical':    'XLY',
+        'Consumer Defensive':   'XLP',
+        'Energy':               'XLE',
+        'Industrials':          'XLI',
+        'Communication':        'XLC',
+        'Real Estate':          'XLRE',
+        'Materials':            'XLB',
+        'Utilities':            'XLU',
+    };
+
     const fmtCap = (v) => {
         if (!v) return '—';
         if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
@@ -649,6 +695,96 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
             if (sortBy === 'ext')   return Math.abs(b.extendedChangePct||0) - Math.abs(a.extendedChangePct||0);
             return 0;
         });
+
+    const buildScannerCohortContext = () => {
+        const bySector = {};
+        filtered.forEach(r => {
+            const sec = r.sector || 'Unknown';
+            if (!bySector[sec]) bySector[sec] = { bullish: 0, bearish: 0, neutral: 0, total: 0, scores: [] };
+            bySector[sec].total += 1;
+            if (r.direction === 'BULLISH') bySector[sec].bullish += 1;
+            else if (r.direction === 'BEARISH') bySector[sec].bearish += 1;
+            else bySector[sec].neutral += 1;
+            if (typeof r.score === 'number') bySector[sec].scores.push(r.score);
+        });
+        return Object.entries(bySector).map(([sec, c]) => {
+            const avg = c.scores.length ? (c.scores.reduce((a,b)=>a+b,0)/c.scores.length).toFixed(1) : 'n/a';
+            const etf = SNOWVAULT_SECTOR_ETF_HINTS[sec] || 'n/a';
+            return `- ${sec} (tracking ETF ~${etf}): ${c.bullish} bullish / ${c.bearish} bearish / ${c.neutral} neutral of ${c.total} scanner hits · avg score ${avg}`;
+        }).join('\n');
+    };
+
+    const buildScannerAIPrompt = (scopeStocks) => {
+        const cohortCtx = buildScannerCohortContext();
+        const stockLines = scopeStocks.map(r => {
+            const etf = SNOWVAULT_SECTOR_ETF_HINTS[r.sector] || null;
+            return `### ${r.ticker} — ${r.name || ''} (${r.sector || 'Unknown sector'}${etf ? `, sector ETF ~${etf}` : ''})
+Signal: ${r.signal} · Direction: ${r.direction} · Scanner Score: ${r.score}/100
+Price: $${r.currentPrice ?? 'N/A'} · Market Cap: ${r.marketCap ? '$' + (r.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}
+ADX: ${r.adxNow ?? 'N/A'} · ROC20: ${r.roc20 ?? 'N/A'}% · Volume Ratio: ${r.volRatio ?? 'N/A'}× · From 52W High: ${r.pctFromHigh ?? 'N/A'}%`;
+        }).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst. A technical trend-reversal scanner just flagged the stock(s) below. Assess how genuinely LUCRATIVE each opportunity is — not just the technical signal in isolation, but cross-checked against what's actually happening in that stock's sector right now, so a signal that's really just broad sector rotation (or a stock quietly lagging while its whole sector rips) gets called out rather than missed.
+
+Search the web for current sector performance (via each stock's tracking ETF and general sector news) and recent company-specific news for each ticker below before answering — don't rely on memorized data, markets move fast.
+
+PEER COHORT WITHIN THIS SAME SCAN (how many of the scanner's OTHER hits in each sector are bullish/bearish right now — tells you if a move is sector-wide or stock-specific):
+${cohortCtx || 'No peer cohort data available.'}
+
+STOCK(S) TO ANALYSE:
+${stockLines}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble), one object per stock, in this exact shape:
+[
+  {
+    "ticker": "<ticker>",
+    "opportunityScore": <integer 0-100>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "badge": "<max 4 words, punchy, for a small inline UI badge>",
+    "sectorRelation": "<1-2 sentences: is this stock leading, lagging, or in line with its sector ETF and sector peers right now? Stock-specific or sector-wide move?>",
+    "thesis": "<2-3 sentences: your synthesis of whether this is a lucrative opportunity right now, weighing the technical signal against sector/macro backdrop>",
+    "risks": "<1-2 sentences: the main thing that would invalidate this thesis>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+    };
+
+    const openBulkAIPrompt = () => { setAiPromptScope('bulk'); setShowAiPromptModal(true); };
+    const openIndividualAIPrompt = (r) => { setAiPromptScope(r); setShowAiPromptModal(true); };
+
+    const handlePasteAIResponse = () => {
+        setAiPasteError(null);
+        if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
+        let parsed;
+        try {
+            const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            parsed = JSON.parse(clean);
+        } catch (e) {
+            setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`);
+            return;
+        }
+        if (!Array.isArray(parsed)) {
+            setAiPasteError('Expected a JSON array (one object per stock).');
+            return;
+        }
+        const updated = { ...aiAnalysis };
+        let addedCount = 0;
+        parsed.forEach(item => {
+            const t = String(item?.ticker || '').toUpperCase().trim();
+            if (!t || item.verdict == null || item.thesis == null) return;
+            updated[t] = { ...item, ticker: t, savedAt: new Date().toLocaleString() };
+            addedCount += 1;
+        });
+        if (addedCount === 0) {
+            setAiPasteError('No valid stock entries found — check the response matches the expected format.');
+            return;
+        }
+        saveAiAnalyses(updated);
+        setShowAiPasteModal(false);
+        setAiPasteText('');
+    };
+
 
     // ── Score ring ────────────────────────────────────────────────────────────
     const ScoreRing = ({ score }) => {
@@ -836,6 +972,23 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                                     transition:'all 0.15s',
                                 }}>{d === 'ALL' ? 'All Dirs' : d}</button>
                         ))}
+
+                        <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
+
+                        <button
+                            onClick={openBulkAIPrompt}
+                            disabled={filtered.length === 0}
+                            style={{
+                                padding:'5px 12px', borderRadius:'20px',
+                                fontSize:'11px', fontWeight:'800', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer',
+                                border:'1px solid rgba(219,39,119,0.4)',
+                                background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                color:'#fff', opacity: filtered.length === 0 ? 0.5 : 1,
+                                whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'5px',
+                            }}
+                        >
+                            🧠 AI Opportunity Scan ({filtered.length})
+                        </button>
 
                         <button
                             onClick={() => setShowAllCharts(s => !s)}
@@ -1054,6 +1207,20 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                                                     }}>
                                                         {r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}
                                                     </span>
+                                                    {aiAnalysis[r.ticker] && (() => {
+                                                        const av = AI_VERDICT_CONFIG[aiAnalysis[r.ticker].verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                        return (
+                                                            <span title={aiAnalysis[r.ticker].thesis} style={{
+                                                                padding:'2px 8px', borderRadius:'10px',
+                                                                fontSize:'11px', fontWeight:'700',
+                                                                backgroundColor: av.bg, color: av.color,
+                                                                border:`1px solid ${av.border}`,
+                                                                whiteSpace:'nowrap',
+                                                            }}>
+                                                                {av.icon} 🧠 {aiAnalysis[r.ticker].badge}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                                                     {r.name} · {r.sector}
@@ -1132,6 +1299,54 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                                                         {r.earningsNearby && r.earningsBeat === false && `Recent earnings miss (${r.daysSinceEarnings}d ago) — trend is despite bad earnings. `}
                                                     </div>
                                                 </div>
+
+                                                {/* AI Opportunity Analysis (external AI) */}
+                                                {aiAnalysis[r.ticker] ? (() => {
+                                                    const a  = aiAnalysis[r.ticker];
+                                                    const av = AI_VERDICT_CONFIG[a.verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                    return (
+                                                        <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
+                                                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>
+                                                                    🧠 AI OPPORTUNITY ASSESSMENT
+                                                                </span>
+                                                                <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
+                                                                    {av.icon} {a.verdict?.replace('_',' ')} · {a.opportunityScore}/100
+                                                                </span>
+                                                                <button onClick={() => openIndividualAIPrompt(r)} style={{
+                                                                    marginLeft:'auto', fontSize:'10px', color:av.color, background:'none',
+                                                                    border:`1px solid ${av.border}`, borderRadius:'6px', cursor:'pointer', padding:'2px 8px',
+                                                                }}>🔄 Re-ask</button>
+                                                            </div>
+                                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>
+                                                                {a.thesis}
+                                                            </div>
+                                                            {a.sectorRelation && (
+                                                                <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, padding:'8px 10px', backgroundColor:'rgba(255,255,255,0.6)', borderRadius:'7px', marginBottom: a.risks ? '6px' : 0 }}>
+                                                                    <strong style={{ color:av.color }}>Sector context:</strong> {a.sectorRelation}
+                                                                </div>
+                                                            )}
+                                                            {a.risks && (
+                                                                <div style={{ fontSize:'12px', color:'#ef4444', lineHeight:1.5 }}>
+                                                                    <strong>Risk:</strong> {a.risks}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })() : (
+                                                    <button
+                                                        onClick={() => openIndividualAIPrompt(r)}
+                                                        style={{
+                                                            padding:'10px', borderRadius:'9px',
+                                                            background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                            color:'#fff', border:'none',
+                                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
+                                                        }}
+                                                    >
+                                                        🧠 Ask External AI for Opportunity Analysis
+                                                    </button>
+                                                )}
 
                                                 {/* Metrics grid */}
                                                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'8px' }}>
@@ -1240,6 +1455,185 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
                     )}
                 </div>
             </div>
+
+            {/* AI Prompt Modal */}
+            {showAiPromptModal && (() => {
+                const scopeStocks = aiPromptScope === 'bulk' ? filtered : (aiPromptScope ? [aiPromptScope] : []);
+                const promptText  = scopeStocks.length ? buildScannerAIPrompt(scopeStocks) : '';
+                const scopeLabel  = aiPromptScope === 'bulk' ? `${filtered.length} stocks shown` : aiPromptScope?.ticker;
+                return (
+                    <div onClick={() => setShowAiPromptModal(false)} style={{
+                        position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        zIndex:10030, padding:'20px', backdropFilter:'blur(3px)',
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            width:'min(680px,100%)', maxHeight:'85vh', borderRadius:'16px', overflow:'hidden',
+                            display:'flex', flexDirection:'column', backgroundColor:'#fff',
+                            boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                        }}>
+                            <div style={{ padding:'20px 24px 16px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                                    <div>
+                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                            <span style={{ fontSize:'18px' }}>🧠</span>
+                                            <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>AI Opportunity Prompt — {scopeLabel}</span>
+                                        </div>
+                                        <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', lineHeight:1.5 }}>
+                                            Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowAiPromptModal(false)} style={{
+                                        background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%',
+                                        width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                                    }}>×</button>
+                                </div>
+                            </div>
+                            <div style={{ flex:1, overflowY:'auto', padding:'20px 24px' }}>
+                                <div style={{
+                                    backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px',
+                                    padding:'16px', fontSize:'13px', lineHeight:1.7, color:'#333',
+                                    fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-word',
+                                }}>
+                                    {promptText}
+                                </div>
+                                <div style={{
+                                    marginTop:'14px', padding:'10px 14px', backgroundColor:'rgba(32,178,170,0.07)',
+                                    border:'1px solid rgba(32,178,170,0.25)', borderRadius:'9px',
+                                    display:'flex', gap:'10px', alignItems:'flex-start',
+                                }}>
+                                    <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                    <div style={{ fontSize:'12px', color:'#0f766e', lineHeight:1.55 }}>
+                                        <strong>Tip:</strong> Perplexity is the best pick here — it searches the web live and can pull current sector/ETF performance automatically.
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ padding:'14px 24px', borderTop:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:'12px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                                <div>
+                                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', marginBottom:'8px' }}>
+                                        OPEN DIRECTLY IN (prompt auto-filled)
+                                    </div>
+                                    <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                        {[
+                                            { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl:p=>`https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                                            { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl:p=>`https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                                            { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl:p=>`https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                                            { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl:p=>`https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                                        ].map(({ name, icon, color, bg, border, getUrl }) => (
+                                            <button key={name} onClick={() => window.open(getUrl(promptText), '_blank')} style={{
+                                                padding:'8px 14px', borderRadius:'9px', border:`1.5px solid ${border}`,
+                                                backgroundColor:bg, color, fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap',
+                                            }}>
+                                                <span style={{ fontSize:'15px' }}>{icon}</span>{name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ height:'1px', backgroundColor:'#e2e8f0' }} />
+                                <div style={{ display:'flex', gap:'10px' }}>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(promptText); setAiCopied(true); setTimeout(() => setAiCopied(false), 2000); }}
+                                        style={{
+                                            flex:1, padding:'10px',
+                                            background: aiCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#4c1d95,#7c3aed)',
+                                            border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px',
+                                            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                        }}
+                                    >
+                                        {aiCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowAiPromptModal(false); setShowAiPasteModal(true); }}
+                                        style={{
+                                            flex:1, padding:'10px', backgroundColor:'#fff', border:'2px solid #7c3aed',
+                                            borderRadius:'9px', color:'#7c3aed', fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                        }}
+                                    >
+                                        <span>📥</span> Paste Response
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* AI Paste Response Modal */}
+            {showAiPasteModal && (
+                <div onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                    position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    zIndex:10030, padding:'20px', backdropFilter:'blur(3px)',
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        width:'min(640px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff',
+                        boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                        display:'flex', flexDirection:'column',
+                    }}>
+                        <div style={{ padding:'18px 22px 14px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                                <div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>📥 Paste AI Response</div>
+                                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>
+                                        Paste the raw JSON array the AI returned — one object per stock.
+                                    </div>
+                                </div>
+                                <button onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                                    background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%',
+                                    width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                }}>×</button>
+                            </div>
+                        </div>
+                        <div style={{ padding:'20px 22px 0' }}>
+                            <textarea
+                                autoFocus
+                                value={aiPasteText}
+                                onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
+                                placeholder={`Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`}
+                                style={{
+                                    width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
+                                    border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`,
+                                    fontSize:'13px', fontFamily:'monospace', lineHeight:1.6, resize:'vertical',
+                                    outline:'none', boxSizing:'border-box', color:'#1a1a1a',
+                                    backgroundColor: aiPasteError ? '#fef2f2' : '#f8fafc',
+                                }}
+                            />
+                            {aiPasteError && (
+                                <div style={{ marginTop:'10px', padding:'10px 14px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', fontSize:'13px', color:'#b91c1c', lineHeight:1.5 }}>
+                                    ⚠️ {aiPasteError}
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ padding:'16px 22px', display:'flex', gap:'10px' }}>
+                            <button
+                                onClick={handlePasteAIResponse}
+                                disabled={!aiPasteText.trim()}
+                                style={{
+                                    flex:1, padding:'11px',
+                                    background: !aiPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)',
+                                    border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px',
+                                    cursor: !aiPasteText.trim() ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                ✓ Parse & Save
+                            </button>
+                            <button
+                                onClick={() => { setShowAiPasteModal(false); setShowAiPromptModal(true); setAiPasteError(null); }}
+                                style={{
+                                    padding:'11px 16px', backgroundColor:'#fff', border:'1px solid #e2e8f0',
+                                    borderRadius:'9px', color:'#64748b', fontWeight:'600', fontSize:'14px', cursor:'pointer',
+                                }}
+                            >
+                                ← Back to prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @keyframes modalSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
