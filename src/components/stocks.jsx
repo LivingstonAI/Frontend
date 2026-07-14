@@ -1759,6 +1759,298 @@ Do not include anything outside the JSON array. The response must be parseable b
     );
 }
 
+function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const [loading,       setLoading]       = React.useState(false);
+    const [error,         setError]         = React.useState(null);
+    const [rows,          setRows]          = React.useState([]);
+    const [tickerSearch,  setTickerSearch]  = React.useState('');
+    const [startDate,     setStartDate]     = React.useState('');
+    const [endDate,       setEndDate]       = React.useState('');
+    const [expandedKey,   setExpandedKey]   = React.useState(null);
+    const [collapsedDates,setCollapsedDates]= React.useState({});
+
+    const HIST_SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', icon:'👁', label:'Watch'             },
+    };
+
+    const HIST_AI_VERDICT = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'#f0fdf4', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'#eff6ff', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'#f8fafc', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'#fffbeb', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'#fef2f2', icon:'⛔' },
+    };
+
+    const fetchHistory = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const body = { limit: 500 };
+            if (tickerSearch.trim()) body.ticker = tickerSearch.trim().toUpperCase();
+            if (startDate) body.startDate = startDate;
+            if (endDate)   body.endDate   = endDate;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setRows(json.results || []);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => { if (isOpen) fetchHistory(); }, [isOpen]);
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+    };
+
+    const grouped = React.useMemo(() => {
+        const map = {};
+        rows.forEach(r => { if (!map[r.date]) map[r.date] = []; map[r.date].push(r); });
+        return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+    }, [rows]);
+
+    const toggleDateCollapse = (date) => setCollapsedDates(prev => ({ ...prev, [date]: !prev[date] }));
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            style={{
+                position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10025,
+                display:'flex', alignItems:'flex-start', justifyContent:'center',
+                padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+            }}
+            onClick={onClose}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width:'100%', maxWidth:'900px', borderRadius:'18px', overflow:'hidden',
+                    backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                    fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+                }}
+            >
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #10b981 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>📜</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Scanner History</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Saved daily snapshots for backtesting — trend signals + AI opportunity analysis over time
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%',
+                            width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                        }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                        <input
+                            type="text" value={tickerSearch}
+                            onChange={e => setTickerSearch(e.target.value.toUpperCase())}
+                            onKeyDown={e => e.key === 'Enter' && fetchHistory()}
+                            placeholder="Filter ticker e.g. NVDA"
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', fontWeight:'600', outline:'none', width:'140px', color:'#1a1a1a', backgroundColor:'#fff' }}
+                        />
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                            style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                        <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)' }}>to</span>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                            style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                        <button onClick={fetchHistory} disabled={loading} style={{
+                            padding:'6px 16px', borderRadius:'8px',
+                            background: loading ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
+                            border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                            cursor: loading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
+                        }}>
+                            {loading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Loading...</> : <>🔍 Search</>}
+                        </button>
+                        {(tickerSearch || startDate || endDate) && (
+                            <button onClick={() => { setTickerSearch(''); setStartDate(''); setEndDate(''); setTimeout(fetchHistory, 0); }}
+                                style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.8)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>
+                                Clear
+                            </button>
+                        )}
+                        {rows.length > 0 && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {rows.length} snapshot{rows.length !== 1 ? 's' : ''} · {grouped.length} day{grouped.length !== 1 ? 's' : ''}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
+                    {loading && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                            <div style={{ fontSize:'13px', color:'#94a3b8' }}>Loading saved snapshots...</div>
+                        </div>
+                    )}
+
+                    {error && !loading && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>
+                    )}
+
+                    {!loading && !error && grouped.length === 0 && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No saved snapshots yet</div>
+                            <div style={{ fontSize:'13px', color:'#64748b' }}>
+                                Run the Trend Scanner and hit "Save Today's Snapshot" to start building history here.
+                            </div>
+                        </div>
+                    )}
+
+                    {!loading && grouped.map(([date, dateRows]) => {
+                        const collapsed = !!collapsedDates[date];
+                        const dateObj   = new Date(date + 'T12:00:00');
+                        const dateLabel = dateObj.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+                        const bullCount = dateRows.filter(r => r.direction === 'BULLISH').length;
+                        const bearCount = dateRows.filter(r => r.direction === 'BEARISH').length;
+
+                        return (
+                            <div key={date} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                <div onClick={() => toggleDateCollapse(date)} style={{
+                                    padding:'12px 20px', display:'flex', alignItems:'center', gap:'10px',
+                                    cursor:'pointer', backgroundColor:'#f8fafc', position:'sticky', top:0, zIndex:1,
+                                }}>
+                                    <span style={{ fontSize:'13px', transition:'transform 0.15s', transform: collapsed ? 'rotate(-90deg)' : 'none', display:'inline-block' }}>▾</span>
+                                    <span style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{dateLabel}</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8' }}>{dateRows.length} stocks</span>
+                                    <span style={{ fontSize:'11px', color:'#10b981', fontWeight:'700' }}>{bullCount}▲</span>
+                                    <span style={{ fontSize:'11px', color:'#ef4444', fontWeight:'700' }}>{bearCount}▼</span>
+                                </div>
+
+                                {!collapsed && (
+                                    <div style={{ padding:'8px 20px 16px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                                        {dateRows.sort((a, b) => (b.score||0) - (a.score||0)).map(r => {
+                                            const sc  = HIST_SIG[r.signal] || HIST_SIG.WATCH;
+                                            const av  = HIST_AI_VERDICT[r.aiVerdict] || null;
+                                            const key = `${r.date}_${r.ticker}`;
+                                            const isExpanded = expandedKey === key;
+                                            const dirColor = r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+
+                                            return (
+                                                <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
+                                                    <div onClick={() => setExpandedKey(isExpanded ? null : key)} style={{
+                                                        padding:'9px 12px', display:'flex', alignItems:'center', gap:'10px',
+                                                        cursor:'pointer', backgroundColor: isExpanded ? sc.bg : '#fff', flexWrap:'wrap',
+                                                    }}>
+                                                        <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a', minWidth:'52px' }}>{r.ticker}</span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, color:sc.color, whiteSpace:'nowrap' }}>
+                                                            {sc.icon} {sc.label}
+                                                        </span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: dirColor+'15', color:dirColor }}>
+                                                            {r.direction}
+                                                        </span>
+                                                        {av && (
+                                                            <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:av.bg, color:av.color, whiteSpace:'nowrap' }}>
+                                                                {av.icon} 🧠 {r.aiVerdict?.replace('_',' ')}
+                                                            </span>
+                                                        )}
+                                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>
+                                                            Score {r.score != null ? Math.round(r.score) : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'55px', textAlign:'right' }}>
+                                                            {r.currentPrice != null ? `$${r.currentPrice}` : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'45px', textAlign:'right' }}>{fmtCap(r.marketCap)}</span>
+                                                        {r.savedCount > 1 && (
+                                                            <span title={`Refreshed ${r.savedCount}× that day`} style={{ fontSize:'10px', color:'#94a3b8' }}>×{r.savedCount}</span>
+                                                        )}
+                                                    </div>
+
+                                                    {isExpanded && (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:'#fafafa', borderTop:`1px solid ${sc.color}`, display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:'8px' }}>
+                                                                {[
+                                                                    { label:'ADX', value: r.rawScanner?.adxNow ?? '—' },
+                                                                    { label:'ROC20', value: r.rawScanner?.roc20 != null ? `${r.rawScanner.roc20}%` : '—' },
+                                                                    { label:'Vol Ratio', value: r.rawScanner?.volRatio != null ? `${r.rawScanner.volRatio}×` : '—' },
+                                                                    { label:'From 52W High', value: r.rawScanner?.pctFromHigh != null ? `${r.rawScanner.pctFromHigh}%` : '—' },
+                                                                    { label:'Sector', value: r.sector || '—' },
+                                                                ].map((item, ii) => (
+                                                                    <div key={ii} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{item.label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>{item.value}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {r.aiAnalysis ? (
+                                                                <div style={{ padding:'10px 12px', backgroundColor: av?.bg || '#f8fafc', borderRadius:'8px', border:`1px solid ${av?.color || '#e2e8f0'}30` }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:av?.color || '#64748b', letterSpacing:'0.06em', marginBottom:'6px' }}>
+                                                                        🧠 AI ANALYSIS — {r.aiOpportunityScore}/100
+                                                                    </div>
+                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55, marginBottom: r.aiAnalysis.sectorRelation ? '6px' : 0 }}>
+                                                                        {r.aiAnalysis.thesis}
+                                                                    </div>
+                                                                    {r.aiAnalysis.sectorRelation && (
+                                                                        <div style={{ fontSize:'11px', color:'#475569', lineHeight:1.5 }}>
+                                                                            <strong>Sector:</strong> {r.aiAnalysis.sectorRelation}
+                                                                        </div>
+                                                                    )}
+                                                                    {r.aiAnalysis.risks && (
+                                                                        <div style={{ fontSize:'11px', color:'#ef4444', lineHeight:1.5, marginTop:'6px' }}>
+                                                                            <strong>Risk:</strong> {r.aiAnalysis.risks}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{ fontSize:'11px', color:'#94a3b8', fontStyle:'italic' }}>
+                                                                    No AI analysis was attached when this snapshot was saved.
+                                                                </div>
+                                                            )}
+
+                                                            {onSelectTicker && (
+                                                                <button onClick={() => { onSelectTicker(r.ticker); onClose(); }} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>→ Open {r.ticker} in Screener</button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+    );
+}
 
 function MomentumVelocityPanel({ ticker, openaiKey }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
@@ -8691,7 +8983,7 @@ export default function SnowAIStockScreener() {
     const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [showScanner, setShowScanner] = React.useState(false);
-
+    const [showScannerHistory, setShowScannerHistory] = React.useState(false);
 
     useEffect(() => {
         const loadVoices = () => {
@@ -9050,6 +9342,17 @@ export default function SnowAIStockScreener() {
                                     🔭 Trend Scanner
                                 </button>
 
+                                <button
+                                    onClick={() => setShowScannerHistory(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#10b981',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    📜 Scan History
+                                </button>
+
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
                         </div>
@@ -9390,6 +9693,11 @@ export default function SnowAIStockScreener() {
                 onClose={() => setShowScanner(false)}
                 onSelectTicker={handleStockClick}
                 openaiKey={OPENAI_API_KEY}
+            />
+            <ScannerHistoryModal
+                isOpen={showScannerHistory}
+                onClose={() => setShowScannerHistory(false)}
+                onSelectTicker={handleStockClick}
             />
 
         </div>
