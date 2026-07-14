@@ -555,6 +555,10 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [aiPasteError, setAiPasteError] = React.useState(null);
     const [aiCopied, setAiCopied] = React.useState(false);
 
+     // -- Score-based filtering --
+    const [filterMinScore, setFilterMinScore] = React.useState(0);
+    const [filterAiVerdict, setFilterAiVerdict] = React.useState('ALL');
+
     React.useEffect(() => {
         const loadCached = async () => {
             try {
@@ -686,6 +690,8 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
         .filter(r => !search || r.ticker.includes(search) || (r.name || '').toUpperCase().includes(search))
         .filter(r => filterSig === 'ALL' || r.signal === filterSig)
         .filter(r => filterDir === 'ALL' || r.direction === filterDir)
+        .filter(r => (r.score || 0) >= filterMinScore)
+        .filter(r => filterAiVerdict === 'ALL' || aiAnalysis[r.ticker]?.verdict === filterAiVerdict)
         .sort((a, b) => {
             if (sortBy === 'score') return b.score      - a.score;
             if (sortBy === 'adx')   return b.adxNow     - a.adxNow;
@@ -805,6 +811,7 @@ Do not include anything outside the JSON array. The response must be parseable b
     if (!isOpen) return null;
 
     return (
+        <>
         <div
             style={{
                 position:'fixed', inset:0,
@@ -972,6 +979,50 @@ Do not include anything outside the JSON array. The response must be parseable b
                                     transition:'all 0.15s',
                                 }}>{d === 'ALL' ? 'All Dirs' : d}</button>
                         ))}
+
+                        <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
+
+                        {/* Min score filter */}
+                        <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+                            <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600', whiteSpace:'nowrap' }}>Min Score:</span>
+                            {[0, 40, 60, 80].map(threshold => (
+                                <button key={threshold} onClick={() => setFilterMinScore(threshold)}
+                                    style={{
+                                        padding:'3px 9px', borderRadius:'20px',
+                                        fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${filterMinScore === threshold ? '#f59e0b' : '#e2e8f0'}`,
+                                        backgroundColor: filterMinScore === threshold ? '#fffbeb' : '#fff',
+                                        color: filterMinScore === threshold ? '#b45309' : '#94a3b8',
+                                        transition:'all 0.15s',
+                                    }}>{threshold === 0 ? 'Any' : `${threshold}+`}</button>
+                            ))}
+                        </div>
+
+                        {Object.keys(aiAnalysis).length > 0 && (
+                            <>
+                                <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
+                                <div style={{ display:'flex', alignItems:'center', gap:'5px', flexWrap:'wrap' }}>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600', whiteSpace:'nowrap' }}>AI Verdict:</span>
+                                    {['ALL', ...Object.keys(AI_VERDICT_CONFIG)].map(v => {
+                                        const cfg = AI_VERDICT_CONFIG[v];
+                                        const active = filterAiVerdict === v;
+                                        return (
+                                            <button key={v} onClick={() => setFilterAiVerdict(v)}
+                                                style={{
+                                                    padding:'3px 9px', borderRadius:'20px',
+                                                    fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                                    border:`1px solid ${active && cfg ? cfg.color : '#e2e8f0'}`,
+                                                    backgroundColor: active && cfg ? cfg.bg : '#fff',
+                                                    color: active && cfg ? cfg.color : '#94a3b8',
+                                                    transition:'all 0.15s', whiteSpace:'nowrap',
+                                                }}>
+                                                {v === 'ALL' ? 'All' : `${cfg.icon} ${v.replace('_',' ')}`}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
 
                         <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
 
@@ -1456,7 +1507,16 @@ Do not include anything outside the JSON array. The response must be parseable b
                 </div>
             </div>
 
-            {/* AI Prompt Modal */}
+            
+            <style>{`
+                @keyframes modalSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes spin          { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes sabrnaTyping  { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-5px); opacity:1; } }
+            `}</style>
+            
+        </div>
+
+        {/* AI Prompt Modal */}
             {showAiPromptModal && (() => {
                 const scopeStocks = aiPromptScope === 'bulk' ? filtered : (aiPromptScope ? [aiPromptScope] : []);
                 const promptText  = scopeStocks.length ? buildScannerAIPrompt(scopeStocks) : '';
@@ -1634,13 +1694,8 @@ Do not include anything outside the JSON array. The response must be parseable b
                     </div>
                 </div>
             )}
+                </>
 
-            <style>{`
-                @keyframes modalSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-                @keyframes spin          { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-                @keyframes sabrnaTyping  { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-5px); opacity:1; } }
-            `}</style>
-        </div>
     );
 }
 
