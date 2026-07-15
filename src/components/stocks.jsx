@@ -538,6 +538,10 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [addCategory,      setAddCategory]      = React.useState('stocks');
     const [useWatchlistOnly, setUseWatchlistOnly] = React.useState(false);
 
+    // -- Score / AI verdict filtering --
+    const [filterMinScore,  setFilterMinScore]  = React.useState(0);
+    const [filterAiVerdict, setFilterAiVerdict] = React.useState('ALL');
+
     const [isBackgroundRunning, setIsBackgroundRunning] = React.useState(false);
     const [scannedAt, setScannedAt] = React.useState(null);
     const [scannerError, setScannerError] = React.useState(null);
