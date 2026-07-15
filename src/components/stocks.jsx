@@ -558,6 +558,11 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [aiCopied, setAiCopied] = React.useState(false);
     const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
 
+    // -- Daily snapshot save (for backtesting) --
+    const [snapshotSaving, setSnapshotSaving] = React.useState(false);
+    const [snapshotResult, setSnapshotResult] = React.useState(null);
+    const [snapshotError,  setSnapshotError]  = React.useState(null);
+
     React.useEffect(() => {
         const loadCached = async () => {
             try {
