@@ -823,14 +823,53 @@ Respond with ONLY a JSON object (no markdown, no backticks, no preamble):
   "disagreements": "<1-2 sentences on where they diverge and why — empty string if none>",
   "synthesizedThesis": "<3-4 sentences: your final, most defensible take after weighing all ${runs.length} inputs>"
 }
-
 Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+    };
+
+    const buildBulkSynthesisPrompt = (tickers) => {
+        const sections = tickers.map(ticker => {
+            const runs = aiRuns[ticker] || [];
+            const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Sector Relation: ${run.sectorRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+            return `## ${ticker}\n${runLines}`;
+        }).join('\n\n---\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. For EACH stock below, multiple AI models have each independently analysed it for opportunity. Your job is to critically synthesise the analyses for EACH stock into one final, most defensible verdict per stock — explicitly flag where the models agree, where they disagree, and what might explain any disagreement.
+
+${sections}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble), one object per stock, in this exact shape:
+[
+  {
+    "ticker": "<ticker>",
+    "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "finalOpportunityScore": <integer 0-100>,
+    "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+    "consensusSummary": "<2-3 sentences: what do the analyses for this stock actually agree on?>",
+    "disagreements": "<1-2 sentences on where they diverge for this stock and why — empty string if none>",
+    "synthesizedThesis": "<3-4 sentences: your final, most defensible take on this stock after weighing all inputs>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
     };
 
     const openBulkAIPrompt       = () => { setAiPromptScope({ mode: 'bulk', stocks: filtered }); setShowAiPromptModal(true); };
     const openIndividualAIPrompt = (r) => { setAiPromptScope({ mode: 'individual', stocks: [r], ticker: r.ticker }); setShowAiPromptModal(true); };
     const openSynthesisPrompt    = (ticker) => { setAiPromptScope({ mode: 'synthesis', ticker }); setShowAiPromptModal(true); };
 
+    const bulkSynthesisEligibleTickers = filtered
+        .map(r => r.ticker)
+        .filter(t => (aiRuns[t] || []).length >= 2);
+
+    const openBulkSynthesisPrompt = () => {
+        if (bulkSynthesisEligibleTickers.length === 0) return;
+        setAiPromptScope({ mode: 'bulkSynthesis', tickers: bulkSynthesisEligibleTickers });
+        setShowAiPromptModal(true);
+    };
     const handlePasteAIResponse = () => {
         setAiPasteError(null);
         if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
@@ -852,6 +891,37 @@ Do not include anything outside the JSON object. The response must be parseable 
                 runCountAtSynthesis: (aiRuns[ticker] || []).length,
                 savedAt: new Date().toLocaleString(),
             };
+            saveAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
+            return;
+        }
+
+        // ── Bulk synthesis mode: expects a JSON array, one synthesis per ticker ──
+        if (aiPromptScope?.mode === 'bulkSynthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (!Array.isArray(parsed)) {
+                setAiPasteError('Expected a JSON array (one synthesis object per stock).');
+                return;
+            }
+            const updated = { ...aiSynthesis };
+            let addedCount = 0;
+            parsed.forEach(item => {
+                const t = String(item?.ticker || '').toUpperCase().trim();
+                if (!t || item.finalVerdict == null || item.synthesizedThesis == null) return;
+                updated[t] = {
+                    ...item,
+                    runCountAtSynthesis: (aiRuns[t] || []).length,
+                    savedAt: new Date().toLocaleString(),
+                };
+                addedCount += 1;
+            });
+            if (addedCount === 0) {
+                setAiPasteError('No valid synthesis entries found — check the response matches the expected format.');
+                return;
+            }
             saveAiSynthesis(updated);
             setShowAiPasteModal(false);
             setAiPasteText('');
@@ -1140,8 +1210,7 @@ Do not include anything outside the JSON object. The response must be parseable 
                         )}
 
                         <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
-
-                        <button
+<button
                             onClick={openBulkAIPrompt}
                             disabled={filtered.length === 0}
                             style={{
@@ -1156,7 +1225,21 @@ Do not include anything outside the JSON object. The response must be parseable 
                             🧠 AI Opportunity Scan ({filtered.length})
                         </button>
 
-                        
+                        <button
+                            onClick={openBulkSynthesisPrompt}
+                            disabled={bulkSynthesisEligibleTickers.length === 0}
+                            title={bulkSynthesisEligibleTickers.length === 0 ? 'Needs 2+ AI runs on at least one shown stock' : `Synthesize ${bulkSynthesisEligibleTickers.length} stocks with 2+ AI opinions each`}
+                            style={{
+                                padding:'5px 12px', borderRadius:'20px',
+                                fontSize:'11px', fontWeight:'800', cursor: bulkSynthesisEligibleTickers.length === 0 ? 'not-allowed' : 'pointer',
+                                border:'1px solid rgba(99,102,241,0.4)',
+                                background: bulkSynthesisEligibleTickers.length === 0 ? '#f1f5f9' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                color: bulkSynthesisEligibleTickers.length === 0 ? '#94a3b8' : '#fff',
+                                whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'5px',
+                            }}
+                        >
+                            ✨ Synthesize All ({bulkSynthesisEligibleTickers.length})
+                        </button>
 
                         <button
                             onClick={saveTodaySnapshot}
@@ -1758,15 +1841,19 @@ Do not include anything outside the JSON object. The response must be parseable 
 
         {/* AI Prompt Modal */}
             {showAiPromptModal && (() => {
-                const isSynth     = aiPromptScope?.mode === 'synthesis';
-                const promptText  = isSynth
+                const mode = aiPromptScope?.mode;
+                const promptText = mode === 'synthesis'
                     ? buildSynthesisPrompt(aiPromptScope.ticker)
-                    : buildScannerAIPrompt(aiPromptScope?.stocks || []);
-                const scopeLabel  = isSynth
+                    : mode === 'bulkSynthesis'
+                        ? buildBulkSynthesisPrompt(aiPromptScope.tickers || [])
+                        : buildScannerAIPrompt(aiPromptScope?.stocks || []);
+                const scopeLabel = mode === 'synthesis'
                     ? `Synthesis for ${aiPromptScope.ticker}`
-                    : aiPromptScope?.mode === 'bulk'
-                        ? `${filtered.length} stocks shown`
-                        : aiPromptScope?.ticker;
+                    : mode === 'bulkSynthesis'
+                        ? `Bulk synthesis — ${aiPromptScope.tickers?.length || 0} stocks`
+                        : mode === 'bulk'
+                            ? `${filtered.length} stocks shown`
+                            : aiPromptScope?.ticker;
                 return (
                     <div onClick={() => setShowAiPromptModal(false)} style={{
                         position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
@@ -1895,7 +1982,7 @@ Do not include anything outside the JSON object. The response must be parseable 
                             </div>
                         </div>
                         <div style={{ padding:'20px 22px 0' }}>
-                            {aiPromptScope?.mode !== 'synthesis' && (
+                            {(aiPromptScope?.mode !== 'synthesis' && aiPromptScope?.mode !== 'bulkSynthesis') && (
                                 <div style={{ marginBottom:'10px' }}>
                                     <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>
                                         Which AI is this from?
@@ -1917,9 +2004,13 @@ Do not include anything outside the JSON object. The response must be parseable 
                                 autoFocus
                                 value={aiPasteText}
                                 onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
-                                placeholder={aiPromptScope?.mode === 'synthesis'
-                                    ? `Paste the JSON object here. Should start with {\n  "finalVerdict": "OPPORTUNITY", ...\n}`
-                                    : `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`}
+                                placeholder={
+                                    aiPromptScope?.mode === 'synthesis'
+                                        ? `Paste the JSON object here. Should start with {\n  "finalVerdict": "OPPORTUNITY", ...\n}`
+                                        : aiPromptScope?.mode === 'bulkSynthesis'
+                                            ? `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "finalVerdict": "OPPORTUNITY", ... }\n]`
+                                            : `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`
+                                }
                                 style={{
                                     width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
                                     border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`,
