@@ -546,37 +546,68 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     // Fetch on mount
     React.useEffect(() => { fetchWatchlist(); }, []);
 
-    // -- AI Opportunity Analysis (external AI, copy/paste pattern) --
-    const [aiAnalysis, setAiAnalysis] = React.useState({}); // keyed by ticker
-    const [aiPromptScope, setAiPromptScope] = React.useState(null); // 'bulk' | single row object
+    // -- AI Opportunity Analysis (external AI, copy/paste pattern, multi-source) --
+    const [aiRuns, setAiRuns] = React.useState({});          // { TICKER: [ {source, verdict, opportunityScore, badge, thesis, sectorRelation, risks, savedAt} ] }
+    const [aiSynthesis, setAiSynthesis] = React.useState({}); // { TICKER: {finalVerdict, finalOpportunityScore, agreementLevel, consensusSummary, disagreements, synthesizedThesis, runCountAtSynthesis, savedAt} }
+    const [aiPromptScope, setAiPromptScope] = React.useState(null); // { mode:'bulk'|'individual'|'synthesis', stocks?, ticker? }
     const [showAiPromptModal, setShowAiPromptModal] = React.useState(false);
     const [showAiPasteModal, setShowAiPasteModal] = React.useState(false);
     const [aiPasteText, setAiPasteText] = React.useState('');
+    const [aiPasteSource, setAiPasteSource] = React.useState('');
     const [aiPasteError, setAiPasteError] = React.useState(null);
     const [aiCopied, setAiCopied] = React.useState(false);
-
-     // -- Score-based filtering --
-    const [filterMinScore, setFilterMinScore] = React.useState(0);
-    const [filterAiVerdict, setFilterAiVerdict] = React.useState('ALL');
-
-    // -- Daily snapshot save (for backtesting) --
-    const [snapshotSaving, setSnapshotSaving] = React.useState(false);
-    const [snapshotResult, setSnapshotResult] = React.useState(null);
-    const [snapshotError,  setSnapshotError]  = React.useState(null);
+    const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
 
     React.useEffect(() => {
         const loadCached = async () => {
             try {
-                const result = await window.storage.get('scanner-ai-analyses');
-                if (result?.value) setAiAnalysis(JSON.parse(result.value));
+                const runsRes = await window.storage.get('scanner-ai-runs');
+                if (runsRes?.value) setAiRuns(JSON.parse(runsRes.value));
+            } catch {}
+            try {
+                const synthRes = await window.storage.get('scanner-ai-synthesis');
+                if (synthRes?.value) setAiSynthesis(JSON.parse(synthRes.value));
             } catch {}
         };
         loadCached();
     }, []);
 
-    const saveAiAnalyses = async (updated) => {
-        setAiAnalysis(updated);
-        try { await window.storage.set('scanner-ai-analyses', JSON.stringify(updated)); } catch {}
+    const saveAiRuns = async (updated) => {
+        setAiRuns(updated);
+        try { await window.storage.set('scanner-ai-runs', JSON.stringify(updated)); } catch {}
+    };
+
+    const saveAiSynthesis = async (updated) => {
+        setAiSynthesis(updated);
+        try { await window.storage.set('scanner-ai-synthesis', JSON.stringify(updated)); } catch {}
+    };
+
+    const removeAiRun = (ticker, runIdx) => {
+        const updated = { ...aiRuns };
+        updated[ticker] = (updated[ticker] || []).filter((_, i) => i !== runIdx);
+        if (updated[ticker].length === 0) delete updated[ticker];
+        saveAiRuns(updated);
+    };
+
+    // -- Consensus math: mean score, mode verdict, agreement % ------------------
+    const getConsensus = (ticker) => {
+        const runs = aiRuns[ticker];
+        if (!runs || runs.length === 0) return null;
+        const scores = runs.map(r => r.opportunityScore).filter(v => typeof v === 'number');
+        const meanScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+        const counts = {};
+        runs.forEach(r => { if (r.verdict) counts[r.verdict] = (counts[r.verdict]||0) + 1; });
+        const modeVerdict = Object.keys(counts).length
+            ? Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]
+            : null;
+        const agreement = (modeVerdict && runs.length) ? Math.round((counts[modeVerdict]/runs.length) * 100) : null;
+        return { meanScore, modeVerdict, agreement, runCount: runs.length };
+    };
+
+    const getEffectiveVerdict = (ticker) => {
+        if (aiSynthesis[ticker]) return aiSynthesis[ticker].finalVerdict;
+        const c = getConsensus(ticker);
+        return c?.modeVerdict || null;
     };
 
     const fetchWatchlist = async () => {
@@ -696,7 +727,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
         .filter(r => filterSig === 'ALL' || r.signal === filterSig)
         .filter(r => filterDir === 'ALL' || r.direction === filterDir)
         .filter(r => (r.score || 0) >= filterMinScore)
-        .filter(r => filterAiVerdict === 'ALL' || aiAnalysis[r.ticker]?.verdict === filterAiVerdict)
+        .filter(r => filterAiVerdict === 'ALL' || getEffectiveVerdict(r.ticker) === filterAiVerdict)
         .sort((a, b) => {
             if (sortBy === 'score') return b.score      - a.score;
             if (sortBy === 'adx')   return b.adxNow     - a.adxNow;
@@ -761,39 +792,89 @@ For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks,
 Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
     };
 
-    const openBulkAIPrompt = () => { setAiPromptScope('bulk'); setShowAiPromptModal(true); };
-    const openIndividualAIPrompt = (r) => { setAiPromptScope(r); setShowAiPromptModal(true); };
+    const buildSynthesisPrompt = (ticker) => {
+        const runs = aiRuns[ticker] || [];
+        const stockRow = filtered.find(x => x.ticker === ticker) || (results?.results || []).find(x => x.ticker === ticker);
+        const runLines = runs.map((run, i) => `### Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+Thesis: ${run.thesis}
+Sector Relation: ${run.sectorRelation || 'N/A'}
+Risks: ${run.risks || 'N/A'}`).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. ${runs.length} different AI models have each independently analysed the same stock, ${ticker}${stockRow ? ' — ' + stockRow.name : ''}, for opportunity. Your job is to critically synthesise these ${runs.length} analyses into one final, most defensible verdict — explicitly flag where they agree, where they disagree, and what might explain any disagreement (different weighting of sector vs stock-specific factors, different data recency, etc).
+
+${runLines}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble):
+{
+  "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+  "finalOpportunityScore": <integer 0-100>,
+  "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+  "consensusSummary": "<2-3 sentences: what do the analyses actually agree on?>",
+  "disagreements": "<1-2 sentences on where they diverge and why — empty string if none>",
+  "synthesizedThesis": "<3-4 sentences: your final, most defensible take after weighing all ${runs.length} inputs>"
+}
+
+Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+    };
+
+    const openBulkAIPrompt       = () => { setAiPromptScope({ mode: 'bulk', stocks: filtered }); setShowAiPromptModal(true); };
+    const openIndividualAIPrompt = (r) => { setAiPromptScope({ mode: 'individual', stocks: [r], ticker: r.ticker }); setShowAiPromptModal(true); };
+    const openSynthesisPrompt    = (ticker) => { setAiPromptScope({ mode: 'synthesis', ticker }); setShowAiPromptModal(true); };
 
     const handlePasteAIResponse = () => {
         setAiPasteError(null);
         if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
-        let parsed;
-        try {
-            const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            parsed = JSON.parse(clean);
-        } catch (e) {
-            setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`);
+        const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        // ── Synthesis mode: expects a single JSON object ─────────────────────
+        if (aiPromptScope?.mode === 'synthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (Array.isArray(parsed) || parsed.finalVerdict == null || parsed.synthesizedThesis == null) {
+                setAiPasteError('Expected a single JSON object with finalVerdict + synthesizedThesis.');
+                return;
+            }
+            const ticker  = aiPromptScope.ticker;
+            const updated = { ...aiSynthesis };
+            updated[ticker] = {
+                ...parsed,
+                runCountAtSynthesis: (aiRuns[ticker] || []).length,
+                savedAt: new Date().toLocaleString(),
+            };
+            saveAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
             return;
         }
+
+        // ── Bulk / individual mode: expects a JSON array, appends new runs ──
+        let parsed;
+        try { parsed = JSON.parse(clean); }
+        catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
         if (!Array.isArray(parsed)) {
             setAiPasteError('Expected a JSON array (one object per stock).');
             return;
         }
-        const updated = { ...aiAnalysis };
+        const source  = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const updated = { ...aiRuns };
         let addedCount = 0;
         parsed.forEach(item => {
             const t = String(item?.ticker || '').toUpperCase().trim();
             if (!t || item.verdict == null || item.thesis == null) return;
-            updated[t] = { ...item, ticker: t, savedAt: new Date().toLocaleString() };
+            if (!updated[t]) updated[t] = [];
+            updated[t] = [...updated[t], { ...item, ticker: t, source, savedAt: new Date().toLocaleString() }];
             addedCount += 1;
         });
         if (addedCount === 0) {
             setAiPasteError('No valid stock entries found — check the response matches the expected format.');
             return;
         }
-        saveAiAnalyses(updated);
+        saveAiRuns(updated);
         setShowAiPasteModal(false);
         setAiPasteText('');
+        setAiPasteSource('');
     };
 
     const saveTodaySnapshot = async () => {
@@ -805,7 +886,7 @@ Do not include anything outside the JSON array. The response must be parseable b
             const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_save/`, {
                 method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({ stocks: filtered, aiAnalysis }),
+                body:    JSON.stringify({ stocks: filtered, aiRuns, aiSynthesis }),
             });
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
@@ -1023,7 +1104,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                             ))}
                         </div>
 
-                        {Object.keys(aiAnalysis).length > 0 && (
+                        {(Object.keys(aiRuns).length > 0 || Object.keys(aiSynthesis).length > 0) && (
                             <>
                                 <div style={{ width:'1px', height:'16px', backgroundColor:'#e2e8f0', flexShrink:0 }}/>
                                 <div style={{ display:'flex', alignItems:'center', gap:'5px', flexWrap:'wrap' }}>
@@ -1318,19 +1399,44 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                     }}>
                                                         {r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}
                                                     </span>
-                                                    {aiAnalysis[r.ticker] && (() => {
-                                                        const av = AI_VERDICT_CONFIG[aiAnalysis[r.ticker].verdict] || AI_VERDICT_CONFIG.NEUTRAL;
-                                                        return (
-                                                            <span title={aiAnalysis[r.ticker].thesis} style={{
-                                                                padding:'2px 8px', borderRadius:'10px',
-                                                                fontSize:'11px', fontWeight:'700',
-                                                                backgroundColor: av.bg, color: av.color,
-                                                                border:`1px solid ${av.border}`,
-                                                                whiteSpace:'nowrap',
-                                                            }}>
-                                                                {av.icon} 🧠 {aiAnalysis[r.ticker].badge}
-                                                            </span>
-                                                        );
+                                                    {(() => {
+                                                        const synth = aiSynthesis[r.ticker];
+                                                        const runs  = aiRuns[r.ticker];
+                                                        if (synth) {
+                                                            const av = AI_VERDICT_CONFIG[synth.finalVerdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                            return (
+                                                                <span title={synth.synthesizedThesis} style={{
+                                                                    padding:'2px 8px', borderRadius:'10px', fontSize:'11px', fontWeight:'700',
+                                                                    backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap',
+                                                                }}>
+                                                                    ✨ {av.icon} Synth ({synth.runCountAtSynthesis})
+                                                                </span>
+                                                            );
+                                                        }
+                                                        if (runs?.length >= 2) {
+                                                            const c  = getConsensus(r.ticker);
+                                                            const av = AI_VERDICT_CONFIG[c?.modeVerdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                            return (
+                                                                <span title={`${c.runCount} AI runs · ${c.agreement}% agreement`} style={{
+                                                                    padding:'2px 8px', borderRadius:'10px', fontSize:'11px', fontWeight:'700',
+                                                                    backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap',
+                                                                }}>
+                                                                    🧠 ×{c.runCount} · {c.meanScore}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        if (runs?.length === 1) {
+                                                            const av = AI_VERDICT_CONFIG[runs[0].verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                            return (
+                                                                <span title={runs[0].thesis} style={{
+                                                                    padding:'2px 8px', borderRadius:'10px', fontSize:'11px', fontWeight:'700',
+                                                                    backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap',
+                                                                }}>
+                                                                    {av.icon} 🧠 {runs[0].badge}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
                                                     })()}
                                                 </div>
                                                 <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -1411,53 +1517,118 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                     </div>
                                                 </div>
 
-                                                {/* AI Opportunity Analysis (external AI) */}
-                                                {aiAnalysis[r.ticker] ? (() => {
-                                                    const a  = aiAnalysis[r.ticker];
-                                                    const av = AI_VERDICT_CONFIG[a.verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                {/* AI Opportunity Analysis (external AI, multi-source + synthesis) */}
+                                                {(() => {
+                                                    const runs  = aiRuns[r.ticker] || [];
+                                                    const synth = aiSynthesis[r.ticker];
+                                                    const c     = getConsensus(r.ticker);
+
                                                     return (
-                                                        <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
-                                                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
-                                                                <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>
-                                                                    🧠 AI OPPORTUNITY ASSESSMENT
-                                                                </span>
-                                                                <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
-                                                                    {av.icon} {a.verdict?.replace('_',' ')} · {a.opportunityScore}/100
-                                                                </span>
-                                                                <button onClick={() => openIndividualAIPrompt(r)} style={{
-                                                                    marginLeft:'auto', fontSize:'10px', color:av.color, background:'none',
-                                                                    border:`1px solid ${av.border}`, borderRadius:'6px', cursor:'pointer', padding:'2px 8px',
-                                                                }}>🔄 Re-ask</button>
-                                                            </div>
-                                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>
-                                                                {a.thesis}
-                                                            </div>
-                                                            {a.sectorRelation && (
-                                                                <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, padding:'8px 10px', backgroundColor:'rgba(255,255,255,0.6)', borderRadius:'7px', marginBottom: a.risks ? '6px' : 0 }}>
-                                                                    <strong style={{ color:av.color }}>Sector context:</strong> {a.sectorRelation}
+                                                        <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+
+                                                            {/* Synthesis — shown first if it exists */}
+                                                            {synth && (() => {
+                                                                const av = AI_VERDICT_CONFIG[synth.finalVerdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`2px solid ${av.color}` }}>
+                                                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                            <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>
+                                                                                ✨🧠 AI SYNTHESIS ({synth.runCountAtSynthesis} sources)
+                                                                            </span>
+                                                                            <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
+                                                                                {av.icon} {synth.finalVerdict?.replace('_',' ')} · {synth.finalOpportunityScore}/100
+                                                                            </span>
+                                                                            <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
+                                                                                {synth.agreementLevel} agreement
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>
+                                                                            {synth.synthesizedThesis}
+                                                                        </div>
+                                                                        {synth.consensusSummary && (
+                                                                            <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, marginBottom:'6px' }}>
+                                                                                <strong>Agree on:</strong> {synth.consensusSummary}
+                                                                            </div>
+                                                                        )}
+                                                                        {synth.disagreements && (
+                                                                            <div style={{ fontSize:'12px', color:'#b45309', lineHeight:1.5 }}>
+                                                                                <strong>Diverge on:</strong> {synth.disagreements}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* Consensus stat strip — only when 2+ runs */}
+                                                            {c && c.runCount >= 2 && (
+                                                                <div style={{ display:'flex', gap:'14px', alignItems:'center', padding:'8px 12px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        <strong style={{ color:'#1a1a1a' }}>{c.runCount}</strong> AI runs
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Mean score <strong style={{ color:'#1a1a1a' }}>{c.meanScore}</strong>
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Mode verdict <strong style={{ color:'#1a1a1a' }}>{c.modeVerdict?.replace('_',' ')}</strong>
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Agreement <strong style={{ color: c.agreement >= 70 ? '#10b981' : c.agreement >= 40 ? '#f59e0b' : '#ef4444' }}>{c.agreement}%</strong>
+                                                                    </span>
+                                                                    {!synth && (
+                                                                        <button onClick={() => openSynthesisPrompt(r.ticker)} style={{
+                                                                            marginLeft:'auto', padding:'5px 12px', borderRadius:'20px',
+                                                                            fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                                                            border:'1px solid rgba(124,58,237,0.4)',
+                                                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
+                                                                        }}>
+                                                                            ✨ Synthesize with AI
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             )}
-                                                            {a.risks && (
-                                                                <div style={{ fontSize:'12px', color:'#ef4444', lineHeight:1.5 }}>
-                                                                    <strong>Risk:</strong> {a.risks}
+
+                                                            {/* Individual run chips */}
+                                                            {runs.length > 0 && (
+                                                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                    {runs.map((run, idx) => {
+                                                                        const av = AI_VERDICT_CONFIG[run.verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                                        return (
+                                                                            <div key={idx} style={{ padding:'9px 11px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
+                                                                                <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                                                                    <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', backgroundColor:'#fff', padding:'1px 7px', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                                                                        {run.source || 'AI'}
+                                                                                    </span>
+                                                                                    <span style={{ fontSize:'11px', fontWeight:'800', color:av.color }}>
+                                                                                        {av.icon} {run.verdict?.replace('_',' ')} · {run.opportunityScore}/100
+                                                                                    </span>
+                                                                                    <button onClick={() => removeAiRun(r.ticker, idx)} title="Remove this run" style={{
+                                                                                        marginLeft:'auto', background:'none', border:'none', cursor:'pointer',
+                                                                                        color:'#94a3b8', fontSize:'13px', fontWeight:'900', lineHeight:1, padding:0,
+                                                                                    }}>×</button>
+                                                                                </div>
+                                                                                <div style={{ fontSize:'12px', color:'#333', lineHeight:1.5 }}>{run.thesis}</div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             )}
+
+                                                            <button
+                                                                onClick={() => openIndividualAIPrompt(r)}
+                                                                style={{
+                                                                    padding:'10px', borderRadius:'9px',
+                                                                    background: runs.length > 0 ? '#fff' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                    color: runs.length > 0 ? '#7c3aed' : '#fff',
+                                                                    border: runs.length > 0 ? '1.5px solid #7c3aed' : 'none',
+                                                                    fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                                    display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
+                                                                }}
+                                                            >
+                                                                {runs.length > 0 ? `🧠 Add Another AI's Take (${runs.length} so far)` : '🧠 Ask External AI for Opportunity Analysis'}
+                                                            </button>
                                                         </div>
                                                     );
-                                                })() : (
-                                                    <button
-                                                        onClick={() => openIndividualAIPrompt(r)}
-                                                        style={{
-                                                            padding:'10px', borderRadius:'9px',
-                                                            background:'linear-gradient(135deg,#7c3aed,#db2777)',
-                                                            color:'#fff', border:'none',
-                                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
-                                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
-                                                        }}
-                                                    >
-                                                        🧠 Ask External AI for Opportunity Analysis
-                                                    </button>
-                                                )}
+                                                })()}
 
                                                 {/* Metrics grid */}
                                                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'8px' }}>
@@ -1578,9 +1749,15 @@ Do not include anything outside the JSON array. The response must be parseable b
 
         {/* AI Prompt Modal */}
             {showAiPromptModal && (() => {
-                const scopeStocks = aiPromptScope === 'bulk' ? filtered : (aiPromptScope ? [aiPromptScope] : []);
-                const promptText  = scopeStocks.length ? buildScannerAIPrompt(scopeStocks) : '';
-                const scopeLabel  = aiPromptScope === 'bulk' ? `${filtered.length} stocks shown` : aiPromptScope?.ticker;
+                const isSynth     = aiPromptScope?.mode === 'synthesis';
+                const promptText  = isSynth
+                    ? buildSynthesisPrompt(aiPromptScope.ticker)
+                    : buildScannerAIPrompt(aiPromptScope?.stocks || []);
+                const scopeLabel  = isSynth
+                    ? `Synthesis for ${aiPromptScope.ticker}`
+                    : aiPromptScope?.mode === 'bulk'
+                        ? `${filtered.length} stocks shown`
+                        : aiPromptScope?.ticker;
                 return (
                     <div onClick={() => setShowAiPromptModal(false)} style={{
                         position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
@@ -1641,7 +1818,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                             { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl:p=>`https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
                                             { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl:p=>`https://claude.ai/new?q=${encodeURIComponent(p)}` },
                                         ].map(({ name, icon, color, bg, border, getUrl }) => (
-                                            <button key={name} onClick={() => window.open(getUrl(promptText), '_blank')} style={{
+                                                <button key={name} onClick={() => { setAiLastOpenedSource(name); window.open(getUrl(promptText), '_blank'); }} style={{
                                                 padding:'8px 14px', borderRadius:'9px', border:`1.5px solid ${border}`,
                                                 backgroundColor:bg, color, fontWeight:'700', fontSize:'13px', cursor:'pointer',
                                                 display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap',
@@ -1709,11 +1886,31 @@ Do not include anything outside the JSON array. The response must be parseable b
                             </div>
                         </div>
                         <div style={{ padding:'20px 22px 0' }}>
+                            {aiPromptScope?.mode !== 'synthesis' && (
+                                <div style={{ marginBottom:'10px' }}>
+                                    <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>
+                                        Which AI is this from?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="ai-source-options"
+                                        value={aiPasteSource || aiLastOpenedSource}
+                                        onChange={e => setAiPasteSource(e.target.value)}
+                                        placeholder="Perplexity, ChatGPT, Gemini, Claude..."
+                                        style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }}
+                                    />
+                                    <datalist id="ai-source-options">
+                                        <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" />
+                                    </datalist>
+                                </div>
+                            )}
                             <textarea
                                 autoFocus
                                 value={aiPasteText}
                                 onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
-                                placeholder={`Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`}
+                                placeholder={aiPromptScope?.mode === 'synthesis'
+                                    ? `Paste the JSON object here. Should start with {\n  "finalVerdict": "OPPORTUNITY", ...\n}`
+                                    : `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`}
                                 style={{
                                     width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
                                     border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`,
@@ -2000,24 +2197,30 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                                                 ))}
                                                             </div>
 
-                                                            {r.aiAnalysis ? (
+                                                            {r.aiSynthesis ? (
+                                                                <div style={{ padding:'10px 12px', backgroundColor: av?.bg || '#f8fafc', borderRadius:'8px', border:`2px solid ${av?.color || '#e2e8f0'}` }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:av?.color || '#64748b', letterSpacing:'0.06em', marginBottom:'6px' }}>
+                                                                        ✨🧠 AI SYNTHESIS ({r.aiSynthesis.runCountAtSynthesis} sources) — {r.aiSynthesis.finalOpportunityScore}/100
+                                                                    </div>
+                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55 }}>{r.aiSynthesis.synthesizedThesis}</div>
+                                                                </div>
+                                                            ) : r.aiRuns?.length > 0 ? (
+                                                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em' }}>
+                                                                        🧠 {r.aiRuns.length} AI RUN{r.aiRuns.length !== 1 ? 'S' : ''} (no synthesis saved that day)
+                                                                    </div>
+                                                                    {r.aiRuns.map((run, ri) => (
+                                                                        <div key={ri} style={{ padding:'8px 10px', backgroundColor:'#f8fafc', borderRadius:'7px', border:'1px solid #e2e8f0', fontSize:'11px' }}>
+                                                                            <strong>{run.source || 'AI'}:</strong> {run.verdict?.replace('_',' ')} ({run.opportunityScore}/100) — {run.thesis}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : r.aiAnalysis ? (
                                                                 <div style={{ padding:'10px 12px', backgroundColor: av?.bg || '#f8fafc', borderRadius:'8px', border:`1px solid ${av?.color || '#e2e8f0'}30` }}>
                                                                     <div style={{ fontSize:'10px', fontWeight:'700', color:av?.color || '#64748b', letterSpacing:'0.06em', marginBottom:'6px' }}>
-                                                                        🧠 AI ANALYSIS — {r.aiOpportunityScore}/100
+                                                                        🧠 AI ANALYSIS (legacy) — {r.aiOpportunityScore}/100
                                                                     </div>
-                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55, marginBottom: r.aiAnalysis.sectorRelation ? '6px' : 0 }}>
-                                                                        {r.aiAnalysis.thesis}
-                                                                    </div>
-                                                                    {r.aiAnalysis.sectorRelation && (
-                                                                        <div style={{ fontSize:'11px', color:'#475569', lineHeight:1.5 }}>
-                                                                            <strong>Sector:</strong> {r.aiAnalysis.sectorRelation}
-                                                                        </div>
-                                                                    )}
-                                                                    {r.aiAnalysis.risks && (
-                                                                        <div style={{ fontSize:'11px', color:'#ef4444', lineHeight:1.5, marginTop:'6px' }}>
-                                                                            <strong>Risk:</strong> {r.aiAnalysis.risks}
-                                                                        </div>
-                                                                    )}
+                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55 }}>{r.aiAnalysis.thesis}</div>
                                                                 </div>
                                                             ) : (
                                                                 <div style={{ fontSize:'11px', color:'#94a3b8', fontStyle:'italic' }}>
