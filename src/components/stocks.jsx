@@ -1996,7 +1996,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                         style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }}
                                     />
                                     <datalist id="ai-source-options">
-                                        <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" />
+                                        <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" /><option value="DeepSeek" /><option value="Qwen" />
                                     </datalist>
                                 </div>
                             )}
@@ -4465,40 +4465,58 @@ Return this exact JSON structure:
                         OPEN DIRECTLY IN (prompt auto-filled)
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {[
-                            {
-                                name: 'Perplexity',
-                                icon: '🔍',
-                                color: '#20b2aa',
-                                bg: 'rgba(32,178,170,0.08)',
-                                border: 'rgba(32,178,170,0.35)',
-                                getUrl: (p) => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}`,
-                            },
-                            {
-                                name: 'ChatGPT',
-                                icon: '✦',
-                                color: '#10a37f',
-                                bg: 'rgba(16,163,127,0.08)',
-                                border: 'rgba(16,163,127,0.35)',
-                                getUrl: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}`,
-                            },
-                            {
-                                name: 'Gemini',
-                                icon: '✦',
-                                color: '#4285f4',
-                                bg: 'rgba(66,133,244,0.08)',
-                                border: 'rgba(66,133,244,0.35)',
-                                getUrl: (p) => `https://gemini.google.com/app?q=${encodeURIComponent(p)}`,
-                            },
-                            {
-                                name: 'Claude',
-                                icon: '◆',
-                                color: '#cc785c',
-                                bg: 'rgba(204,120,92,0.08)',
-                                border: 'rgba(204,120,92,0.35)',
-                                getUrl: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}`,
-                            },
-                        ].map(({ name, icon, color, bg, border, getUrl }) => (
+                     {[
+                                            {
+                                                name: 'Perplexity',
+                                                icon: '🔍',
+                                                color: '#20b2aa',
+                                                bg: 'rgba(32,178,170,0.08)',
+                                                border: 'rgba(32,178,170,0.35)',
+                                                getUrl: (p) => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'ChatGPT',
+                                                icon: '✦',
+                                                color: '#10a37f',
+                                                bg: 'rgba(16,163,127,0.08)',
+                                                border: 'rgba(16,163,127,0.35)',
+                                                getUrl: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'Gemini',
+                                                icon: '✦',
+                                                color: '#4285f4',
+                                                bg: 'rgba(66,133,244,0.08)',
+                                                border: 'rgba(66,133,244,0.35)',
+                                                getUrl: (p) => `https://gemini.google.com/app?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'Claude',
+                                                icon: '◆',
+                                                color: '#cc785c',
+                                                bg: 'rgba(204,120,92,0.08)',
+                                                border: 'rgba(204,120,92,0.35)',
+                                                getUrl: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'DeepSeek',
+                                                icon: '🐋',
+                                                color: '#4d6bfe',
+                                                bg: 'rgba(77,107,254,0.08)',
+                                                border: 'rgba(77,107,254,0.35)',
+                                                // No documented ?q= prefill support — opens the chat; paste manually.
+                                                getUrl: () => `https://chat.deepseek.com/`,
+                                            },
+                                            {
+                                                name: 'Qwen',
+                                                icon: '✦',
+                                                color: '#8b5cf6',
+                                                bg: 'rgba(139,92,246,0.08)',
+                                                border: 'rgba(139,92,246,0.35)',
+                                                // No documented ?q= prefill support — opens the chat; paste manually.
+                                                getUrl: () => `https://chat.qwen.ai/`,
+                                            },
+                            ].map(({ name, icon, color, bg, border, getUrl }) => (       
                             <button
                                 key={name}
                                 onClick={() => window.open(getUrl(buildExternalPrompt()), '_blank')}
