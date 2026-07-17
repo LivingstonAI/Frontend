@@ -1994,7 +1994,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                         list="ai-source-options"
                                         value={aiPasteSource || aiLastOpenedSource}
                                         onChange={e => setAiPasteSource(e.target.value)}
-                                        placeholder="Perplexity, ChatGPT, Gemini, Claude..."
+                                        placeholder="Perplexity, ChatGPT, Gemini, Claude, Deepseek, Qwen..."
                                         style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }}
                                     />
                                     <datalist id="ai-source-options">
