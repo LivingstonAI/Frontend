@@ -6,6 +6,7 @@ import {
   Subtitles, Globe, X, Check, MessageSquare, Send, Smile
 } from 'lucide-react';
 
+
 /* ─────────────────────────────────────────────
    LANGUAGE LIST
 ───────────────────────────────────────────── */

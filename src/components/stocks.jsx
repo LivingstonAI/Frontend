@@ -2334,6 +2334,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         )}
                     </div>
                 </div>
+
                 <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
                     {viewMode === 'timeline' && (
                     <>
@@ -2482,6 +2483,9 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                             </div>
                         );
                     })}
+                    </>
+                    )}
+
                     {viewMode === 'backtest' && (
                         <div style={{ padding:'20px' }}>
                             {btLoading && (
