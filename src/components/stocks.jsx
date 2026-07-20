@@ -2070,6 +2070,16 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const [expandedKey,   setExpandedKey]   = React.useState(null);
     const [collapsedDates,setCollapsedDates]= React.useState({});
 
+    // -- Backtest mode --
+    const [viewMode,        setViewMode]        = React.useState('timeline'); // 'timeline' | 'backtest'
+    const [btLoading,       setBtLoading]        = React.useState(false);
+    const [btError,         setBtError]          = React.useState(null);
+    const [btData,          setBtData]           = React.useState(null);
+    const [btSignalFilter,  setBtSignalFilter]   = React.useState('');
+    const [btDirFilter,     setBtDirFilter]      = React.useState('');
+    const [btVerdictFilter, setBtVerdictFilter]  = React.useState('');
+    const BT_HORIZONS = [1, 3, 5, 10, 20];
+
     const HIST_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
         RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
@@ -2114,6 +2124,35 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
 
     React.useEffect(() => { if (isOpen) fetchHistory(); }, [isOpen]);
 
+    const fetchBacktest = async () => {
+        setBtLoading(true);
+        setBtError(null);
+        try {
+            const body = { limit: 1000, horizons: BT_HORIZONS };
+            if (tickerSearch.trim())   body.ticker    = tickerSearch.trim().toUpperCase();
+            if (startDate)             body.startDate = startDate;
+            if (endDate)               body.endDate   = endDate;
+            if (btSignalFilter)        body.signal    = btSignalFilter;
+            if (btDirFilter)           body.direction = btDirFilter;
+            if (btVerdictFilter)       body.aiVerdict = btVerdictFilter;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_scanner_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setBtData(json);
+        } catch (e) {
+            setBtError(e.message);
+        } finally {
+            setBtLoading(false);
+        }
+    };
+
+    React.useEffect(() => { if (isOpen && viewMode === 'backtest' && !btData) fetchBacktest(); }, [isOpen, viewMode]);
+
     const fmtCap = (v) => {
         if (!v) return '—';
         if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
@@ -2128,6 +2167,55 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     }, [rows]);
 
     const toggleDateCollapse = (date) => setCollapsedDates(prev => ({ ...prev, [date]: !prev[date] }));
+
+    const BT_HORIZON_LABELS = { '1':'1D', '3':'3D', '5':'5D', '10':'10D', '20':'20D' };
+
+    const renderBacktestTable = (title, dataObj, icon) => {
+        if (!dataObj || Object.keys(dataObj).length === 0) return null;
+        return (
+            <div style={{ marginBottom:'20px' }}>
+                <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px' }}>{icon} {title}</div>
+                <div style={{ overflowX:'auto' }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor:'#f8fafc' }}>
+                                <th style={{ padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Group</th>
+                                {BT_HORIZONS.map(h => (
+                                    <th key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>
+                                        {BT_HORIZON_LABELS[h] || `${h}D`}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(dataObj).map(([key, horizonMap]) => (
+                                <tr key={key} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                    <td style={{ padding:'7px 10px', fontWeight:'700', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                        {key === 'ALL' ? 'All Snapshots' : key.replace('_',' ')}
+                                    </td>
+                                    {BT_HORIZONS.map(h => {
+                                        const cell = horizonMap[String(h)];
+                                        if (!cell || cell.count === 0) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                        const positive = cell.avgDirectionAdjustedReturn >= 0;
+                                        return (
+                                            <td key={h} style={{ padding:'7px 10px', textAlign:'center' }}>
+                                                <div style={{ fontWeight:'800', color: positive ? '#10b981' : '#ef4444' }}>
+                                                    {positive ? '+' : ''}{cell.avgDirectionAdjustedReturn}%
+                                                </div>
+                                                <div style={{ fontSize:'10px', color:'#94a3b8' }}>
+                                                    {cell.winRate}% win · n={cell.count}
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
 
     if (!isOpen) return null;
 
@@ -2166,11 +2254,23 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         }}>×</button>
                     </div>
 
-                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                    <div style={{ display:'flex', gap:'6px', marginTop:'14px', marginBottom:'10px' }}>
+                        {[['timeline','📅 Timeline'],['backtest','📊 Backtest']].map(([m, lbl]) => (
+                            <button key={m} onClick={() => setViewMode(m)} style={{
+                                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${viewMode === m ? 'rgba(16,185,129,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: viewMode === m ? '#10b981' : 'rgba(255,255,255,0.08)',
+                                color: viewMode === m ? '#fff' : 'rgba(255,255,255,0.6)',
+                                transition:'all 0.15s',
+                            }}>{lbl}</button>
+                        ))}
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center' }}>
                         <input
                             type="text" value={tickerSearch}
                             onChange={e => setTickerSearch(e.target.value.toUpperCase())}
-                            onKeyDown={e => e.key === 'Enter' && fetchHistory()}
+                            onKeyDown={e => e.key === 'Enter' && (viewMode === 'backtest' ? fetchBacktest() : fetchHistory())}
                             placeholder="Filter ticker e.g. NVDA"
                             style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', fontWeight:'600', outline:'none', width:'140px', color:'#1a1a1a', backgroundColor:'#fff' }}
                         />
@@ -2179,29 +2279,64 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)' }}>to</span>
                         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                             style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-                        <button onClick={fetchHistory} disabled={loading} style={{
+
+                        {viewMode === 'backtest' && (
+                            <>
+                                <select value={btSignalFilter} onChange={e => setBtSignalFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Signals</option>
+                                    {Object.keys(HIST_SIG).map(s => <option key={s} value={s}>{HIST_SIG[s].label}</option>)}
+                                </select>
+                                <select value={btDirFilter} onChange={e => setBtDirFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Directions</option>
+                                    <option value="BULLISH">Bullish</option>
+                                    <option value="BEARISH">Bearish</option>
+                                    <option value="NEUTRAL">Neutral</option>
+                                </select>
+                                <select value={btVerdictFilter} onChange={e => setBtVerdictFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All AI Verdicts</option>
+                                    {Object.keys(HIST_AI_VERDICT).map(v => <option key={v} value={v}>{v.replace('_',' ')}</option>)}
+                                </select>
+                            </>
+                        )}
+
+                        <button onClick={() => viewMode === 'backtest' ? fetchBacktest() : fetchHistory()} disabled={viewMode === 'backtest' ? btLoading : loading} style={{
                             padding:'6px 16px', borderRadius:'8px',
-                            background: loading ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
+                            background: (viewMode === 'backtest' ? btLoading : loading) ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
                             border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
-                            cursor: loading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
+                            cursor: (viewMode === 'backtest' ? btLoading : loading) ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
                         }}>
-                            {loading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Loading...</> : <>🔍 Search</>}
+                            {(viewMode === 'backtest' ? btLoading : loading)
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> {viewMode === 'backtest' ? 'Crunching...' : 'Loading...'}</>
+                                : <>🔍 {viewMode === 'backtest' ? 'Run Backtest' : 'Search'}</>}
                         </button>
-                        {(tickerSearch || startDate || endDate) && (
-                            <button onClick={() => { setTickerSearch(''); setStartDate(''); setEndDate(''); setTimeout(fetchHistory, 0); }}
+                        {(tickerSearch || startDate || endDate || btSignalFilter || btDirFilter || btVerdictFilter) && (
+                            <button onClick={() => {
+                                setTickerSearch(''); setStartDate(''); setEndDate('');
+                                setBtSignalFilter(''); setBtDirFilter(''); setBtVerdictFilter('');
+                                setTimeout(() => (viewMode === 'backtest' ? fetchBacktest() : fetchHistory()), 0);
+                            }}
                                 style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.8)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>
                                 Clear
                             </button>
                         )}
-                        {rows.length > 0 && (
+                        {viewMode === 'timeline' && rows.length > 0 && (
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
                                 {rows.length} snapshot{rows.length !== 1 ? 's' : ''} · {grouped.length} day{grouped.length !== 1 ? 's' : ''}
                             </span>
                         )}
+                        {viewMode === 'backtest' && btData && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {btData.totalSnapshots} snapshot{btData.totalSnapshots !== 1 ? 's' : ''} evaluated
+                            </span>
+                        )}
                     </div>
                 </div>
-
                 <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
+                    {viewMode === 'timeline' && (
+                    <>
                     {loading && (
                         <div style={{ padding:'60px 20px', textAlign:'center' }}>
                             <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
@@ -2347,6 +2482,40 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                             </div>
                         );
                     })}
+                    {viewMode === 'backtest' && (
+                        <div style={{ padding:'20px' }}>
+                            {btLoading && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                                    <div style={{ fontSize:'13px', color:'#94a3b8' }}>Pulling price history and computing forward returns...</div>
+                                </div>
+                            )}
+                            {btError && !btLoading && (
+                                <div style={{ padding:'16px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px' }}>⚠️ {btError}</div>
+                            )}
+                            {!btLoading && !btError && btData && btData.totalSnapshots === 0 && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No snapshots match these filters</div>
+                                </div>
+                            )}
+                            {!btLoading && !btError && btData && btData.totalSnapshots > 0 && (
+                                <>
+                                    <div style={{
+                                        padding:'10px 14px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0',
+                                        borderRadius:'8px', fontSize:'12px', color:'#065f46', lineHeight:1.6, marginBottom:'20px',
+                                    }}>
+                                        💡 Returns below are <strong>direction-adjusted</strong> — a BEARISH signal that saw price fall is counted as a <em>win</em>, not a loss. Win rate = % of resolved snapshots where the direction call was correct at that horizon. Horizons with no data yet are excluded, not guessed at.
+                                    </div>
+                                    {renderBacktestTable('Overall', btData.aggregate, '📊')}
+                                    {renderBacktestTable('By Signal', btData.bySignal, '🔭')}
+                                    {renderBacktestTable('By Direction', btData.byDirection, '↕️')}
+                                    {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, '🧠')}
+                                    {renderBacktestTable('By Scanner Score', btData.byScoreBucket, '🎯')}
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
