@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { TrendingUp, TrendingDown, Target, Brain, Telescope, ArrowUpDown, Gauge, BarChart3, AlertTriangle, Calendar } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
-
 
 // --- Hardcoded asset universe for comparison picker ---------------------------
 const COMPARE_ASSETS = {
@@ -2058,6 +2058,178 @@ Do not include anything outside the JSON array. The response must be parseable b
     );
 }
 
+function BacktestTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+        <div style={{ backgroundColor:'#0f172a', color:'#fff', padding:'8px 12px', borderRadius:'8px', fontSize:'12px', lineHeight:1.6 }}>
+            <div style={{ fontWeight:'800' }}>{d.label}</div>
+            <div>Avg return: <strong style={{ color: d.value >= 0 ? '#10b981' : '#ef4444' }}>{d.value >= 0 ? '+' : ''}{d.value}%</strong></div>
+            {d.winRate != null && <div>Win rate: {d.winRate}%</div>}
+            <div>Sample size: {d.count}</div>
+        </div>
+    );
+}
+
+function BacktestPlainEnglish({ btData }) {
+    if (!btData || btData.totalSnapshots === 0) return null;
+    const REF_HORIZON = '5';
+    const MIN_SAMPLE  = 3;
+    const insights = [];
+
+    const overallCell = btData.aggregate?.ALL?.[REF_HORIZON];
+    if (overallCell && overallCell.count > 0) {
+        insights.push({
+            Icon: Target, positive: overallCell.avgDirectionAdjustedReturn >= 0,
+            text: `Across ${overallCell.count} saved signals, calling the direction right and holding 5 trading days worked out ${overallCell.winRate}% of the time — averaging ${overallCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${overallCell.avgDirectionAdjustedReturn}% per trade.`,
+        });
+    }
+
+    const signalEntries = Object.entries(btData.bySignal || {})
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (signalEntries.length > 0) {
+        const sorted = [...signalEntries].sort((a, b) => b.cell.avgDirectionAdjustedReturn - a.cell.avgDirectionAdjustedReturn);
+        const best  = sorted[0];
+        const worst = sorted[sorted.length - 1];
+        insights.push({
+            Icon: TrendingUp, positive: true,
+            text: `Strongest signal so far: ${best.key.replace(/_/g, ' ')} — right ${best.cell.winRate}% of the time over 5 days, averaging ${best.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${best.cell.avgDirectionAdjustedReturn}% (${best.cell.count} signals).`,
+        });
+        if (worst.key !== best.key) {
+            insights.push({
+                Icon: TrendingDown, positive: false,
+                text: `Weakest signal: ${worst.key.replace(/_/g, ' ')} — right just ${worst.cell.winRate}% of the time, averaging ${worst.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${worst.cell.avgDirectionAdjustedReturn}% (${worst.cell.count} signals).`,
+            });
+        }
+    }
+
+    const strongCell = btData.byAiVerdict?.STRONG_OPPORTUNITY?.[REF_HORIZON];
+    const avoidCell  = btData.byAiVerdict?.AVOID?.[REF_HORIZON] || btData.byAiVerdict?.CAUTION?.[REF_HORIZON];
+    if (strongCell && strongCell.count >= MIN_SAMPLE && avoidCell && avoidCell.count >= MIN_SAMPLE) {
+        const diff = Math.round((strongCell.avgDirectionAdjustedReturn - avoidCell.avgDirectionAdjustedReturn) * 10) / 10;
+        insights.push({
+            Icon: Brain, positive: diff >= 0,
+            text: `Stocks the AI flagged as a strong opportunity beat the ones it flagged caution/avoid by ${diff >= 0 ? '+' : ''}${diff}pp on average over 5 days — ${diff >= 0 ? "the AI's opportunity calls appear to be adding real signal." : "worth a closer look — the cautious calls actually held up better here."}`,
+        });
+    }
+
+    if (btData.totalSnapshots < 15) {
+        insights.push({
+            Icon: AlertTriangle, positive: null,
+            text: `Only ${btData.totalSnapshots} snapshots saved so far — treat these numbers as early signal, not a verdict. More daily saves will make this meaningful.`,
+        });
+    }
+
+    if (insights.length === 0) return null;
+
+    return (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'22px' }}>
+            {insights.map((ins, i) => {
+                const color = ins.positive === true ? '#10b981' : ins.positive === false ? '#ef4444' : '#f59e0b';
+                const bg    = ins.positive === true ? '#f0fdf4' : ins.positive === false ? '#fef2f2' : '#fffbeb';
+                const Icon  = ins.Icon;
+                return (
+                    <div key={i} style={{
+                        display:'flex', gap:'10px', alignItems:'flex-start',
+                        padding:'10px 14px', backgroundColor:bg, borderRadius:'10px', border:`1px solid ${color}30`,
+                    }}>
+                        <Icon size={16} color={color} style={{ flexShrink:0, marginTop:'1px' }} />
+                        <div style={{ fontSize:'12.5px', color:'#333', lineHeight:1.55 }}>{ins.text}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function BacktestReturnByHorizonChart({ aggregate, horizons }) {
+    const HORIZON_LABELS = { 1:'1 Day', 3:'3 Days', 5:'5 Days', 10:'10 Days', 20:'20 Days' };
+    const data = horizons.map(h => {
+        const cell = aggregate?.ALL?.[String(h)];
+        return {
+            label:   HORIZON_LABELS[h] || `${h}D`,
+            value:   cell?.avgDirectionAdjustedReturn ?? 0,
+            winRate: cell?.winRate ?? null,
+            count:   cell?.count ?? 0,
+            hasData: !!(cell && cell.count > 0),
+        };
+    }).filter(d => d.hasData);
+
+    if (data.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <BarChart3 size={15} color="#1a1a1a" />
+                <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Average Return by Holding Period</span>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function BacktestSignalComparisonChart({ bySignal, horizon, onHorizonChange, horizons }) {
+    const SIG_LABELS = {
+        RANGE_BREAKOUT_BULL: 'Range Breakout ▲', RANGE_BREAKOUT_BEAR: 'Range Breakout ▼',
+        ACCELERATING_BULL:   'Accelerating ▲',    ACCELERATING_BEAR:   'Accelerating ▼',
+        BREAKOUT:            'Breakout',          TREND_BUILDING:      'Trend Building', WATCH: 'Watch',
+    };
+    const MIN_SAMPLE = 3;
+    const data = Object.entries(bySignal || {})
+        .map(([key, hmap]) => {
+            const cell = hmap[String(horizon)];
+            return { label: SIG_LABELS[key] || key.replace(/_/g, ' '), value: cell?.avgDirectionAdjustedReturn ?? null, winRate: cell?.winRate ?? null, count: cell?.count ?? 0 };
+        })
+        .filter(d => d.value !== null && d.count >= MIN_SAMPLE)
+        .sort((a, b) => b.value - a.value);
+
+    if (data.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <Telescope size={15} color="#1a1a1a" />
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Signal Performance</span>
+                </div>
+                <div style={{ display:'flex', gap:'4px' }}>
+                    {horizons.map(h => (
+                        <button key={h} onClick={() => onHorizonChange(String(h))} style={{
+                            padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                            border:`1px solid ${String(horizon) === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                            backgroundColor: String(horizon) === String(h) ? '#eff6ff' : '#fff',
+                            color: String(horizon) === String(h) ? '#2563eb' : '#94a3b8',
+                        }}>{h}D</button>
+                    ))}
+                </div>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>min. 3 signals per type shown</span>
+            </div>
+            <ResponsiveContainer width="100%" height={Math.max(160, data.length * 34)}>
+                <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#334155' }} width={140} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -2079,6 +2251,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const [btDirFilter,     setBtDirFilter]      = React.useState('');
     const [btVerdictFilter, setBtVerdictFilter]  = React.useState('');
     const BT_HORIZONS = [1, 3, 5, 10, 20];
+    const [btHorizonFocus, setBtHorizonFocus] = React.useState('5');
 
     const HIST_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
@@ -2170,11 +2343,14 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
 
     const BT_HORIZON_LABELS = { '1':'1D', '3':'3D', '5':'5D', '10':'10D', '20':'20D' };
 
-    const renderBacktestTable = (title, dataObj, icon) => {
+    
+    const renderBacktestTable = (title, dataObj, Icon) => {
         if (!dataObj || Object.keys(dataObj).length === 0) return null;
         return (
             <div style={{ marginBottom:'20px' }}>
-                <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px' }}>{icon} {title}</div>
+                <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px' }}>
+                    {Icon && <Icon size={14} />} {title}
+                </div>
                 <div style={{ overflowX:'auto' }}>
                     <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                         <thead>
@@ -2255,14 +2431,14 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                     </div>
 
                     <div style={{ display:'flex', gap:'6px', marginTop:'14px', marginBottom:'10px' }}>
-                        {[['timeline','📅 Timeline'],['backtest','📊 Backtest']].map(([m, lbl]) => (
+                        {[{ m:'timeline', label:'Timeline', Icon: Calendar }, { m:'backtest', label:'Backtest', Icon: BarChart3 }].map(({ m, label, Icon }) => (
                             <button key={m} onClick={() => setViewMode(m)} style={{
                                 padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
                                 border:`1px solid ${viewMode === m ? 'rgba(16,185,129,0.6)' : 'rgba(255,255,255,0.2)'}`,
                                 backgroundColor: viewMode === m ? '#10b981' : 'rgba(255,255,255,0.08)',
                                 color: viewMode === m ? '#fff' : 'rgba(255,255,255,0.6)',
-                                transition:'all 0.15s',
-                            }}>{lbl}</button>
+                                transition:'all 0.15s', display:'flex', alignItems:'center', gap:'6px',
+                            }}><Icon size={14} /> {label}</button>
                         ))}
                     </div>
 
@@ -2511,11 +2687,14 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                     }}>
                                         💡 Returns below are <strong>direction-adjusted</strong> — a BEARISH signal that saw price fall is counted as a <em>win</em>, not a loss. Win rate = % of resolved snapshots where the direction call was correct at that horizon. Horizons with no data yet are excluded, not guessed at.
                                     </div>
-                                    {renderBacktestTable('Overall', btData.aggregate, '📊')}
-                                    {renderBacktestTable('By Signal', btData.bySignal, '🔭')}
-                                    {renderBacktestTable('By Direction', btData.byDirection, '↕️')}
-                                    {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, '🧠')}
-                                    {renderBacktestTable('By Scanner Score', btData.byScoreBucket, '🎯')}
+                                    <BacktestPlainEnglish btData={btData} />
+                                    <BacktestReturnByHorizonChart aggregate={btData.aggregate} horizons={BT_HORIZONS} />
+                                    <BacktestSignalComparisonChart bySignal={btData.bySignal} horizon={btHorizonFocus} onHorizonChange={setBtHorizonFocus} horizons={BT_HORIZONS} />
+                                    {renderBacktestTable('Overall', btData.aggregate, BarChart3)}
+                                    {renderBacktestTable('By Signal', btData.bySignal, Telescope)}
+                                    {renderBacktestTable('By Direction', btData.byDirection, ArrowUpDown)}
+                                    {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, Brain)}
+                                    {renderBacktestTable('By Scanner Score', btData.byScoreBucket, Gauge)}
                                 </>
                             )}
                         </div>
