@@ -3244,6 +3244,15 @@ const [csdChartTf,     setCsdChartTf]     = useState('1D');
   const setLoading = (key, val) => setLoadingKeys(p => ({ ...p, [key]: val }));
   const isLoading  = (key) => loadingKeys[key] || false;
 
+  // Save state
+  const [csdSaving,      setCsdSaving]      = useState(false);
+  const [csdSaveResult,  setCsdSaveResult]  = useState(null);  // { saved, skipped, errors }
+  // History drawer
+  const [csdHistoryOpen, setCsdHistoryOpen] = useState(false);
+  const [csdHistory,     setCsdHistory]     = useState(null);
+  const [csdHistoryLoad, setCsdHistoryLoad] = useState(false);
+  const [csdHistFilter,  setCsdHistFilter]  = useState({ country:'', sector:'', rec:'' });
+
   const tfPeriodDays = useMemo(() => {
     const map = { '1m':1,'5m':5,'15m':5,'30m':30,'1H':30,'4H':90,'1D':365,'1W':730,'1M':1825,'3M':1825,'6M':1825,'1Y':1825,'2Y':1825 };
     return map[tf] || 365;
@@ -3486,6 +3495,64 @@ Return ONLY a JSON object — no markdown, no backticks, no preamble:
 Aim for 15-20 stocks minimum — include large caps, mid caps, and compelling smaller names. Cover the full breadth of the ${sector} sector in ${entry.country}, not just the obvious household names. Include their exact yfinance ticker symbols so I can pull live charts. Return only the JSON object.
 If you find fewer than 15 stocks, search again with different queries before responding.`;
 
+};
+
+const saveCsdPicks = async (picks, country, flag, sector, marketData, topPick, topPickReason, sourceList, articleCount) => {
+  if (!picks?.length) return;
+  setCsdSaving(true);
+  setCsdSaveResult(null);
+  try {
+    const payload = picks.map(s => ({
+      symbol:          s.symbol,
+      name:            s.name,
+      country,
+      flag,
+      sector,
+      rec:             s.rec,
+      conviction:      s.conviction,
+      thesis:          s.thesis,
+      risk:            s.risk,
+      catalysts:       s.catalysts || [],
+      analystTarget:   s.analystTarget || '',
+      sub_sector:      s.sector || '',
+      price:           s.price || '',
+      marketCap:       s.marketCap || '',
+      market_outlook:  marketData?.marketOutlook || '',
+      top_pick:        s.symbol === topPick,
+      top_pick_reason: s.symbol === topPick ? topPickReason : '',
+      source_list:     sourceList || [],
+      article_count:   articleCount || 0,
+    }));
+
+    const res = await fetch(`${baseUrl}/api/snow_save_stock_picks_v1/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ picks: payload, tf_context: tf }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    setCsdSaveResult(json);
+  } catch(e) {
+    setCsdSaveResult({ error: e.message });
+  }
+  setCsdSaving(false);
+};
+
+const fetchCsdHistory = async (filters = {}) => {
+  setCsdHistoryLoad(true);
+  try {
+    const res = await fetch(`${baseUrl}/api/snow_fetch_stock_picks_v1/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(filters),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    setCsdHistory(json);
+  } catch(e) {
+    console.error('[fetchCsdHistory]', e);
+  }
+  setCsdHistoryLoad(false);
 };
 
 // ── GSL prompt builder ──
@@ -5693,7 +5760,98 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                     🔄 Reset
                   </button>
                 )}
+                {/* Save buttons — only shown when stocks are loaded */}
+                {stocks.length > 0 && (
+                  <>
+                    {/* Divider */}
+                    <div style={{ width: 1, height: 28, background: '#e2e8f0', flexShrink: 0 }} />
+
+                    {/* Save All button */}
+                    <button
+                      onClick={() => saveCsdPicks(
+                        stocks,
+                        entry.country,
+                        entry.flag,
+                        sector,
+                        cached,
+                        cached?.topPick,
+                        cached?.topPickReason,
+                        cached?.sourceList,
+                        cached?.articleCount,
+                      )}
+                      disabled={csdSaving}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 14px', borderRadius: 8, border: 'none',
+                        background: csdSaving
+                          ? 'rgba(16,185,129,0.3)'
+                          : 'linear-gradient(135deg, #059669, #10b981)',
+                        color: 'white', fontWeight: 700, fontSize: 12,
+                        cursor: csdSaving ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                        transition: 'all 0.15s', whiteSpace: 'nowrap',
+                      }}
+                      title={`Save all ${stocks.length} picks to database`}
+                    >
+                      {csdSaving
+                        ? <><div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'esi-spin 0.7s linear infinite' }}/> Saving…</>
+                        : <>💾 Save All ({stocks.length})</>
+                      }
+                    </button>
+
+                    {/* History button */}
+                    <button
+                      onClick={() => { setCsdHistoryOpen(true); fetchCsdHistory({ country: entry.country, sector }); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '7px 12px', borderRadius: 8,
+                        border: '1.5px solid #bae6fd',
+                        background: 'white', color: '#0369a1',
+                        fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                        transition: 'all 0.14s', whiteSpace: 'nowrap',
+                      }}
+                      title="View saved pick history"
+                    >
+                      📅 History
+                    </button>
+                  </>
+                )}
               </div>
+              {/* Save result toast */}
+              {csdSaveResult && (
+                <div style={{
+                  marginTop: 8, padding: '8px 14px', borderRadius: 8,
+                  display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                  background: csdSaveResult.error ? '#fef2f2' : '#f0fdf4',
+                  border: `1px solid ${csdSaveResult.error ? '#fecaca' : '#bbf7d0'}`,
+                  fontSize: 12,
+                }}>
+                  {csdSaveResult.error ? (
+                    <span style={{ color: '#b91c1c' }}>⚠️ Save failed: {csdSaveResult.error}</span>
+                  ) : (
+                    <>
+                      <span style={{ color: '#15803d', fontWeight: 700 }}>
+                        ✅ {csdSaveResult.saved} saved
+                      </span>
+                      {csdSaveResult.skipped > 0 && (
+                        <span style={{ color: '#92400e' }}>
+                          · {csdSaveResult.skipped} already in DB (today)
+                        </span>
+                      )}
+                      {csdSaveResult.errors > 0 && (
+                        <span style={{ color: '#b91c1c' }}>
+                          · {csdSaveResult.errors} failed
+                        </span>
+                      )}
+                      <button
+                        onClick={() => setCsdSaveResult(null)}
+                        style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14 }}>
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
