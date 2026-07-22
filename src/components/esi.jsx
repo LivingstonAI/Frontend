@@ -6158,6 +6158,97 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
   </div>
 )}
 
+{/* ── CSD HISTORY MODAL ── */}
+{csdHistoryOpen && (
+  <div
+    onClick={() => setCsdHistoryOpen(false)}
+    style={{ position:'fixed', inset:0, zIndex:10012, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{ width:'min(900px,100%)', maxHeight:'88vh', borderRadius:18, overflow:'hidden', display:'flex', flexDirection:'column', background:'#fff', boxShadow:'0 30px 90px rgba(0,0,0,0.35)', animation:'esi-modal-in 0.2s ease' }}
+    >
+      {/* Header + filters */}
+      <div style={{ padding:'16px 22px', background:'linear-gradient(135deg,#0c4a6e,#0369a1)', flexShrink:0 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12 }}>
+          <div>
+            <div style={{ fontSize:15, fontWeight:800, color:'#fff', marginBottom:4 }}>📅 Saved Stock Picks History</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.6)' }}>
+              {csdHistFilter.country || csdHistFilter.sector
+                ? `Filtered: ${csdHistFilter.country || 'All countries'} · ${csdHistFilter.sector || 'All sectors'}`
+                : 'All saved picks'}
+            </div>
+          </div>
+          <button onClick={() => setCsdHistoryOpen(false)}
+            style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:32, height:32, color:'#fff', fontSize:17, cursor:'pointer' }}>×</button>
+        </div>
+
+        <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap' }}>
+          <input placeholder="Country…" value={csdHistFilter.country}
+            onChange={e => setCsdHistFilter(f => ({ ...f, country:e.target.value }))}
+            style={{ padding:'6px 10px', borderRadius:7, border:'1px solid rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.1)', color:'#fff', fontSize:12, outline:'none', width:140 }} />
+          <input placeholder="Sector…" value={csdHistFilter.sector}
+            onChange={e => setCsdHistFilter(f => ({ ...f, sector:e.target.value }))}
+            style={{ padding:'6px 10px', borderRadius:7, border:'1px solid rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.1)', color:'#fff', fontSize:12, outline:'none', width:140 }} />
+          <select value={csdHistFilter.rec}
+            onChange={e => setCsdHistFilter(f => ({ ...f, rec:e.target.value }))}
+            style={{ padding:'6px 10px', borderRadius:7, border:'1px solid rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.1)', color:'#fff', fontSize:12, outline:'none' }}>
+            <option value="" style={{ color:'#000' }}>All recs</option>
+            {['STRONG BUY','BUY','WATCH','HOLD'].map(r => <option key={r} value={r} style={{ color:'#000' }}>{r}</option>)}
+          </select>
+          <button onClick={() => fetchCsdHistory(csdHistFilter)}
+            style={{ padding:'6px 14px', background:'#38bdf8', border:'none', borderRadius:7, color:'#0c4a6e', fontWeight:700, fontSize:12, cursor:'pointer' }}>
+            🔍 Apply
+          </button>
+          {(csdHistFilter.country || csdHistFilter.sector || csdHistFilter.rec) && (
+            <button onClick={() => { setCsdHistFilter({ country:'', sector:'', rec:'' }); fetchCsdHistory({}); }}
+              style={{ padding:'6px 12px', background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:7, color:'#fff', fontSize:12, cursor:'pointer' }}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', background:'#f0f9ff' }}>
+        {csdHistoryLoad && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, padding:60, color:'#0369a1' }}>
+            <div style={{ width:22, height:22, border:'3px solid #bae6fd', borderTopColor:'#0ea5e9', borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/>
+            Loading saved picks…
+          </div>
+        )}
+
+        {!csdHistoryLoad && csdHistory && (() => {
+          // ⚠️ adjust this to match whatever key your snow_fetch_stock_picks_v1 view actually returns
+          const rows = csdHistory.picks || csdHistory.data || (Array.isArray(csdHistory) ? csdHistory : []);
+          if (!rows.length) return <div style={{ textAlign:'center', padding:60, color:'#64748b' }}>No saved picks found for this filter.</div>;
+          return (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {rows.map((p, i) => {
+                const recColors = { 'STRONG BUY':'#10b981','BUY':'#22d3ee','WATCH':'#f59e0b','HOLD':'#94a3b8' };
+                const rc = recColors[p.rec] || '#6366f1';
+                return (
+                  <div key={p.id || i} style={{ background:'white', border:`1.5px solid ${rc}33`, borderLeft:`3px solid ${rc}`, borderRadius:10, padding:'10px 14px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:4 }}>
+                      <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:13, color:'#0c4a6e' }}>{p.symbol}</span>
+                      <span style={{ fontSize:12, color:'#64748b' }}>{p.name}</span>
+                      <span style={{ fontSize:11, background:'#e0f2fe', color:'#0369a1', padding:'2px 8px', borderRadius:6 }}>{p.flag} {p.country}</span>
+                      <span style={{ fontSize:11, background:'#ede9fe', color:'#6d28d9', padding:'2px 8px', borderRadius:6 }}>{p.sector}</span>
+                      <span style={{ marginLeft:'auto', background:rc+'20', color:rc, border:`1px solid ${rc}44`, padding:'2px 9px', borderRadius:20, fontSize:11, fontWeight:800 }}>{p.rec}</span>
+                      {p.created_at && <span style={{ fontSize:10, color:'#94a3b8' }}>{new Date(p.created_at).toLocaleString()}</span>}
+                    </div>
+                    {p.thesis && <div style={{ fontSize:12, color:'#334155', lineHeight:1.5 }}>{p.thesis}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
     
   );
