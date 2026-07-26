@@ -3,13 +3,68 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, AlertTriangle, TrendingUp, DollarSign, Shield, Lock } from 'lucide-react';
+import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search } from 'lucide-react';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
-const LauraModalContent = ({ 
-    isMobile, 
-    searchQuery, 
+// ---------------------------------------------------------------------------
+// Design tokens (light, professional palette -- ties into SnowAI's existing
+// blue accent rather than introducing a new brand color)
+// ---------------------------------------------------------------------------
+const COLORS = {
+    bg: '#f7f8fa',
+    surface: '#ffffff',
+    border: '#e4e7ec',
+    borderStrong: '#d0d5dd',
+    ink: '#111827',
+    inkMuted: '#5b6472',
+    inkFaint: '#94a3b8',
+    accent: '#2563eb',
+    accentHover: '#1d4ed8',
+    accentSoft: '#eff6ff',
+    accentBorder: '#bfdbfe',
+    positive: '#16a34a',
+    positiveSoft: '#f0fdf4',
+    positiveBorder: '#bbf7d0',
+    caution: '#b45309',
+    cautionSoft: '#fffbeb',
+    cautionBorder: '#fde68a',
+    negative: '#dc2626',
+    negativeSoft: '#fef2f2',
+    negativeBorder: '#fecaca',
+    neutralSoft: '#f1f5f9',
+    neutralBorder: '#e2e8f0',
+    mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+};
+
+const getRecStyle = (rec) => {
+    const r = (rec || '').toUpperCase();
+    if (r.includes('STRONG BUY')) return { background: COLORS.positiveSoft, color: COLORS.positive, border: `1px solid ${COLORS.positiveBorder}` };
+    if (r.includes('BUY')) return { background: COLORS.accentSoft, color: COLORS.accent, border: `1px solid ${COLORS.accentBorder}` };
+    if (r.includes('WATCH')) return { background: COLORS.cautionSoft, color: COLORS.caution, border: `1px solid ${COLORS.cautionBorder}` };
+    if (r.includes('SELL') || r.includes('AVOID')) return { background: COLORS.negativeSoft, color: COLORS.negative, border: `1px solid ${COLORS.negativeBorder}` };
+    return { background: COLORS.neutralSoft, color: COLORS.inkMuted, border: `1px solid ${COLORS.neutralBorder}` };
+};
+
+// Maps the ISO code on each city marker back to the country name that's
+// actually stored on SnowGlobalStockPick.country (marker "name" is a city,
+// e.g. "Tokyo", not the country, e.g. "Japan").
+const isoToCountryName = {
+    US: 'United States', CN: 'China', GB: 'United Kingdom', DE: 'Germany',
+    FR: 'France', BE: 'Belgium', CH: 'Switzerland', NL: 'Netherlands',
+    JP: 'Japan', SG: 'Singapore', KR: 'South Korea', IN: 'India',
+    AU: 'Australia', AE: 'United Arab Emirates', RU: 'Russia', IL: 'Israel',
+    SA: 'Saudi Arabia', TR: 'Turkey', CA: 'Canada', BR: 'Brazil',
+    MX: 'Mexico', AR: 'Argentina', ZA: 'South Africa', EG: 'Egypt',
+    NG: 'Nigeria', TW: 'Taiwan', TH: 'Thailand', MY: 'Malaysia',
+    AT: 'Austria', SE: 'Sweden', DK: 'Denmark', NO: 'Norway',
+    PL: 'Poland', CZ: 'Czech Republic', IT: 'Italy', ES: 'Spain',
+    PT: 'Portugal', IE: 'Ireland', LU: 'Luxembourg', MC: 'Monaco'
+};
+
+const LauraModalContent = ({
+    isMobile,
+    searchQuery,
     setSearchQuery,
     searchLoading,
     searchError,
@@ -45,26 +100,27 @@ const LauraModalContent = ({
             <div style={styles.lauraContent}>
                 <div style={styles.lauraHeader}>
                     <h3 style={styles.lauraTitle}>
-                        🟣 LAURA AI ANALYST
+                        <span style={styles.lauraAvatar}>L</span>
+                        Laura, your AI assistant
                     </h3>
-                    <button 
+                    <button
                         style={styles.lauraCloseButton}
                         onClick={() => setShowLaura(false)}
                     >
                         ×
                     </button>
                 </div>
-                
+
                 <div style={styles.lauraMessagesContainer}>
-                    {/* Geopolitical Search Section */}
+                    {/* Web search */}
                     <div style={styles.searchContainer}>
                         <div style={styles.searchTitle}>
-                            🔍 GEOPOLITICAL INTELLIGENCE SEARCH
+                            <Search size={14} /> Web search
                         </div>
                         <div style={styles.searchInputGroup}>
                             <input
                                 type="text"
-                                placeholder="Search global events, conflicts, economic policies..."
+                                placeholder="Search news, markets, or companies..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && !searchLoading && handleGeopoliticalSearch()}
@@ -75,33 +131,28 @@ const LauraModalContent = ({
                                 disabled={searchLoading}
                                 style={styles.searchButton}
                             >
-                                {searchLoading ? 'SEARCHING...' : 'SEARCH'}
+                                {searchLoading ? 'Searching...' : 'Search'}
                             </button>
                         </div>
                         {searchError && (
-                            <div style={styles.lauraError}>
-                                ⚠️ {searchError}
-                            </div>
+                            <div style={styles.lauraError}>{searchError}</div>
                         )}
                     </div>
-                    
+
                     {/* Chat Messages */}
                     {lauraMessages.length === 0 && (
                         <div style={{
                             textAlign: 'center',
                             padding: '40px 20px',
-                            color: '#a855f7',
-                            fontSize: isMobile ? '13px' : '14px',
-                            letterSpacing: '1px'
+                            color: COLORS.inkMuted,
+                            fontSize: isMobile ? '13px' : '14px'
                         }}>
-                            🟣 LAURA AI ANALYST READY
-                            <br /><br />
-                            Ask me about any country's economic data you've queried,
+                            Ask Laura about any country's stock picks you've saved,
                             <br />
-                            or use the search above for live geopolitical intelligence.
+                            or use the search above to look something up on the web.
                         </div>
                     )}
-                    
+
                     {lauraMessages.map((msg, idx) => (
                         <div key={idx} style={styles.lauraMessage(msg.role === 'user')}>
                             <div style={styles.lauraMessageBubble(msg.role === 'user')}>
@@ -115,12 +166,12 @@ const LauraModalContent = ({
                                     style={styles.speakButton}
                                     onClick={() => isSpeaking ? stopSpeaking() : speakMessage(msg.content)}
                                 >
-                                    {isSpeaking ? '⏸ STOP' : '🔊 SPEAK'}
+                                    {isSpeaking ? 'Stop' : 'Play'}
                                 </button>
                             )}
                         </div>
                     ))}
-                    
+
                     {lauraLoading && (
                         <div style={styles.lauraMessage(false)}>
                             <div style={{
@@ -129,46 +180,36 @@ const LauraModalContent = ({
                                 alignItems: 'center',
                                 gap: '10px'
                             }}>
-                                <div style={{
-                                    width: '20px',
-                                    height: '20px',
-                                    border: '3px solid rgba(255,255,255,0.3)',
-                                    borderTop: '3px solid #fff',
-                                    borderRadius: '50%',
-                                    animation: 'spin 1s linear infinite'
-                                }}></div>
-                                Analyzing intelligence...
+                                <div style={styles.miniSpinner}></div>
+                                Thinking...
                             </div>
                         </div>
                     )}
-                    
+
                     <div ref={messagesEndRef} />
                 </div>
-                
+
                 <div style={styles.lauraInputContainer}>
                     {lauraError && (
-                        <div style={styles.lauraError}>
-                            ⚠️ {lauraError}
-                        </div>
+                        <div style={styles.lauraError}>{lauraError}</div>
                     )}
-                    
-                    {/* Voice Selector and Image Upload */}
+
                     <div style={styles.imageUploadContainer}>
-                        <select 
-                            value={selectedVoice?.name || ''} 
+                        <select
+                            value={selectedVoice?.name || ''}
                             onChange={handleVoiceChange}
                             style={styles.voiceSelector}
                         >
-                            <option value="">SELECT VOICE</option>
+                            <option value="">Voice for playback</option>
                             {availableVoices.map((voice, idx) => (
                                 <option key={idx} value={voice.name}>
                                     {voice.name} ({voice.lang})
                                 </option>
                             ))}
                         </select>
-                        
+
                         <label style={styles.imageUploadButton}>
-                            📷 UPLOAD IMAGE
+                            Attach image
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -177,7 +218,7 @@ const LauraModalContent = ({
                                 style={{ display: 'none' }}
                             />
                         </label>
-                        
+
                         {imagePreview && (
                             <div style={styles.imagePreviewContainer}>
                                 <img src={imagePreview} alt="Preview" style={styles.imagePreviewThumb} />
@@ -193,9 +234,9 @@ const LauraModalContent = ({
                             </div>
                         )}
                     </div>
-                    
+
                     <textarea
-                        placeholder="Query Laura about economic data, trends, or country analyses..."
+                        placeholder="Ask Laura anything..."
                         value={lauraInput}
                         onChange={(e) => setLauraInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -217,13 +258,13 @@ const LauraModalContent = ({
                                 opacity: lauraLoading || (!lauraInput.trim() && !imagePreview) ? 0.5 : 1
                             }}
                         >
-                            {lauraLoading ? 'PROCESSING...' : 'SEND QUERY'}
+                            {lauraLoading ? 'Sending...' : 'Send'}
                         </button>
                         <button
                             onClick={handleNewLauraConversation}
                             style={styles.lauraNewChatButton}
                         >
-                            NEW CHAT
+                            New chat
                         </button>
                     </div>
                 </div>
@@ -238,22 +279,15 @@ export default function SnowAIEarth() {
     const [selectedCountry, setSelectedCountry] = useState('');
     const [countries, setCountries] = useState([]);
     const [worldData, setWorldData] = useState({ features: [] });
-    const [globeTheme, setGlobeTheme] = useState('night-ops');
+    const [globeTheme, setGlobeTheme] = useState('night');
     const [isMobile, setIsMobile] = useState(false);
     const [geoJsonData, setGeoJsonData] = useState(null);
-    const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-    const [economicAnalysis, setEconomicAnalysis] = useState({});
-    const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-    const [clickedCountry, setClickedCountry] = useState('');
     const svgRef = useRef();
     const globeRef = useRef();
     const mapContainerRef = useRef();
     const zoomRef = useRef();
     const [searchCountry, setSearchCountry] = useState('');
     const [autoRotate, setAutoRotate] = useState(true);
-    const [intelStatus, setIntelStatus] = useState('STANDBY');
-    const [threatLevel] = useState('MODERATE');
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -274,113 +308,111 @@ export default function SnowAIEarth() {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    // Stock-pick data (replaces the old "economic analysis" state)
+    const [countryStockData, setCountryStockData] = useState({});
+    const [loadingStockData, setLoadingStockData] = useState(false);
+    const [showStockModal, setShowStockModal] = useState(false);
+    const [dataSummary, setDataSummary] = useState({ totalCountries: 0, totalPicks: 0 });
+    const [availableCountriesSet, setAvailableCountriesSet] = useState(new Set());
+
     const globeThemes = {
-        'night-ops': {
-            name: 'NIGHT OPS',
+        'night': {
+            name: 'Night',
             globeImage: "//unpkg.com/three-globe/example/img/earth-night.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
         },
         'satellite': {
-            name: 'SATELLITE',
+            name: 'Satellite',
             globeImage: "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
         },
-        'recon': {
-            name: 'RECON',
+        'day': {
+            name: 'Day',
             globeImage: "//unpkg.com/three-globe/example/img/earth-day.jpg",
             bumpImage: "//unpkg.com/three-globe/example/img/earth-topology.png",
             background: "//unpkg.com/three-globe/example/img/night-sky.png"
         }
     };
-    
+
     const countryData = [
-        // United States - Major Centers
-        { name: 'Washington D.C.', lat: 38.9072, lng: -77.0369, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Political/Military' },
-        { name: 'New York', lat: 40.7128, lng: -74.0060, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        { name: 'San Francisco', lat: 37.7749, lng: -122.4194, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
-        { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Economic' },
-        { name: 'Chicago', lat: 41.8781, lng: -87.6298, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        
-        // China - Major Centers
-        { name: 'Beijing', lat: 39.9042, lng: 116.4074, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Political/Military' },
-        { name: 'Shanghai', lat: 31.2304, lng: 121.4737, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
-        { name: 'Shenzhen', lat: 22.5431, lng: 114.0579, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Tech/Economic' },
-        { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, color: '#ef4444', iso: 'CN', threat: 'HIGH', type: 'Financial' },
-        
-        // Europe - Major Centers
-        { name: 'London', lat: 51.5074, lng: -0.1278, color: '#2563eb', iso: 'GB', threat: 'LOW', type: 'Financial' },
-        { name: 'Frankfurt', lat: 50.1109, lng: 8.6821, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Financial' },
-        { name: 'Paris', lat: 48.8566, lng: 2.3522, color: '#3b82f6', iso: 'FR', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Brussels', lat: 50.8503, lng: 4.3517, color: '#3b82f6', iso: 'BE', threat: 'LOW', type: 'Political/Diplomatic' },
-        { name: 'Geneva', lat: 46.2044, lng: 6.1432, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Diplomatic' },
-        { name: 'Zurich', lat: 47.3769, lng: 8.5417, color: '#3b82f6', iso: 'CH', threat: 'LOW', type: 'Financial' },
-        { name: 'Berlin', lat: 52.5200, lng: 13.4050, color: '#3b82f6', iso: 'DE', threat: 'LOW', type: 'Political' },
-        { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, color: '#3b82f6', iso: 'NL', threat: 'LOW', type: 'Financial' },
-        
-        // Asia-Pacific
-        { name: 'Tokyo', lat: 35.6762, lng: 139.6503, color: '#3b82f6', iso: 'JP', threat: 'LOW', type: 'Economic/Financial' },
-        { name: 'Singapore', lat: 1.3521, lng: 103.8198, color: '#3b82f6', iso: 'SG', threat: 'LOW', type: 'Financial' },
-        { name: 'Seoul', lat: 37.5665, lng: 126.9780, color: '#f59e0b', iso: 'KR', threat: 'MEDIUM', type: 'Tech/Economic' },
-        { name: 'Mumbai', lat: 19.0760, lng: 72.8777, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Financial' },
-        { name: 'New Delhi', lat: 28.6139, lng: 77.2090, color: '#f59e0b', iso: 'IN', threat: 'MEDIUM', type: 'Political' },
-        { name: 'Sydney', lat: -33.8688, lng: 151.2093, color: '#3b82f6', iso: 'AU', threat: 'LOW', type: 'Financial' },
-        { name: 'Dubai', lat: 25.2048, lng: 55.2708, color: '#f59e0b', iso: 'AE', threat: 'MEDIUM', type: 'Financial' },
-        
-        // Russia
-        { name: 'Moscow', lat: 55.7558, lng: 37.6173, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Political/Military' },
-        { name: 'St. Petersburg', lat: 59.9343, lng: 30.3351, color: '#dc2626', iso: 'RU', threat: 'HIGH', type: 'Economic' },
-        
-        // Middle East
-        { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818, color: '#f59e0b', iso: 'IL', threat: 'MEDIUM', type: 'Tech/Military' },
-        { name: 'Riyadh', lat: 24.7136, lng: 46.6753, color: '#f59e0b', iso: 'SA', threat: 'MEDIUM', type: 'Political/Economic' },
-        { name: 'Istanbul', lat: 41.0082, lng: 28.9784, color: '#f59e0b', iso: 'TR', threat: 'MEDIUM', type: 'Economic/Strategic' },
-        
-        // Americas
-        { name: 'Toronto', lat: 43.6532, lng: -79.3832, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Financial' },
-        { name: 'São Paulo', lat: -23.5505, lng: -46.6333, color: '#60a5fa', iso: 'BR', threat: 'MEDIUM', type: 'Economic/Financial' },
-        { name: 'Mexico City', lat: 19.4326, lng: -99.1332, color: '#f59e0b', iso: 'MX', threat: 'MEDIUM', type: 'Political/Economic' },
-        { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, color: '#60a5fa', iso: 'AR', threat: 'MEDIUM', type: 'Economic' },
-        
-        // Africa
-        { name: 'Johannesburg', lat: -26.2041, lng: 28.0473, color: '#f59e0b', iso: 'ZA', threat: 'MEDIUM', type: 'Economic/Financial' },
-        { name: 'Cairo', lat: 30.0444, lng: 31.2357, color: '#f59e0b', iso: 'EG', threat: 'MEDIUM', type: 'Political/Strategic' },
-        { name: 'Lagos', lat: 6.5244, lng: 3.3792, color: '#f59e0b', iso: 'NG', threat: 'MEDIUM', type: 'Economic' },
-        
-        // Additional Strategic Points
-        { name: 'Vancouver', lat: 49.2827, lng: -123.1207, color: '#3b82f6', iso: 'CA', threat: 'LOW', type: 'Economic' },
-        { name: 'Miami', lat: 25.7617, lng: -80.1918, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Financial' },
-        { name: 'Boston', lat: 42.3601, lng: -71.0589, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Financial' },
-        { name: 'Seattle', lat: 47.6062, lng: -122.3321, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech/Economic' },
-        { name: 'Austin', lat: 30.2672, lng: -97.7431, color: '#2563eb', iso: 'US', threat: 'LOW', type: 'Tech' },
-        { name: 'Taipei', lat: 25.0330, lng: 121.5654, color: '#f59e0b', iso: 'TW', threat: 'MEDIUM', type: 'Tech/Strategic' },
-        { name: 'Bangkok', lat: 13.7563, lng: 100.5018, color: '#f59e0b', iso: 'TH', threat: 'MEDIUM', type: 'Economic' },
-        { name: 'Kuala Lumpur', lat: 3.1390, lng: 101.6869, color: '#f59e0b', iso: 'MY', threat: 'MEDIUM', type: 'Economic' },
-        { name: 'Vienna', lat: 48.2082, lng: 16.3738, color: '#3b82f6', iso: 'AT', threat: 'LOW', type: 'Diplomatic' },
-        { name: 'Stockholm', lat: 59.3293, lng: 18.0686, color: '#3b82f6', iso: 'SE', threat: 'LOW', type: 'Economic/Tech' },
-        { name: 'Copenhagen', lat: 55.6761, lng: 12.5683, color: '#3b82f6', iso: 'DK', threat: 'LOW', type: 'Economic' },
-        { name: 'Oslo', lat: 59.9139, lng: 10.7522, color: '#3b82f6', iso: 'NO', threat: 'LOW', type: 'Economic' },
-        { name: 'Warsaw', lat: 52.2297, lng: 21.0122, color: '#3b82f6', iso: 'PL', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Prague', lat: 50.0755, lng: 14.4378, color: '#3b82f6', iso: 'CZ', threat: 'LOW', type: 'Economic' },
-        { name: 'Milan', lat: 45.4642, lng: 9.1900, color: '#3b82f6', iso: 'IT', threat: 'LOW', type: 'Economic/Financial' },
-        { name: 'Madrid', lat: 40.4168, lng: -3.7038, color: '#3b82f6', iso: 'ES', threat: 'LOW', type: 'Political/Economic' },
-        { name: 'Lisbon', lat: 38.7223, lng: -9.1393, color: '#3b82f6', iso: 'PT', threat: 'LOW', type: 'Economic' },
-        { name: 'Dublin', lat: 53.3498, lng: -6.2603, color: '#3b82f6', iso: 'IE', threat: 'LOW', type: 'Tech/Financial' },
-        { name: 'Luxembourg', lat: 49.6116, lng: 6.1319, color: '#3b82f6', iso: 'LU', threat: 'LOW', type: 'Financial' },
-        { name: 'Monaco', lat: 43.7384, lng: 7.4246, color: '#3b82f6', iso: 'MC', threat: 'LOW', type: 'Financial' }
-    ];
+        { name: 'Washington D.C.', lat: 38.9072, lng: -77.0369, iso: 'US', type: 'Political' },
+        { name: 'New York', lat: 40.7128, lng: -74.0060, iso: 'US', type: 'Financial' },
+        { name: 'San Francisco', lat: 37.7749, lng: -122.4194, iso: 'US', type: 'Tech' },
+        { name: 'Los Angeles', lat: 34.0522, lng: -118.2437, iso: 'US', type: 'Economic' },
+        { name: 'Chicago', lat: 41.8781, lng: -87.6298, iso: 'US', type: 'Financial' },
+
+        { name: 'Beijing', lat: 39.9042, lng: 116.4074, iso: 'CN', type: 'Political' },
+        { name: 'Shanghai', lat: 31.2304, lng: 121.4737, iso: 'CN', type: 'Financial' },
+        { name: 'Shenzhen', lat: 22.5431, lng: 114.0579, iso: 'CN', type: 'Tech' },
+        { name: 'Hong Kong', lat: 22.3193, lng: 114.1694, iso: 'CN', type: 'Financial' },
+
+        { name: 'London', lat: 51.5074, lng: -0.1278, iso: 'GB', type: 'Financial' },
+        { name: 'Frankfurt', lat: 50.1109, lng: 8.6821, iso: 'DE', type: 'Financial' },
+        { name: 'Paris', lat: 48.8566, lng: 2.3522, iso: 'FR', type: 'Economic' },
+        { name: 'Brussels', lat: 50.8503, lng: 4.3517, iso: 'BE', type: 'Political' },
+        { name: 'Geneva', lat: 46.2044, lng: 6.1432, iso: 'CH', type: 'Financial' },
+        { name: 'Zurich', lat: 47.3769, lng: 8.5417, iso: 'CH', type: 'Financial' },
+        { name: 'Berlin', lat: 52.5200, lng: 13.4050, iso: 'DE', type: 'Political' },
+        { name: 'Amsterdam', lat: 52.3676, lng: 4.9041, iso: 'NL', type: 'Financial' },
+
+        { name: 'Tokyo', lat: 35.6762, lng: 139.6503, iso: 'JP', type: 'Financial' },
+        { name: 'Singapore', lat: 1.3521, lng: 103.8198, iso: 'SG', type: 'Financial' },
+        { name: 'Seoul', lat: 37.5665, lng: 126.9780, iso: 'KR', type: 'Tech' },
+        { name: 'Mumbai', lat: 19.0760, lng: 72.8777, iso: 'IN', type: 'Financial' },
+        { name: 'New Delhi', lat: 28.6139, lng: 77.2090, iso: 'IN', type: 'Political' },
+        { name: 'Sydney', lat: -33.8688, lng: 151.2093, iso: 'AU', type: 'Financial' },
+        { name: 'Dubai', lat: 25.2048, lng: 55.2708, iso: 'AE', type: 'Financial' },
+
+        { name: 'Moscow', lat: 55.7558, lng: 37.6173, iso: 'RU', type: 'Political' },
+        { name: 'St. Petersburg', lat: 59.9343, lng: 30.3351, iso: 'RU', type: 'Economic' },
+
+        { name: 'Tel Aviv', lat: 32.0853, lng: 34.7818, iso: 'IL', type: 'Tech' },
+        { name: 'Riyadh', lat: 24.7136, lng: 46.6753, iso: 'SA', type: 'Political' },
+        { name: 'Istanbul', lat: 41.0082, lng: 28.9784, iso: 'TR', type: 'Economic' },
+
+        { name: 'Toronto', lat: 43.6532, lng: -79.3832, iso: 'CA', type: 'Financial' },
+        { name: 'São Paulo', lat: -23.5505, lng: -46.6333, iso: 'BR', type: 'Financial' },
+        { name: 'Mexico City', lat: 19.4326, lng: -99.1332, iso: 'MX', type: 'Political' },
+        { name: 'Buenos Aires', lat: -34.6037, lng: -58.3816, iso: 'AR', type: 'Economic' },
+
+        { name: 'Johannesburg', lat: -26.2041, lng: 28.0473, iso: 'ZA', type: 'Financial' },
+        { name: 'Cairo', lat: 30.0444, lng: 31.2357, iso: 'EG', type: 'Political' },
+        { name: 'Lagos', lat: 6.5244, lng: 3.3792, iso: 'NG', type: 'Economic' },
+
+        { name: 'Vancouver', lat: 49.2827, lng: -123.1207, iso: 'CA', type: 'Economic' },
+        { name: 'Miami', lat: 25.7617, lng: -80.1918, iso: 'US', type: 'Financial' },
+        { name: 'Boston', lat: 42.3601, lng: -71.0589, iso: 'US', type: 'Tech' },
+        { name: 'Seattle', lat: 47.6062, lng: -122.3321, iso: 'US', type: 'Tech' },
+        { name: 'Austin', lat: 30.2672, lng: -97.7431, iso: 'US', type: 'Tech' },
+        { name: 'Taipei', lat: 25.0330, lng: 121.5654, iso: 'TW', type: 'Tech' },
+        { name: 'Bangkok', lat: 13.7563, lng: 100.5018, iso: 'TH', type: 'Economic' },
+        { name: 'Kuala Lumpur', lat: 3.1390, lng: 101.6869, iso: 'MY', type: 'Economic' },
+        { name: 'Vienna', lat: 48.2082, lng: 16.3738, iso: 'AT', type: 'Political' },
+        { name: 'Stockholm', lat: 59.3293, lng: 18.0686, iso: 'SE', type: 'Tech' },
+        { name: 'Copenhagen', lat: 55.6761, lng: 12.5683, iso: 'DK', type: 'Economic' },
+        { name: 'Oslo', lat: 59.9139, lng: 10.7522, iso: 'NO', type: 'Economic' },
+        { name: 'Warsaw', lat: 52.2297, lng: 21.0122, iso: 'PL', type: 'Political' },
+        { name: 'Prague', lat: 50.0755, lng: 14.4378, iso: 'CZ', type: 'Economic' },
+        { name: 'Milan', lat: 45.4642, lng: 9.1900, iso: 'IT', type: 'Financial' },
+        { name: 'Madrid', lat: 40.4168, lng: -3.7038, iso: 'ES', type: 'Political' },
+        { name: 'Lisbon', lat: 38.7223, lng: -9.1393, iso: 'PT', type: 'Economic' },
+        { name: 'Dublin', lat: 53.3498, lng: -6.2603, iso: 'IE', type: 'Tech' },
+        { name: 'Luxembourg', lat: 49.6116, lng: 6.1319, iso: 'LU', type: 'Financial' },
+        { name: 'Monaco', lat: 43.7384, lng: 7.4246, iso: 'MC', type: 'Financial' }
+    ].map(c => ({ ...c, name: c.name, color: COLORS.accent }));
 
     useEffect(() => {
         setCountries(countryData);
-        
+
         const checkMobile = () => {
             setIsMobile(window.innerWidth <= 768);
         };
-        
+
         checkMobile();
         window.addEventListener('resize', checkMobile);
-        
+
         fetch(geoUrl)
             .then(res => res.json())
             .then(data => {
@@ -392,16 +424,14 @@ export default function SnowAIEarth() {
                 setWorldData({ features: [] });
                 setGeoJsonData({ features: [] });
             });
-        
-        // Fetch OpenAI API key
+
         fetchDataFromAPI();
-        
-        // Load available voices
+        fetchCountriesSummary();
+
         const loadVoices = () => {
             const voices = window.speechSynthesis.getVoices();
             setAvailableVoices(voices);
-            
-            // Try to load saved voice preference
+
             const savedVoiceName = localStorage.getItem('lauraVoice');
             if (savedVoiceName) {
                 const savedVoice = voices.find(v => v.name === savedVoiceName);
@@ -410,12 +440,12 @@ export default function SnowAIEarth() {
                 setSelectedVoice(voices[0]);
             }
         };
-        
+
         loadVoices();
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = loadVoices;
         }
-            
+
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
@@ -432,39 +462,64 @@ export default function SnowAIEarth() {
         }
     };
 
-    // Add this near your other useCallback/useMemo hooks
-    const handleLauraInputChange = useCallback((e) => {
-        setLauraInput(e.target.value);
-    }, []);
+    const fetchCountriesSummary = async () => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/countries-summary/`);
+            const data = await response.json();
+            if (data.success) {
+                setDataSummary({
+                    totalCountries: data.countries.length,
+                    totalPicks: data.countries.reduce((sum, c) => sum + (c.total_picks || 0), 0)
+                });
+                setAvailableCountriesSet(new Set(data.countries.map(c => c.country.toLowerCase())));
+            }
+        } catch (error) {
+            console.error('Error fetching countries summary:', error);
+        }
+    };
+
+    // Loose match: "Japan" should register as having data even if the map's
+    // resolved name and the DB's saved name differ slightly.
+    const countryHasData = useCallback((name) => {
+        if (!name) return false;
+        const lower = name.toLowerCase();
+        if (availableCountriesSet.has(lower)) return true;
+        for (const c of availableCountriesSet) {
+            if (lower.includes(c) || c.includes(lower)) return true;
+        }
+        return false;
+    }, [availableCountriesSet]);
+
+    const resolveCountryName = (point) => isoToCountryName[point.iso] || point.name;
 
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
-        
-        let targetCountry = countryData.find(country => 
+
+        let targetCountry = countryData.find(country =>
             country.name.toLowerCase().includes(searchCountry.toLowerCase())
         );
-        
+
         if (targetCountry) {
             globeRef.current.pointOfView({
                 lat: targetCountry.lat,
                 lng: targetCountry.lng,
                 altitude: 2.5
             }, 2000);
-            
-            setSelectedCountry(targetCountry.name);
+
+            setSelectedCountry(resolveCountryName(targetCountry));
             setSearchCountry('');
             return;
         }
-        
+
         const foundFeature = worldData.features?.find(feature => {
             const countryName = feature.properties?.NAME || feature.properties?.name || '';
             return countryName.toLowerCase().includes(searchCountry.toLowerCase());
         });
-        
+
         if (foundFeature && foundFeature.properties) {
             const coords = foundFeature.geometry.coordinates;
             let lat = 0, lng = 0;
-            
+
             if (foundFeature.geometry.type === 'Polygon') {
                 const coordArray = coords[0];
                 coordArray.forEach(coord => {
@@ -485,18 +540,14 @@ export default function SnowAIEarth() {
                 lng /= totalPoints;
                 lat /= totalPoints;
             }
-            
-            globeRef.current.pointOfView({
-                lat: lat,
-                lng: lng,
-                altitude: 2.5
-            }, 2000);
-            
+
+            globeRef.current.pointOfView({ lat, lng, altitude: 2.5 }, 2000);
+
             const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
             setSelectedCountry(countryName);
             setSearchCountry('');
         } else {
-            alert(`TARGET "${searchCountry}" NOT FOUND IN DATABASE. VERIFY INTEL.`);
+            alert(`Couldn't find "${searchCountry}" on the map. Try a different spelling.`);
         }
     };
 
@@ -507,12 +558,14 @@ export default function SnowAIEarth() {
 
         const svg = d3.select(svgRef.current);
         const existingContent = svg.selectAll("g").size();
-        
-        // Only redraw if no content exists
+
+        // Only build the map once -- selection/highlight updates happen in a
+        // separate effect below so we never have to tear this down and
+        // rebuild it (that rebuild was what made the 2D map "disappear").
         if (existingContent > 0) {
             return;
         }
-        
+
         svg.selectAll("*").remove();
 
         const container = mapContainerRef.current;
@@ -548,28 +601,24 @@ export default function SnowAIEarth() {
             .enter()
             .append("path")
             .attr("d", path)
-            .attr("fill", d => {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                return selectedCountry === countryName ? "#2563eb" : "#1e293b";
-            })
-            .attr("stroke", "#334155")
-            .attr("stroke-width", 0.5)
+            .attr("class", "country-path")
+            .attr("fill", COLORS.neutralSoft)
+            .attr("stroke", COLORS.border)
+            .attr("stroke-width", 0.6)
             .style("cursor", "pointer")
-            .on("mouseover", function(event, d) {
-                d3.select(this)
-                    .attr("fill", "#3b82f6")
-                    .attr("stroke-width", 1);
+            .on("mouseover", function () {
+                d3.select(this).attr("stroke-width", 1.4).attr("stroke", COLORS.accent);
             })
-            .on("mouseout", function(event, d) {
+            .on("mouseout", function (event, d) {
                 const countryName = d.properties?.NAME || d.properties?.name;
                 d3.select(this)
-                    .attr("fill", selectedCountry === countryName ? "#2563eb" : "#1e293b")
-                    .attr("stroke-width", 0.5);
+                    .attr("stroke-width", 0.6)
+                    .attr("stroke", countryName === selectedCountry ? COLORS.accent : COLORS.border);
             })
-            .on("click", function(event, d) {
+            .on("click", function (event, d) {
                 event.stopPropagation();
                 const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
-                handleCountryClick({ name: countryName });
+                handleCountryClick(countryName);
             });
 
         g.append("g")
@@ -586,19 +635,44 @@ export default function SnowAIEarth() {
                 return coords ? coords[1] : 0;
             })
             .attr("r", isMobile ? 3 : 4)
-            .attr("fill", d => d.color)
-            .attr("stroke", "#0f172a")
+            .attr("fill", COLORS.accent)
+            .attr("stroke", "#fff")
             .attr("stroke-width", 1.5)
             .style("cursor", "pointer")
-            .style("filter", "drop-shadow(0 0 6px rgba(37, 99, 235, 0.8))")
-            .on("click", function(event, d) {
+            .style("filter", "drop-shadow(0 1px 3px rgba(37, 99, 235, 0.5))")
+            .on("click", function (event, d) {
                 event.stopPropagation();
-                handleCountryClick(d);
+                handleCountryClick(resolveCountryName(d));
             })
             .append("title")
-            .text(d => `${d.name} - THREAT: ${d.threat}\nTYPE: ${d.type}`);
+            .text(d => `${d.name} (${resolveCountryName(d)})`);
 
+        // Initial coloring pass for "has data" + selected state
+        updateD3Colors();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [geoJsonData, isMobile, countries]);
+
+    // Recolors the already-drawn map when the selection or the "which
+    // countries have data" set changes -- no rebuild, so nothing disappears.
+    const updateD3Colors = useCallback(() => {
+        if (!svgRef.current) return;
+        const svg = d3.select(svgRef.current);
+        svg.selectAll('path.country-path')
+            .attr('fill', function (d) {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                if (countryName === selectedCountry) return COLORS.accentSoft;
+                if (countryHasData(countryName)) return '#ecfdf5';
+                return COLORS.neutralSoft;
+            })
+            .attr('stroke', function (d) {
+                const countryName = d.properties?.NAME || d.properties?.name;
+                return countryName === selectedCountry ? COLORS.accent : COLORS.border;
+            });
+    }, [selectedCountry, countryHasData]);
+
+    useEffect(() => {
+        updateD3Colors();
+    }, [updateD3Colors]);
 
     const resetZoom = () => {
         if (zoomRef.current && svgRef.current) {
@@ -614,7 +688,7 @@ export default function SnowAIEarth() {
             const timer = setTimeout(() => {
                 drawD3Map();
             }, 100);
-            
+
             return () => clearTimeout(timer);
         }
     }, [view3D, geoJsonData, drawD3Map]);
@@ -633,115 +707,46 @@ export default function SnowAIEarth() {
         return () => window.removeEventListener('resize', handleResize);
     }, [view3D, drawD3Map]);
 
-    const fetchEconomicData = async (countryName) => {
-        setLoadingAnalysis(true);
+    const fetchCountryStockPicks = async (countryName) => {
+        setLoadingStockData(true);
         try {
-            // Fetch economic data
-            const econResponse = await fetch(`${baseUrl}/api/economic-data-map/`, {
+            const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/by-country/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    country_name: countryName
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country: countryName })
             });
-
-            const econData = await econResponse.json();
-            
-            // Get currency code for news data
-            const currencyMap = {
-                'United States': 'USD', 'USA': 'USD', 'US': 'USD',
-                'Canada': 'CAD', 'United Kingdom': 'GBP', 'UK': 'GBP',
-                'Japan': 'JPY', 'Australia': 'AUD', 'Switzerland': 'CHF',
-                'China': 'CNY', 'Brazil': 'BRL', 'Mexico': 'MXN',
-                'South Africa': 'ZAR', 'India': 'INR', 'Russia': 'RUB',
-                'South Korea': 'KRW', 'Sweden': 'SEK', 'Norway': 'NOK',
-                'Germany': 'EUR', 'France': 'EUR', 'Italy': 'EUR', 'Spain': 'EUR'
-            };
-            
-            const currency = currencyMap[countryName] || 'USD';
-            const currencyPair = `${currency}USD`;
-            
-            // Fetch news data
-            let newsData = { message: [] };
-            try {
-                const newsResponse = await fetch(`${baseUrl}/api/fetch_news_data_api/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        assets: [currencyPair],
-                        user_email: 'intel@classified.gov'
-                    })
-                });
-                
-                if (newsResponse.ok) {
-                    newsData = await newsResponse.json();
-                }
-            } catch (newsError) {
-                console.log('News data unavailable:', newsError);
-            }
-            
-            if (econData.success) {
-                const analysisData = {
-                    ...econData,
-                    aiAnalysis: JSON.parse(econData.ai_analysis),
-                    newsData: newsData.message || [],
-                    currencyPair: currencyPair
-                };
-                
-                setEconomicAnalysis(prev => ({
-                    ...prev,
-                    [countryName]: analysisData
-                }));
-                
-                return analysisData;
-            } else {
-                console.error('Failed to fetch economic data:', econData.error);
-                return null;
-            }
+            const data = await response.json();
+            setCountryStockData(prev => ({ ...prev, [countryName]: data }));
+            return data;
         } catch (error) {
-            console.error('Error fetching economic data:', error);
+            console.error('Error fetching stock picks:', error);
+            setCountryStockData(prev => ({
+                ...prev,
+                [countryName]: { success: false, error: "Couldn't reach the server. Please try again." }
+            }));
             return null;
         } finally {
-            setLoadingAnalysis(false);
+            setLoadingStockData(false);
         }
     };
 
-    const handleCountryClick = (country) => {
-        const countryName = typeof country === 'string' ? country : country.name;
-        setClickedCountry(countryName);
+    const handleCountryClick = async (countryNameOrPoint) => {
+        const countryName = typeof countryNameOrPoint === 'string' ? countryNameOrPoint : countryNameOrPoint.name;
         setSelectedCountry(countryName);
-        setShowConfirmationModal(true);
-        setIntelStatus('QUERYING');
-        // Don't change view - keep the map visible
-    };
-
-    const handleConfirmAnalysis = async () => {
-        setShowConfirmationModal(false);
-        setIntelStatus('ANALYZING');
-        
-        if (!economicAnalysis[clickedCountry]) {
-            await fetchEconomicData(clickedCountry);
+        setShowStockModal(true);
+        if (!countryStockData[countryName]) {
+            await fetchCountryStockPicks(countryName);
         }
-        
-        setShowAnalysisModal(true);
-        setIntelStatus('ACTIVE');
     };
 
-    const handleDeclineAnalysis = () => {
-        setShowConfirmationModal(false);
+    const handleCloseStockModal = () => {
+        setShowStockModal(false);
         setSelectedCountry('');
-        setClickedCountry('');
-        setIntelStatus('STANDBY');
     };
 
-    const handleCloseAnalysisModal = () => {
-        setShowAnalysisModal(false);
-        setSelectedCountry('');
-        setIntelStatus('STANDBY');
+    const handlePolygonClick = (polygon) => {
+        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
+        handleCountryClick(countryName);
     };
 
     const extractYouTubeId = (url) => {
@@ -755,7 +760,7 @@ export default function SnowAIEarth() {
         if (videoId) {
             setIsVideoPlaying(true);
         } else {
-            alert('INVALID YOUTUBE URL FORMAT. PLEASE VERIFY INTEL SOURCE.');
+            alert("That doesn't look like a valid YouTube link. Please check the URL.");
         }
     };
 
@@ -765,15 +770,12 @@ export default function SnowAIEarth() {
         setIsVideoPlaying(false);
     };
 
-
     const handleLauraQuery = async () => {
         if (!lauraInput.trim() && !selectedImage) return;
 
-        // Store the current input values BEFORE clearing them
         const currentInput = lauraInput;
         const currentImage = selectedImage;
 
-        // Clear the input fields immediately so user can type new message
         setLauraInput('');
         setSelectedImage(null);
         setImagePreview(null);
@@ -781,31 +783,28 @@ export default function SnowAIEarth() {
         setLauraLoading(true);
         setLauraError('');
 
-        // Use the stored values instead of state
-        const userMessage = { 
-            role: 'user', 
+        const userMessage = {
+            role: 'user',
             content: currentInput,
-            image: imagePreview 
+            image: imagePreview
         };
 
         const updatedMessages = [...lauraMessages, userMessage];
         setLauraMessages(updatedMessages);
 
-        // Scroll immediately after adding user message
         setTimeout(() => scrollToBottom(), 100);
 
-        // Build context
-        let context = "Available economic intelligence data:\n\n";
-        Object.entries(economicAnalysis).forEach(([country, data]) => {
-            if (data.has_data) {
-                context += `${country}: ${JSON.stringify(data.aiAnalysis)}\n`;
+        let context = "Stock picks you've saved so far:\n\n";
+        Object.entries(countryStockData).forEach(([country, data]) => {
+            if (data && data.success && data.total_stocks > 0) {
+                context += `${country}: ${JSON.stringify(data.stocks)}\n`;
             }
         });
 
         const messages = [
             {
                 role: "system",
-                content: `You are Laura, an AI intelligence analyst. Here's the current intelligence:\n\n${context}`
+                content: `You are Laura, a helpful AI research assistant for a solo stock market researcher. Here's what they have saved so far:\n\n${context}`
             },
             ...updatedMessages.filter(m => !m.image).map(m => ({
                 role: m.role,
@@ -838,7 +837,7 @@ export default function SnowAIEarth() {
                     await sendToOpenAI(requestBody);
                 };
                 reader.onerror = () => {
-                    setLauraError('Image upload failed.');
+                    setLauraError('That image failed to upload.');
                     setLauraLoading(false);
                 };
                 reader.readAsDataURL(currentImage);
@@ -846,15 +845,14 @@ export default function SnowAIEarth() {
                 await sendToOpenAI(requestBody);
             }
         } catch (error) {
-            setLauraError('Connection to intelligence network failed.');
-            setLauraMessages(prev => [...prev, { role: 'assistant', content: '⚠️ CRITICAL ERROR: Intelligence network unreachable.' }]);
+            setLauraError("Couldn't reach Laura. Please try again.");
+            setLauraMessages(prev => [...prev, { role: 'assistant', content: "Sorry, something went wrong on my end." }]);
         } finally {
             setLauraLoading(false);
-            // Scroll again after Laura's response
             setTimeout(() => scrollToBottom(), 100);
         }
     };
-    
+
     const sendToOpenAI = async (requestBody) => {
         try {
             const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -865,14 +863,14 @@ export default function SnowAIEarth() {
                 },
                 body: JSON.stringify(requestBody)
             });
-            
+
             const data = await response.json();
-            
+
             if (data.error) {
-                setLauraError(data.error.message || 'Intelligence network error. Retry connection.');
-                setLauraMessages(prev => [...prev, { 
-                    role: 'assistant', 
-                    content: '⚠️ NETWORK ERROR: Unable to process query. Please retry.'
+                setLauraError(data.error.message || 'Something went wrong. Please try again.');
+                setLauraMessages(prev => [...prev, {
+                    role: 'assistant',
+                    content: "Sorry, I couldn't process that. Please try again."
                 }]);
             } else {
                 const assistantMessage = {
@@ -882,27 +880,31 @@ export default function SnowAIEarth() {
                 setLauraMessages(prev => [...prev, assistantMessage]);
             }
         } catch (error) {
-            setLauraError('OpenAI connection failed.');
-            setLauraMessages(prev => [...prev, { 
-                role: 'assistant', 
-                content: '⚠️ ERROR: Failed to connect to OpenAI. Check API key.'
+            setLauraError('Connection to OpenAI failed.');
+            setLauraMessages(prev => [...prev, {
+                role: 'assistant',
+                content: "Sorry, I couldn't connect. Please check the API key and try again."
             }]);
         } finally {
             setLauraLoading(false);
             setTimeout(() => scrollToBottom(), 100);
         }
     };
-    
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // NOTE: this calls the Anthropic API directly from the browser with no
+    // auth header, so it will 401 as-is. Left as-is since it's unrelated to
+    // this change, but worth routing through your Django backend (like the
+    // OpenAI key already is) if you want this search to actually work.
     const handleGeopoliticalSearch = async () => {
         if (!searchQuery.trim()) return;
-        
+
         setSearchLoading(true);
         setSearchError('');
-        
+
         try {
             const response = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
@@ -916,37 +918,34 @@ export default function SnowAIEarth() {
                     messages: [
                         {
                             role: "user",
-                            content: `Search and provide detailed geopolitical analysis on: ${searchQuery}`
+                            content: `Search and provide a detailed analysis on: ${searchQuery}`
                         }
                     ],
                     tools: [
-                        {
-                            type: "web_search_20250305",
-                            name: "web_search"
-                        }
+                        { type: "web_search_20250305", name: "web_search" }
                     ]
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.error) {
-                setSearchError(data.error.message || 'Search operation failed. Retry query.');
+                setSearchError(data.error.message || 'That search failed. Please try again.');
             } else {
                 const fullResponse = data.content
                     .map(item => (item.type === "text" ? item.text : ""))
                     .filter(Boolean)
                     .join("\n");
-                
-                setLauraMessages(prev => [...prev, 
-                    { role: 'user', content: `🔍 SEARCH QUERY: ${searchQuery}` },
-                    { role: 'assistant', content: fullResponse || 'No intelligence found. Refine search parameters.' }
+
+                setLauraMessages(prev => [...prev,
+                    { role: 'user', content: `Search: ${searchQuery}` },
+                    { role: 'assistant', content: fullResponse || 'No results found. Try rewording your search.' }
                 ]);
                 setSearchQuery('');
                 setShowLaura(true);
             }
         } catch (error) {
-            setSearchError('Search network offline. Unable to query global intelligence database.');
+            setSearchError("Couldn't reach the search service.");
         } finally {
             setSearchLoading(false);
         }
@@ -955,36 +954,35 @@ export default function SnowAIEarth() {
     const handleNewLauraConversation = () => {
         setLauraMessages([{
             role: 'assistant',
-            content: '🟣 LAURA AI ANALYST ONLINE\n\nClassified intelligence terminal active. I have access to all economic data you\'ve queried. Ask me about geopolitical situations, economic trends, or specific country analyses.'
+            content: "Hi, I'm Laura. Ask me about any country's saved stock picks, or use the search box above to look something up."
         }]);
         setLauraError('');
         setSelectedImage(null);
         setImagePreview(null);
     };
-    
+
     const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        setSelectedImage(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result);
-        };
-        reader.readAsDataURL(file);
-    }
-    // Reset the file input so you can upload again
-    if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-    }
-};
-    
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
     const handleVoiceChange = (e) => {
         const voiceName = e.target.value;
         const voice = availableVoices.find(v => v.name === voiceName);
         setSelectedVoice(voice);
         localStorage.setItem('lauraVoice', voiceName);
     };
-    
+
     const speakMessage = (text) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
@@ -998,208 +996,162 @@ export default function SnowAIEarth() {
             window.speechSynthesis.speak(utterance);
         }
     };
-    
+
     const stopSpeaking = () => {
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
     };
 
-    const handlePolygonClick = (polygon) => {
-        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
-        handleCountryClick(countryName);
-    };
-
-    const renderAnalysisModal = () => {
-        const analysis = economicAnalysis[selectedCountry];
-        if (!analysis) return null;
-
-        const aiData = analysis.aiAnalysis;
-        const targetCountry = countries.find(c => c.name === selectedCountry);
-        const newsArticles = analysis.newsData || [];
+    // ------------------------------------------------------------------
+    // Country stock-picks modal (replaces the old "intel brief" modal)
+    // ------------------------------------------------------------------
+    const renderCountryStockModal = () => {
+        const data = countryStockData[selectedCountry];
 
         return (
-            <div style={styles.analysisModal}>
-                <div style={styles.analysisModalContent}>
-                    <div style={styles.analysisModalHeader}>
+            <div style={styles.stockModal} onClick={(e) => {
+                if (e.target === e.currentTarget) handleCloseStockModal();
+            }}>
+                <div style={styles.stockModalContent}>
+                    <div style={styles.stockModalHeader}>
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-                                <Eye size={24} />
-                                <h3 style={styles.analysisModalTitle}>
-                                    INTEL BRIEF: {analysis.country.toUpperCase()}
-                                </h3>
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
-                                CLASSIFICATION: {targetCountry?.threat || 'UNKNOWN'} PRIORITY | PAIR: {analysis.currencyPair}
-                            </div>
+                            <h3 style={styles.stockModalTitle}>
+                                <span style={{ fontSize: '22px', marginRight: '8px' }}>{data?.flag || '🌍'}</span>
+                                {selectedCountry}
+                            </h3>
+                            {data?.success && data.total_stocks > 0 && (
+                                <div style={styles.stockModalSubtitle}>
+                                    {data.total_stocks} stock{data.total_stocks !== 1 ? 's' : ''} · {data.sectors.length} sector{data.sectors.length !== 1 ? 's' : ''}
+                                    {data.last_updated && (
+                                        <> · updated {new Date(data.last_updated).toLocaleDateString()}</>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        <button 
-                            style={styles.analysisCloseButton}
-                            onClick={handleCloseAnalysisModal}
-                        >
-                            ×
-                        </button>
+                        <button style={styles.stockModalClose} onClick={handleCloseStockModal}>×</button>
                     </div>
-                    
-                    <div style={styles.analysisModalBody}>
-                        {analysis.has_data ? (
-                            <div>
-                                <div style={styles.threatPanel}>
-                                    <div style={styles.threatHeader}>
-                                        <AlertTriangle size={16} />
-                                        <span>ECONOMIC THREAT ASSESSMENT</span>
-                                    </div>
-                                    <div style={styles.sentimentBadge(aiData.overall_sentiment)}>
-                                        {aiData.overall_sentiment.toUpperCase()}
-                                    </div>
-                                </div>
 
-                                {/* News Intelligence Section */}
-                                {newsArticles.length > 0 && (
-                                    <div style={styles.newsIntelSection}>
-                                        <div style={styles.sectionHeader}>
-                                            <div style={styles.sectionLine} />
-                                            <h4 style={styles.sectionTitle}>
-                                                🔴 LIVE INTELLIGENCE FEED - {analysis.currencyPair}
-                                            </h4>
-                                        </div>
-                                        <div style={styles.newsGrid}>
-                                            {newsArticles.slice(0, 6).map((article, index) => (
-                                                <div key={index} style={styles.newsCard} className="newsCard">
-                                                    <div style={styles.newsHeader}>
-                                                        <span style={styles.newsSource}>{article.source}</span>
-                                                        <span style={styles.newsAsset}>{article.asset}</span>
-                                                    </div>
-                                                    <h5 style={styles.newsTitle}>{article.title}</h5>
-                                                    {article.highlights && (
-                                                        <p style={styles.newsHighlight}>
-                                                            ⚡ {typeof article.highlights === 'string' 
-                                                                ? article.highlights 
-                                                                : JSON.stringify(article.highlights).substring(0, 150) + '...'}
-                                                        </p>
-                                                    )}
-                                                    <a 
-                                                        href={article.url} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        style={styles.newsLink}
-                                                        className="newsLink"
-                                                    >
-                                                        ACCESS FULL INTEL →
-                                                    </a>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                <div style={styles.intelSection}>
-                                    <div style={styles.sectionHeader}>
-                                        <div style={styles.sectionLine} />
-                                        <h4 style={styles.sectionTitle}>EXECUTIVE SUMMARY</h4>
-                                    </div>
-                                    <p style={styles.summaryText}>{aiData.summary}</p>
-                                </div>
-                                
-                                <div style={styles.intelSection}>
-                                    <div style={styles.sectionHeader}>
-                                        <div style={styles.sectionLine} />
-                                        <h4 style={styles.sectionTitle}>KEY INTELLIGENCE</h4>
-                                    </div>
-                                    <div style={styles.highlightsList}>
-                                        {aiData.key_highlights.map((highlight, index) => (
-                                            <div key={index} style={styles.highlightItem}>
-                                                <span style={styles.bulletPoint}>▸</span>
-                                                {highlight}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                
-                                {aiData.major_events.length > 0 && (
-                                    <div style={styles.intelSection}>
-                                        <div style={styles.sectionHeader}>
-                                            <div style={styles.sectionLine} />
-                                            <h4 style={styles.sectionTitle}>SIGNIFICANT EVENTS</h4>
-                                        </div>
-                                        {aiData.major_events.map((event, index) => (
-                                            <div key={index} style={styles.eventCard}>
-                                                <div style={styles.eventHeader}>
-                                                    <span style={styles.eventName}>{event.event_name}</span>
-                                                    <span style={styles.impactBadge(event.impact_level)}>
-                                                        {event.impact_level.toUpperCase()}
-                                                    </span>
-                                                </div>
-                                                <p style={styles.eventSummary}>{event.summary}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                
-                                <div style={styles.analysisGrid}>
-                                    {aiData.risk_factors.length > 0 && (
-                                        <div style={styles.riskPanel}>
-                                            <div style={styles.panelHeader}>
-                                                <AlertTriangle size={14} />
-                                                <span>RISK FACTORS</span>
-                                            </div>
-                                            <div style={styles.factorsList}>
-                                                {aiData.risk_factors.map((risk, index) => (
-                                                    <div key={index} style={styles.riskItem}>
-                                                        <span style={styles.riskBullet}>◆</span>
-                                                        {risk}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {aiData.opportunities.length > 0 && (
-                                        <div style={styles.opportunityPanel}>
-                                            <div style={styles.panelHeader}>
-                                                <TrendingUp size={14} />
-                                                <span>OPPORTUNITIES</span>
-                                            </div>
-                                            <div style={styles.factorsList}>
-                                                {aiData.opportunities.map((opportunity, index) => (
-                                                    <div key={index} style={styles.opportunityItem}>
-                                                        <span style={styles.opportunityBullet}>◆</span>
-                                                        {opportunity}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                <div style={styles.metaInfo}>
-                                    <div style={styles.metaItem}>
-                                        <DollarSign size={12} />
-                                        <span>CURRENCY: {analysis.currency}</span>
-                                    </div>
-                                    <div style={styles.metaSeparator}>|</div>
-                                    <div style={styles.metaItem}>
-                                        <span>PERIOD: {aiData.analysis_period}</span>
-                                    </div>
-                                    <div style={styles.metaSeparator}>|</div>
-                                    <div style={styles.metaItem}>
-                                        <span>CLASSIFIED</span>
-                                    </div>
-                                </div>
+                    <div style={styles.stockModalBody}>
+                        {loadingStockData && !data && (
+                            <div style={styles.loadingWrap}>
+                                <div style={styles.spinner}></div>
+                                <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading saved picks...</div>
                             </div>
-                        ) : (
-                            <div style={styles.noDataContainer}>
-                                <div style={styles.noDataIcon}>
-                                    <Shield size={48} color="#475569" />
-                                </div>
-                                <h4 style={styles.noDataTitle}>INSUFFICIENT INTEL</h4>
-                                <p style={styles.noDataMessage}>
-                                    {analysis.message}
+                        )}
+
+                        {data && !data.success && (
+                            <div style={styles.emptyStateWrap}>
+                                <div style={styles.emptyStateTitle}>Something went wrong</div>
+                                <p style={styles.emptyStateText}>{data.error || 'Please try again.'}</p>
+                            </div>
+                        )}
+
+                        {data && data.success && data.total_stocks === 0 && (
+                            <div style={styles.emptyStateWrap}>
+                                <Search size={36} color={COLORS.inkFaint} />
+                                <div style={styles.emptyStateTitle}>No stock picks saved yet</div>
+                                <p style={styles.emptyStateText}>
+                                    Run your scanner and save results for {selectedCountry} to see them here.
                                 </p>
-                                {aiData.summary && (
-                                    <p style={styles.noDataSummary}>
-                                        {aiData.summary}
-                                    </p>
+                            </div>
+                        )}
+
+                        {data && data.success && data.total_stocks > 0 && (
+                            <div>
+                                {data.market_outlook && (
+                                    <div style={styles.outlookBox}>
+                                        <div style={styles.outlookLabel}>Market outlook</div>
+                                        <p style={styles.outlookText}>{data.market_outlook}</p>
+                                    </div>
                                 )}
+
+                                <div style={styles.stockList}>
+                                    {data.stocks.map((stock, idx) => {
+                                        const recStyle = getRecStyle(stock.rec);
+                                        const showSectorHeading = idx === 0 || data.stocks[idx - 1].sector !== stock.sector;
+                                        return (
+                                            <React.Fragment key={stock.id || idx}>
+                                                {showSectorHeading && (
+                                                    <div style={styles.sectorHeading}>{stock.sector || 'Other'}</div>
+                                                )}
+                                                <div style={styles.stockCard}>
+                                                    <div style={styles.stockCardHeader}>
+                                                        <div>
+                                                            <span style={styles.stockSymbol}>{stock.symbol}</span>
+                                                            <span style={styles.stockName}>{stock.name}</span>
+                                                            {stock.top_pick && (
+                                                                <span style={styles.topPickBadge}>
+                                                                    <Star size={11} fill={COLORS.accent} color={COLORS.accent} /> Top pick
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span style={{ ...styles.recBadge, ...recStyle }}>{stock.rec}</span>
+                                                    </div>
+
+                                                    {stock.top_pick && stock.top_pick_reason && (
+                                                        <p style={styles.topPickReason}>{stock.top_pick_reason}</p>
+                                                    )}
+
+                                                    <div style={styles.statRow}>
+                                                        {typeof stock.conviction === 'number' && (
+                                                            <div style={styles.convictionWrap}>
+                                                                <div style={styles.convictionLabelRow}>
+                                                                    <BarChart3 size={12} color={COLORS.inkMuted} />
+                                                                    <span>Conviction {stock.conviction}/10</span>
+                                                                </div>
+                                                                <div style={styles.convictionTrack}>
+                                                                    <div style={{
+                                                                        ...styles.convictionFill,
+                                                                        width: `${Math.max(0, Math.min(10, stock.conviction)) * 10}%`
+                                                                    }}></div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {stock.price_at_save && (
+                                                            <div style={styles.statItem}>
+                                                                <DollarSign size={12} color={COLORS.inkMuted} /> {stock.price_at_save}
+                                                            </div>
+                                                        )}
+                                                        {stock.market_cap && (
+                                                            <div style={styles.statItem}>Mkt cap: {stock.market_cap}</div>
+                                                        )}
+                                                        {stock.analyst_target && (
+                                                            <div style={styles.statItem}>
+                                                                <TrendingUp size={12} color={COLORS.inkMuted} /> Target: {stock.analyst_target}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {stock.thesis && (
+                                                        <p style={styles.thesisText}>{stock.thesis}</p>
+                                                    )}
+
+                                                    {stock.risk && (
+                                                        <div style={styles.riskBox}>
+                                                            <AlertTriangle size={13} color={COLORS.caution} />
+                                                            <span>{stock.risk}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {Array.isArray(stock.catalysts) && stock.catalysts.length > 0 && (
+                                                        <div style={styles.catalystWrap}>
+                                                            {stock.catalysts.map((c, i) => (
+                                                                <span key={i} style={styles.catalystChip}>{c}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    <div style={styles.stockCardFooter}>
+                                                        {stock.sub_sector && <span>{stock.sub_sector}</span>}
+                                                        {stock.article_count ? <span>Based on {stock.article_count} article{stock.article_count !== 1 ? 's' : ''}</span> : null}
+                                                        {stock.tf_context && <span>{stock.tf_context}</span>}
+                                                        {stock.date_saved && <span>Saved {new Date(stock.date_saved).toLocaleDateString()}</span>}
+                                                    </div>
+                                                </div>
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1208,10 +1160,9 @@ export default function SnowAIEarth() {
         );
     };
 
-    
     const MediaCenterModal = () => {
         const videoId = isVideoPlaying ? extractYouTubeId(videoUrl) : null;
-        
+
         return (
             <div style={styles.mediaCenterModal} onClick={(e) => {
                 if (e.target === e.currentTarget) {
@@ -1220,46 +1171,30 @@ export default function SnowAIEarth() {
             }}>
                 <div style={styles.mediaCenterContent}>
                     <div style={styles.mediaCenterHeader}>
-                        <h3 style={styles.mediaCenterTitle}>
-                            <span>📡</span> MEDIA SURVEILLANCE CENTER
-                        </h3>
-                        <button 
-                            style={styles.mediaCloseButton}
-                            onClick={handleCloseMediaCenter}
-                        >
-                            ×
-                        </button>
+                        <h3 style={styles.mediaCenterTitle}>Media center</h3>
+                        <button style={styles.mediaCloseButton} onClick={handleCloseMediaCenter}>×</button>
                     </div>
-                    
+
                     <div style={styles.mediaWarning}>
-                        ⚠️ CLASSIFIED MEDIA ACCESS - Enter YouTube URL for intelligence briefing playback. All sessions are monitored and logged.
+                        Paste a YouTube link below to play it here.
                     </div>
-                    
+
                     {!isVideoPlaying && (
                         <div style={styles.mediaInputContainer}>
                             <input
                                 type="text"
-                                placeholder="ENTER YOUTUBE URL (e.g., https://www.youtube.com/watch?v=...)"
+                                placeholder="https://www.youtube.com/watch?v=..."
                                 value={videoUrl}
                                 onChange={(e) => setVideoUrl(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && handlePlayVideo()}
                                 style={styles.mediaInput}
                             />
-                            <button
-                                onClick={handlePlayVideo}
-                                style={styles.mediaButton}
-                                onMouseEnter={(e) => {
-                                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.boxShadow = '0 0 20px rgba(220, 38, 38, 0.4)';
-                                }}
-                            >
-                                INITIATE PLAYBACK
+                            <button onClick={handlePlayVideo} style={styles.mediaButton}>
+                                Play video
                             </button>
                         </div>
                     )}
-                    
+
                     {isVideoPlaying && videoId ? (
                         <div>
                             <div style={styles.videoContainer}>
@@ -1267,7 +1202,7 @@ export default function SnowAIEarth() {
                                     key={videoId}
                                     style={styles.videoIframe}
                                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                                    title="Intelligence Briefing Video"
+                                    title="Video player"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                 ></iframe>
@@ -1277,24 +1212,14 @@ export default function SnowAIEarth() {
                                     setIsVideoPlaying(false);
                                     setVideoUrl('');
                                 }}
-                                style={{
-                                    ...styles.mediaButton,
-                                    marginTop: '15px',
-                                    background: 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)'
-                                }}
+                                style={{ ...styles.mediaButton, marginTop: '15px', background: COLORS.inkMuted }}
                             >
-                                TERMINATE PLAYBACK
+                                Stop video
                             </button>
                         </div>
                     ) : !isVideoPlaying ? (
-                        <div style={{
-                            textAlign: 'center',
-                            padding: '40px 20px',
-                            color: '#64748b',
-                            fontSize: isMobile ? '12px' : '14px',
-                            letterSpacing: '1px'
-                        }}>
-                            AWAITING VIDEO INTELLIGENCE SOURCE...
+                        <div style={{ textAlign: 'center', padding: '40px 20px', color: COLORS.inkFaint }}>
+                            No video playing.
                         </div>
                     ) : null}
                 </div>
@@ -1304,1231 +1229,342 @@ export default function SnowAIEarth() {
 
     const styles = useMemo(() => ({
         container: {
-            background: 'linear-gradient(to bottom, #0f1419 0%, #1a1f2e 100%)',
+            background: COLORS.bg,
             minHeight: '100vh',
-            color: '#e2e8f0'
+            color: COLORS.ink,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         },
-        mainPageBody: {
-            display: 'flex',
-            flexDirection: 'column'
-        },
+        mainPageBody: { display: 'flex', flexDirection: 'column' },
         mainBodyInfo: {
             padding: isMobile ? '15px' : '30px',
             maxWidth: '1400px',
             margin: '0 auto',
             width: '100%'
         },
-        pageHeader: {
-            textAlign: 'center',
-            marginBottom: '30px',
-            borderBottom: '2px solid #1e3a8a',
-            paddingBottom: '20px'
-        },
+        pageHeader: { marginBottom: '24px' },
         pageTitle: {
-            fontSize: isMobile ? '1.8rem' : '2.2rem',
+            fontSize: isMobile ? '1.5rem' : '1.9rem',
             fontWeight: '700',
-            color: '#fff',
-            margin: 0,
-            letterSpacing: '3px',
-            textTransform: 'uppercase',
-            textShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
+            color: COLORS.ink,
+            margin: 0
         },
-        pageSubtitle: {
-            fontSize: '12px',
-            color: '#64748b',
-            letterSpacing: '2px',
-            marginTop: '8px'
+        pageSubtitle: { fontSize: '14px', color: COLORS.inkMuted, marginTop: '6px' },
+        summaryBar: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '14px',
+            fontSize: '13px',
+            color: COLORS.inkMuted,
+            background: COLORS.surface,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: '8px',
+            padding: '10px 14px',
+            width: 'fit-content'
         },
         controlsContainer: {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
-            marginBottom: '25px',
-            gap: '15px',
-            background: 'rgba(15, 20, 25, 0.8)',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid #1e293b'
+            marginBottom: '20px',
+            gap: '12px',
+            background: COLORS.surface,
+            padding: '16px',
+            borderRadius: '10px',
+            border: `1px solid ${COLORS.border}`
         },
         toggleContainer: {
-            display: 'flex',
-            gap: '8px',
-            background: '#0f172a',
-            padding: '4px',
-            borderRadius: '6px',
-            border: '1px solid #1e3a8a',
-            flexWrap: 'wrap',
-            justifyContent: 'center'
+            display: 'flex', gap: '6px', background: COLORS.neutralSoft, padding: '4px',
+            borderRadius: '8px', flexWrap: 'wrap', justifyContent: 'center'
         },
         themeContainer: {
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            background: '#0f172a',
-            padding: '4px',
-            borderRadius: '6px',
-            border: '1px solid #1e3a8a',
-            flexWrap: 'wrap',
-            justifyContent: 'center'
+            display: 'flex', gap: '6px', alignItems: 'center', background: COLORS.neutralSoft,
+            padding: '4px', borderRadius: '8px', flexWrap: 'wrap', justifyContent: 'center'
         },
-        controlLabel: {
-            fontSize: '11px',
-            color: '#64748b',
-            fontWeight: '600',
-            letterSpacing: '1px',
-            marginRight: '8px'
-        },
+        controlLabel: { fontSize: '12px', color: COLORS.inkMuted, fontWeight: '600', marginRight: '4px' },
         toggleButton: {
-            padding: isMobile ? '10px 18px' : '12px 24px',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: isMobile ? '12px' : '13px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            whiteSpace: 'nowrap'
+            padding: isMobile ? '8px 16px' : '9px 20px', border: 'none', borderRadius: '6px',
+            fontSize: isMobile ? '12px' : '13px', fontWeight: '600', cursor: 'pointer',
+            transition: 'all 0.2s ease', whiteSpace: 'nowrap'
         },
         themeButton: {
-            padding: '8px 14px',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            letterSpacing: '1px',
-            whiteSpace: 'nowrap'
+            padding: '7px 14px', border: 'none', borderRadius: '6px', fontSize: '12px',
+            fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', whiteSpace: 'nowrap'
         },
-        activeButton: {
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-            color: '#fff',
-            boxShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
-        },
-        inactiveButton: {
-            background: 'transparent',
-            color: '#64748b',
-            border: '1px solid #1e293b'
-        },
+        activeButton: { background: COLORS.accent, color: '#fff' },
+        inactiveButton: { background: 'transparent', color: COLORS.inkMuted },
         searchContainer: {
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '20px',
-            flexWrap: 'wrap'
+            background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: '10px',
+            padding: isMobile ? '14px' : '16px', marginBottom: '16px'
         },
-        searchInput: {
-            padding: '10px 16px',
-            background: '#0f172a',
-            border: '1px solid #1e3a8a',
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: '13px',
-            outline: 'none',
-            width: isMobile ? '200px' : '280px',
-            fontFamily: 'monospace',
-            letterSpacing: '1px'
+        searchTitle: {
+            display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600',
+            color: COLORS.ink, marginBottom: '10px'
         },
+        searchInputGroup: { display: 'flex', gap: '10px', flexDirection: isMobile ? 'column' : 'row' },
         lauraButton: {
-            position: 'fixed',
-            bottom: '30px',
-            right: isMobile ? '95px' : '110px',
-            width: isMobile ? '50px' : '60px',
-            height: isMobile ? '50px' : '60px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            border: '2px solid #fff',
-            color: '#fff',
-            fontSize: isMobile ? '20px' : '24px',
-            cursor: 'pointer',
-            boxShadow: '0 0 30px rgba(124, 58, 237, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9998,
-            transition: 'all 0.3s ease',
-            animation: 'pulse 2s infinite',
-            fontWeight: 'bold'
+            position: 'fixed', bottom: '30px', right: isMobile ? '95px' : '110px',
+            width: isMobile ? '50px' : '58px', height: isMobile ? '50px' : '58px', borderRadius: '50%',
+            background: COLORS.accent, border: '3px solid #fff', color: '#fff',
+            fontSize: isMobile ? '18px' : '20px', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)', display: 'flex', justifyContent: 'center',
+            alignItems: 'center', zIndex: 9998, transition: 'transform 0.2s ease', fontWeight: '700'
         },
         lauraModal: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10003,
-            backdropFilter: 'blur(10px)'
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.4)', display: 'flex', justifyContent: 'center',
+            alignItems: 'center', zIndex: 10003, backdropFilter: 'blur(4px)'
         },
         lauraContent: {
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-            borderRadius: '12px',
-            border: '2px solid #7c3aed',
-            boxShadow: '0 0 60px rgba(124, 58, 237, 0.5)',
-            width: isMobile ? '95%' : '650px',
-            height: isMobile ? '90vh' : '85vh',
-            maxWidth: '95vw',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)', width: isMobile ? '95%' : '650px',
+            height: isMobile ? '90vh' : '85vh', maxWidth: '95vw', display: 'flex',
+            flexDirection: 'column', overflow: 'hidden'
         },
         lauraHeader: {
-            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            padding: isMobile ? '15px 20px' : '20px 25px',
-            borderBottom: '2px solid #a855f7',
-            display: 'flex',
-            justifyContent: 'space-between',
+            background: COLORS.surface, padding: isMobile ? '15px 20px' : '18px 22px',
+            borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between',
             alignItems: 'center'
         },
         lauraTitle: {
-            fontSize: isMobile ? '1.1rem' : '1.3rem',
-            fontWeight: '700',
-            color: '#fff',
-            margin: 0,
-            letterSpacing: '2px',
-            textTransform: 'uppercase'
+            fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: '700', color: COLORS.ink, margin: 0,
+            display: 'flex', alignItems: 'center', gap: '10px'
+        },
+        lauraAvatar: {
+            width: '28px', height: '28px', borderRadius: '50%', background: COLORS.accent, color: '#fff',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700'
         },
         lauraCloseButton: {
-            background: 'none',
-            border: 'none',
-            color: '#fff',
-            fontSize: '32px',
-            cursor: 'pointer',
-            padding: '0',
-            width: '40px',
-            height: '40px',
-            borderRadius: '6px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            transition: 'background 0.3s ease',
-            fontWeight: '300'
+            background: 'none', border: 'none', color: COLORS.inkMuted, fontSize: '28px', cursor: 'pointer',
+            padding: '0', width: '36px', height: '36px', borderRadius: '6px', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', fontWeight: '300'
         },
-        lauraMessagesContainer: {
-            flex: 1,
-            overflowY: 'auto',
-            padding: isMobile ? '15px' : '20px',
-            background: '#1e1b4b'
-        },
-        lauraMessage: (isUser) => ({
-            marginBottom: '15px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: isUser ? 'flex-end' : 'flex-start'
-        }),
+        lauraMessagesContainer: { flex: 1, overflowY: 'auto', padding: isMobile ? '15px' : '20px', background: COLORS.bg },
+        lauraMessage: (isUser) => ({ marginBottom: '15px', display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }),
         lauraMessageBubble: (isUser) => ({
-            maxWidth: '80%',
-            padding: isMobile ? '10px 14px' : '12px 16px',
-            borderRadius: '12px',
-            background: isUser 
-                ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
-                : 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            color: '#fff',
-            fontSize: isMobile ? '13px' : '14px',
-            lineHeight: '1.5',
-            wordWrap: 'break-word',
-            whiteSpace: 'pre-wrap'
+            maxWidth: '80%', padding: isMobile ? '10px 14px' : '12px 16px', borderRadius: '12px',
+            background: isUser ? COLORS.accent : COLORS.surface,
+            border: isUser ? 'none' : `1px solid ${COLORS.border}`,
+            color: isUser ? '#fff' : COLORS.ink, fontSize: isMobile ? '13px' : '14px', lineHeight: '1.5',
+            wordWrap: 'break-word', whiteSpace: 'pre-wrap'
         }),
-        messageImage: {
-            maxWidth: '200px',
-            maxHeight: '200px',
-            borderRadius: '8px',
-            marginTop: '8px',
-            border: '2px solid rgba(255,255,255,0.3)'
-        },
+        messageImage: { maxWidth: '200px', maxHeight: '200px', borderRadius: '8px', marginTop: '8px', border: `1px solid ${COLORS.border}` },
         speakButton: {
-            marginTop: '8px',
-            padding: '6px 12px',
-            background: 'rgba(255,255,255,0.2)',
-            border: 'none',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: '11px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            letterSpacing: '0.5px'
+            marginTop: '8px', padding: '5px 10px', background: COLORS.neutralSoft, border: `1px solid ${COLORS.border}`,
+            borderRadius: '6px', color: COLORS.inkMuted, fontSize: '11px', cursor: 'pointer', fontWeight: '600'
         },
-        lauraInputContainer: {
-            padding: isMobile ? '12px' : '15px',
-            background: '#1e1b4b',
-            borderTop: '1px solid #4c1d95',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
+        miniSpinner: {
+            width: '16px', height: '16px', border: `2px solid ${COLORS.border}`, borderTop: `2px solid ${COLORS.accent}`,
+            borderRadius: '50%', animation: 'spin 1s linear infinite'
         },
+        lauraInputContainer: { padding: isMobile ? '12px' : '15px', background: COLORS.surface, borderTop: `1px solid ${COLORS.border}`, display: 'flex', flexDirection: 'column', gap: '8px' },
         lauraInput: {
-            width: '100%',
-            padding: isMobile ? '8px 12px' : '10px 14px',
-            background: '#312e81',
-            border: '1px solid #7c3aed',
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: isMobile ? '13px' : '14px',
-            outline: 'none',
-            resize: 'vertical',
-            minHeight: isMobile ? '44px' : '50px',
-            maxHeight: '100px',
-            fontFamily: 'inherit',
-            lineHeight: '1.5'
+            width: '100%', padding: isMobile ? '8px 12px' : '10px 14px', background: COLORS.bg,
+            border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: COLORS.ink,
+            fontSize: isMobile ? '13px' : '14px', outline: 'none', resize: 'vertical',
+            minHeight: isMobile ? '44px' : '50px', maxHeight: '100px', fontFamily: 'inherit', lineHeight: '1.5'
         },
-        imageUploadContainer: {
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            flexWrap: 'wrap'
-        },
+        imageUploadContainer: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
         imageUploadButton: {
-            padding: '6px 12px',
-            background: 'rgba(124, 58, 237, 0.3)',
-            border: '1px solid #7c3aed',
-            borderRadius: '6px',
-            color: '#a855f7',
-            fontSize: '11px',
-            cursor: 'pointer',
-            fontWeight: '600',
-            letterSpacing: '0.5px'
+            padding: '6px 12px', background: COLORS.neutralSoft, border: `1px solid ${COLORS.border}`,
+            borderRadius: '6px', color: COLORS.inkMuted, fontSize: '11px', cursor: 'pointer', fontWeight: '600'
         },
-        imagePreviewContainer: {
-            position: 'relative',
-            display: 'inline-block'
-        },
-        imagePreviewThumb: {
-            width: '50px',
-            height: '50px',
-            borderRadius: '6px',
-            objectFit: 'cover',
-            border: '2px solid #7c3aed'
-        },
+        imagePreviewContainer: { position: 'relative', display: 'inline-block' },
+        imagePreviewThumb: { width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: `1px solid ${COLORS.border}` },
         removeImageButton: {
-            position: 'absolute',
-            top: '-6px',
-            right: '-6px',
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            background: '#ef4444',
-            border: 'none',
-            color: '#fff',
-            fontSize: '12px',
-            cursor: 'pointer',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
+            position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%',
+            background: COLORS.negative, border: 'none', color: '#fff', fontSize: '12px', cursor: 'pointer',
+            display: 'flex', justifyContent: 'center', alignItems: 'center'
         },
         voiceSelector: {
-            padding: '6px 10px',
-            background: '#312e81',
-            border: '1px solid #7c3aed',
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: '11px',
-            outline: 'none',
-            cursor: 'pointer'
+            padding: '6px 10px', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: '6px',
+            color: COLORS.ink, fontSize: '11px', outline: 'none', cursor: 'pointer'
         },
-        lauraButtonContainer: {
-            display: 'flex',
-            gap: '10px'
-        },
+        lauraButtonContainer: { display: 'flex', gap: '10px' },
         lauraSendButton: {
-            flex: 1,
-            padding: isMobile ? '10px 16px' : '12px 20px',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            border: 'none',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 0 20px rgba(124, 58, 237, 0.4)'
+            flex: 1, padding: isMobile ? '10px 16px' : '11px 20px', background: COLORS.accent, border: 'none',
+            borderRadius: '8px', color: '#fff', fontSize: isMobile ? '12px' : '14px', fontWeight: '600', cursor: 'pointer'
         },
         lauraNewChatButton: {
-            padding: isMobile ? '10px 16px' : '12px 20px',
-            background: 'transparent',
-            border: '1px solid #7c3aed',
-            borderRadius: '6px',
-            color: '#a855f7',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease'
+            padding: isMobile ? '10px 16px' : '11px 20px', background: 'transparent', border: `1px solid ${COLORS.border}`,
+            borderRadius: '8px', color: COLORS.inkMuted, fontSize: isMobile ? '12px' : '14px', fontWeight: '600', cursor: 'pointer'
         },
         lauraError: {
-            background: 'rgba(239, 68, 68, 0.2)',
-            border: '1px solid rgba(239, 68, 68, 0.5)',
-            borderRadius: '6px',
-            padding: '10px',
-            color: '#fca5a5',
-            fontSize: isMobile ? '11px' : '12px',
-            marginBottom: '10px'
-        },
-        searchContainer: {
-            background: 'rgba(124, 58, 237, 0.1)',
-            border: '1px solid #7c3aed',
-            borderRadius: '8px',
-            padding: isMobile ? '15px' : '20px',
-            marginBottom: '20px'
-        },
-        searchTitle: {
-            fontSize: isMobile ? '13px' : '14px',
-            fontWeight: '700',
-            color: '#a855f7',
-            marginBottom: '10px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
-        },
-        searchInputGroup: {
-            display: 'flex',
-            gap: '10px',
-            flexDirection: isMobile ? 'column' : 'row'
+            background: COLORS.negativeSoft, border: `1px solid ${COLORS.negativeBorder}`, borderRadius: '8px',
+            padding: '10px', color: COLORS.negative, fontSize: isMobile ? '11px' : '12px', marginBottom: '10px'
         },
         searchInput: {
-            flex: 1,
-            padding: isMobile ? '10px 14px' : '12px 16px',
-            background: '#1e1b4b',
-            border: '1px solid #7c3aed',
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: isMobile ? '13px' : '14px',
-            outline: 'none'
+            flex: 1, padding: isMobile ? '10px 14px' : '11px 16px', background: COLORS.bg,
+            border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: COLORS.ink,
+            fontSize: isMobile ? '13px' : '14px', outline: 'none'
         },
         searchButton: {
-            padding: isMobile ? '10px 20px' : '12px 24px',
-            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            border: 'none',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 0 15px rgba(124, 58, 237, 0.3)',
-            whiteSpace: 'nowrap'
-        },
-        searchButton: {
-            padding: '10px 20px',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-            border: 'none',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 0 15px rgba(37, 99, 235, 0.3)'
+            padding: isMobile ? '10px 20px' : '11px 22px', background: COLORS.accent, border: 'none',
+            borderRadius: '8px', color: '#fff', fontSize: isMobile ? '12px' : '13px', fontWeight: '600',
+            cursor: 'pointer', whiteSpace: 'nowrap'
         },
         viewContainer: {
-            width: '100%',
-            height: `calc(100vh - ${isMobile ? '400px' : '350px'})`,
-            position: 'relative',
-            borderRadius: '8px',
-            overflow: 'hidden',
-            border: '2px solid #1e3a8a',
-            boxShadow: '0 0 40px rgba(37, 99, 235, 0.2)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            background: view3D ? '#000' : '#0f172a'
+            width: '100%', height: `calc(100vh - ${isMobile ? '380px' : '330px'})`, position: 'relative',
+            borderRadius: '10px', overflow: 'hidden', border: `1px solid ${COLORS.border}`,
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            background: view3D ? '#0b1220' : COLORS.surface
         },
         countryLabel: {
-            position: 'absolute',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%)',
-            color: '#fff',
-            padding: '12px 24px',
-            borderRadius: '6px',
-            fontSize: isMobile ? '13px' : '16px',
-            fontWeight: '700',
-            zIndex: 1000,
-            border: '1px solid #2563eb',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            boxShadow: '0 0 30px rgba(37, 99, 235, 0.5)'
+            position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
+            background: COLORS.surface, color: COLORS.ink, padding: '9px 20px', borderRadius: '8px',
+            fontSize: isMobile ? '13px' : '14px', fontWeight: '600', zIndex: 1000, border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
         },
-        mapContainer: {
-            width: '100%',
-            height: '100%',
-            background: '#0f172a',
-            position: 'relative'
-        },
-        svgMap: {
-            width: '100%',
-            height: '100%',
-            display: 'block'
-        },
-        modal: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0, 0, 0, 0.85)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10000,
-            backdropFilter: 'blur(8px)'
-        },
-        modalContent: {
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            padding: '35px',
-            borderRadius: '12px',
-            border: '2px solid #1e3a8a',
-            boxShadow: '0 0 60px rgba(37, 99, 235, 0.4)',
-            maxWidth: '550px',
-            width: '90%',
-            textAlign: 'center'
-        },
-        modalTitle: {
-            fontSize: '1.4rem',
-            fontWeight: '700',
-            color: '#fff',
-            marginBottom: '10px',
-            letterSpacing: '2px',
-            textTransform: 'uppercase'
-        },
-        modalMessage: {
-            fontSize: '14px',
-            color: '#94a3b8',
-            marginBottom: '30px',
-            lineHeight: '1.6',
-            letterSpacing: '0.5px'
-        },
-        modalButtons: {
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center'
-        },
-        modalButton: {
-            padding: '12px 28px',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            minWidth: '120px',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
-        },
-        confirmButton: {
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-            color: '#fff',
-            boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)'
-        },
-        declineButton: {
-            background: 'transparent',
-            color: '#64748b',
-            border: '1px solid #334155'
-        },
+        mapContainer: { width: '100%', height: '100%', background: COLORS.surface, position: 'relative' },
+        svgMap: { width: '100%', height: '100%', display: 'block' },
         loadingOverlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9999,
-            borderRadius: '8px'
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(255,255,255,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 9999, borderRadius: '10px'
         },
         loadingContent: {
-            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            padding: '40px',
-            borderRadius: '12px',
-            textAlign: 'center',
-            border: '2px solid #1e3a8a',
-            boxShadow: '0 0 40px rgba(37, 99, 235, 0.4)'
+            background: COLORS.surface, padding: '32px 40px', borderRadius: '12px', textAlign: 'center',
+            border: `1px solid ${COLORS.border}`, boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
         },
         loadingSpinner: {
-            width: '50px',
-            height: '50px',
-            border: '4px solid #1e293b',
-            borderTop: '4px solid #2563eb',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 20px',
-            boxShadow: '0 0 20px rgba(37, 99, 235, 0.5)'
+            width: '40px', height: '40px', border: `3px solid ${COLORS.border}`, borderTop: `3px solid ${COLORS.accent}`,
+            borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px'
         },
-        loadingText: {
-            fontSize: '14px',
-            color: '#e2e8f0',
-            fontWeight: '600',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
+        loadingText: { fontSize: '13px', color: COLORS.ink, fontWeight: '600' },
+
+        // ---- Country stock-picks modal ----
+        stockModal: {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10001, backdropFilter: 'blur(4px)', padding: isMobile ? '10px' : '20px'
         },
-        analysisModal: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10001,
-            backdropFilter: 'blur(10px)'
+        stockModalContent: {
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
+            maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         },
-        analysisModalContent: {
-            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
-            borderRadius: '12px',
-            border: '2px solid #1e3a8a',
-            boxShadow: '0 0 60px rgba(37, 99, 235, 0.5)',
-            width: isMobile ? '95%' : '800px',
-            maxWidth: '95vw',
-            maxHeight: '90vh',
-            overflow: 'hidden'
+        stockModalHeader: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            padding: '20px 24px', borderBottom: `1px solid ${COLORS.border}`
         },
-        analysisModalHeader: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            padding: '25px 30px',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
-            color: '#fff',
-            borderBottom: '2px solid #60a5fa'
+        stockModalTitle: { fontSize: isMobile ? '1.15rem' : '1.3rem', fontWeight: '700', margin: 0, color: COLORS.ink, display: 'flex', alignItems: 'center' },
+        stockModalSubtitle: { fontSize: '13px', color: COLORS.inkMuted, marginTop: '4px' },
+        stockModalClose: {
+            background: 'none', border: 'none', color: COLORS.inkMuted, fontSize: '28px', cursor: 'pointer',
+            padding: '0', width: '36px', height: '36px', borderRadius: '6px', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', fontWeight: '300', flexShrink: 0
         },
-        analysisModalTitle: {
-            fontSize: isMobile ? '1.2rem' : '1.4rem',
-            fontWeight: '700',
-            margin: 0,
-            letterSpacing: '2px'
+        stockModalBody: { padding: isMobile ? '16px' : '24px', overflowY: 'auto', background: COLORS.bg },
+        outlookBox: {
+            background: COLORS.accentSoft, border: `1px solid ${COLORS.accentBorder}`, borderRadius: '10px',
+            padding: '14px 16px', marginBottom: '20px'
         },
-        analysisCloseButton: {
-            background: 'none',
-            border: 'none',
-            color: '#fff',
-            fontSize: '32px',
-            cursor: 'pointer',
-            padding: '0',
-            width: '40px',
-            height: '40px',
-            borderRadius: '6px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            transition: 'background 0.3s ease',
-            fontWeight: '300'
+        outlookLabel: { fontSize: '11px', fontWeight: '700', color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' },
+        outlookText: { fontSize: '13px', color: COLORS.ink, lineHeight: '1.6', margin: 0 },
+        stockList: { display: 'flex', flexDirection: 'column', gap: '10px' },
+        sectorHeading: {
+            fontSize: '12px', fontWeight: '700', color: COLORS.inkMuted, textTransform: 'uppercase',
+            letterSpacing: '0.5px', margin: '14px 0 2px 0'
         },
-        analysisModalBody: {
-            padding: '30px',
-            maxHeight: '75vh',
-            overflowY: 'auto',
-            background: '#0f172a'
+        stockCard: {
+            background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: '10px', padding: '16px'
         },
-        threatPanel: {
-            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '25px',
-            border: '1px solid #1e3a8a',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+        stockCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' },
+        stockSymbol: { fontFamily: COLORS.mono, fontWeight: '700', fontSize: '14px', color: COLORS.ink, marginRight: '8px' },
+        stockName: { fontSize: '13px', color: COLORS.inkMuted },
+        topPickBadge: {
+            display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '10px', fontSize: '11px',
+            fontWeight: '600', color: COLORS.accent
         },
-        threatHeader: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#60a5fa',
-            fontSize: '13px',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
+        topPickReason: { fontSize: '12px', color: COLORS.accent, fontStyle: 'italic', margin: '6px 0 0 0' },
+        recBadge: { padding: '5px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap' },
+        statRow: { display: 'flex', gap: '16px', flexWrap: 'wrap', margin: '12px 0', alignItems: 'flex-end' },
+        convictionWrap: { minWidth: '140px' },
+        convictionLabelRow: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: COLORS.inkMuted, marginBottom: '5px' },
+        convictionTrack: { width: '100%', height: '5px', background: COLORS.neutralSoft, borderRadius: '4px', overflow: 'hidden' },
+        convictionFill: { height: '100%', background: COLORS.accent, borderRadius: '4px' },
+        statItem: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: COLORS.inkMuted, fontFamily: COLORS.mono },
+        thesisText: { fontSize: '13px', color: COLORS.ink, lineHeight: '1.6', margin: '4px 0' },
+        riskBox: {
+            display: 'flex', alignItems: 'flex-start', gap: '7px', background: COLORS.cautionSoft,
+            border: `1px solid ${COLORS.cautionBorder}`, borderRadius: '8px', padding: '9px 12px',
+            fontSize: '12px', color: '#7c3a00', margin: '8px 0'
         },
-        sentimentBadge: (sentiment) => ({
-            display: 'inline-block',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            background: sentiment === 'positive' 
-                ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)' 
-                : sentiment === 'negative' 
-                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
-                : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)'
-        }),
-        intelSection: {
-            marginBottom: '25px'
+        catalystWrap: { display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' },
+        catalystChip: {
+            fontSize: '11px', color: COLORS.inkMuted, background: COLORS.neutralSoft,
+            border: `1px solid ${COLORS.neutralBorder}`, borderRadius: '999px', padding: '3px 10px'
         },
-        sectionHeader: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            marginBottom: '15px'
+        stockCardFooter: {
+            display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '10px',
+            borderTop: `1px solid ${COLORS.border}`, fontSize: '11px', color: COLORS.inkFaint
         },
-        sectionLine: {
-            width: '4px',
-            height: '20px',
-            background: 'linear-gradient(to bottom, #2563eb, #60a5fa)',
-            borderRadius: '2px'
+        loadingWrap: { textAlign: 'center', padding: '60px 20px' },
+        spinner: {
+            width: '36px', height: '36px', border: `3px solid ${COLORS.border}`, borderTop: `3px solid ${COLORS.accent}`,
+            borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto'
         },
-        sectionTitle: {
-            fontSize: '13px',
-            fontWeight: '700',
-            color: '#60a5fa',
-            margin: 0,
-            letterSpacing: '2px',
-            textTransform: 'uppercase'
-        },
-        summaryText: {
-            fontSize: '14px',
-            color: '#cbd5e1',
-            lineHeight: '1.7',
-            margin: 0,
-            paddingLeft: '16px',
-            borderLeft: '2px solid #1e3a8a'
-        },
-        highlightsList: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
-        },
-        highlightItem: {
-            fontSize: '13px',
-            color: '#cbd5e1',
-            lineHeight: '1.6',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-            padding: '12px',
-            background: 'rgba(30, 58, 138, 0.1)',
-            borderRadius: '6px',
-            border: '1px solid #1e293b'
-        },
-        bulletPoint: {
-            color: '#2563eb',
-            fontSize: '16px',
-            fontWeight: '700',
-            flexShrink: 0
-        },
-        eventCard: {
-            background: 'rgba(30, 41, 59, 0.5)',
-            padding: '18px',
-            borderRadius: '8px',
-            marginBottom: '12px',
-            border: '1px solid #1e3a8a'
-        },
-        eventHeader: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-            gap: '10px'
-        },
-        eventName: {
-            fontSize: '14px',
-            fontWeight: '700',
-            color: '#e2e8f0',
-            letterSpacing: '0.5px'
-        },
-        impactBadge: (impact) => ({
-            padding: '4px 10px',
-            borderRadius: '4px',
-            fontSize: '10px',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            background: impact === 'high' 
-                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
-                : impact === 'medium' 
-                ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)' 
-                : 'linear-gradient(135deg, #64748b 0%, #94a3b8 100%)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-        }),
-        eventSummary: {
-            fontSize: '13px',
-            color: '#94a3b8',
-            margin: 0,
-            lineHeight: '1.5'
-        },
-        analysisGrid: {
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
-            gap: '20px',
-            marginBottom: '25px'
-        },
-        riskPanel: {
-            background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%)',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid rgba(220, 38, 38, 0.3)'
-        },
-        opportunityPanel: {
-            background: 'linear-gradient(135deg, rgba(22, 163, 74, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%)',
-            padding: '20px',
-            borderRadius: '8px',
-            border: '1px solid rgba(22, 163, 74, 0.3)'
-        },
-        panelHeader: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '15px',
-            fontSize: '12px',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            color: '#94a3b8'
-        },
-        factorsList: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        },
-        riskItem: {
-            fontSize: '13px',
-            color: '#fca5a5',
-            lineHeight: '1.5',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-        },
-        riskBullet: {
-            color: '#ef4444',
-            fontSize: '12px',
-            flexShrink: 0,
-            marginTop: '2px'
-        },
-        opportunityItem: {
-            fontSize: '13px',
-            color: '#86efac',
-            lineHeight: '1.5',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-        },
-        opportunityBullet: {
-            color: '#22c55e',
-            fontSize: '12px',
-            flexShrink: 0,
-            marginTop: '2px'
-        },
-        metaInfo: {
-            borderTop: '1px solid #1e293b',
-            paddingTop: '20px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '15px',
-            flexWrap: 'wrap'
-        },
-        metaItem: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '11px',
-            color: '#64748b',
-            fontWeight: '600',
-            letterSpacing: '1px',
-            textTransform: 'uppercase'
-        },
-        metaSeparator: {
-            color: '#334155',
-            fontSize: '11px'
-        },
-        noDataContainer: {
-            textAlign: 'center',
-            padding: '40px 20px'
-        },
-        noDataIcon: {
-            marginBottom: '20px',
-            opacity: 0.5
-        },
-        noDataTitle: {
-            fontSize: '1.2rem',
-            fontWeight: '700',
-            color: '#64748b',
-            marginBottom: '12px',
-            margin: '0 0 12px 0',
-            letterSpacing: '2px',
-            textTransform: 'uppercase'
-        },
-        noDataMessage: {
-            fontSize: '14px',
-            color: '#475569',
-            marginBottom: '15px',
-            lineHeight: '1.6',
-            margin: '0 0 15px 0'
-        },
-        noDataSummary: {
-            fontSize: '13px',
-            color: '#334155',
-            lineHeight: '1.5',
-            fontStyle: 'italic',
-            margin: 0
-        },
-        statusBar: {
-            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
-            padding: '12px 30px',
-            borderBottom: '1px solid #1e3a8a',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '15px'
-        },
-        statusItem: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '11px',
-            color: '#64748b',
-            fontWeight: '600',
-            letterSpacing: '1px'
-        },
-        statusDot: (status) => ({
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: status === 'ACTIVE' || status === 'ANALYZING' 
-                ? '#22c55e' 
-                : status === 'QUERYING' 
-                ? '#f59e0b' 
-                : '#64748b',
-            boxShadow: status === 'ACTIVE' || status === 'ANALYZING'
-                ? '0 0 10px #22c55e'
-                : status === 'QUERYING'
-                ? '0 0 10px #f59e0b'
-                : 'none',
-            animation: status === 'ACTIVE' || status === 'ANALYZING' || status === 'QUERYING' 
-                ? 'pulse 2s infinite' 
-                : 'none'
-        }),
-        statusValue: {
-            color: '#2563eb',
-            fontWeight: '700'
-        },
-        threatIndicator: (level) => ({
-            display: 'inline-block',
-            padding: '4px 10px',
-            borderRadius: '4px',
-            fontSize: '10px',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            background: level === 'HIGH' 
-                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)' 
-                : level === 'ELEVATED'
-                ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
-                : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)'
-        }),
+        emptyStateWrap: { textAlign: 'center', padding: '50px 20px' },
+        emptyStateTitle: { fontSize: '15px', fontWeight: '700', color: COLORS.ink, margin: '10px 0 6px 0' },
+        emptyStateText: { fontSize: '13px', color: COLORS.inkMuted, margin: 0, lineHeight: '1.6' },
+
+        // ---- Media center ----
         mediaCenterButton: {
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            width: isMobile ? '50px' : '60px',
-            height: isMobile ? '50px' : '60px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-            border: '2px solid #fff',
-            color: '#fff',
-            fontSize: isMobile ? '20px' : '24px',
-            cursor: 'pointer',
-            boxShadow: '0 0 30px rgba(220, 38, 38, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 9998,
-            transition: 'all 0.3s ease',
-            animation: 'pulse 2s infinite'
+            position: 'fixed', bottom: '30px', right: '30px', width: isMobile ? '50px' : '58px',
+            height: isMobile ? '50px' : '58px', borderRadius: '50%', background: COLORS.ink,
+            border: '3px solid #fff', color: '#fff', fontSize: isMobile ? '18px' : '20px', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 9998, transition: 'transform 0.2s ease'
         },
         mediaCenterModal: {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0, 0, 0, 0.95)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 10002,
-            backdropFilter: 'blur(10px)'
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.5)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10002, backdropFilter: 'blur(4px)'
         },
         mediaCenterContent: {
-            background: 'linear-gradient(135deg, #0f172a 0%, #1a1f2e 100%)',
-            borderRadius: '12px',
-            border: '2px solid #dc2626',
-            boxShadow: '0 0 60px rgba(220, 38, 38, 0.5)',
-            width: isMobile ? '95%' : '900px',
-            maxWidth: '95vw',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            padding: isMobile ? '15px' : '25px'
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: isMobile ? '95%' : '900px', maxWidth: '95vw',
+            maxHeight: '90vh', overflow: 'auto', padding: isMobile ? '15px' : '25px'
         },
         mediaCenterHeader: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px',
-            paddingBottom: '15px',
-            borderBottom: '2px solid #dc2626'
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px',
+            paddingBottom: '14px', borderBottom: `1px solid ${COLORS.border}`
         },
-        mediaCenterTitle: {
-            fontSize: isMobile ? '1.1rem' : '1.3rem',
-            fontWeight: '700',
-            color: '#fff',
-            margin: 0,
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-        },
+        mediaCenterTitle: { fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: '700', color: COLORS.ink, margin: 0 },
         mediaCloseButton: {
-            background: 'none',
-            border: 'none',
-            color: '#dc2626',
-            fontSize: '32px',
-            cursor: 'pointer',
-            padding: '0',
-            width: '40px',
-            height: '40px',
-            borderRadius: '6px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            transition: 'background 0.3s ease',
-            fontWeight: '300'
+            background: 'none', border: 'none', color: COLORS.inkMuted, fontSize: '28px', cursor: 'pointer',
+            padding: '0', width: '36px', height: '36px', borderRadius: '6px', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', fontWeight: '300'
         },
-        mediaInputContainer: {
-            marginBottom: '20px'
-        },
+        mediaInputContainer: { marginBottom: '16px' },
         mediaInput: {
-            width: '100%',
-            padding: isMobile ? '10px 14px' : '12px 16px',
-            background: '#0f172a',
-            border: '1px solid #dc2626',
-            borderRadius: '6px',
-            color: '#e2e8f0',
-            fontSize: isMobile ? '12px' : '14px',
-            outline: 'none',
-            fontFamily: 'monospace',
-            letterSpacing: '0.5px',
-            marginBottom: '10px'
+            width: '100%', padding: isMobile ? '10px 14px' : '11px 16px', background: COLORS.bg,
+            border: `1px solid ${COLORS.border}`, borderRadius: '8px', color: COLORS.ink,
+            fontSize: isMobile ? '12px' : '14px', outline: 'none', marginBottom: '10px'
         },
         mediaButton: {
-            width: '100%',
-            padding: isMobile ? '10px 20px' : '12px 24px',
-            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-            border: 'none',
-            borderRadius: '6px',
-            color: '#fff',
-            fontSize: isMobile ? '12px' : '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 0 20px rgba(220, 38, 38, 0.4)'
+            width: '100%', padding: isMobile ? '10px 20px' : '11px 24px', background: COLORS.accent, border: 'none',
+            borderRadius: '8px', color: '#fff', fontSize: isMobile ? '12px' : '14px', fontWeight: '600', cursor: 'pointer'
         },
         videoContainer: {
-            position: 'relative',
-            width: '100%',
-            paddingBottom: '56.25%',
-            height: 0,
-            overflow: 'hidden',
-            borderRadius: '8px',
-            border: '2px solid #dc2626',
-            boxShadow: '0 0 30px rgba(220, 38, 38, 0.3)'
+            position: 'relative', width: '100%', paddingBottom: '56.25%', height: 0, overflow: 'hidden',
+            borderRadius: '10px', border: `1px solid ${COLORS.border}`
         },
-        videoIframe: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            border: 'none'
-        },
+        videoIframe: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' },
         mediaWarning: {
-            background: 'rgba(220, 38, 38, 0.1)',
-            border: '1px solid rgba(220, 38, 38, 0.3)',
-            borderRadius: '6px',
-            padding: isMobile ? '10px' : '15px',
-            marginBottom: '15px',
-            fontSize: isMobile ? '11px' : '12px',
-            color: '#fca5a5',
-            letterSpacing: '0.5px',
-            lineHeight: '1.5'
-        },
-        newsIntelSection: {
-            marginBottom: '30px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%)',
-            borderRadius: '8px',
-            border: '1px solid rgba(220, 38, 38, 0.3)'
-        },
-        newsGrid: {
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
-            gap: '15px',
-            marginTop: '15px'
-        },
-        newsCard: {
-            background: 'rgba(15, 23, 42, 0.6)',
-            padding: '15px',
-            borderRadius: '6px',
-            border: '1px solid #1e3a8a',
-            transition: 'all 0.3s ease',
-            cursor: 'pointer'
-        },
-        newsHeader: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '10px',
-            flexWrap: 'wrap',
-            gap: '8px'
-        },
-        newsSource: {
-            fontSize: '10px',
-            fontWeight: '700',
-            color: '#60a5fa',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-            background: 'rgba(37, 99, 235, 0.2)',
-            padding: '4px 8px',
-            borderRadius: '4px'
-        },
-        newsAsset: {
-            fontSize: '10px',
-            fontWeight: '700',
-            color: '#94a3b8',
-            textTransform: 'uppercase',
-            letterSpacing: '1px'
-        },
-        newsTitle: {
-            fontSize: '13px',
-            fontWeight: '600',
-            color: '#e2e8f0',
-            marginBottom: '8px',
-            lineHeight: '1.4',
-            margin: '0 0 8px 0'
-        },
-        newsHighlight: {
-            fontSize: '12px',
-            color: '#94a3b8',
-            lineHeight: '1.5',
-            marginBottom: '10px',
-            margin: '0 0 10px 0',
-            fontStyle: 'italic'
-        },
-        newsLink: {
-            fontSize: '11px',
-            color: '#2563eb',
-            textDecoration: 'none',
-            fontWeight: '700',
-            letterSpacing: '1px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            transition: 'color 0.3s ease'
+            background: COLORS.neutralSoft, border: `1px solid ${COLORS.border}`, borderRadius: '8px',
+            padding: isMobile ? '10px' : '12px', marginBottom: '14px', fontSize: isMobile ? '12px' : '13px',
+            color: COLORS.inkMuted
         }
-    }), [isMobile]);
+    }), [isMobile, view3D]);
 
     const getGlobeSize = () => {
-        const baseSize = isMobile ? 
-            Math.min(window.innerWidth - 40, 400) : 
+        const baseSize = isMobile ?
+            Math.min(window.innerWidth - 40, 400) :
             Math.min(window.innerWidth * 0.45, window.innerHeight * 0.55, 650);
-        
-        return {
-            width: baseSize,
-            height: baseSize
-        };
+
+        return { width: baseSize, height: baseSize };
     };
-
-    const D3Map = () => {
-        return (
-            <div ref={mapContainerRef} style={styles.mapContainer}>
-                <svg ref={svgRef} style={styles.svgMap}></svg>
-            </div>
-        );
-    };
-
-    const ConfirmationModal = () => (
-        <div style={styles.modal}>
-            <div style={styles.modalContent}>
-                <h3 style={styles.modalTitle}>INITIATE INTEL BRIEFING</h3>
-                <p style={styles.modalMessage}>
-                    Request economic intelligence analysis for <strong style={{ color: '#2563eb' }}>{clickedCountry}</strong>?
-                    <br /><br />
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        Classification: CONFIDENTIAL
-                    </span>
-                </p>
-                <div style={styles.modalButtons}>
-                    <button
-                        style={{...styles.modalButton, ...styles.declineButton}}
-                        onClick={handleDeclineAnalysis}
-                        onMouseEnter={(e) => {
-                            e.target.style.background = '#1e293b';
-                            e.target.style.color = '#94a3b8';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.background = 'transparent';
-                            e.target.style.color = '#64748b';
-                        }}
-                    >
-                        ABORT
-                    </button>
-                    <button
-                        style={{...styles.modalButton, ...styles.confirmButton}}
-                        onClick={handleConfirmAnalysis}
-                        onMouseEnter={(e) => {
-                            e.target.style.boxShadow = '0 0 30px rgba(37, 99, 235, 0.6)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.boxShadow = '0 0 20px rgba(37, 99, 235, 0.4)';
-                        }}
-                    >
-                        AUTHORIZE
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-
-    const LoadingOverlay = () => (
-        <div style={styles.loadingOverlay}>
-            <div style={styles.loadingContent}>
-                <div style={styles.loadingSpinner}></div>
-                <div style={styles.loadingText}>
-                    PROCESSING INTEL: {clickedCountry}
-                </div>
-                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '10px', letterSpacing: '1px' }}>
-                    ACCESSING CLASSIFIED DATABASE...
-                </div>
-            </div>
-        </div>
-    );
 
     const currentTheme = globeThemes[globeTheme];
     const globeSize = getGlobeSize();
@@ -2540,173 +1576,96 @@ export default function SnowAIEarth() {
         }
     }, [autoRotate]);
 
+    const LoadingOverlay = () => (
+        <div style={styles.loadingOverlay}>
+            <div style={styles.loadingContent}>
+                <div style={styles.loadingSpinner}></div>
+                <div style={styles.loadingText}>Loading {selectedCountry}...</div>
+            </div>
+        </div>
+    );
+
     return (
         <div style={styles.container}>
             <Header />
             <SideNavs />
-            
-            {/* Live Status Bar */}
-            <div style={styles.statusBar}>
-                <div style={styles.statusItem}>
-                    <div style={styles.statusDot(intelStatus)}></div>
-                    <span>SYSTEM STATUS: <span style={styles.statusValue}>{intelStatus}</span></span>
-                </div>
-                <div style={styles.statusItem}>
-                    <span>THREAT LEVEL: </span>
-                    <span style={styles.threatIndicator(threatLevel)}>{threatLevel}</span>
-                </div>
-            </div>
-            
+
             <div style={styles.mainPageBody}>
                 <div style={styles.mainBodyInfo}>
                     <div style={styles.pageHeader}>
-                        <h1 style={styles.pageTitle}>
-                            GEOPOLITICAL INTELLIGENCE SYSTEM
-                        </h1>
-                        <p style={styles.pageSubtitle}>
-                            REAL-TIME ECONOMIC SURVEILLANCE & THREAT ASSESSMENT
-                        </p>
+                        <h1 style={styles.pageTitle}>Global stock map</h1>
+                        <p style={styles.pageSubtitle}>Click a country to see the stock picks you've saved for it.</p>
+                        <div style={styles.summaryBar}>
+                            <TrendingUp size={14} color={COLORS.accent} />
+                            {dataSummary.totalCountries} countries · {dataSummary.totalPicks} stock picks saved
+                        </div>
                     </div>
-                    
+
                     <div style={styles.controlsContainer}>
                         <div style={styles.toggleContainer}>
                             <button
-                                style={{
-                                    ...styles.toggleButton,
-                                    ...(view3D ? styles.inactiveButton : styles.activeButton)
-                                }}
+                                style={{ ...styles.toggleButton, ...(view3D ? styles.inactiveButton : styles.activeButton) }}
                                 onClick={() => setView3D(false)}
-                                onMouseEnter={(e) => {
-                                    if (!view3D) return;
-                                    e.target.style.background = '#1e293b';
-                                    e.target.style.color = '#94a3b8';
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (!view3D) return;
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.color = '#64748b';
-                                }}
                             >
-                                2D MAP
+                                2D map
                             </button>
                             <button
-                                style={{
-                                    ...styles.toggleButton,
-                                    ...(view3D ? styles.activeButton : styles.inactiveButton)
-                                }}
+                                style={{ ...styles.toggleButton, ...(view3D ? styles.activeButton : styles.inactiveButton) }}
                                 onClick={() => setView3D(true)}
-                                onMouseEnter={(e) => {
-                                    if (view3D) return;
-                                    e.target.style.background = '#1e293b';
-                                    e.target.style.color = '#94a3b8';
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (view3D) return;
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.color = '#64748b';
-                                }}
                             >
-                                3D GLOBE
+                                3D globe
                             </button>
                         </div>
-                        
+
                         {view3D && (
                             <div style={styles.themeContainer}>
-                                <span style={styles.controlLabel}>MODE:</span>
+                                <span style={styles.controlLabel}>View:</span>
                                 {Object.entries(globeThemes).map(([key, theme]) => (
                                     <button
                                         key={key}
-                                        style={{
-                                            ...styles.themeButton,
-                                            ...(globeTheme === key ? styles.activeButton : styles.inactiveButton)
-                                        }}
+                                        style={{ ...styles.themeButton, ...(globeTheme === key ? styles.activeButton : styles.inactiveButton) }}
                                         onClick={() => setGlobeTheme(key)}
-                                        onMouseEnter={(e) => {
-                                            if (globeTheme === key) return;
-                                            e.target.style.background = '#1e293b';
-                                            e.target.style.color = '#94a3b8';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (globeTheme === key) return;
-                                            e.target.style.background = 'transparent';
-                                            e.target.style.color = '#64748b';
-                                        }}
                                     >
                                         {theme.name}
                                     </button>
                                 ))}
                             </div>
                         )}
-                        
+
                         {!view3D && (
-                            <button
-                                style={{...styles.toggleButton, ...styles.inactiveButton}}
-                                onClick={resetZoom}
-                                onMouseEnter={(e) => {
-                                    e.target.style.background = '#1e293b';
-                                    e.target.style.color = '#94a3b8';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.color = '#64748b';
-                                }}
-                            >
-                                RESET VIEW
+                            <button style={{ ...styles.toggleButton, ...styles.inactiveButton }} onClick={resetZoom}>
+                                Reset view
                             </button>
                         )}
 
                         {view3D && (
                             <button
-                                style={{
-                                    ...styles.toggleButton,
-                                    ...(autoRotate ? styles.activeButton : styles.inactiveButton)
-                                }}
+                                style={{ ...styles.toggleButton, ...(autoRotate ? styles.activeButton : styles.inactiveButton) }}
                                 onClick={() => setAutoRotate(!autoRotate)}
-                                onMouseEnter={(e) => {
-                                    if (autoRotate) return;
-                                    e.target.style.background = '#1e293b';
-                                    e.target.style.color = '#94a3b8';
-                                }}
-                                onMouseLeave={(e) => {
-                                    if (autoRotate) return;
-                                    e.target.style.background = 'transparent';
-                                    e.target.style.color = '#64748b';
-                                }}
                             >
-                                {autoRotate ? 'STOP ROTATION' : 'AUTO ROTATE'}
+                                {autoRotate ? 'Stop rotation' : 'Auto rotate'}
                             </button>
                         )}
                     </div>
 
                     {view3D && (
                         <div style={styles.searchContainer}>
-                            <input
-                                type="text"
-                                placeholder="ENTER TARGET LOCATION..."
-                                value={searchCountry}
-                                onChange={(e) => setSearchCountry(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleCountrySearch()}
-                                style={styles.searchInput}
-                            /><br />
-                            <button
-                                onClick={handleCountrySearch}
-                                style={styles.searchButton}
-                                onMouseEnter={(e) => {
-                                    e.target.style.boxShadow = '0 0 25px rgba(37, 99, 235, 0.5)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.boxShadow = '0 0 15px rgba(37, 99, 235, 0.3)';
-                                }}
-                            >
-                                LOCATE TARGET
-                            </button>
+                            <div style={styles.searchInputGroup}>
+                                <input
+                                    type="text"
+                                    placeholder="Search for a country..."
+                                    value={searchCountry}
+                                    onChange={(e) => setSearchCountry(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleCountrySearch()}
+                                    style={styles.searchInput}
+                                />
+                                <button onClick={handleCountrySearch} style={styles.searchButton}>Search</button>
+                            </div>
                         </div>
                     )}
 
-                    {selectedCountry && (
-                        <div style={styles.countryLabel}>
-                            TARGET: {selectedCountry}
-                        </div>
+                    {selectedCountry && !showStockModal && (
+                        <div style={styles.countryLabel}>Selected: {selectedCountry}</div>
                     )}
 
                     <div style={styles.viewContainer}>
@@ -2716,100 +1675,96 @@ export default function SnowAIEarth() {
                                 globeImageUrl={currentTheme.globeImage}
                                 bumpImageUrl={currentTheme.bumpImage}
                                 backgroundImageUrl={currentTheme.background}
-                                
+
                                 polygonsData={worldData.features || []}
                                 polygonAltitude={0.006}
-                                polygonCapColor={() => 'rgba(30, 58, 138, 0.3)'}
-                                polygonSideColor={() => 'rgba(37, 99, 235, 0.1)'}
-                                polygonStrokeColor={() => '#1e3a8a'}
+                                polygonCapColor={(d) => {
+                                    const name = d.properties?.NAME || d.properties?.name;
+                                    if (name === selectedCountry) return 'rgba(37, 99, 235, 0.55)';
+                                    if (countryHasData(name)) return 'rgba(16, 185, 129, 0.28)';
+                                    return 'rgba(148, 163, 184, 0.18)';
+                                }}
+                                polygonSideColor={() => 'rgba(37, 99, 235, 0.08)'}
+                                polygonStrokeColor={() => 'rgba(148, 163, 184, 0.4)'}
                                 polygonLabel={({ properties }) => `
                                     <div style="
-                                        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
-                                        color: white;
-                                        padding: 10px 16px;
+                                        background: #ffffff;
+                                        color: #111827;
+                                        padding: 8px 14px;
                                         border-radius: 6px;
                                         font-size: 13px;
-                                        font-weight: bold;
+                                        font-weight: 600;
                                         max-width: 200px;
-                                        border: 1px solid #2563eb;
-                                        letter-spacing: 1px;
-                                        text-transform: uppercase;
+                                        border: 1px solid #e4e7ec;
                                     ">
-                                        ${properties?.NAME || properties?.name || 'UNKNOWN TERRITORY'}
+                                        ${properties?.NAME || properties?.name || 'Unknown territory'}
                                     </div>
                                 `}
                                 onPolygonClick={handlePolygonClick}
-                                
+
                                 pointsData={countries}
                                 pointAltitude={0.01}
-                                pointColor={d => d.color}
+                                pointColor={() => COLORS.accent}
                                 pointRadius={isMobile ? 0.15 : 0.2}
-                                pointLabel={d => `
-                                    <div style="
-                                        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.95) 100%);
-                                        color: white;
-                                        padding: 12px 18px;
-                                        border-radius: 6px;
-                                        font-size: 12px;
-                                        font-weight: bold;
-                                        border: 1px solid #2563eb;
-                                        letter-spacing: 1px;
-                                    ">
-                                        <div style="text-transform: uppercase; margin-bottom: 4px; font-size: 13px;">${d.name}</div>
-                                        <div style="font-size: 10px; color: #94a3b8; margin-bottom: 3px;">${d.type}</div>
-                                        <div style="font-size: 11px; color: ${
-                                            d.threat === 'HIGH' ? '#ef4444' :
-                                            d.threat === 'MEDIUM' ? '#f59e0b' : '#22c55e'
-                                        };">THREAT: ${d.threat}</div>
-                                    </div>
-                                `}
-                                onPointClick={handleCountryClick}
-                                
+                                pointLabel={d => {
+                                    const fullCountry = resolveCountryName(d);
+                                    const hasData = countryHasData(fullCountry);
+                                    return `
+                                        <div style="
+                                            background: #ffffff;
+                                            color: #111827;
+                                            padding: 10px 14px;
+                                            border-radius: 8px;
+                                            font-size: 12px;
+                                            border: 1px solid #e4e7ec;
+                                        ">
+                                            <div style="font-weight: 700; margin-bottom: 3px;">${d.name}</div>
+                                            <div style="color: #5b6472; margin-bottom: 4px;">${d.type} hub · ${fullCountry}</div>
+                                            <div style="color: ${hasData ? '#16a34a' : '#94a3b8'}; font-weight: 600;">
+                                                ${hasData ? 'Stock picks saved' : 'No picks saved yet'}
+                                            </div>
+                                        </div>
+                                    `;
+                                }}
+                                onPointClick={(point) => handleCountryClick(resolveCountryName(point))}
+
                                 showAtmosphere={true}
                                 atmosphereColor="#2563eb"
                                 atmosphereAltitude={0.2}
-                                
+
                                 enablePointerInteraction={true}
-                                
+
                                 controlsAutoRotate={autoRotate}
                                 controlsAutoRotateSpeed={0.5}
                                 controlsEnableZoom={true}
                                 controlsEnablePan={true}
-                                
+
                                 animateIn={true}
-                                
+
                                 width={globeSize.width}
                                 height={globeSize.height}
                             />
                         ) : (
-                            <D3Map />
+                            <div ref={mapContainerRef} style={styles.mapContainer}>
+                                <svg ref={svgRef} style={styles.svgMap}></svg>
+                            </div>
                         )}
 
-                        {loadingAnalysis && <LoadingOverlay />}
+                        {loadingStockData && !showStockModal && <LoadingOverlay />}
                     </div>
-
-                    {selectedCountry && economicAnalysis[selectedCountry] && showAnalysisModal && renderAnalysisModal()}
                 </div>
             </div>
 
-            {/* Media Center Floating Button */}
             <button
                 style={styles.mediaCenterButton}
                 onClick={() => setShowMediaCenter(true)}
-                title="Media Surveillance Center"
-                onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.1)';
-                    e.target.style.boxShadow = '0 0 40px rgba(220, 38, 38, 0.8), 0 4px 25px rgba(0, 0, 0, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                    e.target.style.boxShadow = '0 0 30px rgba(220, 38, 38, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)';
-                }}
+                title="Media center"
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
-                📡
+                ▶
             </button>
 
-            {/* Laura AI Floating Button */}
             <button
                 style={styles.lauraButton}
                 onClick={() => {
@@ -2818,22 +1773,16 @@ export default function SnowAIEarth() {
                         handleNewLauraConversation();
                     }
                 }}
-                title="Laura AI Analyst"
-                onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.1)';
-                    e.target.style.boxShadow = '0 0 40px rgba(124, 58, 237, 0.8), 0 4px 25px rgba(0, 0, 0, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                    e.target.style.boxShadow = '0 0 30px rgba(124, 58, 237, 0.6), 0 4px 20px rgba(0, 0, 0, 0.4)';
-                }}
+                title="Laura AI assistant"
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
                 L
             </button>
 
-            {showConfirmationModal && <ConfirmationModal />}
             {showMediaCenter && <MediaCenterModal />}
-            {showLaura && <LauraModalContent 
+            {showStockModal && renderCountryStockModal()}
+            {showLaura && <LauraModalContent
                 isMobile={isMobile}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -2860,8 +1809,7 @@ export default function SnowAIEarth() {
                 stopSpeaking={stopSpeaking}
                 styles={styles}
                 setShowLaura={setShowLaura}
-                fileInputRef={fileInputRef}  // <-- Add this
-
+                fileInputRef={fileInputRef}
             />}
 
             <style>{`
@@ -2869,67 +1817,14 @@ export default function SnowAIEarth() {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
                 }
-                
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.4; }
-                }
-                
-                *::-webkit-scrollbar {
-                    width: 10px;
-                    height: 10px;
-                }
-                
-                *::-webkit-scrollbar-track {
-                    background: #0f172a;
-                    border-radius: 5px;
-                }
-                
-                *::-webkit-scrollbar-thumb {
-                    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-                    border-radius: 5px;
-                    border: 2px solid #0f172a;
-                }
-                
-                *::-webkit-scrollbar-thumb:hover {
-                    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-                }
-                
-                input::placeholder {
-                    color: #475569;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                }
-                
-                button:active {
-                    transform: scale(0.98);
-                }
-                
-                .newsCard:hover {
-                    border-color: #2563eb !important;
-                    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3) !important;
-                    transform: translateY(-2px);
-                }
-                
-                .newsLink:hover {
-                    color: #60a5fa !important;
-                }
-                
-                .mediaCenterButton:hover {
-                    animation: none !important;
-                }
-                
-                .lauraButton:hover {
-                    animation: none !important;
-                }
-                
-                .mediaCloseButton:hover {
-                    background: rgba(220, 38, 38, 0.2) !important;
-                }
-                
-                .lauraCloseButton:hover {
-                    background: rgba(124, 58, 237, 0.2) !important;
-                }
+
+                *::-webkit-scrollbar { width: 8px; height: 8px; }
+                *::-webkit-scrollbar-track { background: ${COLORS.bg}; }
+                *::-webkit-scrollbar-thumb { background: ${COLORS.borderStrong}; border-radius: 4px; }
+                *::-webkit-scrollbar-thumb:hover { background: ${COLORS.inkFaint}; }
+
+                input::placeholder { color: ${COLORS.inkFaint}; }
+                button:active { transform: scale(0.98); }
             `}</style>
         </div>
     );
