@@ -3593,7 +3593,7 @@ CRITICAL OUTPUT REQUIREMENTS — do not cut corners:
 - Cover the full breadth of the ${sector} sector in each country, including sub-sectors.
 - Do NOT summarise or truncate the stocks array for any country.
 - Every country must have its own full "stocks" array with at minimum 15 entries.
-- Total output across all ${activeProxies.length} countries should be ${activeProxies.length * 15}+ stocks minimum.
+- Total output across all ${proxies.length} countries should be ${proxies.length * 15}+ stocks minimum.
 Return only the JSON object — it must be parseable by JSON.parse() with no surrounding text.
 
 `;
