@@ -3253,6 +3253,19 @@ const [csdChartTf,     setCsdChartTf]     = useState('1D');
   const [csdHistoryLoad, setCsdHistoryLoad] = useState(false);
   const [csdHistFilter,  setCsdHistFilter]  = useState({ country:'', sector:'', rec:'' });
 
+  // Bulk sector scan state
+const [bulkScanOpen,    setBulkScanOpen]    = useState(false);
+const [bulkScanSector,  setBulkScanSector]  = useState(null);
+// { [country]: 'idle' | 'copied' | 'loaded' | 'saved' | 'error' }
+const [bulkStatus,      setBulkStatus]      = useState({});
+// { [country]: parsedResult }  (same shape as csdCache values)
+const [bulkResults,     setBulkResults]     = useState({});
+const [bulkPasteText,   setBulkPasteText]   = useState('');
+const [bulkParseError,  setBulkParseError]  = useState('');
+const [bulkSaving,      setBulkSaving]      = useState(false);
+const [bulkSaveResult,  setBulkSaveResult]  = useState(null);
+const [bulkCopied,      setBulkCopied]      = useState(''); // country name of last copied
+
   const tfPeriodDays = useMemo(() => {
     const map = { '1m':1,'5m':5,'15m':5,'30m':30,'1H':30,'4H':90,'1D':365,'1W':730,'1M':1825,'3M':1825,'6M':1825,'1Y':1825,'2Y':1825 };
     return map[tf] || 365;
@@ -3538,6 +3551,67 @@ const saveCsdPicks = async (picks, country, flag, sector, marketData, topPick, t
   setCsdSaving(false);
 };
 
+const saveBulkPicks = async (resultsMap) => {
+  setBulkSaving(true);
+  setBulkSaveResult(null);
+
+  const allPicks = [];
+  Object.entries(resultsMap).forEach(([country, result]) => {
+    if (!result?.stocks?.length) return;
+    result.stocks.forEach(s => {
+      allPicks.push({
+        symbol:          s.symbol,
+        name:            s.name,
+        country:         result.country || country,
+        flag:            result.flag || '🌍',
+        sector:          result.sector || bulkScanSector,
+        rec:             s.rec,
+        conviction:      s.conviction,
+        thesis:          s.thesis,
+        risk:            s.risk,
+        catalysts:       s.catalysts || [],
+        analystTarget:   s.analystTarget || '',
+        sub_sector:      s.sector || '',
+        price:           s.price || '',
+        marketCap:       s.marketCap || '',
+        market_outlook:  result.marketOutlook || '',
+        top_pick:        s.symbol === result.topPick,
+        top_pick_reason: s.symbol === result.topPick ? result.topPickReason : '',
+        source_list:     result.sourceList || [],
+        article_count:   result.articleCount || 0,
+      });
+    });
+  });
+
+  if (!allPicks.length) {
+    setBulkSaveResult({ error: 'No stocks to save — paste some responses first.' });
+    setBulkSaving(false);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${baseUrl}/api/snow_save_stock_picks_v1/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ picks: allPicks, tf_context: tf }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    setBulkSaveResult(json);
+    // Mark all loaded countries as saved
+    setBulkStatus(prev => {
+      const next = { ...prev };
+      Object.keys(resultsMap).forEach(c => {
+        if (resultsMap[c]?.stocks?.length) next[c] = 'saved';
+      });
+      return next;
+    });
+  } catch(e) {
+    setBulkSaveResult({ error: e.message });
+  }
+  setBulkSaving(false);
+};
+
 const fetchCsdHistory = async (filters = {}) => {
   setCsdHistoryLoad(true);
   try {
@@ -3691,6 +3765,56 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
     } catch(e) { console.error(e); }
     setLoading(key, false);
   }, [tf, allStocks, baseUrl]);
+
+  const parseBulkPaste = (text) => {
+  setBulkParseError('');
+  if (!text.trim()) { setBulkParseError('Nothing pasted.'); return; }
+
+  let parsed;
+  try {
+    const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    parsed = JSON.parse(clean);
+  } catch(e) {
+    setBulkParseError(`Invalid JSON — ${e.message}`);
+    return;
+  }
+
+  // Validate
+  if (!Array.isArray(parsed.stocks) || !parsed.stocks.length) {
+    setBulkParseError('JSON must have a "stocks" array with at least one entry.');
+    return;
+  }
+  if (!parsed.country) {
+    setBulkParseError('JSON must have a "country" field so we know which country this is for.');
+    return;
+  }
+  const badStocks = parsed.stocks.filter(s => !s.symbol || !s.name);
+  if (badStocks.length) {
+    setBulkParseError(`${badStocks.length} stock(s) missing "symbol" or "name".`);
+    return;
+  }
+
+  // Normalise
+  const validRecs = ['STRONG BUY','BUY','WATCH','HOLD'];
+  parsed.stocks = parsed.stocks.map(s => ({
+    ...s,
+    rec:        validRecs.includes(String(s.rec||'').toUpperCase()) ? String(s.rec).toUpperCase() : 'WATCH',
+    conviction: Math.min(10, Math.max(1, parseInt(s.conviction) || 5)),
+  }));
+
+  const country = parsed.country;
+
+  setBulkResults(prev => ({ ...prev, [country]: parsed }));
+  setBulkStatus(prev  => ({ ...prev, [country]: 'loaded' }));
+  setBulkPasteText('');
+
+  // Also sync into csdCache so opening the individual drill works
+  const cacheKey = `${bulkScanSector}-${country}`;
+  setCsdCache(prev => ({
+    ...prev,
+    [cacheKey]: { ...parsed, fetchedAt: new Date().toLocaleTimeString() },
+  }));
+};
 
   // ── FETCH INDEX DRILL ──
   const fetchIndexDrill = useCallback(async () => {
@@ -4793,6 +4917,53 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                 onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-1px)'; }}
                 onMouseLeave={e=>{ e.currentTarget.style.transform='translateY(0)'; }}>
                 🤖 AI Cross-Country Analysis
+              </button>
+
+              {/* Bulk scan button */}
+              <button
+                onClick={() => {
+                  setBulkScanSector(gslSector);
+                  setBulkScanOpen(true);
+                  // Pre-populate status from existing csdCache
+                  const initialStatus = {};
+                  (GSL_PROXIES[gslSector] || []).forEach(entry => {
+                    const key = `${gslSector}-${entry.country}`;
+                    if (csdCache[key]?.stocks?.length) {
+                      initialStatus[entry.country] = 'loaded';
+                    } else {
+                      initialStatus[entry.country] = 'idle';
+                    }
+                  });
+                  setBulkStatus(initialStatus);
+                  // Pre-populate bulkResults from csdCache
+                  const initialResults = {};
+                  (GSL_PROXIES[gslSector] || []).forEach(entry => {
+                    const key = `${gslSector}-${entry.country}`;
+                    if (csdCache[key]?.stocks?.length) {
+                      initialResults[entry.country] = csdCache[key];
+                    }
+                  });
+                  setBulkResults(initialResults);
+                  setBulkSaveResult(null);
+                  setBulkParseError('');
+                  setBulkPasteText('');
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px',
+                  background: 'linear-gradient(135deg, #0f172a, #1d4ed8)',
+                  color: 'white', border: 'none', borderRadius: 8,
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 3px 10px rgba(29,78,216,0.35)',
+                  transition: 'all 0.15s', whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                🌍 Scan All Countries
+                <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 7px', borderRadius: 4, fontSize: 10, fontWeight: 800 }}>
+                  {(GSL_PROXIES[gslSector] || []).length}
+                </span>
               </button>
 
               {gslAnalysis[key] && (
@@ -6248,6 +6419,311 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
     </div>
   </div>
 )}
+
+{/* ── BULK SECTOR SCAN MODAL ── */}
+{bulkScanOpen && bulkScanSector && (() => {
+  const proxies    = GSL_PROXIES[bulkScanSector] || [];
+  const loaded     = Object.values(bulkResults).filter(r => r?.stocks?.length);
+  const savedCount = Object.values(bulkStatus).filter(s => s === 'saved').length;
+  const totalStocks = loaded.reduce((sum, r) => sum + (r.stocks?.length || 0), 0);
+  const isMobile   = window.innerWidth < 700;
+
+  const statusColor = { idle:'#94a3b8', copied:'#f59e0b', loaded:'#22d3ee', saved:'#10b981', error:'#ef4444' };
+  const statusLabel = { idle:'Pending', copied:'Prompt Copied', loaded:'✓ Response Loaded', saved:'✅ Saved', error:'⚠️ Error' };
+  const statusIcon  = { idle:'○', copied:'📋', loaded:'✓', saved:'💾', error:'⚠️' };
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) setBulkScanOpen(false); }}
+      style={{ position:'fixed', inset:0, zIndex:10014, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding: isMobile ? 0 : 16 }}
+    >
+      <div style={{
+        display:'flex', flexDirection:'column',
+        width:'100%', maxWidth:1100,
+        height: isMobile ? '100dvh' : '94vh',
+        borderRadius: isMobile ? 0 : 20,
+        overflow:'hidden', background:'#fff',
+        boxShadow:'0 40px 120px rgba(0,0,0,0.6)',
+        animation:'esi-modal-in 0.18s ease',
+      }}>
+
+        {/* ── HEADER ── */}
+        <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a8a,#1d4ed8)', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom:12 }}>
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:4 }}>
+                <span style={{ fontSize:18 }}>🌍</span>
+                <span style={{ fontWeight:800, fontSize:16, color:'#fff' }}>Bulk Sector Scan — {bulkScanSector}</span>
+                <span style={{ background:'rgba(255,255,255,0.15)', color:'#bfdbfe', padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>
+                  {proxies.length} countries
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                <div style={{ width:200, height:6, background:'rgba(255,255,255,0.15)', borderRadius:3, overflow:'hidden' }}>
+                  <div style={{ height:'100%', background:'linear-gradient(90deg,#22d3ee,#10b981)', borderRadius:3, width:`${(loaded.length / proxies.length) * 100}%`, transition:'width 0.3s' }}/>
+                </div>
+                <span style={{ fontSize:12, color:'#bfdbfe', fontWeight:700 }}>
+                  {loaded.length}/{proxies.length} countries loaded · {totalStocks} stocks total
+                </span>
+                {savedCount > 0 && (
+                  <span style={{ fontSize:11, background:'rgba(16,185,129,0.25)', color:'#6ee7b7', padding:'2px 8px', borderRadius:20, fontWeight:700 }}>
+                    💾 {savedCount} countries saved
+                  </span>
+                )}
+              </div>
+            </div>
+            <button onClick={() => setBulkScanOpen(false)}
+              style={{ background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%', width:34, height:34, color:'#fff', fontSize:17, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              ✕
+            </button>
+          </div>
+
+          {/* Instructions */}
+          <div style={{ background:'rgba(255,255,255,0.07)', borderRadius:10, padding:'10px 14px', fontSize:12, color:'rgba(255,255,255,0.65)', lineHeight:1.6 }}>
+            <strong style={{ color:'#93c5fd' }}>How it works:</strong> For each country below, click its AI launcher to open the prompt in a new tab. 
+            The AI searches for top {bulkScanSector} stocks in that country and returns JSON. 
+            Copy the JSON and paste it into the box below — it auto-detects which country it belongs to. 
+            Repeat for as many countries as you like, then hit <strong style={{ color:'#6ee7b7' }}>Save All</strong>.
+            💡 <strong style={{ color:'#fde68a' }}>Pro tip:</strong> Open all countries in parallel tabs simultaneously for maximum speed.
+          </div>
+        </div>
+
+        {/* ── BODY: two columns ── */}
+        <div style={{ flex:1, display:'flex', minHeight:0, overflow:'hidden' }}>
+
+          {/* LEFT — country cards */}
+          <div style={{ flex:'0 0 420px', overflowY:'auto', borderRight:'1.5px solid #e2e8f0', background:'#f8fafc', padding:'14px 16px' }}>
+            <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:10 }}>
+              Countries — click to open AI
+            </div>
+
+            {proxies.map(entry => {
+              const status = bulkStatus[entry.country] || 'idle';
+              const sc     = statusColor[status];
+              const result = bulkResults[entry.country];
+              const proxyRet = entry.noData ? null : entry.ret;
+
+              return (
+                <div key={entry.country} style={{
+                  background:'white', borderRadius:12, border:`1.5px solid ${sc}44`,
+                  borderLeft:`4px solid ${sc}`, marginBottom:8, padding:'10px 12px',
+                  transition:'all 0.15s',
+                }}>
+                  {/* Country header */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:20, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{entry.flag}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:800, fontSize:13, color:'#1e293b' }}>{entry.country}</div>
+                      <div style={{ fontSize:10, color:'#94a3b8', fontFamily:'monospace' }}>
+                        {entry.symbol}{entry.name ? ' · '+entry.name : ''}
+                        {proxyRet && <span style={{ marginLeft:6, color:parseFloat(proxyRet)>=0?'#22d3ee':'#f87171', fontWeight:700 }}>{parseFloat(proxyRet)>=0?'+':''}{proxyRet}%</span>}
+                      </div>
+                    </div>
+                    {/* Status badge */}
+                    <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:sc+'20', color:sc, border:`1px solid ${sc}44`, whiteSpace:'nowrap', flexShrink:0 }}>
+                      {statusIcon[status]} {statusLabel[status]}
+                    </span>
+                  </div>
+
+                  {/* Result summary if loaded */}
+                  {result?.stocks?.length > 0 && (
+                    <div style={{ fontSize:11, color:'#475569', marginBottom:6, padding:'5px 8px', background:'#f0fdf4', borderRadius:6, border:'1px solid #bbf7d0' }}>
+                      ✓ {result.stocks.length} stocks loaded
+                      {result.topPick && <span style={{ marginLeft:8, fontWeight:700, color:'#92400e' }}>👑 {result.topPick}</span>}
+                    </div>
+                  )}
+
+                  {/* AI launcher buttons */}
+                  <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                    {[
+                      { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                      { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                      { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                      { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                    ].map(({ name, icon, color, bg, border, getUrl }) => (
+                      <button key={name}
+                        onClick={() => {
+                          window.open(getUrl(buildCsdPrompt(bulkScanSector, entry, tf)), '_blank');
+                          setBulkStatus(prev => ({ ...prev, [entry.country]: prev[entry.country] === 'idle' ? 'copied' : prev[entry.country] }));
+                          setBulkCopied(entry.country);
+                          setTimeout(() => setBulkCopied(''), 2000);
+                        }}
+                        style={{ padding:'4px 9px', borderRadius:6, border:`1px solid ${border}`, background:bg, color, fontWeight:700, fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', gap:4, transition:'all 0.12s' }}>
+                        {icon} {name}
+                      </button>
+                    ))}
+
+                    {/* Copy prompt button */}
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(buildCsdPrompt(bulkScanSector, entry, tf));
+                        setBulkStatus(prev => ({ ...prev, [entry.country]: prev[entry.country] === 'idle' ? 'copied' : prev[entry.country] }));
+                        setBulkCopied(entry.country);
+                        setTimeout(() => setBulkCopied(''), 2000);
+                      }}
+                      style={{ padding:'4px 9px', borderRadius:6, border:'1px solid #c7d2fe', background: bulkCopied === entry.country ? '#10b981' : '#ede9fe', color: bulkCopied === entry.country ? 'white' : '#4338ca', fontWeight:700, fontSize:10, cursor:'pointer', transition:'all 0.15s' }}>
+                      {bulkCopied === entry.country ? '✓' : '📋'} Copy
+                    </button>
+
+                    {/* Per-country save button */}
+                    {result?.stocks?.length > 0 && status !== 'saved' && (
+                      <button
+                        onClick={async () => {
+                          await saveBulkPicks({ [entry.country]: result });
+                        }}
+                        style={{ padding:'4px 9px', borderRadius:6, border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontWeight:700, fontSize:10, cursor:'pointer' }}>
+                        💾 Save
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* RIGHT — paste area + loaded results summary */}
+          <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', minWidth:0 }}>
+
+            {/* Paste area */}
+            <div style={{ padding:'16px 18px', borderBottom:'1.5px solid #e2e8f0', background:'white', flexShrink:0 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'#1e293b', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
+                📥 Paste AI Response
+                <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>— auto-detects country from the JSON</span>
+              </div>
+              <textarea
+                value={bulkPasteText}
+                onChange={e => { setBulkPasteText(e.target.value); setBulkParseError(''); }}
+                placeholder={'Paste the JSON response from any AI here.\n\nIt must have "country" and "stocks" fields.\nExample:\n{\n  "country": "South Korea",\n  "flag": "🇰🇷",\n  "stocks": [...]\n}'}
+                style={{ width:'100%', height:160, padding:12, borderRadius:10, border:`2px solid ${bulkParseError ? '#ef4444' : '#e2e8f0'}`, fontSize:12, fontFamily:"'IBM Plex Mono',monospace", lineHeight:1.6, resize:'vertical', outline:'none', boxSizing:'border-box', color:'#1a1a1a', background: bulkParseError ? '#fef2f2' : '#fafafa', transition:'border-color 0.15s' }}
+              />
+              {bulkParseError && (
+                <div style={{ marginTop:6, padding:'7px 12px', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:8, fontSize:12, color:'#b91c1c' }}>
+                  ⚠️ {bulkParseError}
+                </div>
+              )}
+              <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap', alignItems:'center' }}>
+                <button
+                  onClick={() => parseBulkPaste(bulkPasteText)}
+                  disabled={!bulkPasteText.trim()}
+                  style={{ padding:'8px 18px', background: !bulkPasteText.trim() ? 'rgba(99,102,241,0.3)' : 'linear-gradient(135deg,#4338ca,#6366f1)', border:'none', borderRadius:8, color:'#fff', fontWeight:700, fontSize:13, cursor: !bulkPasteText.trim() ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                  ✓ Parse &amp; Load
+                </button>
+
+                {/* Save All button */}
+                {loaded.length > 0 && (
+                  <button
+                    onClick={() => saveBulkPicks(bulkResults)}
+                    disabled={bulkSaving}
+                    style={{ padding:'8px 18px', background: bulkSaving ? 'rgba(16,185,129,0.3)' : 'linear-gradient(135deg,#059669,#10b981)', border:'none', borderRadius:8, color:'#fff', fontWeight:700, fontSize:13, cursor: bulkSaving ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                    {bulkSaving
+                      ? <><div style={{ width:13, height:13, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'esi-spin 0.7s linear infinite' }}/> Saving…</>
+                      : <>💾 Save All ({totalStocks} stocks across {loaded.length} countries)</>
+                    }
+                  </button>
+                )}
+
+                {bulkPasteText.trim() && (
+                  <button onClick={() => { setBulkPasteText(''); setBulkParseError(''); }}
+                    style={{ padding:'8px 12px', background:'white', border:'1px solid #e2e8f0', borderRadius:8, color:'#64748b', fontWeight:600, fontSize:13, cursor:'pointer' }}>
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Save result */}
+              {bulkSaveResult && (
+                <div style={{ marginTop:10, padding:'8px 12px', borderRadius:8, background: bulkSaveResult.error ? '#fef2f2' : '#f0fdf4', border:`1px solid ${bulkSaveResult.error ? '#fecaca' : '#bbf7d0'}`, fontSize:12, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+                  {bulkSaveResult.error
+                    ? <span style={{ color:'#b91c1c' }}>⚠️ {bulkSaveResult.error}</span>
+                    : <>
+                        <span style={{ color:'#15803d', fontWeight:700 }}>✅ {bulkSaveResult.saved} stocks saved</span>
+                        {bulkSaveResult.skipped > 0 && <span style={{ color:'#92400e' }}>· {bulkSaveResult.skipped} already in DB</span>}
+                        {bulkSaveResult.errors > 0 && <span style={{ color:'#b91c1c' }}>· {bulkSaveResult.errors} failed</span>}
+                      </>
+                  }
+                  <button onClick={() => setBulkSaveResult(null)} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:14 }}>✕</button>
+                </div>
+              )}
+            </div>
+
+            {/* Loaded results summary */}
+            <div style={{ flex:1, overflowY:'auto', padding:'14px 18px', background:'#f8fafc' }}>
+              {loaded.length === 0 ? (
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:200, gap:12, color:'#94a3b8', textAlign:'center' }}>
+                  <span style={{ fontSize:36 }}>📋</span>
+                  <div style={{ fontSize:13, fontWeight:600, color:'#475569' }}>No responses loaded yet</div>
+                  <div style={{ fontSize:12, maxWidth:320, lineHeight:1.6 }}>
+                    Open country prompts in AI tabs → copy their JSON → paste above → click Parse &amp; Load. 
+                    Repeat for each country, then Save All.
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:10 }}>
+                    Loaded Results — {loaded.length} countries · {totalStocks} stocks
+                  </div>
+                  {Object.entries(bulkResults).map(([country, result]) => {
+                    if (!result?.stocks?.length) return null;
+                    const entry = proxies.find(p => p.country === country);
+                    const status = bulkStatus[country] || 'loaded';
+                    const sc = statusColor[status];
+                    const recColors = { 'STRONG BUY':'#10b981','BUY':'#22d3ee','WATCH':'#f59e0b','HOLD':'#94a3b8' };
+                    return (
+                      <div key={country} style={{ background:'white', borderRadius:12, border:`1.5px solid ${sc}33`, borderLeft:`4px solid ${sc}`, marginBottom:10, overflow:'hidden' }}>
+                        {/* Country header */}
+                        <div style={{ padding:'10px 14px', borderBottom:'1px solid #f1f5f9', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                          <span style={{ fontSize:18, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{result.flag || entry?.flag}</span>
+                          <span style={{ fontWeight:800, fontSize:14, color:'#1e293b' }}>{country}</span>
+                          <span style={{ fontSize:11, background:'#ede9fe', color:'#6d28d9', padding:'2px 8px', borderRadius:6 }}>{result.sector || bulkScanSector}</span>
+                          <span style={{ fontSize:11, background:sc+'20', color:sc, border:`1px solid ${sc}44`, padding:'2px 8px', borderRadius:20, fontWeight:700 }}>
+                            {statusIcon[status]} {statusLabel[status]}
+                          </span>
+                          <span style={{ marginLeft:'auto', fontSize:11, color:'#94a3b8' }}>{result.stocks.length} stocks</span>
+                        </div>
+
+                        {/* Market outlook */}
+                        {result.marketOutlook && (
+                          <div style={{ padding:'8px 14px', fontSize:12, color:'#475569', lineHeight:1.5, fontStyle:'italic', borderBottom:'1px solid #f1f5f9', background:'#f5f3ff' }}>
+                            {result.marketOutlook}
+                          </div>
+                        )}
+
+                        {/* Stock chips */}
+                        <div style={{ padding:'8px 14px', display:'flex', flexWrap:'wrap', gap:6 }}>
+                          {result.stocks.map((s, i) => {
+                            const rc = recColors[s.rec] || '#6366f1';
+                            const isTop = s.symbol === result.topPick;
+                            return (
+                              <span key={i} style={{
+                                display:'inline-flex', alignItems:'center', gap:5,
+                                padding:'4px 10px', borderRadius:20,
+                                background: isTop ? '#fef3c7' : rc+'15',
+                                border: `1px solid ${isTop ? '#fde68a' : rc+'44'}`,
+                                fontSize:12, fontWeight:700, color: isTop ? '#92400e' : rc,
+                              }}>
+                                {isTop && '👑 '}
+                                {s.symbol}
+                                <span style={{ fontSize:10, fontWeight:400, color:'#64748b' }}>{s.name?.split(' ').slice(0,2).join(' ')}</span>
+                                <span style={{ fontSize:10, background:rc+'30', padding:'1px 5px', borderRadius:10, color:rc }}>
+                                  {s.rec}
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+})()}
 
     </div>
     
