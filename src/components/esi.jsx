@@ -3510,6 +3510,84 @@ If you find fewer than 15 stocks, search again with different queries before res
 
 };
 
+const buildBulkSinglePrompt = (sector, proxies, tf) => {
+  const countriesList = proxies
+    .map(p => `${p.flag} ${p.country} (exchange proxy: ${p.symbol}${p.name ? ' — '+p.name : ''})`)
+    .join('\n');
+
+  // Pull any GSL performance context we already have
+  const gslKey  = `${sector}-${tf}`;
+  const gslData = gslCache[gslKey];
+  const perfContext = gslData
+    ? gslData
+        .filter(e => !e.noData)
+        .map(e => `${e.flag} ${e.country}: ${parseFloat(e.ret) >= 0 ? '+' : ''}${e.ret}% (${e.regime.label})`)
+        .join(' | ')
+    : 'Not yet loaded';
+
+  return `You are a professional global equity analyst. I need you to identify the most lucrative ${sector} stock investment opportunities across ALL of the following countries simultaneously in one comprehensive research session.
+
+COUNTRIES TO COVER:
+${countriesList}
+
+CURRENT ${sector.toUpperCase()} SECTOR PERFORMANCE CONTEXT (${tf}):
+${perfContext}
+
+YOUR TASK:
+Search extensively across all these markets simultaneously. Aim for 20-30+ sources total — include Bloomberg, Reuters, WSJ, CNBC, Financial Times, and local financial media for each country. For each country, find the top ${sector} stocks listed on that country's exchange with strong fundamentals, momentum, or compelling catalysts right now.
+
+Use proper yfinance ticker format with exchange suffix for each stock:
+- South Korea: ticker.KS (KOSPI) or ticker.KQ (KOSDAQ)
+- Japan: ticker.T
+- UK: ticker.L
+- Germany: ticker.DE
+- France: ticker.PA
+- Hong Kong/China: ticker.HK
+- Australia: ticker.AX
+- Canada: ticker.TO
+- India: ticker.NS
+- Brazil: ticker.SA
+- United States: plain ticker (no suffix)
+
+After researching all countries, return ONLY a JSON object — no markdown, no backticks, no preamble:
+
+{
+  "sector": "${sector}",
+  "globalOutlook": "<2-3 sentence overview of the global ${sector} sector right now — key macro themes, where the money is flowing>",
+  "countries": [
+    {
+      "country": "<country name — must match exactly one of the countries listed above>",
+      "flag": "<flag emoji>",
+      "marketOutlook": "<1-2 sentence outlook specific to this country's ${sector} sector>",
+      "topPick": "<symbol of single highest-conviction pick for this country>",
+      "topPickReason": "<one punchy sentence on why>",
+      "stocks": [
+        {
+          "symbol": "<exact yfinance ticker with suffix>",
+          "name": "<full English company name>",
+          "rec": "STRONG BUY" | "BUY" | "WATCH" | "HOLD",
+          "conviction": <integer 1-10>,
+          "price": "<last known price with currency>",
+          "marketCap": "<e.g. '$450B' or '₩85T'>",
+          "thesis": "<2-3 sentence investment thesis — why this stock, why now>",
+          "catalysts": ["<catalyst 1>", "<catalyst 2>"],
+          "risk": "<main risk in one sentence>",
+          "analystTarget": "<consensus price target or 'Not found'>",
+          "sector": "<specific sub-sector e.g. Semiconductors, Cloud Software>"
+        }
+      ]
+    }
+  ],
+  "globalLeader": "<country name with the strongest overall ${sector} opportunity right now>",
+  "globalLeaderReason": "<one sentence on why>",
+  "risks": ["<global risk 1>", "<global risk 2>", "<global risk 3>"],
+  "articleCount": <total number of sources consulted across all countries>,
+  "sourceList": ["<source1>", "<source2>", "<source3>"]
+}
+
+Aim for 5-10 stocks per country. Cover all ${proxies.length} countries. Return only the JSON object — it must be parseable by JSON.parse() with no surrounding text.`;
+};
+
 const saveCsdPicks = async (picks, country, flag, sector, marketData, topPick, topPickReason, sourceList, articleCount) => {
   if (!picks?.length) return;
   setCsdSaving(true);
@@ -3779,41 +3857,60 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
     return;
   }
 
-  // Validate
-  if (!Array.isArray(parsed.stocks) || !parsed.stocks.length) {
-    setBulkParseError('JSON must have a "stocks" array with at least one entry.');
-    return;
-  }
-  if (!parsed.country) {
-    setBulkParseError('JSON must have a "country" field so we know which country this is for.');
-    return;
-  }
-  const badStocks = parsed.stocks.filter(s => !s.symbol || !s.name);
-  if (badStocks.length) {
-    setBulkParseError(`${badStocks.length} stock(s) missing "symbol" or "name".`);
+  // Validate top level
+  if (!Array.isArray(parsed.countries) || !parsed.countries.length) {
+    setBulkParseError('JSON must have a "countries" array. Make sure you used the bulk prompt, not the single-country one.');
     return;
   }
 
-  // Normalise
   const validRecs = ['STRONG BUY','BUY','WATCH','HOLD'];
-  parsed.stocks = parsed.stocks.map(s => ({
-    ...s,
-    rec:        validRecs.includes(String(s.rec||'').toUpperCase()) ? String(s.rec).toUpperCase() : 'WATCH',
-    conviction: Math.min(10, Math.max(1, parseInt(s.conviction) || 5)),
-  }));
+  let loadedCount = 0;
+  const newResults = {};
+  const newStatus  = {};
+  const errors     = [];
 
-  const country = parsed.country;
+  parsed.countries.forEach(countryObj => {
+    if (!countryObj.country) { errors.push('One entry missing "country" field — skipped.'); return; }
+    if (!Array.isArray(countryObj.stocks) || !countryObj.stocks.length) {
+      errors.push(`${countryObj.country}: no stocks array — skipped.`);
+      return;
+    }
 
-  setBulkResults(prev => ({ ...prev, [country]: parsed }));
-  setBulkStatus(prev  => ({ ...prev, [country]: 'loaded' }));
-  setBulkPasteText('');
+    const badStocks = countryObj.stocks.filter(s => !s.symbol || !s.name);
+    if (badStocks.length) {
+      errors.push(`${countryObj.country}: ${badStocks.length} stock(s) missing symbol/name — skipped.`);
+      return;
+    }
 
-  // Also sync into csdCache so opening the individual drill works
-  const cacheKey = `${bulkScanSector}-${country}`;
-  setCsdCache(prev => ({
-    ...prev,
-    [cacheKey]: { ...parsed, fetchedAt: new Date().toLocaleTimeString() },
-  }));
+    // Normalise
+    countryObj.stocks = countryObj.stocks.map(s => ({
+      ...s,
+      rec:        validRecs.includes(String(s.rec||'').toUpperCase()) ? String(s.rec).toUpperCase() : 'WATCH',
+      conviction: Math.min(10, Math.max(1, parseInt(s.conviction) || 5)),
+    }));
+
+    newResults[countryObj.country] = {
+      ...countryObj,
+      fetchedAt: new Date().toLocaleTimeString(),
+    };
+    newStatus[countryObj.country] = 'loaded';
+
+    // Sync into csdCache so individual country drill modals work too
+    const cacheKey = `${bulkScanSector}-${countryObj.country}`;
+    setCsdCache(prev => ({
+      ...prev,
+      [cacheKey]: { ...countryObj, fetchedAt: new Date().toLocaleTimeString() },
+    }));
+
+    loadedCount++;
+  });
+
+  if (errors.length) setBulkParseError(errors.join(' | '));
+  if (loadedCount > 0) {
+    setBulkResults(prev => ({ ...prev, ...newResults }));
+    setBulkStatus(prev  => ({ ...prev, ...newStatus  }));
+    setBulkPasteText('');
+  }
 };
 
   // ── FETCH INDEX DRILL ──
@@ -6492,95 +6589,79 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
         {/* ── BODY: two columns ── */}
         <div style={{ flex:1, display:'flex', minHeight:0, overflow:'hidden' }}>
 
-          {/* LEFT — country cards */}
-          <div style={{ flex:'0 0 420px', overflowY:'auto', borderRight:'1.5px solid #e2e8f0', background:'#f8fafc', padding:'14px 16px' }}>
-            <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:10 }}>
-              Countries — click to open AI
+          {/* LEFT — single prompt + country status tracker */}
+        <div style={{ flex:'0 0 380px', overflowY:'auto', borderRight:'1.5px solid #e2e8f0', background:'#f8fafc', display:'flex', flexDirection:'column' }}>
+
+          {/* Single prompt block */}
+          <div style={{ padding:'14px 16px', borderBottom:'1.5px solid #e2e8f0', background:'white', flexShrink:0 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'#1e293b', marginBottom:10 }}>
+              🤖 One Prompt — All {proxies.length} Countries
             </div>
 
+            {/* AI launchers */}
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:10 }}>
+              {[
+                { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
+                { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+              ].map(({ name, icon, color, bg, border, getUrl }) => (
+                <button key={name}
+                  onClick={() => window.open(getUrl(buildBulkSinglePrompt(bulkScanSector, proxies, tf)), '_blank')}
+                  style={{ padding:'7px 12px', borderRadius:8, border:`1.5px solid ${border}`, background:bg, color, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, transition:'all 0.15s', flex:'1 1 auto', justifyContent:'center' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+                  {icon} {name}
+                </button>
+              ))}
+            </div>
+
+            {/* Copy prompt */}
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(buildBulkSinglePrompt(bulkScanSector, proxies, tf));
+                setBulkCopied('__all__');
+                setTimeout(() => setBulkCopied(''), 2000);
+              }}
+              style={{ width:'100%', padding:'8px 0', background: bulkCopied === '__all__' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#1e1b4b,#4338ca)', border:'none', borderRadius:8, color:'#fff', fontWeight:700, fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:7, transition:'background 0.25s' }}>
+              {bulkCopied === '__all__' ? '✓ Copied!' : '📋 Copy Full Prompt'}
+            </button>
+
+            <div style={{ marginTop:8, padding:'8px 10px', background:'rgba(32,178,170,0.07)', border:'1px solid rgba(32,178,170,0.25)', borderRadius:8, fontSize:11, color:'#0f766e', lineHeight:1.5 }}>
+              💡 <strong>Perplexity or Qwen</strong> work best for this — they search across all {proxies.length} countries simultaneously and can handle large JSON responses. Paste the full JSON response into the box on the right.
+            </div>
+          </div>
+
+          {/* Country status tracker */}
+          <div style={{ flex:1, overflowY:'auto', padding:'12px 14px' }}>
+            <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:8 }}>
+              Country Status
+            </div>
             {proxies.map(entry => {
               const status = bulkStatus[entry.country] || 'idle';
               const sc     = statusColor[status];
               const result = bulkResults[entry.country];
-              const proxyRet = entry.noData ? null : entry.ret;
-
               return (
-                <div key={entry.country} style={{
-                  background:'white', borderRadius:12, border:`1.5px solid ${sc}44`,
-                  borderLeft:`4px solid ${sc}`, marginBottom:8, padding:'10px 12px',
-                  transition:'all 0.15s',
-                }}>
-                  {/* Country header */}
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ fontSize:20, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{entry.flag}</span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontWeight:800, fontSize:13, color:'#1e293b' }}>{entry.country}</div>
-                      <div style={{ fontSize:10, color:'#94a3b8', fontFamily:'monospace' }}>
-                        {entry.symbol}{entry.name ? ' · '+entry.name : ''}
-                        {proxyRet && <span style={{ marginLeft:6, color:parseFloat(proxyRet)>=0?'#22d3ee':'#f87171', fontWeight:700 }}>{parseFloat(proxyRet)>=0?'+':''}{proxyRet}%</span>}
+                <div key={entry.country} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'white', borderRadius:8, border:`1px solid ${sc}33`, borderLeft:`3px solid ${sc}`, marginBottom:6, transition:'all 0.15s' }}>
+                  <span style={{ fontSize:16, fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif", flexShrink:0 }}>{entry.flag}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:12, color:'#1e293b' }}>{entry.country}</div>
+                    {result?.stocks?.length > 0 && (
+                      <div style={{ fontSize:10, color:'#64748b' }}>
+                        {result.stocks.length} stocks · {result.topPick && <span style={{ color:'#92400e' }}>👑 {result.topPick}</span>}
                       </div>
-                    </div>
-                    {/* Status badge */}
-                    <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:sc+'20', color:sc, border:`1px solid ${sc}44`, whiteSpace:'nowrap', flexShrink:0 }}>
-                      {statusIcon[status]} {statusLabel[status]}
-                    </span>
-                  </div>
-
-                  {/* Result summary if loaded */}
-                  {result?.stocks?.length > 0 && (
-                    <div style={{ fontSize:11, color:'#475569', marginBottom:6, padding:'5px 8px', background:'#f0fdf4', borderRadius:6, border:'1px solid #bbf7d0' }}>
-                      ✓ {result.stocks.length} stocks loaded
-                      {result.topPick && <span style={{ marginLeft:8, fontWeight:700, color:'#92400e' }}>👑 {result.topPick}</span>}
-                    </div>
-                  )}
-
-                  {/* AI launcher buttons */}
-                  <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
-                    {[
-                      { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
-                      { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
-                      { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
-                      { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
-                    ].map(({ name, icon, color, bg, border, getUrl }) => (
-                      <button key={name}
-                        onClick={() => {
-                          window.open(getUrl(buildCsdPrompt(bulkScanSector, entry, tf)), '_blank');
-                          setBulkStatus(prev => ({ ...prev, [entry.country]: prev[entry.country] === 'idle' ? 'copied' : prev[entry.country] }));
-                          setBulkCopied(entry.country);
-                          setTimeout(() => setBulkCopied(''), 2000);
-                        }}
-                        style={{ padding:'4px 9px', borderRadius:6, border:`1px solid ${border}`, background:bg, color, fontWeight:700, fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', gap:4, transition:'all 0.12s' }}>
-                        {icon} {name}
-                      </button>
-                    ))}
-
-                    {/* Copy prompt button */}
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(buildCsdPrompt(bulkScanSector, entry, tf));
-                        setBulkStatus(prev => ({ ...prev, [entry.country]: prev[entry.country] === 'idle' ? 'copied' : prev[entry.country] }));
-                        setBulkCopied(entry.country);
-                        setTimeout(() => setBulkCopied(''), 2000);
-                      }}
-                      style={{ padding:'4px 9px', borderRadius:6, border:'1px solid #c7d2fe', background: bulkCopied === entry.country ? '#10b981' : '#ede9fe', color: bulkCopied === entry.country ? 'white' : '#4338ca', fontWeight:700, fontSize:10, cursor:'pointer', transition:'all 0.15s' }}>
-                      {bulkCopied === entry.country ? '✓' : '📋'} Copy
-                    </button>
-
-                    {/* Per-country save button */}
-                    {result?.stocks?.length > 0 && status !== 'saved' && (
-                      <button
-                        onClick={async () => {
-                          await saveBulkPicks({ [entry.country]: result });
-                        }}
-                        style={{ padding:'4px 9px', borderRadius:6, border:'1px solid #bbf7d0', background:'#f0fdf4', color:'#15803d', fontWeight:700, fontSize:10, cursor:'pointer' }}>
-                        💾 Save
-                      </button>
                     )}
                   </div>
+                  <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:sc+'20', color:sc, border:`1px solid ${sc}44`, whiteSpace:'nowrap', flexShrink:0 }}>
+                    {statusIcon[status]} {statusLabel[status]}
+                  </span>
                 </div>
               );
             })}
           </div>
+        </div>
 
           {/* RIGHT — paste area + loaded results summary */}
           <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', minWidth:0 }}>
