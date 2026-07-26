@@ -3265,6 +3265,7 @@ const [bulkParseError,  setBulkParseError]  = useState('');
 const [bulkSaving,      setBulkSaving]      = useState(false);
 const [bulkSaveResult,  setBulkSaveResult]  = useState(null);
 const [bulkCopied,      setBulkCopied]      = useState(''); // country name of last copied
+const [bulkSelectedCountries, setBulkSelectedCountries] = useState(null); // null = all selected
 
   const tfPeriodDays = useMemo(() => {
     const map = { '1m':1,'5m':5,'15m':5,'30m':30,'1H':30,'4H':90,'1D':365,'1W':730,'1M':1825,'3M':1825,'6M':1825,'1Y':1825,'2Y':1825 };
@@ -5044,6 +5045,7 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                   setBulkSaveResult(null);
                   setBulkParseError('');
                   setBulkPasteText('');
+                  setBulkSelectedCountries(null); // reset to all selected on open
                 }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -6529,6 +6531,11 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
   const statusLabel = { idle:'Pending', copied:'Prompt Copied', loaded:'✓ Response Loaded', saved:'✅ Saved', error:'⚠️ Error' };
   const statusIcon  = { idle:'○', copied:'📋', loaded:'✓', saved:'💾', error:'⚠️' };
 
+  const activeProxies = bulkSelectedCountries === null
+    ? proxies
+    : proxies.filter(p => bulkSelectedCountries.includes(p.country));
+  const noneSelected = activeProxies.length === 0;
+
   return (
     <div
       onClick={e => { if (e.target === e.currentTarget) setBulkScanOpen(false); }}
@@ -6576,6 +6583,67 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
             </button>
           </div>
 
+          {/* Country selector */}
+          <div style={{ marginBottom:10 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.6)', marginBottom:6, display:'flex', alignItems:'center', gap:10 }}>
+              <span>Select countries to include in prompt:</span>
+              <button
+                onClick={() => setBulkSelectedCountries(null)}
+                style={{ padding:'2px 8px', borderRadius:5, border:'1px solid rgba(255,255,255,0.25)', background: bulkSelectedCountries === null ? '#38bdf8' : 'rgba(255,255,255,0.1)', color: bulkSelectedCountries === null ? '#0c4a6e' : 'rgba(255,255,255,0.7)', fontSize:10, fontWeight:700, cursor:'pointer', transition:'all 0.12s' }}>
+                All
+              </button>
+              <button
+                onClick={() => setBulkSelectedCountries([])}
+                style={{ padding:'2px 8px', borderRadius:5, border:'1px solid rgba(255,255,255,0.25)', background:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.7)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+                None
+              </button>
+            </div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+              {proxies.map(entry => {
+                const isSelected = bulkSelectedCountries === null || bulkSelectedCountries.includes(entry.country);
+                return (
+                  <button
+                    key={entry.country}
+                    onClick={() => {
+                      if (bulkSelectedCountries === null) {
+                        // Was "all" — switch to all except this one
+                        setBulkSelectedCountries(proxies.map(p => p.country).filter(c => c !== entry.country));
+                      } else if (bulkSelectedCountries.includes(entry.country)) {
+                        // Deselect
+                        setBulkSelectedCountries(bulkSelectedCountries.filter(c => c !== entry.country));
+                      } else {
+                        // Select
+                        const next = [...bulkSelectedCountries, entry.country];
+                        // If all selected, go back to null
+                        setBulkSelectedCountries(next.length === proxies.length ? null : next);
+                      }
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', borderRadius: 20, cursor: 'pointer',
+                      border: `1.5px solid ${isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                      background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.04)',
+                      color: isSelected ? '#fff' : 'rgba(255,255,255,0.35)',
+                      fontSize: 12, fontWeight: isSelected ? 700 : 400,
+                      transition: 'all 0.14s',
+                      opacity: isSelected ? 1 : 0.5,
+                    }}
+                  >
+                    <span style={{ fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{entry.flag}</span>
+                    {entry.country}
+                    {!isSelected && <span style={{ fontSize:10, opacity:0.7 }}>✕</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {bulkSelectedCountries !== null && (
+              <div style={{ marginTop:6, fontSize:11, color:'rgba(255,255,255,0.5)' }}>
+                {bulkSelectedCountries.length} / {proxies.length} countries selected
+                {bulkSelectedCountries.length === 0 && <span style={{ color:'#f87171', marginLeft:8 }}>⚠️ Select at least one country</span>}
+              </div>
+            )}
+          </div>
+
           {/* Instructions */}
           <div style={{ background:'rgba(255,255,255,0.07)', borderRadius:10, padding:'10px 14px', fontSize:12, color:'rgba(255,255,255,0.65)', lineHeight:1.6 }}>
             <strong style={{ color:'#93c5fd' }}>How it works:</strong> For each country below, click its AI launcher to open the prompt in a new tab. 
@@ -6605,13 +6673,23 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                 { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
                 { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
                 { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
-                { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
-                { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+                
               ].map(({ name, icon, color, bg, border, getUrl }) => (
                 <button key={name}
-                  onClick={() => window.open(getUrl(buildBulkSinglePrompt(bulkScanSector, proxies, tf)), '_blank')}
-                  style={{ padding:'7px 12px', borderRadius:8, border:`1.5px solid ${border}`, background:bg, color, fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5, transition:'all 0.15s', flex:'1 1 auto', justifyContent:'center' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  disabled={noneSelected}
+                  onClick={() => {
+                    if (noneSelected) return;
+                    window.open(getUrl(buildBulkSinglePrompt(bulkScanSector, activeProxies, tf)), '_blank');
+                  }}
+                  style={{
+                    padding:'7px 12px', borderRadius:8, border:`1.5px solid ${border}`,
+                    background:bg, color, fontWeight:700, fontSize:12,
+                    cursor: noneSelected ? 'not-allowed' : 'pointer',
+                    display:'flex', alignItems:'center', gap:5,
+                    transition:'all 0.15s', flex:'1 1 auto', justifyContent:'center',
+                    opacity: noneSelected ? 0.4 : 1,
+                  }}
+                  onMouseEnter={e => { if (!noneSelected) e.currentTarget.style.transform = 'translateY(-1px)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                   {icon} {name}
                 </button>
@@ -6621,7 +6699,11 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
             {/* Copy prompt */}
             <button
               onClick={() => {
-                navigator.clipboard.writeText(buildBulkSinglePrompt(bulkScanSector, proxies, tf));
+                const activeProxies = bulkSelectedCountries === null
+                  ? proxies
+                  : proxies.filter(p => bulkSelectedCountries.includes(p.country));
+                if (!activeProxies.length) return;
+                navigator.clipboard.writeText(buildBulkSinglePrompt(bulkScanSector, activeProxies, tf));
                 setBulkCopied('__all__');
                 setTimeout(() => setBulkCopied(''), 2000);
               }}
