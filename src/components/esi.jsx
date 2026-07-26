@@ -3535,7 +3535,7 @@ CURRENT ${sector.toUpperCase()} SECTOR PERFORMANCE CONTEXT (${tf}):
 ${perfContext}
 
 YOUR TASK:
-Search extensively across all these markets simultaneously. Aim for 20-30+ sources total — include Bloomberg, Reuters, WSJ, CNBC, Financial Times, and local financial media for each country. For each country, find the top ${sector} stocks listed on that country's exchange with strong fundamentals, momentum, or compelling catalysts right now.
+Search extensively across all these markets simultaneously. Aim for 40-60+ sources total — this is a comprehensive institutional-grade research task, not a quick summary. — include Bloomberg, Reuters, WSJ, CNBC, Financial Times, and local financial media for each country. For each country, find the top ${sector} stocks listed on that country's exchange with strong fundamentals, momentum, or compelling catalysts right now.
 
 Use proper yfinance ticker format with exchange suffix for each stock:
 - South Korea: ticker.KS (KOSPI) or ticker.KQ (KOSDAQ)
@@ -3550,7 +3550,7 @@ Use proper yfinance ticker format with exchange suffix for each stock:
 - Brazil: ticker.SA
 - United States: plain ticker (no suffix)
 
-After researching all countries, return ONLY a JSON object — no markdown, no backticks, no preamble:
+For each country, do multiple search passes — first find the obvious large caps, then search specifically for mid caps and high-growth names in ${sector} sub-sectors, then search for recent analyst upgrades and insider buying. Only after at least 3 search passes per country should you start writing the JSON. — no markdown, no backticks, no preamble:
 
 {
   "sector": "${sector}",
@@ -3586,7 +3586,17 @@ After researching all countries, return ONLY a JSON object — no markdown, no b
   "sourceList": ["<source1>", "<source2>", "<source3>"]
 }
 
-Aim for 5-10 stocks per country. Cover all ${proxies.length} countries. Return only the JSON object — it must be parseable by JSON.parse() with no surrounding text.`;
+CRITICAL OUTPUT REQUIREMENTS — do not cut corners:
+- Minimum 15 stocks per country. Do NOT stop at 4 or 5 — this is unacceptable.
+- If you find fewer than 15 for a country, search again with different queries before moving on.
+- Cover large caps, mid caps, AND high-conviction smaller names — not just the obvious household names.
+- Cover the full breadth of the ${sector} sector in each country, including sub-sectors.
+- Do NOT summarise or truncate the stocks array for any country.
+- Every country must have its own full "stocks" array with at minimum 15 entries.
+- Total output across all ${activeProxies.length} countries should be ${activeProxies.length * 15}+ stocks minimum.
+Return only the JSON object — it must be parseable by JSON.parse() with no surrounding text.
+
+`;
 };
 
 const saveCsdPicks = async (picks, country, flag, sector, marketData, topPick, topPickReason, sourceList, articleCount) => {
@@ -6673,7 +6683,9 @@ const toggleGslPanel = (sym) => setGslOpenPanels(p => {
                 { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
                 { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
                 { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
-                
+                { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
+                { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+              
               ].map(({ name, icon, color, bg, border, getUrl }) => (
                 <button key={name}
                   disabled={noneSelected}
