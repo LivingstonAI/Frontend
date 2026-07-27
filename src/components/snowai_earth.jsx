@@ -3,7 +3,8 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search } from 'lucide-react';
+import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search, X, Clock, Layers } from 'lucide-react';
+import { createChart, CandlestickSeries } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
@@ -37,6 +38,24 @@ const COLORS = {
     mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
 };
 
+// ---------------------------------------------------------------------------
+// Dedicated dark palette for the 2D map + globe viewport, so land masses
+// actually have contrast against the ocean/void instead of washing out on
+// white. Kept separate from COLORS (which still drives cards/modals/text)
+// so the rest of the UI doesn't change.
+// ---------------------------------------------------------------------------
+const MAP_COLORS = {
+    void: '#0b1220',
+    land: '#1c293e',
+    landHasData: '#0f3d2e',
+    landSelected: '#1d3f78',
+    border: '#33415a',
+    borderHover: '#3b82f6',
+    borderSelected: '#60a5fa',
+    point: '#60a5fa',
+    pointStroke: '#0b1220',
+};
+
 const getRecStyle = (rec) => {
     const r = (rec || '').toUpperCase();
     if (r.includes('STRONG BUY')) return { background: COLORS.positiveSoft, color: COLORS.positive, border: `1px solid ${COLORS.positiveBorder}` };
@@ -48,9 +67,13 @@ const getRecStyle = (rec) => {
 
 // Maps the ISO code on each city marker back to the country name that's
 // actually stored on SnowGlobalStockPick.country (marker "name" is a city,
-// e.g. "Tokyo", not the country, e.g. "Japan").
+// e.g. "Tokyo", not the country, e.g. "Japan"). US intentionally maps to
+// the full "United States of America" -- that's the form the world.geojson
+// polygons use and the form saved picks are keyed against, so clicking any
+// US marker (New York, Chicago, etc.) resolves the same way a polygon click
+// on the US landmass does, and both pull the same saved data.
 const isoToCountryName = {
-    US: 'United States', CN: 'China', GB: 'United Kingdom', DE: 'Germany',
+    US: 'United States of America', CN: 'China', GB: 'United Kingdom', DE: 'Germany',
     FR: 'France', BE: 'Belgium', CH: 'Switzerland', NL: 'Netherlands',
     JP: 'Japan', SG: 'Singapore', KR: 'South Korea', IN: 'India',
     AU: 'Australia', AE: 'United Arab Emirates', RU: 'Russia', IL: 'Israel',
@@ -60,6 +83,30 @@ const isoToCountryName = {
     AT: 'Austria', SE: 'Sweden', DK: 'Denmark', NO: 'Norway',
     PL: 'Poland', CZ: 'Czech Republic', IT: 'Italy', ES: 'Spain',
     PT: 'Portugal', IE: 'Ireland', LU: 'Luxembourg', MC: 'Monaco'
+};
+
+// A handful of common aliases that show up either on the geoJSON polygons
+// or in what someone might have typed into the search box -- normalized to
+// whatever full name the rest of the app (and the DB) standardizes on.
+const COUNTRY_NAME_OVERRIDES = {
+    'usa': 'United States of America',
+    'us': 'United States of America',
+    'u.s.a.': 'United States of America',
+    'u.s.': 'United States of America',
+    'united states': 'United States of America',
+    'america': 'United States of America',
+    'uk': 'United Kingdom',
+    'u.k.': 'United Kingdom',
+    'great britain': 'United Kingdom',
+    's. korea': 'South Korea',
+    'republic of korea': 'South Korea',
+    'uae': 'United Arab Emirates',
+};
+
+const normalizeCountryName = (name) => {
+    if (!name) return name;
+    const key = name.trim().toLowerCase();
+    return COUNTRY_NAME_OVERRIDES[key] || name;
 };
 
 const LauraModalContent = ({
@@ -314,6 +361,19 @@ export default function SnowAIEarth() {
     const [showStockModal, setShowStockModal] = useState(false);
     const [dataSummary, setDataSummary] = useState({ totalCountries: 0, totalPicks: 0 });
     const [availableCountriesSet, setAvailableCountriesSet] = useState(new Set());
+    const [savedCountriesList, setSavedCountriesList] = useState([]);
+
+    // Date / sector browsing within the stock modal
+    const [selectedDateKey, setSelectedDateKey] = useState(null);
+    const [selectedSector, setSelectedSector] = useState('All');
+
+    // Lightweight-charts panel for an individual stock
+    const [chartStock, setChartStock] = useState(null); // { symbol, name, country } | null
+    const [chartData, setChartData] = useState(null);
+    const [chartLoading, setChartLoading] = useState(false);
+    const [chartError, setChartError] = useState('');
+    const chartContainerRef = useRef(null);
+    const chartInstanceRef = useRef(null);
 
     const globeThemes = {
         'night': {
@@ -472,6 +532,9 @@ export default function SnowAIEarth() {
                     totalPicks: data.countries.reduce((sum, c) => sum + (c.total_picks || 0), 0)
                 });
                 setAvailableCountriesSet(new Set(data.countries.map(c => c.country.toLowerCase())));
+                setSavedCountriesList(
+                    [...data.countries].sort((a, b) => a.country.localeCompare(b.country))
+                );
             }
         } catch (error) {
             console.error('Error fetching countries summary:', error);
@@ -482,7 +545,7 @@ export default function SnowAIEarth() {
     // resolved name and the DB's saved name differ slightly.
     const countryHasData = useCallback((name) => {
         if (!name) return false;
-        const lower = name.toLowerCase();
+        const lower = normalizeCountryName(name).toLowerCase();
         if (availableCountriesSet.has(lower)) return true;
         for (const c of availableCountriesSet) {
             if (lower.includes(c) || c.includes(lower)) return true;
@@ -490,7 +553,7 @@ export default function SnowAIEarth() {
         return false;
     }, [availableCountriesSet]);
 
-    const resolveCountryName = (point) => isoToCountryName[point.iso] || point.name;
+    const resolveCountryName = (point) => normalizeCountryName(isoToCountryName[point.iso] || point.name);
 
     const handleCountrySearch = () => {
         if (!searchCountry.trim() || !globeRef.current) return;
@@ -544,7 +607,7 @@ export default function SnowAIEarth() {
             globeRef.current.pointOfView({ lat, lng, altitude: 2.5 }, 2000);
 
             const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
-            setSelectedCountry(countryName);
+            setSelectedCountry(normalizeCountryName(countryName));
             setSearchCountry('');
         } else {
             alert(`Couldn't find "${searchCountry}" on the map. Try a different spelling.`);
@@ -602,22 +665,22 @@ export default function SnowAIEarth() {
             .append("path")
             .attr("d", path)
             .attr("class", "country-path")
-            .attr("fill", COLORS.neutralSoft)
-            .attr("stroke", COLORS.border)
+            .attr("fill", MAP_COLORS.land)
+            .attr("stroke", MAP_COLORS.border)
             .attr("stroke-width", 0.6)
             .style("cursor", "pointer")
             .on("mouseover", function () {
-                d3.select(this).attr("stroke-width", 1.4).attr("stroke", COLORS.accent);
+                d3.select(this).attr("stroke-width", 1.4).attr("stroke", MAP_COLORS.borderHover);
             })
             .on("mouseout", function (event, d) {
-                const countryName = d.properties?.NAME || d.properties?.name;
+                const countryName = normalizeCountryName(d.properties?.NAME || d.properties?.name);
                 d3.select(this)
                     .attr("stroke-width", 0.6)
-                    .attr("stroke", countryName === selectedCountry ? COLORS.accent : COLORS.border);
+                    .attr("stroke", countryName === selectedCountry ? MAP_COLORS.borderSelected : MAP_COLORS.border);
             })
             .on("click", function (event, d) {
                 event.stopPropagation();
-                const countryName = d.properties?.NAME || d.properties?.name || 'Unknown Country';
+                const countryName = normalizeCountryName(d.properties?.NAME || d.properties?.name || 'Unknown Country');
                 handleCountryClick(countryName);
             });
 
@@ -635,11 +698,11 @@ export default function SnowAIEarth() {
                 return coords ? coords[1] : 0;
             })
             .attr("r", isMobile ? 3 : 4)
-            .attr("fill", COLORS.accent)
-            .attr("stroke", "#fff")
+            .attr("fill", MAP_COLORS.point)
+            .attr("stroke", MAP_COLORS.pointStroke)
             .attr("stroke-width", 1.5)
             .style("cursor", "pointer")
-            .style("filter", "drop-shadow(0 1px 3px rgba(37, 99, 235, 0.5))")
+            .style("filter", "drop-shadow(0 1px 3px rgba(96, 165, 250, 0.6))")
             .on("click", function (event, d) {
                 event.stopPropagation();
                 handleCountryClick(resolveCountryName(d));
@@ -659,14 +722,14 @@ export default function SnowAIEarth() {
         const svg = d3.select(svgRef.current);
         svg.selectAll('path.country-path')
             .attr('fill', function (d) {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                if (countryName === selectedCountry) return COLORS.accentSoft;
-                if (countryHasData(countryName)) return '#ecfdf5';
-                return COLORS.neutralSoft;
+                const countryName = normalizeCountryName(d.properties?.NAME || d.properties?.name);
+                if (countryName === selectedCountry) return MAP_COLORS.landSelected;
+                if (countryHasData(countryName)) return MAP_COLORS.landHasData;
+                return MAP_COLORS.land;
             })
             .attr('stroke', function (d) {
-                const countryName = d.properties?.NAME || d.properties?.name;
-                return countryName === selectedCountry ? COLORS.accent : COLORS.border;
+                const countryName = normalizeCountryName(d.properties?.NAME || d.properties?.name);
+                return countryName === selectedCountry ? MAP_COLORS.borderSelected : MAP_COLORS.border;
             });
     }, [selectedCountry, countryHasData]);
 
@@ -713,7 +776,7 @@ export default function SnowAIEarth() {
             const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/by-country/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ country: countryName })
+                body: JSON.stringify({ country: countryName, history: true })
             });
             const data = await response.json();
             setCountryStockData(prev => ({ ...prev, [countryName]: data }));
@@ -731,9 +794,12 @@ export default function SnowAIEarth() {
     };
 
     const handleCountryClick = async (countryNameOrPoint) => {
-        const countryName = typeof countryNameOrPoint === 'string' ? countryNameOrPoint : countryNameOrPoint.name;
+        const rawName = typeof countryNameOrPoint === 'string' ? countryNameOrPoint : countryNameOrPoint.name;
+        const countryName = normalizeCountryName(rawName);
         setSelectedCountry(countryName);
         setShowStockModal(true);
+        setSelectedDateKey(null);
+        setSelectedSector('All');
         if (!countryStockData[countryName]) {
             await fetchCountryStockPicks(countryName);
         }
@@ -742,10 +808,12 @@ export default function SnowAIEarth() {
     const handleCloseStockModal = () => {
         setShowStockModal(false);
         setSelectedCountry('');
+        setSelectedDateKey(null);
+        setSelectedSector('All');
     };
 
     const handlePolygonClick = (polygon) => {
-        const countryName = polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country';
+        const countryName = normalizeCountryName(polygon.properties?.NAME || polygon.properties?.name || 'Unknown Country');
         handleCountryClick(countryName);
     };
 
@@ -1003,6 +1071,195 @@ export default function SnowAIEarth() {
     };
 
     // ------------------------------------------------------------------
+    // Group a country's (history=true) stock list by date_saved (desc),
+    // then by sector within each date. Because SnowGlobalStockPick has a
+    // unique_together on (symbol, country, sector, date_saved), each
+    // date+sector bucket is already the "latest" snapshot for that day --
+    // no extra de-duping needed once you're looking at a single date.
+    // ------------------------------------------------------------------
+    const dateGroups = useMemo(() => {
+        const data = countryStockData[selectedCountry];
+        if (!data || !data.success || !Array.isArray(data.stocks)) return [];
+
+        const byDate = new Map();
+        data.stocks.forEach(stock => {
+            const dateKey = stock.date_saved || 'Unknown';
+            if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+            byDate.get(dateKey).push(stock);
+        });
+
+        return Array.from(byDate.entries())
+            .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
+            .map(([date, stocks]) => {
+                const sortedStocks = [...stocks].sort((a, b) => (
+                    (a.sector || '').localeCompare(b.sector || '') ||
+                    (b.top_pick === a.top_pick ? 0 : b.top_pick ? 1 : -1) ||
+                    (b.conviction || 0) - (a.conviction || 0)
+                ));
+                const sectors = Array.from(new Set(sortedStocks.map(s => s.sector || 'Other'))).sort();
+                return { date, stocks: sortedStocks, sectors };
+            });
+    }, [countryStockData, selectedCountry]);
+
+    // Default to the most recent date whenever the country (or its data) changes
+    useEffect(() => {
+        if (dateGroups.length > 0) {
+            const stillValid = dateGroups.some(g => g.date === selectedDateKey);
+            if (!stillValid) {
+                setSelectedDateKey(dateGroups[0].date);
+                setSelectedSector('All');
+            }
+        }
+    }, [dateGroups]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const activeDateGroup = dateGroups.find(g => g.date === selectedDateKey) || dateGroups[0] || null;
+    const visibleStocks = activeDateGroup
+        ? (selectedSector === 'All'
+            ? activeDateGroup.stocks
+            : activeDateGroup.stocks.filter(s => (s.sector || 'Other') === selectedSector))
+        : [];
+
+    const formatDateLabel = (dateStr, isLatest) => {
+        if (!dateStr || dateStr === 'Unknown') return 'Unknown date';
+        const d = new Date(dateStr + 'T00:00:00');
+        const label = isNaN(d.getTime())
+            ? dateStr
+            : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        return isLatest ? `Latest · ${label}` : label;
+    };
+
+    // ------------------------------------------------------------------
+    // Lightweight-charts panel for a single stock symbol
+    // ------------------------------------------------------------------
+    const openStockChart = async (stock) => {
+        setChartStock({ symbol: stock.symbol, name: stock.name, country: selectedCountry });
+        setChartData(null);
+        setChartError('');
+        setChartLoading(true);
+
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/chart-data/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: stock.symbol, country: selectedCountry })
+            });
+            const data = await response.json();
+            if (data.success && Array.isArray(data.candles) && data.candles.length > 0) {
+                setChartData(data.candles);
+            } else {
+                setChartError(data.error || 'No chart data available for this symbol yet.');
+            }
+        } catch (error) {
+            setChartError("Couldn't reach the chart data endpoint.");
+        } finally {
+            setChartLoading(false);
+        }
+    };
+
+    const closeStockChart = () => {
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.remove();
+            chartInstanceRef.current = null;
+        }
+        setChartStock(null);
+        setChartData(null);
+        setChartError('');
+    };
+
+    useEffect(() => {
+        if (!chartData || !chartContainerRef.current) return;
+
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.remove();
+            chartInstanceRef.current = null;
+        }
+
+        const container = chartContainerRef.current;
+        const chart = createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight,
+            layout: {
+                background: { color: MAP_COLORS.void },
+                textColor: '#cbd5e1',
+            },
+            grid: {
+                vertLines: { color: 'rgba(148, 163, 184, 0.08)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.08)' },
+            },
+            rightPriceScale: { borderColor: MAP_COLORS.border },
+            timeScale: { borderColor: MAP_COLORS.border },
+        });
+
+        const candleSeries = typeof chart.addCandlestickSeries === 'function'
+            ? chart.addCandlestickSeries({
+                upColor: COLORS.positive,
+                downColor: COLORS.negative,
+                borderVisible: false,
+                wickUpColor: COLORS.positive,
+                wickDownColor: COLORS.negative,
+            })
+            : chart.addSeries(CandlestickSeries, {
+                upColor: COLORS.positive,
+                downColor: COLORS.negative,
+                borderVisible: false,
+                wickUpColor: COLORS.positive,
+                wickDownColor: COLORS.negative,
+            });
+
+        candleSeries.setData(chartData);
+        chart.timeScale().fitContent();
+        chartInstanceRef.current = chart;
+
+        const handleResize = () => {
+            chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (chartInstanceRef.current) {
+                chartInstanceRef.current.remove();
+                chartInstanceRef.current = null;
+            }
+        };
+    }, [chartData]);
+
+    const StockChartPanel = () => {
+        if (!chartStock) return null;
+        return (
+            <div style={styles.chartModal} onClick={(e) => { if (e.target === e.currentTarget) closeStockChart(); }}>
+                <div style={styles.chartModalContent}>
+                    <div style={styles.chartModalHeader}>
+                        <div>
+                            <h3 style={styles.chartModalTitle}>{chartStock.symbol}</h3>
+                            <div style={styles.stockModalSubtitle}>{chartStock.name}</div>
+                        </div>
+                        <button style={styles.stockModalClose} onClick={closeStockChart}>×</button>
+                    </div>
+                    <div style={styles.chartModalBody}>
+                        {chartLoading && (
+                            <div style={styles.loadingWrap}>
+                                <div style={styles.spinner}></div>
+                                <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading chart...</div>
+                            </div>
+                        )}
+                        {!chartLoading && chartError && (
+                            <div style={styles.emptyStateWrap}>
+                                <AlertTriangle size={30} color={COLORS.caution} />
+                                <div style={styles.emptyStateTitle}>Couldn't load chart</div>
+                                <p style={styles.emptyStateText}>{chartError}</p>
+                            </div>
+                        )}
+                        {!chartLoading && !chartError && chartData && (
+                            <div ref={chartContainerRef} style={styles.chartCanvas}></div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ------------------------------------------------------------------
     // Country stock-picks modal (replaces the old "intel brief" modal)
     // ------------------------------------------------------------------
     const renderCountryStockModal = () => {
@@ -1019,141 +1276,212 @@ export default function SnowAIEarth() {
                                 <span style={{ fontSize: '22px', marginRight: '8px' }}>{data?.flag || '🌍'}</span>
                                 {selectedCountry}
                             </h3>
-                            {data?.success && data.total_stocks > 0 && (
+                            {activeDateGroup && (
                                 <div style={styles.stockModalSubtitle}>
-                                    {data.total_stocks} stock{data.total_stocks !== 1 ? 's' : ''} · {data.sectors.length} sector{data.sectors.length !== 1 ? 's' : ''}
-                                    {data.last_updated && (
-                                        <> · updated {new Date(data.last_updated).toLocaleDateString()}</>
-                                    )}
+                                    {visibleStocks.length} stock{visibleStocks.length !== 1 ? 's' : ''} shown
+                                    {selectedSector !== 'All' && <> · {selectedSector}</>}
+                                    {' '}· {formatDateLabel(activeDateGroup.date, activeDateGroup.date === dateGroups[0]?.date)}
                                 </div>
                             )}
                         </div>
                         <button style={styles.stockModalClose} onClick={handleCloseStockModal}>×</button>
                     </div>
 
-                    <div style={styles.stockModalBody}>
-                        {loadingStockData && !data && (
-                            <div style={styles.loadingWrap}>
-                                <div style={styles.spinner}></div>
-                                <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading saved picks...</div>
-                            </div>
-                        )}
-
-                        {data && !data.success && (
-                            <div style={styles.emptyStateWrap}>
-                                <div style={styles.emptyStateTitle}>Something went wrong</div>
-                                <p style={styles.emptyStateText}>{data.error || 'Please try again.'}</p>
-                            </div>
-                        )}
-
-                        {data && data.success && data.total_stocks === 0 && (
-                            <div style={styles.emptyStateWrap}>
-                                <Search size={36} color={COLORS.inkFaint} />
-                                <div style={styles.emptyStateTitle}>No stock picks saved yet</div>
-                                <p style={styles.emptyStateText}>
-                                    Run your scanner and save results for {selectedCountry} to see them here.
-                                </p>
-                            </div>
-                        )}
-
-                        {data && data.success && data.total_stocks > 0 && (
-                            <div>
-                                {data.market_outlook && (
-                                    <div style={styles.outlookBox}>
-                                        <div style={styles.outlookLabel}>Market outlook</div>
-                                        <p style={styles.outlookText}>{data.market_outlook}</p>
-                                    </div>
-                                )}
-
-                                <div style={styles.stockList}>
-                                    {data.stocks.map((stock, idx) => {
-                                        const recStyle = getRecStyle(stock.rec);
-                                        const showSectorHeading = idx === 0 || data.stocks[idx - 1].sector !== stock.sector;
-                                        return (
-                                            <React.Fragment key={stock.id || idx}>
-                                                {showSectorHeading && (
-                                                    <div style={styles.sectorHeading}>{stock.sector || 'Other'}</div>
-                                                )}
-                                                <div style={styles.stockCard}>
-                                                    <div style={styles.stockCardHeader}>
-                                                        <div>
-                                                            <span style={styles.stockSymbol}>{stock.symbol}</span>
-                                                            <span style={styles.stockName}>{stock.name}</span>
-                                                            {stock.top_pick && (
-                                                                <span style={styles.topPickBadge}>
-                                                                    <Star size={11} fill={COLORS.accent} color={COLORS.accent} /> Top pick
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <span style={{ ...styles.recBadge, ...recStyle }}>{stock.rec}</span>
-                                                    </div>
-
-                                                    {stock.top_pick && stock.top_pick_reason && (
-                                                        <p style={styles.topPickReason}>{stock.top_pick_reason}</p>
-                                                    )}
-
-                                                    <div style={styles.statRow}>
-                                                        {typeof stock.conviction === 'number' && (
-                                                            <div style={styles.convictionWrap}>
-                                                                <div style={styles.convictionLabelRow}>
-                                                                    <BarChart3 size={12} color={COLORS.inkMuted} />
-                                                                    <span>Conviction {stock.conviction}/10</span>
-                                                                </div>
-                                                                <div style={styles.convictionTrack}>
-                                                                    <div style={{
-                                                                        ...styles.convictionFill,
-                                                                        width: `${Math.max(0, Math.min(10, stock.conviction)) * 10}%`
-                                                                    }}></div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {stock.price_at_save && (
-                                                            <div style={styles.statItem}>
-                                                                <DollarSign size={12} color={COLORS.inkMuted} /> {stock.price_at_save}
-                                                            </div>
-                                                        )}
-                                                        {stock.market_cap && (
-                                                            <div style={styles.statItem}>Mkt cap: {stock.market_cap}</div>
-                                                        )}
-                                                        {stock.analyst_target && (
-                                                            <div style={styles.statItem}>
-                                                                <TrendingUp size={12} color={COLORS.inkMuted} /> Target: {stock.analyst_target}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {stock.thesis && (
-                                                        <p style={styles.thesisText}>{stock.thesis}</p>
-                                                    )}
-
-                                                    {stock.risk && (
-                                                        <div style={styles.riskBox}>
-                                                            <AlertTriangle size={13} color={COLORS.caution} />
-                                                            <span>{stock.risk}</span>
-                                                        </div>
-                                                    )}
-
-                                                    {Array.isArray(stock.catalysts) && stock.catalysts.length > 0 && (
-                                                        <div style={styles.catalystWrap}>
-                                                            {stock.catalysts.map((c, i) => (
-                                                                <span key={i} style={styles.catalystChip}>{c}</span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    <div style={styles.stockCardFooter}>
-                                                        {stock.sub_sector && <span>{stock.sub_sector}</span>}
-                                                        {stock.article_count ? <span>Based on {stock.article_count} article{stock.article_count !== 1 ? 's' : ''}</span> : null}
-                                                        {stock.tf_context && <span>{stock.tf_context}</span>}
-                                                        {stock.date_saved && <span>Saved {new Date(stock.date_saved).toLocaleDateString()}</span>}
-                                                    </div>
-                                                </div>
-                                            </React.Fragment>
-                                        );
-                                    })}
+                    <div style={styles.stockModalLayout}>
+                        {/* Saved-countries rail so you can jump between any country without leaving the modal */}
+                        {savedCountriesList.length > 0 && (
+                            <div style={styles.countryRail}>
+                                <div style={styles.countryRailLabel}>Saved countries</div>
+                                <div style={styles.countryRailList}>
+                                    {savedCountriesList.map((c) => (
+                                        <button
+                                            key={c.country}
+                                            style={{
+                                                ...styles.countryRailItem,
+                                                ...(c.country === selectedCountry ? styles.countryRailItemActive : {})
+                                            }}
+                                            onClick={() => handleCountryClick(c.country)}
+                                        >
+                                            <span style={{ marginRight: '6px' }}>{c.flag || '🌍'}</span>
+                                            <span style={styles.countryRailName}>{c.country}</span>
+                                            <span style={styles.countryRailCount}>{c.total_picks}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
+
+                        <div style={styles.stockModalBody}>
+                            {loadingStockData && !data && (
+                                <div style={styles.loadingWrap}>
+                                    <div style={styles.spinner}></div>
+                                    <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading saved picks...</div>
+                                </div>
+                            )}
+
+                            {data && !data.success && (
+                                <div style={styles.emptyStateWrap}>
+                                    <div style={styles.emptyStateTitle}>Something went wrong</div>
+                                    <p style={styles.emptyStateText}>{data.error || 'Please try again.'}</p>
+                                </div>
+                            )}
+
+                            {data && data.success && dateGroups.length === 0 && (
+                                <div style={styles.emptyStateWrap}>
+                                    <Search size={36} color={COLORS.inkFaint} />
+                                    <div style={styles.emptyStateTitle}>No stock picks saved yet</div>
+                                    <p style={styles.emptyStateText}>
+                                        Run your scanner and save results for {selectedCountry} to see them here.
+                                    </p>
+                                </div>
+                            )}
+
+                            {data && data.success && dateGroups.length > 0 && activeDateGroup && (
+                                <div>
+                                    {/* Date tabs -- ordered most-recent first */}
+                                    <div style={styles.dateTabsRow}>
+                                        <Clock size={13} color={COLORS.inkMuted} />
+                                        {dateGroups.map((g, idx) => (
+                                            <button
+                                                key={g.date}
+                                                style={{
+                                                    ...styles.dateTab,
+                                                    ...(g.date === selectedDateKey ? styles.dateTabActive : {})
+                                                }}
+                                                onClick={() => { setSelectedDateKey(g.date); setSelectedSector('All'); }}
+                                            >
+                                                {formatDateLabel(g.date, idx === 0)}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Sector filter chips for the selected date */}
+                                    <div style={styles.sectorChipsRow}>
+                                        <Layers size={13} color={COLORS.inkMuted} />
+                                        <button
+                                            style={{
+                                                ...styles.sectorChip,
+                                                ...(selectedSector === 'All' ? styles.sectorChipActive : {})
+                                            }}
+                                            onClick={() => setSelectedSector('All')}
+                                        >
+                                            All sectors
+                                        </button>
+                                        {activeDateGroup.sectors.map(sector => (
+                                            <button
+                                                key={sector}
+                                                style={{
+                                                    ...styles.sectorChip,
+                                                    ...(selectedSector === sector ? styles.sectorChipActive : {})
+                                                }}
+                                                onClick={() => setSelectedSector(sector)}
+                                            >
+                                                {sector}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {data.market_outlook && (
+                                        <div style={styles.outlookBox}>
+                                            <div style={styles.outlookLabel}>Market outlook</div>
+                                            <p style={styles.outlookText}>{data.market_outlook}</p>
+                                        </div>
+                                    )}
+
+                                    <div style={styles.stockList}>
+                                        {visibleStocks.map((stock, idx) => {
+                                            const recStyle = getRecStyle(stock.rec);
+                                            const showSectorHeading = selectedSector === 'All' && (
+                                                idx === 0 || (visibleStocks[idx - 1].sector || 'Other') !== (stock.sector || 'Other')
+                                            );
+                                            return (
+                                                <React.Fragment key={stock.id || idx}>
+                                                    {showSectorHeading && (
+                                                        <div style={styles.sectorHeading}>{stock.sector || 'Other'}</div>
+                                                    )}
+                                                    <div style={styles.stockCard}>
+                                                        <div style={styles.stockCardHeader}>
+                                                            <div>
+                                                                <span style={styles.stockSymbol}>{stock.symbol}</span>
+                                                                <span style={styles.stockName}>{stock.name}</span>
+                                                                {stock.top_pick && (
+                                                                    <span style={styles.topPickBadge}>
+                                                                        <Star size={11} fill={COLORS.accent} color={COLORS.accent} /> Top pick
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span style={{ ...styles.recBadge, ...recStyle }}>{stock.rec}</span>
+                                                        </div>
+
+                                                        {stock.top_pick && stock.top_pick_reason && (
+                                                            <p style={styles.topPickReason}>{stock.top_pick_reason}</p>
+                                                        )}
+
+                                                        <div style={styles.statRow}>
+                                                            {typeof stock.conviction === 'number' && (
+                                                                <div style={styles.convictionWrap}>
+                                                                    <div style={styles.convictionLabelRow}>
+                                                                        <BarChart3 size={12} color={COLORS.inkMuted} />
+                                                                        <span>Conviction {stock.conviction}/10</span>
+                                                                    </div>
+                                                                    <div style={styles.convictionTrack}>
+                                                                        <div style={{
+                                                                            ...styles.convictionFill,
+                                                                            width: `${Math.max(0, Math.min(10, stock.conviction)) * 10}%`
+                                                                        }}></div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {stock.price_at_save && (
+                                                                <div style={styles.statItem}>
+                                                                    <DollarSign size={12} color={COLORS.inkMuted} /> {stock.price_at_save}
+                                                                </div>
+                                                            )}
+                                                            {stock.market_cap && (
+                                                                <div style={styles.statItem}>Mkt cap: {stock.market_cap}</div>
+                                                            )}
+                                                            {stock.analyst_target && (
+                                                                <div style={styles.statItem}>
+                                                                    <TrendingUp size={12} color={COLORS.inkMuted} /> Target: {stock.analyst_target}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {stock.thesis && (
+                                                            <p style={styles.thesisText}>{stock.thesis}</p>
+                                                        )}
+
+                                                        {stock.risk && (
+                                                            <div style={styles.riskBox}>
+                                                                <AlertTriangle size={13} color={COLORS.caution} />
+                                                                <span>{stock.risk}</span>
+                                                            </div>
+                                                        )}
+
+                                                        {Array.isArray(stock.catalysts) && stock.catalysts.length > 0 && (
+                                                            <div style={styles.catalystWrap}>
+                                                                {stock.catalysts.map((c, i) => (
+                                                                    <span key={i} style={styles.catalystChip}>{c}</span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        <div style={styles.stockCardFooter}>
+                                                            {stock.sub_sector && <span>{stock.sub_sector}</span>}
+                                                            {stock.article_count ? <span>Based on {stock.article_count} article{stock.article_count !== 1 ? 's' : ''}</span> : null}
+                                                            {stock.tf_context && <span>{stock.tf_context}</span>}
+                                                            <button style={styles.chartLinkButton} onClick={() => openStockChart(stock)}>
+                                                                <BarChart3 size={11} /> Chart
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1408,7 +1736,7 @@ export default function SnowAIEarth() {
             width: '100%', height: `calc(100vh - ${isMobile ? '380px' : '330px'})`, position: 'relative',
             borderRadius: '10px', overflow: 'hidden', border: `1px solid ${COLORS.border}`,
             display: 'flex', justifyContent: 'center', alignItems: 'center',
-            background: view3D ? '#0b1220' : COLORS.surface
+            background: MAP_COLORS.void
         },
         countryLabel: {
             position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
@@ -1416,7 +1744,7 @@ export default function SnowAIEarth() {
             fontSize: isMobile ? '13px' : '14px', fontWeight: '600', zIndex: 1000, border: `1px solid ${COLORS.border}`,
             boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
         },
-        mapContainer: { width: '100%', height: '100%', background: COLORS.surface, position: 'relative' },
+        mapContainer: { width: '100%', height: '100%', background: MAP_COLORS.void, position: 'relative' },
         svgMap: { width: '100%', height: '100%', display: 'block' },
         loadingOverlay: {
             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
@@ -1441,7 +1769,7 @@ export default function SnowAIEarth() {
         },
         stockModalContent: {
             background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)', width: isMobile ? '100%' : '920px', maxWidth: '95vw',
             maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         },
         stockModalHeader: {
@@ -1455,7 +1783,40 @@ export default function SnowAIEarth() {
             padding: '0', width: '36px', height: '36px', borderRadius: '6px', display: 'flex',
             justifyContent: 'center', alignItems: 'center', fontWeight: '300', flexShrink: 0
         },
-        stockModalBody: { padding: isMobile ? '16px' : '24px', overflowY: 'auto', background: COLORS.bg },
+        stockModalLayout: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: 'hidden', flex: 1 },
+        stockModalBody: { padding: isMobile ? '16px' : '24px', overflowY: 'auto', background: COLORS.bg, flex: 1 },
+
+        // Saved-countries rail
+        countryRail: {
+            width: isMobile ? '100%' : '200px', flexShrink: 0, borderRight: isMobile ? 'none' : `1px solid ${COLORS.border}`,
+            borderBottom: isMobile ? `1px solid ${COLORS.border}` : 'none', background: COLORS.surface,
+            overflowY: isMobile ? 'visible' : 'auto', maxHeight: isMobile ? '140px' : 'none', padding: '12px'
+        },
+        countryRailLabel: { fontSize: '11px', fontWeight: '700', color: COLORS.inkFaint, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', padding: '0 4px' },
+        countryRailList: { display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: '4px', overflowX: isMobile ? 'auto' : 'visible', flexWrap: isMobile ? 'nowrap' : 'wrap' },
+        countryRailItem: {
+            display: 'flex', alignItems: 'center', gap: '2px', padding: '8px 10px', borderRadius: '8px',
+            border: 'none', background: 'transparent', color: COLORS.inkMuted, fontSize: '12px', fontWeight: '600',
+            cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap', width: isMobile ? 'auto' : '100%'
+        },
+        countryRailItemActive: { background: COLORS.accentSoft, color: COLORS.accent },
+        countryRailName: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' },
+        countryRailCount: { fontSize: '10px', color: COLORS.inkFaint, marginLeft: '6px' },
+
+        // Date tabs + sector chips
+        dateTabsRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' },
+        dateTab: {
+            padding: '6px 12px', borderRadius: '999px', border: `1px solid ${COLORS.border}`, background: COLORS.surface,
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
+        },
+        dateTabActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
+        sectorChipsRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' },
+        sectorChip: {
+            padding: '5px 11px', borderRadius: '999px', border: `1px solid ${COLORS.neutralBorder}`, background: COLORS.neutralSoft,
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
+        },
+        sectorChipActive: { background: COLORS.ink, borderColor: COLORS.ink, color: '#fff' },
+
         outlookBox: {
             background: COLORS.accentSoft, border: `1px solid ${COLORS.accentBorder}`, borderRadius: '10px',
             padding: '14px 16px', marginBottom: '20px'
@@ -1497,8 +1858,13 @@ export default function SnowAIEarth() {
             border: `1px solid ${COLORS.neutralBorder}`, borderRadius: '999px', padding: '3px 10px'
         },
         stockCardFooter: {
-            display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '10px',
+            display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', marginTop: '12px', paddingTop: '10px',
             borderTop: `1px solid ${COLORS.border}`, fontSize: '11px', color: COLORS.inkFaint
+        },
+        chartLinkButton: {
+            display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: 'auto', padding: '4px 10px',
+            borderRadius: '6px', border: `1px solid ${COLORS.accentBorder}`, background: COLORS.accentSoft,
+            color: COLORS.accent, fontSize: '11px', fontWeight: '700', cursor: 'pointer'
         },
         loadingWrap: { textAlign: 'center', padding: '60px 20px' },
         spinner: {
@@ -1508,6 +1874,25 @@ export default function SnowAIEarth() {
         emptyStateWrap: { textAlign: 'center', padding: '50px 20px' },
         emptyStateTitle: { fontSize: '15px', fontWeight: '700', color: COLORS.ink, margin: '10px 0 6px 0' },
         emptyStateText: { fontSize: '13px', color: COLORS.inkMuted, margin: 0, lineHeight: '1.6' },
+
+        // ---- Stock chart modal (lightweight-charts) ----
+        chartModal: {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.55)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10004, backdropFilter: 'blur(4px)', padding: isMobile ? '10px' : '20px'
+        },
+        chartModalContent: {
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
+            height: isMobile ? '80vh' : '520px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+        },
+        chartModalHeader: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`
+        },
+        chartModalTitle: { fontSize: '1.1rem', fontWeight: '700', margin: 0, color: COLORS.ink, fontFamily: COLORS.mono },
+        chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column' },
+        chartCanvas: { width: '100%', height: '100%' },
 
         // ---- Media center ----
         mediaCenterButton: {
@@ -1679,7 +2064,7 @@ export default function SnowAIEarth() {
                                 polygonsData={worldData.features || []}
                                 polygonAltitude={0.006}
                                 polygonCapColor={(d) => {
-                                    const name = d.properties?.NAME || d.properties?.name;
+                                    const name = normalizeCountryName(d.properties?.NAME || d.properties?.name);
                                     if (name === selectedCountry) return 'rgba(37, 99, 235, 0.55)';
                                     if (countryHasData(name)) return 'rgba(16, 185, 129, 0.28)';
                                     return 'rgba(148, 163, 184, 0.18)';
@@ -1782,6 +2167,7 @@ export default function SnowAIEarth() {
 
             {showMediaCenter && <MediaCenterModal />}
             {showStockModal && renderCountryStockModal()}
+            {chartStock && <StockChartPanel />}
             {showLaura && <LauraModalContent
                 isMobile={isMobile}
                 searchQuery={searchQuery}
