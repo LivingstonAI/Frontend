@@ -3,7 +3,7 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search, X, Clock, Layers } from 'lucide-react';
+import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers } from 'lucide-react';
 import { createChart, CandlestickSeries } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -108,6 +108,10 @@ const normalizeCountryName = (name) => {
     const key = name.trim().toLowerCase();
     return COUNTRY_NAME_OVERRIDES[key] || name;
 };
+
+// Timeframe options for the per-stock chart panel. Keys match what the
+// backend's TIMEFRAME_MAP expects -- keep the two in sync if you add more.
+const CHART_TIMEFRAMES = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y'];
 
 const LauraModalContent = ({
     isMobile,
@@ -372,6 +376,7 @@ export default function SnowAIEarth() {
     const [chartData, setChartData] = useState(null);
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
+    const [chartTimeframe, setChartTimeframe] = useState('6M');
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
 
@@ -1131,8 +1136,7 @@ export default function SnowAIEarth() {
     // ------------------------------------------------------------------
     // Lightweight-charts panel for a single stock symbol
     // ------------------------------------------------------------------
-    const openStockChart = async (stock) => {
-        setChartStock({ symbol: stock.symbol, name: stock.name, country: selectedCountry });
+    const fetchChartData = async (symbol, country, timeframe) => {
         setChartData(null);
         setChartError('');
         setChartLoading(true);
@@ -1141,7 +1145,7 @@ export default function SnowAIEarth() {
             const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/chart-data/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: stock.symbol, country: selectedCountry })
+                body: JSON.stringify({ symbol, country, timeframe })
             });
             const data = await response.json();
             if (data.success && Array.isArray(data.candles) && data.candles.length > 0) {
@@ -1156,6 +1160,19 @@ export default function SnowAIEarth() {
         }
     };
 
+    const openStockChart = (stock) => {
+        const country = selectedCountry;
+        setChartStock({ symbol: stock.symbol, name: stock.name, country });
+        setChartTimeframe('6M');
+        fetchChartData(stock.symbol, country, '6M');
+    };
+
+    const handleChartTimeframeChange = (timeframe) => {
+        if (timeframe === chartTimeframe || !chartStock) return;
+        setChartTimeframe(timeframe);
+        fetchChartData(chartStock.symbol, chartStock.country, timeframe);
+    };
+
     const closeStockChart = () => {
         if (chartInstanceRef.current) {
             chartInstanceRef.current.remove();
@@ -1164,6 +1181,7 @@ export default function SnowAIEarth() {
         setChartStock(null);
         setChartData(null);
         setChartError('');
+        setChartTimeframe('6M');
     };
 
     useEffect(() => {
@@ -1173,6 +1191,8 @@ export default function SnowAIEarth() {
             chartInstanceRef.current.remove();
             chartInstanceRef.current = null;
         }
+
+        const isIntraday = chartTimeframe === '1D' || chartTimeframe === '5D';
 
         const container = chartContainerRef.current;
         const chart = createChart(container, {
@@ -1187,7 +1207,11 @@ export default function SnowAIEarth() {
                 horzLines: { color: 'rgba(148, 163, 184, 0.08)' },
             },
             rightPriceScale: { borderColor: MAP_COLORS.border },
-            timeScale: { borderColor: MAP_COLORS.border },
+            timeScale: {
+                borderColor: MAP_COLORS.border,
+                timeVisible: isIntraday,
+                secondsVisible: false,
+            },
         });
 
         const candleSeries = typeof chart.addCandlestickSeries === 'function'
@@ -1222,20 +1246,49 @@ export default function SnowAIEarth() {
                 chartInstanceRef.current = null;
             }
         };
-    }, [chartData]);
+    }, [chartData, chartTimeframe]);
 
     const StockChartPanel = () => {
         if (!chartStock) return null;
+
+        const lastCandle = chartData && chartData.length > 0 ? chartData[chartData.length - 1] : null;
+        const lastCandleLabel = lastCandle
+            ? (typeof lastCandle.time === 'number'
+                ? new Date(lastCandle.time * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : new Date(lastCandle.time + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
+            : null;
+
         return (
             <div style={styles.chartModal} onClick={(e) => { if (e.target === e.currentTarget) closeStockChart(); }}>
                 <div style={styles.chartModalContent}>
                     <div style={styles.chartModalHeader}>
                         <div>
                             <h3 style={styles.chartModalTitle}>{chartStock.symbol}</h3>
-                            <div style={styles.stockModalSubtitle}>{chartStock.name}</div>
+                            <div style={styles.stockModalSubtitle}>
+                                {chartStock.name}
+                                {lastCandle && (
+                                    <> · Last close {lastCandle.close.toFixed(2)} · as of {lastCandleLabel}</>
+                                )}
+                            </div>
                         </div>
                         <button style={styles.stockModalClose} onClick={closeStockChart}>×</button>
                     </div>
+
+                    <div style={styles.chartTimeframeRow}>
+                        {CHART_TIMEFRAMES.map(tf => (
+                            <button
+                                key={tf}
+                                style={{
+                                    ...styles.chartTimeframeButton,
+                                    ...(tf === chartTimeframe ? styles.chartTimeframeButtonActive : {})
+                                }}
+                                onClick={() => handleChartTimeframeChange(tf)}
+                            >
+                                {tf}
+                            </button>
+                        ))}
+                    </div>
+
                     <div style={styles.chartModalBody}>
                         {chartLoading && (
                             <div style={styles.loadingWrap}>
@@ -1891,6 +1944,15 @@ export default function SnowAIEarth() {
             padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`
         },
         chartModalTitle: { fontSize: '1.1rem', fontWeight: '700', margin: 0, color: COLORS.ink, fontFamily: COLORS.mono },
+        chartTimeframeRow: {
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px',
+            borderBottom: `1px solid ${COLORS.border}`, background: COLORS.surface, flexWrap: 'wrap'
+        },
+        chartTimeframeButton: {
+            padding: '5px 12px', borderRadius: '999px', border: `1px solid ${COLORS.neutralBorder}`, background: COLORS.neutralSoft,
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+        },
+        chartTimeframeButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
         chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column' },
         chartCanvas: { width: '100%', height: '100%' },
 
