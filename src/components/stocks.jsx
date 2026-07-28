@@ -547,6 +547,29 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [scannerError, setScannerError] = React.useState(null);
     const pollRef = React.useRef(null);
 
+    const [backgroundRunningSince, setBackgroundRunningSince] = React.useState(null);
+    const [showForceReset, setShowForceReset] = React.useState(false);
+    const [resetting, setResetting] = React.useState(false);
+
+    React.useEffect(() => {
+        if (isBackgroundRunning) {
+            setBackgroundRunningSince(prev => prev || Date.now());
+        } else {
+            setBackgroundRunningSince(null);
+            setShowForceReset(false);
+        }
+    }, [isBackgroundRunning]);
+
+    React.useEffect(() => {
+        if (!backgroundRunningSince) return;
+        const check = () => {
+            if (Date.now() - backgroundRunningSince > 3 * 60 * 1000) setShowForceReset(true);
+        };
+        check();
+        const id = setInterval(check, 15000);
+        return () => clearInterval(id);
+    }, [backgroundRunningSince]);
+
     // Fetch on mount
     React.useEffect(() => { fetchWatchlist(); }, []);
 
@@ -1372,10 +1395,24 @@ Do not include anything outside the JSON array. The response must be parseable b
                     {isBackgroundRunning && (
                         <div style={{
                             padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe',
-                            display:'flex', alignItems:'center', gap:'8px', fontSize:'12px', color:'#1d4ed8', fontWeight:'600',
+                            display:'flex', alignItems:'center', gap:'8px', fontSize:'12px', color:'#1d4ed8', fontWeight:'600', flexWrap:'wrap',
                         }}>
                             <span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span>
-                            A fresh scan is running in the background — showing the last cached results below until it finishes (auto-updates every 5s).
+                            A fresh scan is running in the background — showing cached results below (auto-updates every 5s).
+                            {showForceReset && (
+                                <button
+                                    onClick={forceResetScan}
+                                    disabled={resetting}
+                                    style={{
+                                        marginLeft:'auto', padding:'4px 12px', borderRadius:'20px',
+                                        fontSize:'11px', fontWeight:'800', cursor: resetting ? 'wait' : 'pointer',
+                                        border:'1px solid #ef4444', backgroundColor:'#fff', color:'#ef4444',
+                                        display:'flex', alignItems:'center', gap:'5px', whiteSpace:'nowrap',
+                                    }}
+                                >
+                                    {resetting ? '⏳ Resetting...' : '⚠️ Stuck? Force Reset & Rescan'}
+                                </button>
+                            )}
                         </div>
                     )}
                     {scannerError && (
@@ -5293,6 +5330,71 @@ React.useEffect(() => {
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
 }, [isOpen]);
+
+React.useEffect(() => {
+        if (isOpen && !results) {
+            run(false);
+        }
+        return () => {
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        };
+    }, [isOpen]);
+
+    const forceResetScan = async () => {
+        setResetting(true);
+        setScannerError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    tickers:      tickersToScan,
+                    minMarketCap: CAP_OPTIONS[minCap],
+                    topN:         30,
+                    resetLock:    true,
+                }),
+            });
+            const json = await res.json();
+            setResults(json);
+            setScannedAt(json.scannedAt);
+            setScannerError(json.lastError || null);
+            setIsBackgroundRunning(!!json.isRunning);
+            setShowForceReset(false);
+            setBackgroundRunningSince(null);
+
+            if (json.isRunning && !pollRef.current) {
+                pollRef.current = setInterval(async () => {
+                    try {
+                        const pRes  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({
+                                tickers:      tickersToScan,
+                                minMarketCap: CAP_OPTIONS[minCap],
+                                topN:         30,
+                                forceRefresh: false,
+                            }),
+                        });
+                        const pJson = await pRes.json();
+                        setResults(pJson);
+                        setScannedAt(pJson.scannedAt);
+                        setScannerError(pJson.lastError || null);
+                        setIsBackgroundRunning(!!pJson.isRunning);
+                        if (!pJson.isRunning) {
+                            clearInterval(pollRef.current);
+                            pollRef.current = null;
+                        }
+                    } catch (e) {
+                        console.error('[Scanner poll]', e);
+                    }
+                }, 5000);
+            }
+        } catch (e) {
+            setScannerError(e.message);
+        } finally {
+            setResetting(false);
+        }
+    };
 
 
 //     const run = async () => {
