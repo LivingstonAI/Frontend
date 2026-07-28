@@ -3,8 +3,8 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers } from 'lucide-react';
-import { createChart, CandlestickSeries } from 'lightweight-charts';
+import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2 } from 'lucide-react';
+import { createChart, CandlestickSeries, LineSeries } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
@@ -58,10 +58,10 @@ const MAP_COLORS = {
 
 const getRecStyle = (rec) => {
     const r = (rec || '').toUpperCase();
-    if (r.includes('STRONG BUY')) return { background: COLORS.positiveSoft, color: COLORS.positive, border: `1px solid ${COLORS.positiveBorder}` };
+    if (r.includes('STRONG BUY') || r.includes('BULLISH')) return { background: COLORS.positiveSoft, color: COLORS.positive, border: `1px solid ${COLORS.positiveBorder}` };
     if (r.includes('BUY')) return { background: COLORS.accentSoft, color: COLORS.accent, border: `1px solid ${COLORS.accentBorder}` };
-    if (r.includes('WATCH')) return { background: COLORS.cautionSoft, color: COLORS.caution, border: `1px solid ${COLORS.cautionBorder}` };
-    if (r.includes('SELL') || r.includes('AVOID')) return { background: COLORS.negativeSoft, color: COLORS.negative, border: `1px solid ${COLORS.negativeBorder}` };
+    if (r.includes('WATCH') || r.includes('NEUTRAL')) return { background: COLORS.cautionSoft, color: COLORS.caution, border: `1px solid ${COLORS.cautionBorder}` };
+    if (r.includes('SELL') || r.includes('AVOID') || r.includes('BEARISH')) return { background: COLORS.negativeSoft, color: COLORS.negative, border: `1px solid ${COLORS.negativeBorder}` };
     return { background: COLORS.neutralSoft, color: COLORS.inkMuted, border: `1px solid ${COLORS.neutralBorder}` };
 };
 
@@ -112,6 +112,56 @@ const normalizeCountryName = (name) => {
 // Timeframe options for the per-stock chart panel. Keys match what the
 // backend's TIMEFRAME_MAP expects -- keep the two in sync if you add more.
 const CHART_TIMEFRAMES = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y'];
+
+// ---------------------------------------------------------------------------
+// Asset Explorer (Trend Scanner cross-reference + lower-timeframe chart)
+// helpers. Kept at module scope so the AssetExplorerModal component below
+// -- and, if you ever want it, the country-picks chart panel too -- can
+// share one implementation instead of two.
+// ---------------------------------------------------------------------------
+const ASSET_INTERVALS = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'];
+const ASSET_INTRADAY_INTERVALS = new Set(['1m', '5m', '15m', '30m', '1H', '4H']);
+
+const EMA_LINES = [
+    { period: 20, color: '#f59e0b' },
+    { period: 50, color: '#3b82f6' },
+    { period: 200, color: '#a855f7' },
+];
+
+const addCandleSeries = (chart, options) => (
+    typeof chart.addCandlestickSeries === 'function'
+        ? chart.addCandlestickSeries(options)
+        : chart.addSeries(CandlestickSeries, options)
+);
+
+const addLine = (chart, options) => (
+    typeof chart.addLineSeries === 'function'
+        ? chart.addLineSeries(options)
+        : chart.addSeries(LineSeries, options)
+);
+
+// Simple client-side EMA over closing price -- good enough for a visual
+// overlay in an explorer tool. Skips periods longer than the candle count
+// so a 200-EMA doesn't render as a flat line on a thin 1m/5d pull.
+function computeEMA(candles, period) {
+    if (!candles || candles.length < period) return [];
+    const k = 2 / (period + 1);
+    let emaPrev = candles[0].close;
+    const out = [{ time: candles[0].time, value: emaPrev }];
+    for (let i = 1; i < candles.length; i++) {
+        emaPrev = candles[i].close * k + emaPrev * (1 - k);
+        out.push({ time: candles[i].time, value: emaPrev });
+    }
+    return out;
+}
+
+const formatMarketCap = (n) => {
+    if (!n && n !== 0) return null;
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+    if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
+    if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
+    return `$${n.toLocaleString()}`;
+};
 
 const LauraModalContent = ({
     isMobile,
@@ -324,6 +374,549 @@ const LauraModalContent = ({
     );
 };
 
+// ---------------------------------------------------------------------------
+// Asset Explorer -- cross-references SnowVaultTickerMeta + SnowVaultWatchlistAsset
+// + each ticker's latest SnowVaultScannerHistory row by ticker/name/sector/
+// category (Trend Scanner data, not the country stock picks above), with a
+// lower-timeframe chart (down to 1m) and a fullscreen mode that superimposes
+// price/change + the latest scan verdict over the chart itself.
+//
+// Self-contained on purpose: it owns all of its own state via its own hooks,
+// the same way LauraModalContent above is its own component -- SnowAIEarth
+// just mounts it and hands it isOpen/onClose/baseUrl.
+// ---------------------------------------------------------------------------
+const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
+    const [isMobile, setIsMobile] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Search / cross-reference
+    const [query, setQuery] = useState('');
+    const [sectorFilter, setSectorFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
+    const [sectors, setSectors] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [assets, setAssets] = useState([]);
+    const [searching, setSearching] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const searchDebounceRef = useRef(null);
+
+    // Selected asset + chart
+    const [selectedAsset, setSelectedAsset] = useState(null);
+    const [interval, setInterval_] = useState('1D');
+    const [candles, setCandles] = useState(null);
+    const [chartLoading, setChartLoading] = useState(false);
+    const [chartError, setChartError] = useState('');
+
+    const chartContainerRef = useRef(null);
+    const chartInstanceRef = useRef(null);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // ------------------------------------------------------------------
+    // Search / cross-reference
+    // ------------------------------------------------------------------
+    const runSearch = useCallback(async (q, sector, category) => {
+        setSearching(true);
+        setSearchError('');
+        try {
+            const response = await fetch(`${baseUrl}/api/snowvault/assets/search/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q, sector, category }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setAssets(data.assets || []);
+            } else {
+                setSearchError(data.error || 'Search failed.');
+                setAssets([]);
+            }
+        } catch (error) {
+            setSearchError("Couldn't reach the server.");
+            setAssets([]);
+        } finally {
+            setSearching(false);
+        }
+    }, [baseUrl]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // Sectors/categories once per open
+        fetch(`${baseUrl}/api/snowvault/assets/sectors/`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    setSectors(data.sectors || []);
+                    setCategories(data.categories || []);
+                }
+            })
+            .catch(() => {});
+
+        // Initial browsable list
+        runSearch('', '', '');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        searchDebounceRef.current = setTimeout(() => {
+            runSearch(query, sectorFilter, categoryFilter);
+        }, 350);
+        return () => clearTimeout(searchDebounceRef.current);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [query, sectorFilter, categoryFilter]);
+
+    // ------------------------------------------------------------------
+    // Chart data
+    // ------------------------------------------------------------------
+    const fetchChart = useCallback(async (ticker, intervalKey) => {
+        setChartLoading(true);
+        setChartError('');
+        setCandles(null);
+        try {
+            const response = await fetch(`${baseUrl}/api/snowvault/assets/chart-data/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: ticker, interval: intervalKey }),
+            });
+            const data = await response.json();
+            if (data.success && Array.isArray(data.candles) && data.candles.length > 0) {
+                setCandles(data.candles);
+            } else {
+                setChartError(data.error || 'No chart data available.');
+            }
+        } catch (error) {
+            setChartError("Couldn't reach the chart data endpoint.");
+        } finally {
+            setChartLoading(false);
+        }
+    }, [baseUrl]);
+
+    const selectAsset = (asset) => {
+        setSelectedAsset(asset);
+        fetchChart(asset.ticker, interval);
+    };
+
+    const changeInterval = (intervalKey) => {
+        if (intervalKey === interval) return;
+        setInterval_(intervalKey);
+        if (selectedAsset) fetchChart(selectedAsset.ticker, intervalKey);
+    };
+
+    // ------------------------------------------------------------------
+    // Build / rebuild the chart whenever candles change
+    // ------------------------------------------------------------------
+    useEffect(() => {
+        if (!candles || !chartContainerRef.current) return;
+
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.remove();
+            chartInstanceRef.current = null;
+        }
+
+        const container = chartContainerRef.current;
+        const isIntraday = ASSET_INTRADAY_INTERVALS.has(interval);
+
+        const chart = createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight,
+            layout: { background: { color: MAP_COLORS.void }, textColor: '#cbd5e1' },
+            grid: {
+                vertLines: { color: 'rgba(148, 163, 184, 0.08)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.08)' },
+            },
+            rightPriceScale: { borderColor: MAP_COLORS.border },
+            timeScale: { borderColor: MAP_COLORS.border, timeVisible: isIntraday, secondsVisible: false },
+        });
+
+        const candleSeries = addCandleSeries(chart, {
+            upColor: COLORS.positive,
+            downColor: COLORS.negative,
+            borderVisible: false,
+            wickUpColor: COLORS.positive,
+            wickDownColor: COLORS.negative,
+        });
+        candleSeries.setData(candles);
+
+        // Superimpose EMA20/50/200 on the same price scale
+        EMA_LINES.forEach(({ period, color }) => {
+            const emaData = computeEMA(candles, period);
+            if (emaData.length === 0) return;
+            const line = addLine(chart, {
+                color,
+                lineWidth: 1,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            line.setData(emaData);
+        });
+
+        chart.timeScale().fitContent();
+        chartInstanceRef.current = chart;
+
+        const handleResize = () => {
+            chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
+        };
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (chartInstanceRef.current) {
+                chartInstanceRef.current.remove();
+                chartInstanceRef.current = null;
+            }
+        };
+    }, [candles, interval]);
+
+    // Resize the chart when fullscreen is toggled -- the container's own
+    // dimensions change without a window resize event firing.
+    useEffect(() => {
+        if (!chartInstanceRef.current || !chartContainerRef.current) return;
+        const timer = setTimeout(() => {
+            const container = chartContainerRef.current;
+            if (container && chartInstanceRef.current) {
+                chartInstanceRef.current.applyOptions({
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [isFullscreen]);
+
+    const handleClose = () => {
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.remove();
+            chartInstanceRef.current = null;
+        }
+        setIsFullscreen(false);
+        setSelectedAsset(null);
+        setCandles(null);
+        setChartError('');
+        onClose && onClose();
+    };
+
+    const lastCandle = candles && candles.length > 0 ? candles[candles.length - 1] : null;
+    const prevCandle = candles && candles.length > 1 ? candles[candles.length - 2] : null;
+    const changeAbs = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : null;
+    const changePct = changeAbs !== null && prevCandle.close ? (changeAbs / prevCandle.close) * 100 : null;
+    const lastCandleLabel = lastCandle
+        ? (typeof lastCandle.time === 'number'
+            ? new Date(lastCandle.time * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            : new Date(lastCandle.time + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
+        : null;
+
+    const styles = useMemo(() => ({
+        modal: {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10005, backdropFilter: 'blur(4px)', padding: isFullscreen ? 0 : (isMobile ? '10px' : '20px'),
+        },
+        content: {
+            background: COLORS.surface, borderRadius: isFullscreen ? 0 : '14px', border: isFullscreen ? 'none' : `1px solid ${COLORS.border}`,
+            boxShadow: isFullscreen ? 'none' : '0 20px 60px rgba(0,0,0,0.2)',
+            width: isFullscreen ? '100%' : (isMobile ? '100%' : '1080px'),
+            height: isFullscreen ? '100%' : (isMobile ? '100%' : '680px'),
+            maxWidth: '100vw', maxHeight: '100vh',
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        },
+        header: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
+        },
+        title: { fontSize: '1.05rem', fontWeight: '700', color: COLORS.ink, margin: 0 },
+        closeButton: {
+            background: 'none', border: 'none', color: COLORS.inkMuted, fontSize: '28px', cursor: 'pointer',
+            padding: 0, width: '36px', height: '36px', borderRadius: '6px', display: 'flex',
+            justifyContent: 'center', alignItems: 'center', fontWeight: '300',
+        },
+        layout: { display: 'flex', flexDirection: isMobile ? 'column' : 'row', flex: 1, overflow: 'hidden' },
+
+        // Search / results rail
+        rail: {
+            width: isMobile ? '100%' : '340px', flexShrink: 0, display: 'flex', flexDirection: 'column',
+            borderRight: isMobile ? 'none' : `1px solid ${COLORS.border}`,
+            borderBottom: isMobile ? `1px solid ${COLORS.border}` : 'none',
+            height: isMobile ? (selectedAsset ? '220px' : '100%') : '100%',
+            background: COLORS.surface,
+        },
+        searchBox: { padding: '12px 14px', borderBottom: `1px solid ${COLORS.border}` },
+        searchInputWrap: {
+            display: 'flex', alignItems: 'center', gap: '8px', background: COLORS.bg,
+            border: `1px solid ${COLORS.border}`, borderRadius: '8px', padding: '9px 12px', marginBottom: '8px',
+        },
+        searchInput: { flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', color: COLORS.ink },
+        filterRow: { display: 'flex', gap: '6px' },
+        filterSelect: {
+            flex: 1, padding: '6px 8px', borderRadius: '6px', border: `1px solid ${COLORS.border}`,
+            background: COLORS.surface, color: COLORS.inkMuted, fontSize: '11px', outline: 'none',
+        },
+        resultsList: { flex: 1, overflowY: 'auto', padding: '8px' },
+        resultCard: {
+            padding: '10px 12px', borderRadius: '8px', border: `1px solid transparent`, cursor: 'pointer', marginBottom: '4px',
+        },
+        resultCardActive: { background: COLORS.accentSoft, border: `1px solid ${COLORS.accentBorder}` },
+        resultHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
+        resultTicker: { fontFamily: COLORS.mono, fontWeight: '700', fontSize: '13px', color: COLORS.ink },
+        resultName: { fontSize: '11px', color: COLORS.inkMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+        resultMetaRow: { display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' },
+        resultChip: {
+            fontSize: '10px', color: COLORS.inkMuted, background: COLORS.neutralSoft,
+            border: `1px solid ${COLORS.neutralBorder}`, borderRadius: '999px', padding: '2px 8px',
+        },
+        signalBadge: { padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: '700' },
+        emptyRail: { textAlign: 'center', padding: '40px 16px', color: COLORS.inkFaint, fontSize: '12px' },
+
+        // Detail / chart pane
+        detailPane: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 },
+        detailHeader: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px',
+            padding: '14px 18px', borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
+        },
+        detailTitleRow: { display: 'flex', alignItems: 'center', gap: '8px' },
+        detailTicker: { fontFamily: COLORS.mono, fontSize: '1.2rem', fontWeight: '700', color: COLORS.ink, margin: 0 },
+        detailSubtitle: { fontSize: '12px', color: COLORS.inkMuted, marginTop: '3px' },
+        fullscreenButton: {
+            display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '8px',
+            border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
+            fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+        },
+        intervalRow: {
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
+            borderBottom: `1px solid ${COLORS.border}`, flexWrap: 'wrap', flexShrink: 0,
+        },
+        intervalButton: {
+            padding: '5px 11px', borderRadius: '999px', border: `1px solid ${COLORS.neutralBorder}`, background: COLORS.neutralSoft,
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+        },
+        intervalButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
+        chartWrap: { flex: 1, position: 'relative', background: MAP_COLORS.void, minHeight: 0 },
+        chartCanvas: { width: '100%', height: '100%' },
+
+        // HUD overlay superimposed on the chart
+        hud: {
+            position: 'absolute', top: '12px', left: '12px', zIndex: 5,
+            background: 'rgba(15, 23, 42, 0.72)', border: '1px solid rgba(148, 163, 184, 0.25)',
+            borderRadius: '10px', padding: '10px 14px', backdropFilter: 'blur(6px)',
+            maxWidth: isMobile ? '85%' : '280px',
+        },
+        hudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
+        hudPrice: { fontFamily: COLORS.mono, fontSize: '18px', fontWeight: '700', color: '#f8fafc' },
+        hudChange: (positive) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: positive ? '#4ade80' : '#f87171' }),
+        hudMeta: { fontSize: '10px', color: '#94a3b8', marginTop: '4px' },
+        hudBadgeRow: { display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' },
+        emptyDetail: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.inkFaint, gap: '10px' },
+        loadingWrap: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+        spinner: {
+            width: '32px', height: '32px', border: `3px solid ${MAP_COLORS.border}`, borderTop: `3px solid ${COLORS.accent}`,
+            borderRadius: '50%', animation: 'assetExplorerSpin 1s linear infinite',
+        },
+    }), [isMobile, isFullscreen, selectedAsset]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={styles.modal} onClick={(e) => { if (e.target === e.currentTarget && !isFullscreen) handleClose(); }}>
+            <div style={styles.content}>
+                <div style={styles.header}>
+                    <h3 style={styles.title}>Asset explorer</h3>
+                    <button style={styles.closeButton} onClick={handleClose}>×</button>
+                </div>
+
+                <div style={styles.layout}>
+                    {/* Search + cross-reference rail */}
+                    <div style={styles.rail}>
+                        <div style={styles.searchBox}>
+                            <div style={styles.searchInputWrap}>
+                                <Search size={14} color={COLORS.inkFaint} />
+                                <input
+                                    type="text"
+                                    placeholder="Search ticker, name, or sector..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    style={styles.searchInput}
+                                />
+                            </div>
+                            <div style={styles.filterRow}>
+                                <select
+                                    value={sectorFilter}
+                                    onChange={(e) => setSectorFilter(e.target.value)}
+                                    style={styles.filterSelect}
+                                >
+                                    <option value="">All sectors</option>
+                                    {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                <select
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    style={styles.filterSelect}
+                                >
+                                    <option value="">All categories</option>
+                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style={styles.resultsList}>
+                            {searching && assets.length === 0 && (
+                                <div style={styles.emptyRail}>Searching...</div>
+                            )}
+                            {searchError && (
+                                <div style={{ ...styles.emptyRail, color: COLORS.negative }}>{searchError}</div>
+                            )}
+                            {!searching && !searchError && assets.length === 0 && (
+                                <div style={styles.emptyRail}>
+                                    No assets match yet. Try a different ticker, name, or sector.
+                                </div>
+                            )}
+                            {assets.map((asset) => {
+                                const active = selectedAsset?.ticker === asset.ticker;
+                                const signalLabel = asset.latest?.ai_verdict || asset.latest?.signal || asset.latest?.direction;
+                                return (
+                                    <div
+                                        key={asset.ticker}
+                                        style={{ ...styles.resultCard, ...(active ? styles.resultCardActive : {}) }}
+                                        onClick={() => selectAsset(asset)}
+                                    >
+                                        <div style={styles.resultHeaderRow}>
+                                            <div>
+                                                <span style={styles.resultTicker}>{asset.ticker}</span>
+                                                {asset.in_watchlist && <Star size={11} style={{ marginLeft: '6px' }} fill={COLORS.accent} color={COLORS.accent} />}
+                                            </div>
+                                            {typeof asset.latest?.score === 'number' && (
+                                                <span style={{ fontSize: '11px', color: COLORS.inkMuted, fontFamily: COLORS.mono }}>
+                                                    {asset.latest.score.toFixed(1)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {asset.name && asset.name !== asset.ticker && (
+                                            <div style={styles.resultName}>{asset.name}</div>
+                                        )}
+                                        <div style={styles.resultMetaRow}>
+                                            {asset.sector && <span style={styles.resultChip}>{asset.sector}</span>}
+                                            {asset.category && <span style={styles.resultChip}>{asset.category}</span>}
+                                            {signalLabel && (
+                                                <span style={{ ...styles.signalBadge, ...getRecStyle(signalLabel) }}>{signalLabel}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Chart / detail pane */}
+                    <div style={styles.detailPane}>
+                        {!selectedAsset && (
+                            <div style={styles.emptyDetail}>
+                                <BarChart3 size={32} color={COLORS.inkFaint} />
+                                <div>Pick an asset on the left to chart it.</div>
+                            </div>
+                        )}
+
+                        {selectedAsset && (
+                            <>
+                                <div style={styles.detailHeader}>
+                                    <div>
+                                        <div style={styles.detailTitleRow}>
+                                            <h4 style={styles.detailTicker}>{selectedAsset.ticker}</h4>
+                                            {selectedAsset.in_watchlist && <Star size={14} fill={COLORS.accent} color={COLORS.accent} />}
+                                        </div>
+                                        <div style={styles.detailSubtitle}>
+                                            {selectedAsset.name}
+                                            {selectedAsset.sector && <> · {selectedAsset.sector}</>}
+                                            {formatMarketCap(selectedAsset.market_cap) && <> · Mkt cap {formatMarketCap(selectedAsset.market_cap)}</>}
+                                        </div>
+                                    </div>
+                                    <button style={styles.fullscreenButton} onClick={() => setIsFullscreen(f => !f)}>
+                                        {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                        {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                                    </button>
+                                </div>
+
+                                <div style={styles.intervalRow}>
+                                    <Layers size={13} color={COLORS.inkMuted} />
+                                    {ASSET_INTERVALS.map(tf => (
+                                        <button
+                                            key={tf}
+                                            style={{ ...styles.intervalButton, ...(tf === interval ? styles.intervalButtonActive : {}) }}
+                                            onClick={() => changeInterval(tf)}
+                                        >
+                                            {tf}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div style={styles.chartWrap}>
+                                    {chartLoading && (
+                                        <div style={styles.loadingWrap}>
+                                            <div style={styles.spinner}></div>
+                                        </div>
+                                    )}
+                                    {!chartLoading && chartError && (
+                                        <div style={styles.emptyDetail}>
+                                            <AlertTriangle size={28} color={COLORS.caution} />
+                                            <div style={{ color: '#cbd5e1', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                                        </div>
+                                    )}
+                                    {!chartLoading && !chartError && candles && (
+                                        <>
+                                            {/* Superimposed asset data -- price/change + latest scanner signal */}
+                                            <div style={styles.hud}>
+                                                <div style={styles.hudRow}>
+                                                    {lastCandle && <span style={styles.hudPrice}>{lastCandle.close.toFixed(2)}</span>}
+                                                    {changeAbs !== null && (
+                                                        <span style={styles.hudChange(changeAbs >= 0)}>
+                                                            {changeAbs >= 0 ? <TrendingUp size={11} style={{ verticalAlign: 'middle' }} /> : <TrendingDown size={11} style={{ verticalAlign: 'middle' }} />}
+                                                            {' '}{changeAbs >= 0 ? '+' : ''}{changeAbs.toFixed(2)} ({changePct.toFixed(2)}%)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {lastCandleLabel && <div style={styles.hudMeta}>As of {lastCandleLabel} · {interval}</div>}
+                                                {selectedAsset.latest && (
+                                                    <div style={styles.hudBadgeRow}>
+                                                        {selectedAsset.latest.ai_verdict && (
+                                                            <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.latest.ai_verdict) }}>
+                                                                {selectedAsset.latest.ai_verdict}
+                                                            </span>
+                                                        )}
+                                                        {typeof selectedAsset.latest.ai_opportunity_score === 'number' && (
+                                                            <span style={styles.resultChip}>AI score {selectedAsset.latest.ai_opportunity_score}</span>
+                                                        )}
+                                                        {selectedAsset.latest.snapshot_date && (
+                                                            <span style={styles.resultChip}>Scanned {selectedAsset.latest.snapshot_date}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div ref={chartContainerRef} style={styles.chartCanvas}></div>
+                                        </>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes assetExplorerSpin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
+        </div>
+    );
+};
+
 export default function SnowAIEarth() {
     const baseUrl = 'https://backend-production-c0ab.up.railway.app';
     const [view3D, setView3D] = useState(true);
@@ -340,6 +933,7 @@ export default function SnowAIEarth() {
     const [searchCountry, setSearchCountry] = useState('');
     const [autoRotate, setAutoRotate] = useState(true);
     const [showMediaCenter, setShowMediaCenter] = useState(false);
+    const [showAssetExplorer, setShowAssetExplorer] = useState(false);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [showLaura, setShowLaura] = useState(false);
@@ -1964,6 +2558,13 @@ export default function SnowAIEarth() {
             boxShadow: '0 4px 16px rgba(0,0,0,0.2)', display: 'flex', justifyContent: 'center', alignItems: 'center',
             zIndex: 9998, transition: 'transform 0.2s ease'
         },
+        assetExplorerButton: {
+            position: 'fixed', bottom: '30px', right: isMobile ? '160px' : '190px',
+            width: isMobile ? '50px' : '58px', height: isMobile ? '50px' : '58px', borderRadius: '50%',
+            background: '#7c3aed', border: '3px solid #fff', color: '#fff', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(124, 58, 237, 0.35)', display: 'flex', justifyContent: 'center',
+            alignItems: 'center', zIndex: 9998, transition: 'transform 0.2s ease'
+        },
         mediaCenterModal: {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15, 23, 42, 0.5)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10002, backdropFilter: 'blur(4px)'
@@ -2213,6 +2814,16 @@ export default function SnowAIEarth() {
             </button>
 
             <button
+                style={styles.assetExplorerButton}
+                onClick={() => setShowAssetExplorer(true)}
+                title="Asset explorer"
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+                <BarChart3 size={22} />
+            </button>
+
+            <button
                 style={styles.lauraButton}
                 onClick={() => {
                     setShowLaura(true);
@@ -2230,6 +2841,13 @@ export default function SnowAIEarth() {
             {showMediaCenter && <MediaCenterModal />}
             {showStockModal && renderCountryStockModal()}
             {chartStock && <StockChartPanel />}
+            {showAssetExplorer && (
+                <AssetExplorerModal
+                    isOpen={showAssetExplorer}
+                    onClose={() => setShowAssetExplorer(false)}
+                    baseUrl={baseUrl}
+                />
+            )}
             {showLaura && <LauraModalContent
                 isMobile={isMobile}
                 searchQuery={searchQuery}
