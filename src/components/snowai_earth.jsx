@@ -109,15 +109,10 @@ const normalizeCountryName = (name) => {
     return COUNTRY_NAME_OVERRIDES[key] || name;
 };
 
-// Timeframe options for the per-stock chart panel. Keys match what the
-// backend's TIMEFRAME_MAP expects -- keep the two in sync if you add more.
-const CHART_TIMEFRAMES = ['1D', '5D', '1M', '3M', '6M', '1Y', '5Y'];
-
 // ---------------------------------------------------------------------------
-// Asset Explorer (Trend Scanner cross-reference + lower-timeframe chart)
-// helpers. Kept at module scope so the AssetExplorerModal component below
-// -- and, if you ever want it, the country-picks chart panel too -- can
-// share one implementation instead of two.
+// Chart helpers shared by every chart in this file (country-picks panel,
+// Asset Explorer, and the "chart all visible" grid) -- one interval list,
+// one EMA implementation, one session-aware coloring pass.
 // ---------------------------------------------------------------------------
 const ASSET_INTERVALS = ['1m', '5m', '15m', '30m', '1H', '4H', '1D', '1W', '1M'];
 const ASSET_INTRADAY_INTERVALS = new Set(['1m', '5m', '15m', '30m', '1H', '4H']);
@@ -161,6 +156,37 @@ const formatMarketCap = (n) => {
     if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
     if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
     return `$${n.toLocaleString()}`;
+};
+
+const hexToRgba = (hex, alpha) => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Dims pre/post-market (and anything else the backend didn't tag 'regular')
+// candles instead of introducing a third color -- direction still reads at
+// a glance (dim green/dim red) while extended-hours bars visually recede
+// behind the regular session. Backend only attaches `session` on intraday
+// pulls, so daily+ candles pass through untouched.
+const buildSessionAwareCandles = (candles) => candles.map(c => {
+    if (!c.session || c.session === 'regular') return c;
+    const isUp = c.close >= c.open;
+    const dim = isUp ? hexToRgba(COLORS.positive, 0.4) : hexToRgba(COLORS.negative, 0.4);
+    return { ...c, color: dim, borderColor: dim, wickColor: dim };
+});
+
+const hasExtendedHours = (candles) => !!candles && candles.some(c => c.session && c.session !== 'regular');
+
+// "Last saved" date formatting shared by the country-picks modal and the
+// Asset Explorer's country/sector/last-saved grouping.
+const formatLastSaved = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 const LauraModalContent = ({
@@ -375,11 +401,19 @@ const LauraModalContent = ({
 };
 
 // ---------------------------------------------------------------------------
-// Asset Explorer -- cross-references SnowVaultTickerMeta + SnowVaultWatchlistAsset
-// + each ticker's latest SnowVaultScannerHistory row by ticker/name/sector/
-// category (Trend Scanner data, not the country stock picks above), with a
-// lower-timeframe chart (down to 1m) and a fullscreen mode that superimposes
-// price/change + the latest scan verdict over the chart itself.
+// Asset Explorer -- cross-references the Trend Scanner's own data
+// (SnowVaultTickerMeta / SnowVaultWatchlistAsset / SnowVaultScannerHistory)
+// against the Global Stock Picker (SnowGlobalStockPick, the Country-Sector
+// Drill picks) to surface tickers BOTH systems independently landed on --
+// flagged as "cross-referenced" and organized by country (from the Global
+// Picker match) > sector > last-saved. Tickers only known to the Trend
+// Scanner fall into a "Trend Scanner only" bucket, grouped by sector.
+//
+// Chart panel: lower timeframes down to 1m, pre/post-market bars included
+// and dimmed on the candles so extended hours visually recede without a
+// third color, EMA20/50/200 overlay, and a fullscreen mode with a
+// free-floating (no card/box) colored price readout superimposed directly
+// on the chart.
 //
 // Self-contained on purpose: it owns all of its own state via its own hooks,
 // the same way LauraModalContent above is its own component -- SnowAIEarth
@@ -393,6 +427,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const [query, setQuery] = useState('');
     const [sectorFilter, setSectorFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
+    const [crossOnly, setCrossOnly] = useState(false);
     const [sectors, setSectors] = useState([]);
     const [categories, setCategories] = useState([]);
     const [assets, setAssets] = useState([]);
@@ -420,14 +455,14 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     // ------------------------------------------------------------------
     // Search / cross-reference
     // ------------------------------------------------------------------
-    const runSearch = useCallback(async (q, sector, category) => {
+    const runSearch = useCallback(async (q, sector, category, crossOnlyFlag) => {
         setSearching(true);
         setSearchError('');
         try {
             const response = await fetch(`${baseUrl}/api/snowvault/assets/search/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ q, sector, category }),
+                body: JSON.stringify({ q, sector, category, cross_only: crossOnlyFlag }),
             });
             const data = await response.json();
             if (data.success) {
@@ -459,7 +494,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             .catch(() => {});
 
         // Initial browsable list
-        runSearch('', '', '');
+        runSearch('', '', '', false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
@@ -467,11 +502,55 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         if (!isOpen) return;
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         searchDebounceRef.current = setTimeout(() => {
-            runSearch(query, sectorFilter, categoryFilter);
+            runSearch(query, sectorFilter, categoryFilter, crossOnly);
         }, 350);
         return () => clearTimeout(searchDebounceRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [query, sectorFilter, categoryFilter]);
+    }, [query, sectorFilter, categoryFilter, crossOnly]);
+
+    // Group results: country (from the Global Picker match) > sector > list,
+    // sorted by last_saved desc within each leaf. Tickers with no country
+    // match (Trend Scanner only) fall into a separate sector-only bucket.
+    const groupedAssets = useMemo(() => {
+        const byCountry = new Map();
+        const noCountryBySector = new Map();
+
+        assets.forEach(asset => {
+            const sectorKey = asset.sector || 'Other';
+            if (asset.country) {
+                if (!byCountry.has(asset.country)) byCountry.set(asset.country, new Map());
+                const sectorMap = byCountry.get(asset.country);
+                if (!sectorMap.has(sectorKey)) sectorMap.set(sectorKey, []);
+                sectorMap.get(sectorKey).push(asset);
+            } else {
+                if (!noCountryBySector.has(sectorKey)) noCountryBySector.set(sectorKey, []);
+                noCountryBySector.get(sectorKey).push(asset);
+            }
+        });
+
+        const sortByLastSaved = (list) => [...list].sort((a, b) => {
+            if (!a.last_saved && !b.last_saved) return a.ticker.localeCompare(b.ticker);
+            if (!a.last_saved) return 1;
+            if (!b.last_saved) return -1;
+            return b.last_saved.localeCompare(a.last_saved);
+        });
+
+        const countryGroups = Array.from(byCountry.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([country, sectorMap]) => ({
+                country,
+                flag: Array.from(sectorMap.values()).flat().find(a => a.flag)?.flag || '🌍',
+                sectors: Array.from(sectorMap.entries())
+                    .sort((a, b) => a[0].localeCompare(b[0]))
+                    .map(([sector, list]) => ({ sector, assets: sortByLastSaved(list) })),
+            }));
+
+        const otherSectors = Array.from(noCountryBySector.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([sector, list]) => ({ sector, assets: sortByLastSaved(list) }));
+
+        return { countryGroups, otherSectors };
+    }, [assets]);
 
     // ------------------------------------------------------------------
     // Chart data
@@ -543,7 +622,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             wickUpColor: COLORS.positive,
             wickDownColor: COLORS.negative,
         });
-        candleSeries.setData(candles);
+        candleSeries.setData(buildSessionAwareCandles(candles));
 
         // Superimpose EMA20/50/200 on the same price scale
         EMA_LINES.forEach(({ period, color }) => {
@@ -608,11 +687,13 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const prevCandle = candles && candles.length > 1 ? candles[candles.length - 2] : null;
     const changeAbs = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : null;
     const changePct = changeAbs !== null && prevCandle.close ? (changeAbs / prevCandle.close) * 100 : null;
+    const priceUp = changeAbs === null || changeAbs >= 0;
     const lastCandleLabel = lastCandle
         ? (typeof lastCandle.time === 'number'
             ? new Date(lastCandle.time * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             : new Date(lastCandle.time + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
         : null;
+    const showExtendedHoursNote = hasExtendedHours(candles);
 
     const styles = useMemo(() => ({
         modal: {
@@ -642,10 +723,10 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
 
         // Search / results rail
         rail: {
-            width: isMobile ? '100%' : '340px', flexShrink: 0, display: 'flex', flexDirection: 'column',
+            width: isMobile ? '100%' : '360px', flexShrink: 0, display: 'flex', flexDirection: 'column',
             borderRight: isMobile ? 'none' : `1px solid ${COLORS.border}`,
             borderBottom: isMobile ? `1px solid ${COLORS.border}` : 'none',
-            height: isMobile ? (selectedAsset ? '220px' : '100%') : '100%',
+            height: isMobile ? (selectedAsset ? '240px' : '100%') : '100%',
             background: COLORS.surface,
         },
         searchBox: { padding: '12px 14px', borderBottom: `1px solid ${COLORS.border}` },
@@ -654,16 +735,30 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             border: `1px solid ${COLORS.border}`, borderRadius: '8px', padding: '9px 12px', marginBottom: '8px',
         },
         searchInput: { flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', color: COLORS.ink },
-        filterRow: { display: 'flex', gap: '6px' },
+        filterRow: { display: 'flex', gap: '6px', marginBottom: '8px' },
         filterSelect: {
             flex: 1, padding: '6px 8px', borderRadius: '6px', border: `1px solid ${COLORS.border}`,
             background: COLORS.surface, color: COLORS.inkMuted, fontSize: '11px', outline: 'none',
         },
+        crossOnlyRow: {
+            display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: COLORS.inkMuted,
+            cursor: 'pointer', userSelect: 'none',
+        },
         resultsList: { flex: 1, overflowY: 'auto', padding: '8px' },
+        groupHeader: {
+            display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700',
+            color: COLORS.ink, textTransform: 'uppercase', letterSpacing: '0.4px',
+            margin: '14px 6px 4px 6px', paddingTop: '6px', borderTop: `1px solid ${COLORS.border}`,
+        },
+        subGroupHeader: {
+            fontSize: '10px', fontWeight: '700', color: COLORS.inkFaint, textTransform: 'uppercase',
+            letterSpacing: '0.4px', margin: '8px 6px 2px 6px',
+        },
         resultCard: {
             padding: '10px 12px', borderRadius: '8px', border: `1px solid transparent`, cursor: 'pointer', marginBottom: '4px',
         },
         resultCardActive: { background: COLORS.accentSoft, border: `1px solid ${COLORS.accentBorder}` },
+        resultCardCross: { borderLeft: `3px solid #7c3aed` },
         resultHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
         resultTicker: { fontFamily: COLORS.mono, fontWeight: '700', fontSize: '13px', color: COLORS.ink },
         resultName: { fontSize: '11px', color: COLORS.inkMuted, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
@@ -671,6 +766,10 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         resultChip: {
             fontSize: '10px', color: COLORS.inkMuted, background: COLORS.neutralSoft,
             border: `1px solid ${COLORS.neutralBorder}`, borderRadius: '999px', padding: '2px 8px',
+        },
+        crossBadge: {
+            fontSize: '10px', color: '#7c3aed', background: 'rgba(124, 58, 237, 0.1)',
+            border: '1px solid rgba(124, 58, 237, 0.3)', borderRadius: '999px', padding: '2px 8px', fontWeight: '700',
         },
         signalBadge: { padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: '700' },
         emptyRail: { textAlign: 'center', padding: '40px 16px', color: COLORS.inkFaint, fontSize: '12px' },
@@ -681,38 +780,40 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px',
             padding: '14px 18px', borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
         },
-        detailTitleRow: { display: 'flex', alignItems: 'center', gap: '8px' },
+        detailTitleRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
         detailTicker: { fontFamily: COLORS.mono, fontSize: '1.2rem', fontWeight: '700', color: COLORS.ink, margin: 0 },
         detailSubtitle: { fontSize: '12px', color: COLORS.inkMuted, marginTop: '3px' },
         fullscreenButton: {
             display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 12px', borderRadius: '8px',
             border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
-            fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+            fontSize: '11px', fontWeight: '600', cursor: 'pointer', flexShrink: 0,
         },
         intervalRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
-            borderBottom: `1px solid ${COLORS.border}`, flexWrap: 'wrap', flexShrink: 0,
+            borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
+            overflowX: 'auto', WebkitOverflowScrolling: 'touch', flexWrap: isMobile ? 'nowrap' : 'wrap',
         },
         intervalButton: {
             padding: '5px 11px', borderRadius: '999px', border: `1px solid ${COLORS.neutralBorder}`, background: COLORS.neutralSoft,
-            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
         },
         intervalButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
-        chartWrap: { flex: 1, position: 'relative', background: MAP_COLORS.void, minHeight: 0 },
+        extendedHoursNote: { fontSize: '10px', color: COLORS.inkFaint, padding: '0 18px 8px', flexShrink: 0 },
+        chartWrap: { flex: 1, position: 'relative', background: MAP_COLORS.void, minHeight: isMobile ? '320px' : '260px' },
         chartCanvas: { width: '100%', height: '100%' },
 
-        // HUD overlay superimposed on the chart
+        // Superimposed price/change readout -- lives directly on the chart,
+        // no card/border/blur, colored by direction, text-shadow for
+        // legibility against whatever's under it.
         hud: {
-            position: 'absolute', top: '12px', left: '12px', zIndex: 5,
-            background: 'rgba(15, 23, 42, 0.72)', border: '1px solid rgba(148, 163, 184, 0.25)',
-            borderRadius: '10px', padding: '10px 14px', backdropFilter: 'blur(6px)',
-            maxWidth: isMobile ? '85%' : '280px',
+            position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
+            maxWidth: isMobile ? '80%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
         },
-        hudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' },
-        hudPrice: { fontFamily: COLORS.mono, fontSize: '18px', fontWeight: '700', color: '#f8fafc' },
-        hudChange: (positive) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: positive ? '#4ade80' : '#f87171' }),
-        hudMeta: { fontSize: '10px', color: '#94a3b8', marginTop: '4px' },
-        hudBadgeRow: { display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' },
+        hudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
+        hudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        hudChange: (up) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        hudMeta: { fontSize: '10px', color: '#cbd5e1', marginTop: '3px' },
+        hudBadgeRow: { display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap', pointerEvents: 'auto' },
         emptyDetail: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.inkFaint, gap: '10px' },
         loadingWrap: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
         spinner: {
@@ -722,6 +823,45 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     }), [isMobile, isFullscreen, selectedAsset]);
 
     if (!isOpen) return null;
+
+    const renderAssetCard = (asset) => {
+        const active = selectedAsset?.ticker === asset.ticker;
+        const signalLabel = asset.latest_scan?.ai_verdict || asset.latest_scan?.signal || asset.latest_scan?.direction;
+        return (
+            <div
+                key={asset.ticker}
+                style={{
+                    ...styles.resultCard,
+                    ...(active ? styles.resultCardActive : {}),
+                    ...(asset.cross_referenced ? styles.resultCardCross : {}),
+                }}
+                onClick={() => selectAsset(asset)}
+            >
+                <div style={styles.resultHeaderRow}>
+                    <div>
+                        <span style={styles.resultTicker}>{asset.ticker}</span>
+                        {asset.in_watchlist && <Star size={11} style={{ marginLeft: '6px' }} fill={COLORS.accent} color={COLORS.accent} />}
+                    </div>
+                    {typeof asset.latest_scan?.score === 'number' && (
+                        <span style={{ fontSize: '11px', color: COLORS.inkMuted, fontFamily: COLORS.mono }}>
+                            {asset.latest_scan.score.toFixed(1)}
+                        </span>
+                    )}
+                </div>
+                {asset.name && asset.name !== asset.ticker && (
+                    <div style={styles.resultName}>{asset.name}</div>
+                )}
+                <div style={styles.resultMetaRow}>
+                    {asset.cross_referenced && <span style={styles.crossBadge}>🔗 In both</span>}
+                    {asset.category && <span style={styles.resultChip}>{asset.category}</span>}
+                    {signalLabel && (
+                        <span style={{ ...styles.signalBadge, ...getRecStyle(signalLabel) }}>{signalLabel}</span>
+                    )}
+                    {asset.last_saved && <span style={styles.resultChip}>Saved {formatLastSaved(asset.last_saved)}</span>}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div style={styles.modal} onClick={(e) => { if (e.target === e.currentTarget && !isFullscreen) handleClose(); }}>
@@ -739,7 +879,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                 <Search size={14} color={COLORS.inkFaint} />
                                 <input
                                     type="text"
-                                    placeholder="Search ticker, name, or sector..."
+                                    placeholder="Search ticker, name, sector, or country..."
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     style={styles.searchInput}
@@ -763,6 +903,14 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                     {categories.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
+                            <label style={styles.crossOnlyRow}>
+                                <input
+                                    type="checkbox"
+                                    checked={crossOnly}
+                                    onChange={(e) => setCrossOnly(e.target.checked)}
+                                />
+                                🔗 Opportunities only (saved in both Trend Scanner &amp; Global Picker)
+                            </label>
                         </div>
 
                         <div style={styles.resultsList}>
@@ -774,42 +922,39 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                             )}
                             {!searching && !searchError && assets.length === 0 && (
                                 <div style={styles.emptyRail}>
-                                    No assets match yet. Try a different ticker, name, or sector.
+                                    No assets match yet. Try a different ticker, name, sector, or country.
                                 </div>
                             )}
-                            {assets.map((asset) => {
-                                const active = selectedAsset?.ticker === asset.ticker;
-                                const signalLabel = asset.latest?.ai_verdict || asset.latest?.signal || asset.latest?.direction;
-                                return (
-                                    <div
-                                        key={asset.ticker}
-                                        style={{ ...styles.resultCard, ...(active ? styles.resultCardActive : {}) }}
-                                        onClick={() => selectAsset(asset)}
-                                    >
-                                        <div style={styles.resultHeaderRow}>
-                                            <div>
-                                                <span style={styles.resultTicker}>{asset.ticker}</span>
-                                                {asset.in_watchlist && <Star size={11} style={{ marginLeft: '6px' }} fill={COLORS.accent} color={COLORS.accent} />}
-                                            </div>
-                                            {typeof asset.latest?.score === 'number' && (
-                                                <span style={{ fontSize: '11px', color: COLORS.inkMuted, fontFamily: COLORS.mono }}>
-                                                    {asset.latest.score.toFixed(1)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {asset.name && asset.name !== asset.ticker && (
-                                            <div style={styles.resultName}>{asset.name}</div>
-                                        )}
-                                        <div style={styles.resultMetaRow}>
-                                            {asset.sector && <span style={styles.resultChip}>{asset.sector}</span>}
-                                            {asset.category && <span style={styles.resultChip}>{asset.category}</span>}
-                                            {signalLabel && (
-                                                <span style={{ ...styles.signalBadge, ...getRecStyle(signalLabel) }}>{signalLabel}</span>
-                                            )}
-                                        </div>
+
+                            {groupedAssets.countryGroups.map(group => (
+                                <div key={group.country}>
+                                    <div style={styles.groupHeader}>
+                                        <span>{group.flag}</span>
+                                        <span>{group.country}</span>
                                     </div>
-                                );
-                            })}
+                                    {group.sectors.map(sub => (
+                                        <div key={sub.sector}>
+                                            <div style={styles.subGroupHeader}>{sub.sector}</div>
+                                            {sub.assets.map(renderAssetCard)}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+
+                            {groupedAssets.otherSectors.length > 0 && (
+                                <div>
+                                    <div style={styles.groupHeader}>
+                                        <Layers size={12} />
+                                        <span>Trend Scanner only</span>
+                                    </div>
+                                    {groupedAssets.otherSectors.map(sub => (
+                                        <div key={sub.sector}>
+                                            <div style={styles.subGroupHeader}>{sub.sector}</div>
+                                            {sub.assets.map(renderAssetCard)}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -829,9 +974,11 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                         <div style={styles.detailTitleRow}>
                                             <h4 style={styles.detailTicker}>{selectedAsset.ticker}</h4>
                                             {selectedAsset.in_watchlist && <Star size={14} fill={COLORS.accent} color={COLORS.accent} />}
+                                            {selectedAsset.cross_referenced && <span style={styles.crossBadge}>🔗 In both</span>}
                                         </div>
                                         <div style={styles.detailSubtitle}>
                                             {selectedAsset.name}
+                                            {selectedAsset.country && <> · {selectedAsset.flag} {selectedAsset.country}</>}
                                             {selectedAsset.sector && <> · {selectedAsset.sector}</>}
                                             {formatMarketCap(selectedAsset.market_cap) && <> · Mkt cap {formatMarketCap(selectedAsset.market_cap)}</>}
                                         </div>
@@ -843,7 +990,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                 </div>
 
                                 <div style={styles.intervalRow}>
-                                    <Layers size={13} color={COLORS.inkMuted} />
+                                    <Layers size={13} color={COLORS.inkMuted} style={{ flexShrink: 0 }} />
                                     {ASSET_INTERVALS.map(tf => (
                                         <button
                                             key={tf}
@@ -854,6 +1001,10 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                         </button>
                                     ))}
                                 </div>
+
+                                {showExtendedHoursNote && (
+                                    <div style={styles.extendedHoursNote}>Dimmed candles = pre/post-market</div>
+                                )}
 
                                 <div style={styles.chartWrap}>
                                     {chartLoading && (
@@ -869,30 +1020,27 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                     )}
                                     {!chartLoading && !chartError && candles && (
                                         <>
-                                            {/* Superimposed asset data -- price/change + latest scanner signal */}
+                                            {/* Superimposed asset data -- directly on the chart, color-coded, no box */}
                                             <div style={styles.hud}>
                                                 <div style={styles.hudRow}>
-                                                    {lastCandle && <span style={styles.hudPrice}>{lastCandle.close.toFixed(2)}</span>}
+                                                    {lastCandle && <span style={styles.hudPrice(priceUp)}>{lastCandle.close.toFixed(2)}</span>}
                                                     {changeAbs !== null && (
-                                                        <span style={styles.hudChange(changeAbs >= 0)}>
-                                                            {changeAbs >= 0 ? <TrendingUp size={11} style={{ verticalAlign: 'middle' }} /> : <TrendingDown size={11} style={{ verticalAlign: 'middle' }} />}
-                                                            {' '}{changeAbs >= 0 ? '+' : ''}{changeAbs.toFixed(2)} ({changePct.toFixed(2)}%)
+                                                        <span style={styles.hudChange(priceUp)}>
+                                                            {priceUp ? <TrendingUp size={11} style={{ verticalAlign: 'middle' }} /> : <TrendingDown size={11} style={{ verticalAlign: 'middle' }} />}
+                                                            {' '}{priceUp ? '+' : ''}{changeAbs.toFixed(2)} ({changePct.toFixed(2)}%)
                                                         </span>
                                                     )}
                                                 </div>
                                                 {lastCandleLabel && <div style={styles.hudMeta}>As of {lastCandleLabel} · {interval}</div>}
-                                                {selectedAsset.latest && (
+                                                {selectedAsset.latest_scan && (
                                                     <div style={styles.hudBadgeRow}>
-                                                        {selectedAsset.latest.ai_verdict && (
-                                                            <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.latest.ai_verdict) }}>
-                                                                {selectedAsset.latest.ai_verdict}
+                                                        {selectedAsset.latest_scan.ai_verdict && (
+                                                            <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.latest_scan.ai_verdict) }}>
+                                                                {selectedAsset.latest_scan.ai_verdict}
                                                             </span>
                                                         )}
-                                                        {typeof selectedAsset.latest.ai_opportunity_score === 'number' && (
-                                                            <span style={styles.resultChip}>AI score {selectedAsset.latest.ai_opportunity_score}</span>
-                                                        )}
-                                                        {selectedAsset.latest.snapshot_date && (
-                                                            <span style={styles.resultChip}>Scanned {selectedAsset.latest.snapshot_date}</span>
+                                                        {typeof selectedAsset.latest_scan.ai_opportunity_score === 'number' && (
+                                                            <span style={styles.resultChip}>AI score {selectedAsset.latest_scan.ai_opportunity_score}</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -964,15 +1112,27 @@ export default function SnowAIEarth() {
     // Date / sector browsing within the stock modal
     const [selectedDateKey, setSelectedDateKey] = useState(null);
     const [selectedSector, setSelectedSector] = useState('All');
+    const [countryRailSearch, setCountryRailSearch] = useState('');
+    const [stockSearchQuery, setStockSearchQuery] = useState('');
 
     // Lightweight-charts panel for an individual stock
     const [chartStock, setChartStock] = useState(null); // { symbol, name, country } | null
     const [chartData, setChartData] = useState(null);
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
-    const [chartTimeframe, setChartTimeframe] = useState('6M');
+    const [chartTimeframe, setChartTimeframe] = useState('1D');
+    const [chartFullscreen, setChartFullscreen] = useState(false);
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
+
+    // "Chart all visible" grid for the currently filtered stock list
+    const [showMultiChart, setShowMultiChart] = useState(false);
+    const [multiChartInterval, setMultiChartInterval] = useState('1D');
+    const [multiChartData, setMultiChartData] = useState({});   // symbol -> candles[] | 'error'
+    const [multiChartLoading, setMultiChartLoading] = useState(false);
+    const [multiChartError, setMultiChartError] = useState('');
+    const multiChartContainerRefs = useRef({});
+    const multiChartInstanceRefs = useRef({});
 
     const globeThemes = {
         'night': {
@@ -1399,6 +1559,7 @@ export default function SnowAIEarth() {
         setShowStockModal(true);
         setSelectedDateKey(null);
         setSelectedSector('All');
+        setStockSearchQuery('');
         if (!countryStockData[countryName]) {
             await fetchCountryStockPicks(countryName);
         }
@@ -1409,6 +1570,9 @@ export default function SnowAIEarth() {
         setSelectedCountry('');
         setSelectedDateKey(null);
         setSelectedSector('All');
+        setStockSearchQuery('');
+        setCountryRailSearch('');
+        closeMultiChart();
     };
 
     const handlePolygonClick = (polygon) => {
@@ -1717,6 +1881,15 @@ export default function SnowAIEarth() {
             ? activeDateGroup.stocks
             : activeDateGroup.stocks.filter(s => (s.sector || 'Other') === selectedSector))
         : [];
+    const searchedVisibleStocks = stockSearchQuery.trim()
+        ? visibleStocks.filter(s => {
+            const q = stockSearchQuery.trim().toLowerCase();
+            return (s.symbol || '').toLowerCase().includes(q) || (s.name || '').toLowerCase().includes(q);
+        })
+        : visibleStocks;
+    const filteredSavedCountriesList = countryRailSearch.trim()
+        ? savedCountriesList.filter(c => c.country.toLowerCase().includes(countryRailSearch.trim().toLowerCase()))
+        : savedCountriesList;
 
     const formatDateLabel = (dateStr, isLatest) => {
         if (!dateStr || dateStr === 'Unknown') return 'Unknown date';
@@ -1757,8 +1930,8 @@ export default function SnowAIEarth() {
     const openStockChart = (stock) => {
         const country = selectedCountry;
         setChartStock({ symbol: stock.symbol, name: stock.name, country });
-        setChartTimeframe('6M');
-        fetchChartData(stock.symbol, country, '6M');
+        setChartTimeframe('1D');
+        fetchChartData(stock.symbol, country, '1D');
     };
 
     const handleChartTimeframeChange = (timeframe) => {
@@ -1775,8 +1948,68 @@ export default function SnowAIEarth() {
         setChartStock(null);
         setChartData(null);
         setChartError('');
-        setChartTimeframe('6M');
+        setChartTimeframe('1D');
+        setChartFullscreen(false);
     };
+
+    // Resize the single-stock chart when fullscreen toggles.
+    useEffect(() => {
+        if (!chartInstanceRef.current || !chartContainerRef.current) return;
+        const timer = setTimeout(() => {
+            const container = chartContainerRef.current;
+            if (container && chartInstanceRef.current) {
+                chartInstanceRef.current.applyOptions({
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                });
+            }
+        }, 50);
+        return () => clearTimeout(timer);
+    }, [chartFullscreen]);
+
+    // ------------------------------------------------------------------
+    // "Chart all visible" -- bulk-fetches candles for every stock currently
+    // shown in the date/sector/search-filtered list and renders a grid of
+    // mini charts instead of one at a time.
+    // ------------------------------------------------------------------
+    const openMultiChart = async (symbols) => {
+        setShowMultiChart(true);
+        setMultiChartError('');
+        setMultiChartData({});
+        if (!symbols || symbols.length === 0) {
+            setMultiChartError('No stocks in the current view to chart.');
+            return;
+        }
+        setMultiChartLoading(true);
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-global-stock-picks/bulk-chart-data/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbols, interval: multiChartInterval })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setMultiChartData(data.results || {});
+            } else {
+                setMultiChartError(data.error || "Couldn't load charts.");
+            }
+        } catch (error) {
+            setMultiChartError("Couldn't reach the chart data endpoint.");
+        } finally {
+            setMultiChartLoading(false);
+        }
+    };
+
+    const closeMultiChart = () => {
+        Object.values(multiChartInstanceRefs.current).forEach(chart => {
+            if (chart) chart.remove();
+        });
+        multiChartInstanceRefs.current = {};
+        setShowMultiChart(false);
+        setMultiChartData({});
+        setMultiChartError('');
+    };
+
 
     useEffect(() => {
         if (!chartData || !chartContainerRef.current) return;
@@ -1786,7 +2019,7 @@ export default function SnowAIEarth() {
             chartInstanceRef.current = null;
         }
 
-        const isIntraday = chartTimeframe === '1D' || chartTimeframe === '5D';
+        const isIntraday = ASSET_INTRADAY_INTERVALS.has(chartTimeframe);
 
         const container = chartContainerRef.current;
         const chart = createChart(container, {
@@ -1808,25 +2041,18 @@ export default function SnowAIEarth() {
             },
         });
 
-        const candleSeries = typeof chart.addCandlestickSeries === 'function'
-            ? chart.addCandlestickSeries({
-                upColor: COLORS.positive,
-                downColor: COLORS.negative,
-                borderVisible: false,
-                wickUpColor: COLORS.positive,
-                wickDownColor: COLORS.negative,
-            })
-            : chart.addSeries(CandlestickSeries, {
-                upColor: COLORS.positive,
-                downColor: COLORS.negative,
-                borderVisible: false,
-                wickUpColor: COLORS.positive,
-                wickDownColor: COLORS.negative,
-            });
+        const candleSeries = addCandleSeries(chart, {
+            upColor: COLORS.positive,
+            downColor: COLORS.negative,
+            borderVisible: false,
+            wickUpColor: COLORS.positive,
+            wickDownColor: COLORS.negative,
+        });
 
-        candleSeries.setData(chartData);
+        candleSeries.setData(buildSessionAwareCandles(chartData));
         chart.timeScale().fitContent();
         chartInstanceRef.current = chart;
+
 
         const handleResize = () => {
             chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
@@ -1846,30 +2072,36 @@ export default function SnowAIEarth() {
         if (!chartStock) return null;
 
         const lastCandle = chartData && chartData.length > 0 ? chartData[chartData.length - 1] : null;
+        const prevCandle = chartData && chartData.length > 1 ? chartData[chartData.length - 2] : null;
+        const changeAbs = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : null;
+        const changePct = changeAbs !== null && prevCandle.close ? (changeAbs / prevCandle.close) * 100 : null;
+        const priceUp = changeAbs === null || changeAbs >= 0;
         const lastCandleLabel = lastCandle
             ? (typeof lastCandle.time === 'number'
                 ? new Date(lastCandle.time * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                 : new Date(lastCandle.time + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }))
             : null;
+        const showExtendedHoursNote = hasExtendedHours(chartData);
 
         return (
-            <div style={styles.chartModal} onClick={(e) => { if (e.target === e.currentTarget) closeStockChart(); }}>
-                <div style={styles.chartModalContent}>
+            <div style={styles.chartModal} onClick={(e) => { if (e.target === e.currentTarget && !chartFullscreen) closeStockChart(); }}>
+                <div style={chartFullscreen ? styles.chartModalContentFullscreen : styles.chartModalContent}>
                     <div style={styles.chartModalHeader}>
                         <div>
                             <h3 style={styles.chartModalTitle}>{chartStock.symbol}</h3>
-                            <div style={styles.stockModalSubtitle}>
-                                {chartStock.name}
-                                {lastCandle && (
-                                    <> · Last close {lastCandle.close.toFixed(2)} · as of {lastCandleLabel}</>
-                                )}
-                            </div>
+                            <div style={styles.stockModalSubtitle}>{chartStock.name}</div>
                         </div>
-                        <button style={styles.stockModalClose} onClick={closeStockChart}>×</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button style={styles.fullscreenButtonSmall} onClick={() => setChartFullscreen(f => !f)}>
+                                {chartFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                {!isMobile && (chartFullscreen ? 'Exit fullscreen' : 'Fullscreen')}
+                            </button>
+                            <button style={styles.stockModalClose} onClick={closeStockChart}>×</button>
+                        </div>
                     </div>
 
                     <div style={styles.chartTimeframeRow}>
-                        {CHART_TIMEFRAMES.map(tf => (
+                        {ASSET_INTERVALS.map(tf => (
                             <button
                                 key={tf}
                                 style={{
@@ -1882,6 +2114,10 @@ export default function SnowAIEarth() {
                             </button>
                         ))}
                     </div>
+
+                    {showExtendedHoursNote && (
+                        <div style={styles.extendedHoursNote}>Dimmed candles = pre/post-market</div>
+                    )}
 
                     <div style={styles.chartModalBody}>
                         {chartLoading && (
@@ -1898,7 +2134,171 @@ export default function SnowAIEarth() {
                             </div>
                         )}
                         {!chartLoading && !chartError && chartData && (
-                            <div ref={chartContainerRef} style={styles.chartCanvas}></div>
+                            <>
+                                {/* Superimposed price/change -- directly on the chart, color-coded, no box */}
+                                <div style={styles.chartHud}>
+                                    <div style={styles.chartHudRow}>
+                                        {lastCandle && <span style={styles.chartHudPrice(priceUp)}>{lastCandle.close.toFixed(2)}</span>}
+                                        {changeAbs !== null && (
+                                            <span style={styles.chartHudChange(priceUp)}>
+                                                {priceUp ? <TrendingUp size={11} style={{ verticalAlign: 'middle' }} /> : <TrendingDown size={11} style={{ verticalAlign: 'middle' }} />}
+                                                {' '}{priceUp ? '+' : ''}{changeAbs.toFixed(2)} ({changePct.toFixed(2)}%)
+                                            </span>
+                                        )}
+                                    </div>
+                                    {lastCandleLabel && <div style={styles.chartHudMeta}>As of {lastCandleLabel} · {chartTimeframe}</div>}
+                                </div>
+                                <div ref={chartContainerRef} style={styles.chartCanvas}></div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ------------------------------------------------------------------
+    // "Chart all visible" grid -- one mini candlestick chart per symbol
+    // currently shown in the country modal's date/sector/search-filtered
+    // list, so you can scan a whole country/sector at once instead of
+    // opening stocks one at a time.
+    // ------------------------------------------------------------------
+    useEffect(() => {
+        if (!showMultiChart) return;
+
+        const symbols = Object.keys(multiChartData);
+        symbols.forEach(symbol => {
+            const result = multiChartData[symbol];
+            const container = multiChartContainerRefs.current[symbol];
+            if (!result || !result.success || !container) return;
+
+            if (multiChartInstanceRefs.current[symbol]) {
+                multiChartInstanceRefs.current[symbol].remove();
+                multiChartInstanceRefs.current[symbol] = null;
+            }
+
+            const isIntraday = ASSET_INTRADAY_INTERVALS.has(multiChartInterval);
+            const chart = createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: { background: { color: MAP_COLORS.void }, textColor: '#cbd5e1' },
+                grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+                rightPriceScale: { borderColor: MAP_COLORS.border },
+                timeScale: { borderColor: MAP_COLORS.border, timeVisible: isIntraday, secondsVisible: false },
+                handleScroll: false,
+                handleScale: false,
+            });
+            const candleSeries = addCandleSeries(chart, {
+                upColor: COLORS.positive,
+                downColor: COLORS.negative,
+                borderVisible: false,
+                wickUpColor: COLORS.positive,
+                wickDownColor: COLORS.negative,
+            });
+            candleSeries.setData(buildSessionAwareCandles(result.candles));
+            chart.timeScale().fitContent();
+            multiChartInstanceRefs.current[symbol] = chart;
+        });
+
+        return () => {
+            // Only tear down on interval change / grid close (handled by
+            // closeMultiChart) -- this effect re-runs per data/interval
+            // change and rebuilds fresh instances above.
+        };
+    }, [multiChartData, multiChartInterval, showMultiChart]);
+
+    const changeMultiChartInterval = (intervalKey) => {
+        if (intervalKey === multiChartInterval) return;
+        Object.values(multiChartInstanceRefs.current).forEach(chart => { if (chart) chart.remove(); });
+        multiChartInstanceRefs.current = {};
+        setMultiChartInterval(intervalKey);
+        const symbols = Object.keys(multiChartData);
+        if (symbols.length > 0) openMultiChart(symbols);
+    };
+
+    const MultiChartGrid = () => {
+        const symbols = Object.keys(multiChartData);
+        return (
+            <div style={styles.multiChartModal} onClick={(e) => { if (e.target === e.currentTarget) closeMultiChart(); }}>
+                <div style={styles.multiChartContent}>
+                    <div style={styles.multiChartHeader}>
+                        <div>
+                            <h3 style={styles.stockModalTitle}>Chart all visible</h3>
+                            <div style={styles.stockModalSubtitle}>{selectedCountry}{symbols.length > 0 && <> · {symbols.length} symbols</>}</div>
+                        </div>
+                        <button style={styles.stockModalClose} onClick={closeMultiChart}>×</button>
+                    </div>
+
+                    <div style={styles.chartTimeframeRow}>
+                        {ASSET_INTERVALS.map(tf => (
+                            <button
+                                key={tf}
+                                style={{
+                                    ...styles.chartTimeframeButton,
+                                    ...(tf === multiChartInterval ? styles.chartTimeframeButtonActive : {})
+                                }}
+                                onClick={() => changeMultiChartInterval(tf)}
+                            >
+                                {tf}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div style={styles.multiChartBody}>
+                        {multiChartLoading && (
+                            <div style={styles.loadingWrap}>
+                                <div style={styles.spinner}></div>
+                                <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading charts...</div>
+                            </div>
+                        )}
+                        {!multiChartLoading && multiChartError && (
+                            <div style={styles.emptyStateWrap}>
+                                <AlertTriangle size={30} color={COLORS.caution} />
+                                <div style={styles.emptyStateTitle}>Couldn't load charts</div>
+                                <p style={styles.emptyStateText}>{multiChartError}</p>
+                            </div>
+                        )}
+                        {!multiChartLoading && !multiChartError && symbols.length > 0 && (
+                            <div style={styles.multiChartGrid}>
+                                {symbols.map(symbol => {
+                                    const result = multiChartData[symbol];
+                                    const candles = result && result.success ? result.candles : null;
+                                    const lastCandle = candles && candles.length > 0 ? candles[candles.length - 1] : null;
+                                    const prevCandle = candles && candles.length > 1 ? candles[candles.length - 2] : null;
+                                    const changeAbs = lastCandle && prevCandle ? lastCandle.close - prevCandle.close : null;
+                                    const priceUp = changeAbs === null || changeAbs >= 0;
+                                    return (
+                                        <div key={symbol} style={styles.multiChartCard}>
+                                            <div style={styles.multiChartCardCanvasWrap}>
+                                                {candles ? (
+                                                    <>
+                                                        <div style={styles.multiChartHud}>
+                                                            <span style={styles.multiChartHudSymbol}>{symbol}</span>
+                                                            {lastCandle && (
+                                                                <span style={styles.multiChartHudPrice(priceUp)}>
+                                                                    {lastCandle.close.toFixed(2)}
+                                                                    {changeAbs !== null && <> {priceUp ? '▲' : '▼'} {Math.abs(changeAbs).toFixed(2)}</>}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            ref={(el) => { multiChartContainerRefs.current[symbol] = el; }}
+                                                            style={styles.multiChartCanvas}
+                                                        ></div>
+                                                    </>
+                                                ) : (
+                                                    <div style={styles.multiChartCardError}>
+                                                        <span style={styles.multiChartHudSymbol}>{symbol}</span>
+                                                        <span style={{ fontSize: '11px', color: COLORS.inkFaint }}>
+                                                            {result && result.error ? result.error : 'No data'}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -1925,7 +2325,7 @@ export default function SnowAIEarth() {
                             </h3>
                             {activeDateGroup && (
                                 <div style={styles.stockModalSubtitle}>
-                                    {visibleStocks.length} stock{visibleStocks.length !== 1 ? 's' : ''} shown
+                                    {searchedVisibleStocks.length} stock{searchedVisibleStocks.length !== 1 ? 's' : ''} shown
                                     {selectedSector !== 'All' && <> · {selectedSector}</>}
                                     {' '}· {formatDateLabel(activeDateGroup.date, activeDateGroup.date === dateGroups[0]?.date)}
                                 </div>
@@ -1939,8 +2339,18 @@ export default function SnowAIEarth() {
                         {savedCountriesList.length > 0 && (
                             <div style={styles.countryRail}>
                                 <div style={styles.countryRailLabel}>Saved countries</div>
+                                <div style={styles.countryRailSearchWrap}>
+                                    <Search size={12} color={COLORS.inkFaint} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search countries..."
+                                        value={countryRailSearch}
+                                        onChange={(e) => setCountryRailSearch(e.target.value)}
+                                        style={styles.countryRailSearchInput}
+                                    />
+                                </div>
                                 <div style={styles.countryRailList}>
-                                    {savedCountriesList.map((c) => (
+                                    {filteredSavedCountriesList.map((c) => (
                                         <button
                                             key={c.country}
                                             style={{
@@ -1954,6 +2364,9 @@ export default function SnowAIEarth() {
                                             <span style={styles.countryRailCount}>{c.total_picks}</span>
                                         </button>
                                     ))}
+                                    {filteredSavedCountriesList.length === 0 && (
+                                        <div style={styles.countryRailEmpty}>No countries match "{countryRailSearch}"</div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -2028,6 +2441,27 @@ export default function SnowAIEarth() {
                                         ))}
                                     </div>
 
+                                    {/* Search within this country's list + chart everything currently visible */}
+                                    <div style={styles.stockSearchRow}>
+                                        <div style={styles.stockSearchWrap}>
+                                            <Search size={13} color={COLORS.inkFaint} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search this list by ticker or name..."
+                                                value={stockSearchQuery}
+                                                onChange={(e) => setStockSearchQuery(e.target.value)}
+                                                style={styles.stockSearchInput}
+                                            />
+                                        </div>
+                                        <button
+                                            style={styles.chartAllButton}
+                                            onClick={() => openMultiChart(searchedVisibleStocks.map(s => s.symbol))}
+                                            disabled={searchedVisibleStocks.length === 0}
+                                        >
+                                            <BarChart3 size={13} /> Chart all visible ({searchedVisibleStocks.length})
+                                        </button>
+                                    </div>
+
                                     {data.market_outlook && (
                                         <div style={styles.outlookBox}>
                                             <div style={styles.outlookLabel}>Market outlook</div>
@@ -2036,10 +2470,17 @@ export default function SnowAIEarth() {
                                     )}
 
                                     <div style={styles.stockList}>
-                                        {visibleStocks.map((stock, idx) => {
+                                        {searchedVisibleStocks.length === 0 && stockSearchQuery.trim() && (
+                                            <div style={styles.emptyStateWrap}>
+                                                <Search size={28} color={COLORS.inkFaint} />
+                                                <div style={styles.emptyStateTitle}>No matches</div>
+                                                <p style={styles.emptyStateText}>Nothing in this view matches "{stockSearchQuery}".</p>
+                                            </div>
+                                        )}
+                                        {searchedVisibleStocks.map((stock, idx) => {
                                             const recStyle = getRecStyle(stock.rec);
                                             const showSectorHeading = selectedSector === 'All' && (
-                                                idx === 0 || (visibleStocks[idx - 1].sector || 'Other') !== (stock.sector || 'Other')
+                                                idx === 0 || (searchedVisibleStocks[idx - 1].sector || 'Other') !== (stock.sector || 'Other')
                                             );
                                             return (
                                                 <React.Fragment key={stock.id || idx}>
@@ -2449,6 +2890,58 @@ export default function SnowAIEarth() {
         countryRailItemActive: { background: COLORS.accentSoft, color: COLORS.accent },
         countryRailName: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' },
         countryRailCount: { fontSize: '10px', color: COLORS.inkFaint, marginLeft: '6px' },
+        countryRailSearchWrap: {
+            display: 'flex', alignItems: 'center', gap: '6px', background: COLORS.bg,
+            border: `1px solid ${COLORS.border}`, borderRadius: '7px', padding: '6px 9px', marginBottom: '8px'
+        },
+        countryRailSearchInput: { flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '11px', color: COLORS.ink, minWidth: 0 },
+        countryRailEmpty: { fontSize: '11px', color: COLORS.inkFaint, padding: '8px 4px' },
+
+        // Stock-list search + "chart all visible"
+        stockSearchRow: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', alignItems: 'center' },
+        stockSearchWrap: {
+            display: 'flex', alignItems: 'center', gap: '7px', background: COLORS.surface,
+            border: `1px solid ${COLORS.border}`, borderRadius: '8px', padding: '8px 12px', flex: '1 1 220px', minWidth: 0
+        },
+        stockSearchInput: { flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '12px', color: COLORS.ink, minWidth: 0 },
+        chartAllButton: {
+            display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px',
+            border: 'none', background: COLORS.ink, color: '#fff', fontSize: '12px', fontWeight: '700',
+            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
+        },
+
+        // "Chart all visible" grid modal
+        multiChartModal: {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10006, backdropFilter: 'blur(4px)', padding: isMobile ? '8px' : '20px'
+        },
+        multiChartContent: {
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)', width: isMobile ? '100%' : '95vw', maxWidth: '1400px',
+            height: isMobile ? '92vh' : '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+        },
+        multiChartHeader: {
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+            padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`
+        },
+        multiChartBody: { flex: 1, overflowY: 'auto', background: COLORS.bg, padding: isMobile ? '10px' : '16px' },
+        multiChartGrid: {
+            display: 'grid', gap: '12px',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'
+        },
+        multiChartCard: {
+            background: MAP_COLORS.void, border: `1px solid ${COLORS.border}`, borderRadius: '10px', overflow: 'hidden'
+        },
+        multiChartCardCanvasWrap: { position: 'relative', height: isMobile ? '220px' : '200px' },
+        multiChartCanvas: { width: '100%', height: '100%' },
+        multiChartCardError: { height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+        multiChartHud: {
+            position: 'absolute', top: '8px', left: '10px', zIndex: 5, pointerEvents: 'none',
+            display: 'flex', flexDirection: 'column', gap: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.85)'
+        },
+        multiChartHudSymbol: { fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: '#f8fafc' },
+        multiChartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '11px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
 
         // Date tabs + sector chips
         dateTabsRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' },
@@ -2526,29 +3019,53 @@ export default function SnowAIEarth() {
         chartModal: {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(15, 23, 42, 0.55)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 10004, backdropFilter: 'blur(4px)', padding: isMobile ? '10px' : '20px'
+            zIndex: 10004, backdropFilter: 'blur(4px)', padding: chartFullscreen ? 0 : (isMobile ? '10px' : '20px')
         },
         chartModalContent: {
             background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
             boxShadow: '0 20px 60px rgba(0,0,0,0.25)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
-            height: isMobile ? '80vh' : '520px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+            height: isMobile ? '85vh' : '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+        },
+        chartModalContentFullscreen: {
+            background: COLORS.surface, borderRadius: 0, border: 'none', boxShadow: 'none',
+            width: '100%', height: '100%', maxWidth: '100vw', maxHeight: '100vh',
+            overflow: 'hidden', display: 'flex', flexDirection: 'column'
         },
         chartModalHeader: {
             display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
             padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`
         },
         chartModalTitle: { fontSize: '1.1rem', fontWeight: '700', margin: 0, color: COLORS.ink, fontFamily: COLORS.mono },
+        fullscreenButtonSmall: {
+            display: 'flex', alignItems: 'center', gap: '5px', padding: '7px 10px', borderRadius: '8px',
+            border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
+            fontSize: '11px', fontWeight: '600', cursor: 'pointer', flexShrink: 0
+        },
         chartTimeframeRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px',
-            borderBottom: `1px solid ${COLORS.border}`, background: COLORS.surface, flexWrap: 'wrap'
+            borderBottom: `1px solid ${COLORS.border}`, background: COLORS.surface,
+            overflowX: 'auto', WebkitOverflowScrolling: 'touch', flexWrap: isMobile ? 'nowrap' : 'wrap'
         },
         chartTimeframeButton: {
             padding: '5px 12px', borderRadius: '999px', border: `1px solid ${COLORS.neutralBorder}`, background: COLORS.neutralSoft,
-            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap'
         },
         chartTimeframeButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
-        chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column' },
+        extendedHoursNote: { fontSize: '10px', color: COLORS.inkFaint, padding: '0 20px 8px', background: COLORS.surface },
+        chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: isMobile ? '320px' : '260px' },
         chartCanvas: { width: '100%', height: '100%' },
+
+        // Superimposed price/change readout, directly on the chart -- no
+        // card, no border, no blur. Color-coded by direction; text-shadow
+        // keeps it legible over the candles underneath.
+        chartHud: {
+            position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
+            maxWidth: isMobile ? '80%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)'
+        },
+        chartHudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
+        chartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        chartHudChange: (up) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        chartHudMeta: { fontSize: '10px', color: '#cbd5e1', marginTop: '3px' },
 
         // ---- Media center ----
         mediaCenterButton: {
@@ -2604,7 +3121,7 @@ export default function SnowAIEarth() {
             padding: isMobile ? '10px' : '12px', marginBottom: '14px', fontSize: isMobile ? '12px' : '13px',
             color: COLORS.inkMuted
         }
-    }), [isMobile, view3D]);
+    }), [isMobile, view3D, chartFullscreen]);
 
     const getGlobeSize = () => {
         const baseSize = isMobile ?
@@ -2841,6 +3358,7 @@ export default function SnowAIEarth() {
             {showMediaCenter && <MediaCenterModal />}
             {showStockModal && renderCountryStockModal()}
             {chartStock && <StockChartPanel />}
+            {showMultiChart && <MultiChartGrid />}
             {showAssetExplorer && (
                 <AssetExplorerModal
                     isOpen={showAssetExplorer}
