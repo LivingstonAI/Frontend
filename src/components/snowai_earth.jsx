@@ -3,8 +3,8 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2 } from 'lucide-react';
-import { createChart, CandlestickSeries, LineSeries } from 'lightweight-charts';
+import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { createChart, CandlestickSeries, LineSeries, LineStyle } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
 
@@ -179,6 +179,20 @@ const buildSessionAwareCandles = (candles) => candles.map(c => {
 });
 
 const hasExtendedHours = (candles) => !!candles && candles.some(c => c.session && c.session !== 'regular');
+
+// Live unrealized P&L for a TradePosition against whatever the chart's
+// current last-close is (not the DB's `current_price`, which is only as
+// fresh as whatever separately polls it). `dollar_per_unit` comes from the
+// backend, derived from the SL/TP distance the same way the standalone
+// Trade Position tracker computes it.
+const computePositionPnL = (position, currentPrice) => {
+    if (currentPrice == null || position.dollar_per_unit == null || position.entry_price == null) return null;
+    const diff = currentPrice - position.entry_price;
+    const directional = position.direction === 'short' ? -diff : diff;
+    const dollars = directional * position.dollar_per_unit;
+    const pct = position.entry_price ? (directional / position.entry_price) * 100 : null;
+    return { dollars, pct };
+};
 
 // "Last saved" date formatting shared by the country-picks modal and the
 // Asset Explorer's country/sector/last-saved grouping.
@@ -441,6 +455,8 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const [candles, setCandles] = useState(null);
     const [chartLoading, setChartLoading] = useState(false);
     const [chartError, setChartError] = useState('');
+    const [chartLastRefreshed, setChartLastRefreshed] = useState(null);
+    const [assetPositions, setAssetPositions] = useState([]);
 
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
@@ -558,7 +574,6 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const fetchChart = useCallback(async (ticker, intervalKey) => {
         setChartLoading(true);
         setChartError('');
-        setCandles(null);
         try {
             const response = await fetch(`${baseUrl}/api/snowvault/assets/chart-data/`, {
                 method: 'POST',
@@ -568,6 +583,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             const data = await response.json();
             if (data.success && Array.isArray(data.candles) && data.candles.length > 0) {
                 setCandles(data.candles);
+                setChartLastRefreshed(new Date());
             } else {
                 setChartError(data.error || 'No chart data available.');
             }
@@ -578,15 +594,44 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         }
     }, [baseUrl]);
 
+    // TradePosition rows for whatever ticker is selected -- entry/SL/TP +
+    // live P&L superimposed on the chart. Quiet failure (no positions, or
+    // the endpoint isn't wired up) just means no overlay renders.
+    const fetchAssetPositions = useCallback(async (ticker) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-trade-positions/by-asset/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ asset: ticker }),
+            });
+            const data = await response.json();
+            setAssetPositions(data.success ? (data.positions || []) : []);
+        } catch (error) {
+            setAssetPositions([]);
+        }
+    }, [baseUrl]);
+
     const selectAsset = (asset) => {
         setSelectedAsset(asset);
+        setCandles(null);
         fetchChart(asset.ticker, interval);
+        fetchAssetPositions(asset.ticker);
     };
 
     const changeInterval = (intervalKey) => {
         if (intervalKey === interval) return;
+        setCandles(null);
         setInterval_(intervalKey);
         if (selectedAsset) fetchChart(selectedAsset.ticker, intervalKey);
+    };
+
+    // Refresh deliberately keeps the existing chart/positions on screen
+    // (no clearing candles first) so it doesn't flash blank -- just the
+    // refresh icon spins until the new data swaps in.
+    const refreshChart = () => {
+        if (!selectedAsset || chartLoading) return;
+        fetchChart(selectedAsset.ticker, interval);
+        fetchAssetPositions(selectedAsset.ticker);
     };
 
     // ------------------------------------------------------------------
@@ -638,6 +683,42 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             line.setData(emaData);
         });
 
+        // Superimpose entry/SL/TP for up to 3 positions on this ticker
+        assetPositions.slice(0, 3).forEach((pos, idx) => {
+            const isLong = pos.direction === 'long';
+            const fade = idx === 0 ? 1 : 0.55;
+            if (pos.entry_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.entry_price,
+                    color: hexToRgba('#94a3b8', fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: `${isLong ? 'Long' : 'Short'} entry`,
+                });
+            }
+            if (pos.sl_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.sl_price,
+                    color: hexToRgba(COLORS.negative, fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'SL',
+                });
+            }
+            if (pos.tp_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.tp_price,
+                    color: hexToRgba(COLORS.positive, fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TP',
+                });
+            }
+        });
+
         chart.timeScale().fitContent();
         chartInstanceRef.current = chart;
 
@@ -653,7 +734,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                 chartInstanceRef.current = null;
             }
         };
-    }, [candles, interval]);
+    }, [candles, interval, assetPositions]);
 
     // Resize the chart when fullscreen is toggled -- the container's own
     // dimensions change without a window resize event firing.
@@ -680,6 +761,8 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         setSelectedAsset(null);
         setCandles(null);
         setChartError('');
+        setAssetPositions([]);
+        setChartLastRefreshed(null);
         onClose && onClose();
     };
 
@@ -698,8 +781,9 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const styles = useMemo(() => ({
         modal: {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            background: 'rgba(15, 23, 42, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 10005, backdropFilter: 'blur(4px)', padding: isFullscreen ? 0 : (isMobile ? '10px' : '20px'),
+            background: 'rgba(15, 23, 42, 0.5)', display: 'flex', justifyContent: 'center',
+            alignItems: isFullscreen ? 'center' : (isMobile ? 'flex-start' : 'center'),
+            zIndex: 10005, backdropFilter: 'blur(4px)', padding: isFullscreen ? 0 : (isMobile ? '4px' : '20px'),
         },
         content: {
             background: COLORS.surface, borderRadius: isFullscreen ? 0 : '14px', border: isFullscreen ? 'none' : `1px solid ${COLORS.border}`,
@@ -788,6 +872,12 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
             fontSize: '11px', fontWeight: '600', cursor: 'pointer', flexShrink: 0,
         },
+        refreshButton: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px',
+            borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.surface,
+            color: COLORS.inkMuted, cursor: 'pointer', flexShrink: 0,
+        },
+        refreshSpinning: { animation: 'chartRefreshSpin 0.9s linear infinite' },
         intervalRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
             borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
@@ -799,7 +889,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         },
         intervalButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
         extendedHoursNote: { fontSize: '10px', color: COLORS.inkFaint, padding: '0 18px 8px', flexShrink: 0 },
-        chartWrap: { flex: 1, position: 'relative', background: MAP_COLORS.void, minHeight: isMobile ? '320px' : '260px' },
+        chartWrap: { flex: 1, position: 'relative', background: MAP_COLORS.void, minHeight: isMobile ? '380px' : '260px' },
         chartCanvas: { width: '100%', height: '100%' },
 
         // Superimposed price/change readout -- lives directly on the chart,
@@ -807,13 +897,31 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         // legibility against whatever's under it.
         hud: {
             position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '80%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
         },
         hudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
         hudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         hudChange: (up) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         hudMeta: { fontSize: '10px', color: '#cbd5e1', marginTop: '3px' },
         hudBadgeRow: { display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap', pointerEvents: 'auto' },
+
+        // Superimposed position (entry/SL/TP/live P&L) readout -- top-right,
+        // same free-floating no-box treatment as the price HUD.
+        positionHud: {
+            position: 'absolute', top: '10px', right: '14px', zIndex: 5, pointerEvents: 'none',
+            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end',
+        },
+        positionHudRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' },
+        positionDirectionBadge: (isLong) => ({
+            fontSize: '9px', fontWeight: '800', letterSpacing: '0.4px', padding: '1px 6px', borderRadius: '4px',
+            background: isLong ? 'rgba(74, 222, 128, 0.18)' : 'rgba(248, 113, 113, 0.18)',
+            color: isLong ? '#4ade80' : '#f87171',
+        }),
+        positionHudEntry: { fontFamily: COLORS.mono, fontSize: '10px', color: '#e2e8f0' },
+        positionHudPnl: (up) => ({ fontFamily: COLORS.mono, fontSize: '11px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        positionHudMore: { fontSize: '9px', color: '#94a3b8' },
+
         emptyDetail: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: COLORS.inkFaint, gap: '10px' },
         loadingWrap: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
         spinner: {
@@ -983,10 +1091,20 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                             {formatMarketCap(selectedAsset.market_cap) && <> · Mkt cap {formatMarketCap(selectedAsset.market_cap)}</>}
                                         </div>
                                     </div>
-                                    <button style={styles.fullscreenButton} onClick={() => setIsFullscreen(f => !f)}>
-                                        {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-                                        {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                                    </button>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                            style={styles.refreshButton}
+                                            onClick={refreshChart}
+                                            disabled={chartLoading}
+                                            title={chartLastRefreshed ? `Last refreshed ${chartLastRefreshed.toLocaleTimeString()}` : 'Refresh'}
+                                        >
+                                            <RefreshCw size={13} style={chartLoading ? styles.refreshSpinning : undefined} />
+                                        </button>
+                                        <button style={styles.fullscreenButton} onClick={() => setIsFullscreen(f => !f)}>
+                                            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                                            {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div style={styles.intervalRow}>
@@ -1007,18 +1125,18 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                 )}
 
                                 <div style={styles.chartWrap}>
-                                    {chartLoading && (
+                                    {chartLoading && !candles && (
                                         <div style={styles.loadingWrap}>
                                             <div style={styles.spinner}></div>
                                         </div>
                                     )}
-                                    {!chartLoading && chartError && (
+                                    {!chartLoading && chartError && !candles && (
                                         <div style={styles.emptyDetail}>
                                             <AlertTriangle size={28} color={COLORS.caution} />
                                             <div style={{ color: '#cbd5e1', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
                                         </div>
                                     )}
-                                    {!chartLoading && !chartError && candles && (
+                                    {candles && (
                                         <>
                                             {/* Superimposed asset data -- directly on the chart, color-coded, no box */}
                                             <div style={styles.hud}>
@@ -1045,6 +1163,33 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Superimposed position details -- entry/SL/TP/live P&L for any
+                                                TradePosition rows saved against this ticker */}
+                                            {assetPositions.length > 0 && (
+                                                <div style={styles.positionHud}>
+                                                    {assetPositions.slice(0, 3).map(pos => {
+                                                        const pnl = computePositionPnL(pos, lastCandle?.close);
+                                                        const isLong = pos.direction === 'long';
+                                                        return (
+                                                            <div key={pos.id} style={styles.positionHudRow}>
+                                                                <span style={styles.positionDirectionBadge(isLong)}>{isLong ? 'LONG' : 'SHORT'}</span>
+                                                                <span style={styles.positionHudEntry}>Entry {pos.entry_price}</span>
+                                                                {pnl && pnl.dollars != null && (
+                                                                    <span style={styles.positionHudPnl(pnl.dollars >= 0)}>
+                                                                        {pnl.dollars >= 0 ? '+' : ''}{pnl.dollars.toFixed(2)}
+                                                                        {pnl.pct != null && <> ({pnl.pct >= 0 ? '+' : ''}{pnl.pct.toFixed(2)}%)</>}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {assetPositions.length > 3 && (
+                                                        <div style={styles.positionHudMore}>+{assetPositions.length - 3} more position{assetPositions.length - 3 !== 1 ? 's' : ''}</div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             <div ref={chartContainerRef} style={styles.chartCanvas}></div>
                                         </>
                                     )}
@@ -1122,6 +1267,8 @@ export default function SnowAIEarth() {
     const [chartError, setChartError] = useState('');
     const [chartTimeframe, setChartTimeframe] = useState('1D');
     const [chartFullscreen, setChartFullscreen] = useState(false);
+    const [chartPositions, setChartPositions] = useState([]);
+    const [chartLastRefreshed, setChartLastRefreshed] = useState(null);
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
 
@@ -1904,7 +2051,6 @@ export default function SnowAIEarth() {
     // Lightweight-charts panel for a single stock symbol
     // ------------------------------------------------------------------
     const fetchChartData = async (symbol, country, timeframe) => {
-        setChartData(null);
         setChartError('');
         setChartLoading(true);
 
@@ -1917,6 +2063,7 @@ export default function SnowAIEarth() {
             const data = await response.json();
             if (data.success && Array.isArray(data.candles) && data.candles.length > 0) {
                 setChartData(data.candles);
+                setChartLastRefreshed(new Date());
             } else {
                 setChartError(data.error || 'No chart data available for this symbol yet.');
             }
@@ -1927,17 +2074,47 @@ export default function SnowAIEarth() {
         }
     };
 
+    // TradePosition rows for whatever symbol is on the chart -- entry/SL/TP
+    // lines + live P&L superimposed on top of the candles. Failing quietly
+    // here (no positions found, or the endpoint isn't wired up yet) just
+    // means no overlay renders; it shouldn't block the chart itself.
+    const fetchChartPositions = async (symbol) => {
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-trade-positions/by-asset/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ asset: symbol })
+            });
+            const data = await response.json();
+            setChartPositions(data.success ? (data.positions || []) : []);
+        } catch (error) {
+            setChartPositions([]);
+        }
+    };
+
     const openStockChart = (stock) => {
         const country = selectedCountry;
+        setChartData(null);
         setChartStock({ symbol: stock.symbol, name: stock.name, country });
         setChartTimeframe('1D');
         fetchChartData(stock.symbol, country, '1D');
+        fetchChartPositions(stock.symbol);
     };
 
     const handleChartTimeframeChange = (timeframe) => {
         if (timeframe === chartTimeframe || !chartStock) return;
+        setChartData(null);
         setChartTimeframe(timeframe);
         fetchChartData(chartStock.symbol, chartStock.country, timeframe);
+    };
+
+    // Refresh deliberately does NOT clear chartData first -- the old chart
+    // (and positions) stay visible with just the refresh icon spinning,
+    // then swap in once the new data arrives, instead of flashing blank.
+    const refreshStockChart = () => {
+        if (!chartStock || chartLoading) return;
+        fetchChartData(chartStock.symbol, chartStock.country, chartTimeframe);
+        fetchChartPositions(chartStock.symbol);
     };
 
     const closeStockChart = () => {
@@ -1950,6 +2127,8 @@ export default function SnowAIEarth() {
         setChartError('');
         setChartTimeframe('1D');
         setChartFullscreen(false);
+        setChartPositions([]);
+        setChartLastRefreshed(null);
     };
 
     // Resize the single-stock chart when fullscreen toggles.
@@ -1975,7 +2154,6 @@ export default function SnowAIEarth() {
     const openMultiChart = async (symbols) => {
         setShowMultiChart(true);
         setMultiChartError('');
-        setMultiChartData({});
         if (!symbols || symbols.length === 0) {
             setMultiChartError('No stocks in the current view to chart.');
             return;
@@ -2050,6 +2228,43 @@ export default function SnowAIEarth() {
         });
 
         candleSeries.setData(buildSessionAwareCandles(chartData));
+
+        // Superimpose entry/SL/TP for up to 3 positions on this symbol.
+        chartPositions.slice(0, 3).forEach((pos, idx) => {
+            const isLong = pos.direction === 'long';
+            const fade = idx === 0 ? 1 : 0.55;
+            if (pos.entry_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.entry_price,
+                    color: hexToRgba('#94a3b8', fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: `${isLong ? 'Long' : 'Short'} entry`,
+                });
+            }
+            if (pos.sl_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.sl_price,
+                    color: hexToRgba(COLORS.negative, fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'SL',
+                });
+            }
+            if (pos.tp_price != null) {
+                candleSeries.createPriceLine({
+                    price: pos.tp_price,
+                    color: hexToRgba(COLORS.positive, fade),
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    axisLabelVisible: true,
+                    title: 'TP',
+                });
+            }
+        });
+
         chart.timeScale().fitContent();
         chartInstanceRef.current = chart;
 
@@ -2066,7 +2281,7 @@ export default function SnowAIEarth() {
                 chartInstanceRef.current = null;
             }
         };
-    }, [chartData, chartTimeframe]);
+    }, [chartData, chartTimeframe, chartPositions]);
 
     const StockChartPanel = () => {
         if (!chartStock) return null;
@@ -2092,6 +2307,14 @@ export default function SnowAIEarth() {
                             <div style={styles.stockModalSubtitle}>{chartStock.name}</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                style={styles.refreshButton}
+                                onClick={refreshStockChart}
+                                disabled={chartLoading}
+                                title={chartLastRefreshed ? `Last refreshed ${chartLastRefreshed.toLocaleTimeString()}` : 'Refresh'}
+                            >
+                                <RefreshCw size={13} style={chartLoading ? styles.refreshSpinning : undefined} />
+                            </button>
                             <button style={styles.fullscreenButtonSmall} onClick={() => setChartFullscreen(f => !f)}>
                                 {chartFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
                                 {!isMobile && (chartFullscreen ? 'Exit fullscreen' : 'Fullscreen')}
@@ -2120,7 +2343,7 @@ export default function SnowAIEarth() {
                     )}
 
                     <div style={styles.chartModalBody}>
-                        {chartLoading && (
+                        {chartLoading && !chartData && (
                             <div style={styles.loadingWrap}>
                                 <div style={styles.spinner}></div>
                                 <div style={{ color: COLORS.inkMuted, marginTop: '12px' }}>Loading chart...</div>
@@ -2133,7 +2356,7 @@ export default function SnowAIEarth() {
                                 <p style={styles.emptyStateText}>{chartError}</p>
                             </div>
                         )}
-                        {!chartLoading && !chartError && chartData && (
+                        {!chartError && chartData && (
                             <>
                                 {/* Superimposed price/change -- directly on the chart, color-coded, no box */}
                                 <div style={styles.chartHud}>
@@ -2148,6 +2371,33 @@ export default function SnowAIEarth() {
                                     </div>
                                     {lastCandleLabel && <div style={styles.chartHudMeta}>As of {lastCandleLabel} · {chartTimeframe}</div>}
                                 </div>
+
+                                {/* Superimposed position details -- entry/SL/TP/live P&L for any
+                                    TradePosition rows saved against this symbol */}
+                                {chartPositions.length > 0 && (
+                                    <div style={styles.positionHud}>
+                                        {chartPositions.slice(0, 3).map(pos => {
+                                            const pnl = computePositionPnL(pos, lastCandle?.close);
+                                            const isLong = pos.direction === 'long';
+                                            return (
+                                                <div key={pos.id} style={styles.positionHudRow}>
+                                                    <span style={styles.positionDirectionBadge(isLong)}>{isLong ? 'LONG' : 'SHORT'}</span>
+                                                    <span style={styles.positionHudEntry}>Entry {pos.entry_price}</span>
+                                                    {pnl && pnl.dollars != null && (
+                                                        <span style={styles.positionHudPnl(pnl.dollars >= 0)}>
+                                                            {pnl.dollars >= 0 ? '+' : ''}{pnl.dollars.toFixed(2)}
+                                                            {pnl.pct != null && <> ({pnl.pct >= 0 ? '+' : ''}{pnl.pct.toFixed(2)}%)</>}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        {chartPositions.length > 3 && (
+                                            <div style={styles.positionHudMore}>+{chartPositions.length - 3} more position{chartPositions.length - 3 !== 1 ? 's' : ''}</div>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div ref={chartContainerRef} style={styles.chartCanvas}></div>
                             </>
                         )}
@@ -2227,6 +2477,16 @@ export default function SnowAIEarth() {
                             <div style={styles.stockModalSubtitle}>{selectedCountry}{symbols.length > 0 && <> · {symbols.length} symbols</>}</div>
                         </div>
                         <button style={styles.stockModalClose} onClick={closeMultiChart}>×</button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px 0' }}>
+                        <button
+                            style={styles.chartAllButton}
+                            onClick={() => openMultiChart(symbols)}
+                            disabled={multiChartLoading || symbols.length === 0}
+                        >
+                            <RefreshCw size={12} style={multiChartLoading ? styles.refreshSpinning : undefined} /> Refresh all
+                        </button>
                     </div>
 
                     <div style={styles.chartTimeframeRow}>
@@ -3018,13 +3278,15 @@ export default function SnowAIEarth() {
         // ---- Stock chart modal (lightweight-charts) ----
         chartModal: {
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            background: 'rgba(15, 23, 42, 0.55)', display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 10004, backdropFilter: 'blur(4px)', padding: chartFullscreen ? 0 : (isMobile ? '10px' : '20px')
+            background: 'rgba(15, 23, 42, 0.55)', display: 'flex', justifyContent: 'center',
+            alignItems: chartFullscreen ? 'center' : (isMobile ? 'flex-start' : 'center'),
+            zIndex: 10004, backdropFilter: 'blur(4px)',
+            padding: chartFullscreen ? 0 : (isMobile ? '6px' : '20px')
         },
         chartModalContent: {
             background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
             boxShadow: '0 20px 60px rgba(0,0,0,0.25)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
-            height: isMobile ? '85vh' : '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+            height: isMobile ? '94vh' : '560px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         },
         chartModalContentFullscreen: {
             background: COLORS.surface, borderRadius: 0, border: 'none', boxShadow: 'none',
@@ -3041,6 +3303,12 @@ export default function SnowAIEarth() {
             border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
             fontSize: '11px', fontWeight: '600', cursor: 'pointer', flexShrink: 0
         },
+        refreshButton: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: '30px', height: '30px',
+            borderRadius: '8px', border: `1px solid ${COLORS.border}`, background: COLORS.surface,
+            color: COLORS.inkMuted, cursor: 'pointer', flexShrink: 0
+        },
+        refreshSpinning: { animation: 'chartRefreshSpin 0.9s linear infinite' },
         chartTimeframeRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px',
             borderBottom: `1px solid ${COLORS.border}`, background: COLORS.surface,
@@ -3052,7 +3320,7 @@ export default function SnowAIEarth() {
         },
         chartTimeframeButtonActive: { background: COLORS.accent, borderColor: COLORS.accent, color: '#fff' },
         extendedHoursNote: { fontSize: '10px', color: COLORS.inkFaint, padding: '0 20px 8px', background: COLORS.surface },
-        chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: isMobile ? '320px' : '260px' },
+        chartModalBody: { flex: 1, background: MAP_COLORS.void, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: isMobile ? '380px' : '260px' },
         chartCanvas: { width: '100%', height: '100%' },
 
         // Superimposed price/change readout, directly on the chart -- no
@@ -3060,12 +3328,29 @@ export default function SnowAIEarth() {
         // keeps it legible over the candles underneath.
         chartHud: {
             position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '80%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)'
+            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)'
         },
         chartHudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
         chartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         chartHudChange: (up) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         chartHudMeta: { fontSize: '10px', color: '#cbd5e1', marginTop: '3px' },
+
+        // Superimposed position (entry/SL/TP/live P&L) readout -- top-right,
+        // same free-floating no-box treatment as the price HUD.
+        positionHud: {
+            position: 'absolute', top: '10px', right: '14px', zIndex: 5, pointerEvents: 'none',
+            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end'
+        },
+        positionHudRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' },
+        positionDirectionBadge: (isLong) => ({
+            fontSize: '9px', fontWeight: '800', letterSpacing: '0.4px', padding: '1px 6px', borderRadius: '4px',
+            background: isLong ? 'rgba(74, 222, 128, 0.18)' : 'rgba(248, 113, 113, 0.18)',
+            color: isLong ? '#4ade80' : '#f87171'
+        }),
+        positionHudEntry: { fontFamily: COLORS.mono, fontSize: '10px', color: '#e2e8f0' },
+        positionHudPnl: (up) => ({ fontFamily: COLORS.mono, fontSize: '11px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
+        positionHudMore: { fontSize: '9px', color: '#94a3b8' },
 
         // ---- Media center ----
         mediaCenterButton: {
@@ -3400,6 +3685,11 @@ export default function SnowAIEarth() {
                 @keyframes spin {
                     0% { transform: rotate(0deg); }
                     100% { transform: rotate(360deg); }
+                }
+
+                @keyframes chartRefreshSpin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(-360deg); }
                 }
 
                 *::-webkit-scrollbar { width: 8px; height: 8px; }
