@@ -3,7 +3,7 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw, Timer, ChevronLeft } from 'lucide-react';
 import { createChart, CandlestickSeries, LineSeries, LineStyle } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -457,9 +457,11 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const [chartError, setChartError] = useState('');
     const [chartLastRefreshed, setChartLastRefreshed] = useState(null);
     const [assetPositions, setAssetPositions] = useState([]);
+    const [autoRefresh, setAutoRefresh] = useState(false);
 
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
+    const assetChartKeyRef = useRef(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -634,11 +636,36 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         fetchAssetPositions(selectedAsset.ticker);
     };
 
+    // Auto-refresh every 15s while toggled on. Resets whenever the ticker
+    // or interval changes so it's always polling the thing currently on
+    // screen, and stops cleanly if the panel closes or the toggle flips off.
+    useEffect(() => {
+        if (!autoRefresh || !selectedAsset) return;
+        const id = setInterval(() => {
+            fetchChart(selectedAsset.ticker, interval);
+            fetchAssetPositions(selectedAsset.ticker);
+        }, 15000);
+        return () => clearInterval(id);
+    }, [autoRefresh, selectedAsset, interval, fetchChart, fetchAssetPositions]);
+
     // ------------------------------------------------------------------
     // Build / rebuild the chart whenever candles change
     // ------------------------------------------------------------------
     useEffect(() => {
-        if (!candles || !chartContainerRef.current) return;
+        if (!candles || !chartContainerRef.current || !selectedAsset) return;
+
+        // Only preserve zoom/pan across a refresh of the SAME ticker+interval
+        // -- picking a different asset or interval should still fit-all.
+        const chartKey = `${selectedAsset.ticker}|${interval}`;
+        const isSameChart = assetChartKeyRef.current === chartKey;
+        assetChartKeyRef.current = chartKey;
+
+        let previousRange = null;
+        if (chartInstanceRef.current && isSameChart) {
+            try {
+                previousRange = chartInstanceRef.current.timeScale().getVisibleLogicalRange();
+            } catch (e) { /* ignore -- fall back to fitContent below */ }
+        }
 
         if (chartInstanceRef.current) {
             chartInstanceRef.current.remove();
@@ -719,7 +746,15 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             }
         });
 
-        chart.timeScale().fitContent();
+        if (previousRange) {
+            try {
+                chart.timeScale().setVisibleLogicalRange(previousRange);
+            } catch (e) {
+                chart.timeScale().fitContent();
+            }
+        } else {
+            chart.timeScale().fitContent();
+        }
         chartInstanceRef.current = chart;
 
         const handleResize = () => {
@@ -763,7 +798,25 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         setChartError('');
         setAssetPositions([]);
         setChartLastRefreshed(null);
+        setAutoRefresh(false);
         onClose && onClose();
+    };
+
+    // Mobile-only: return to the search/results rail without closing the
+    // whole modal -- the rail is hidden once an asset is selected on
+    // mobile so the chart gets the full screen.
+    const handleBackToList = () => {
+        if (chartInstanceRef.current) {
+            chartInstanceRef.current.remove();
+            chartInstanceRef.current = null;
+        }
+        setSelectedAsset(null);
+        setCandles(null);
+        setChartError('');
+        setAssetPositions([]);
+        setChartLastRefreshed(null);
+        setAutoRefresh(false);
+        setIsFullscreen(false);
     };
 
     const lastCandle = candles && candles.length > 0 ? candles[candles.length - 1] : null;
@@ -878,6 +931,12 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             color: COLORS.inkMuted, cursor: 'pointer', flexShrink: 0,
         },
         refreshSpinning: { animation: 'chartRefreshSpin 0.9s linear infinite' },
+        autoRefreshActive: { background: '#7c3aed', borderColor: '#7c3aed' },
+        backButton: {
+            display: 'flex', alignItems: 'center', gap: '2px', padding: '5px 9px 5px 5px', borderRadius: '999px',
+            border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
+            fontSize: '12px', fontWeight: '600', cursor: 'pointer', marginRight: '4px',
+        },
         intervalRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
             borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0,
@@ -980,7 +1039,10 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                 </div>
 
                 <div style={styles.layout}>
-                    {/* Search + cross-reference rail */}
+                    {/* Search + cross-reference rail -- hidden on mobile once an asset
+                        is selected, so the chart view gets the whole screen instead of
+                        sharing it with the search box and filters */}
+                    {(!isMobile || !selectedAsset) && (
                     <div style={styles.rail}>
                         <div style={styles.searchBox}>
                             <div style={styles.searchInputWrap}>
@@ -1065,6 +1127,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                             )}
                         </div>
                     </div>
+                    )}
 
                     {/* Chart / detail pane */}
                     <div style={styles.detailPane}>
@@ -1080,6 +1143,11 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                 <div style={styles.detailHeader}>
                                     <div>
                                         <div style={styles.detailTitleRow}>
+                                            {isMobile && (
+                                                <button style={styles.backButton} onClick={handleBackToList}>
+                                                    <ChevronLeft size={15} /> Back
+                                                </button>
+                                            )}
                                             <h4 style={styles.detailTicker}>{selectedAsset.ticker}</h4>
                                             {selectedAsset.in_watchlist && <Star size={14} fill={COLORS.accent} color={COLORS.accent} />}
                                             {selectedAsset.cross_referenced && <span style={styles.crossBadge}>🔗 In both</span>}
@@ -1093,12 +1161,19 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <button
+                                            style={{ ...styles.refreshButton, ...(autoRefresh ? styles.autoRefreshActive : {}) }}
+                                            onClick={() => setAutoRefresh(a => !a)}
+                                            title={autoRefresh ? 'Auto-refresh on (every 15s) -- click to turn off' : 'Turn on auto-refresh (every 15s)'}
+                                        >
+                                            <Timer size={13} color={autoRefresh ? '#fff' : COLORS.inkMuted} />
+                                        </button>
+                                        <button
                                             style={styles.refreshButton}
                                             onClick={refreshChart}
                                             disabled={chartLoading}
                                             title={chartLastRefreshed ? `Last refreshed ${chartLastRefreshed.toLocaleTimeString()}` : 'Refresh'}
                                         >
-                                            <RefreshCw size={13} style={chartLoading ? styles.refreshSpinning : undefined} />
+                                            <RefreshCw size={13} color={COLORS.inkMuted} style={chartLoading ? styles.refreshSpinning : undefined} />
                                         </button>
                                         <button style={styles.fullscreenButton} onClick={() => setIsFullscreen(f => !f)}>
                                             {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
@@ -1150,18 +1225,39 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                                     )}
                                                 </div>
                                                 {lastCandleLabel && <div style={styles.hudMeta}>As of {lastCandleLabel} · {interval}</div>}
-                                                {selectedAsset.latest_scan && (
-                                                    <div style={styles.hudBadgeRow}>
-                                                        {selectedAsset.latest_scan.ai_verdict && (
-                                                            <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.latest_scan.ai_verdict) }}>
-                                                                {selectedAsset.latest_scan.ai_verdict}
-                                                            </span>
-                                                        )}
-                                                        {typeof selectedAsset.latest_scan.ai_opportunity_score === 'number' && (
-                                                            <span style={styles.resultChip}>AI score {selectedAsset.latest_scan.ai_opportunity_score}</span>
-                                                        )}
+
+                                                {/* A tad more detail from the underlying models, superimposed too */}
+                                                {(selectedAsset.sector || selectedAsset.category || selectedAsset.market_cap) && (
+                                                    <div style={styles.hudMeta}>
+                                                        {[selectedAsset.sector, selectedAsset.category, formatMarketCap(selectedAsset.market_cap) && `Mkt cap ${formatMarketCap(selectedAsset.market_cap)}`]
+                                                            .filter(Boolean).join(' · ')}
                                                     </div>
                                                 )}
+
+                                                <div style={styles.hudBadgeRow}>
+                                                    {selectedAsset.latest_scan?.ai_verdict && (
+                                                        <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.latest_scan.ai_verdict) }}>
+                                                            {selectedAsset.latest_scan.ai_verdict}
+                                                        </span>
+                                                    )}
+                                                    {typeof selectedAsset.latest_scan?.ai_opportunity_score === 'number' && (
+                                                        <span style={styles.resultChip}>AI score {selectedAsset.latest_scan.ai_opportunity_score}</span>
+                                                    )}
+                                                    {typeof selectedAsset.latest_scan?.score === 'number' && (
+                                                        <span style={styles.resultChip}>Scanner {selectedAsset.latest_scan.score.toFixed(1)}</span>
+                                                    )}
+                                                    {selectedAsset.latest_scan?.signal && (
+                                                        <span style={styles.resultChip}>{selectedAsset.latest_scan.signal}</span>
+                                                    )}
+                                                    {selectedAsset.cross_referenced && selectedAsset.global_pick?.rec && (
+                                                        <span style={{ ...styles.signalBadge, ...getRecStyle(selectedAsset.global_pick.rec) }}>
+                                                            Global: {selectedAsset.global_pick.rec}
+                                                        </span>
+                                                    )}
+                                                    {selectedAsset.last_saved && (
+                                                        <span style={styles.resultChip}>Saved {formatLastSaved(selectedAsset.last_saved)}</span>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             {/* Superimposed position details -- entry/SL/TP/live P&L for any
@@ -1269,8 +1365,10 @@ export default function SnowAIEarth() {
     const [chartFullscreen, setChartFullscreen] = useState(false);
     const [chartPositions, setChartPositions] = useState([]);
     const [chartLastRefreshed, setChartLastRefreshed] = useState(null);
+    const [autoRefreshChart, setAutoRefreshChart] = useState(false);
     const chartContainerRef = useRef(null);
     const chartInstanceRef = useRef(null);
+    const stockChartKeyRef = useRef(null);
 
     // "Chart all visible" grid for the currently filtered stock list
     const [showMultiChart, setShowMultiChart] = useState(false);
@@ -2095,7 +2193,9 @@ export default function SnowAIEarth() {
     const openStockChart = (stock) => {
         const country = selectedCountry;
         setChartData(null);
-        setChartStock({ symbol: stock.symbol, name: stock.name, country });
+        // Carry the whole saved-pick object (not just symbol/name) so the
+        // chart HUD can superimpose rec/conviction/sector/target/etc.
+        setChartStock({ ...stock, country });
         setChartTimeframe('1D');
         fetchChartData(stock.symbol, country, '1D');
         fetchChartPositions(stock.symbol);
@@ -2117,6 +2217,18 @@ export default function SnowAIEarth() {
         fetchChartPositions(chartStock.symbol);
     };
 
+    // Auto-refresh every 15s while toggled on. Resets whenever the symbol
+    // or timeframe changes so it's always polling what's currently on
+    // screen, and stops cleanly if the panel closes or the toggle flips off.
+    useEffect(() => {
+        if (!autoRefreshChart || !chartStock) return;
+        const id = setInterval(() => {
+            fetchChartData(chartStock.symbol, chartStock.country, chartTimeframe);
+            fetchChartPositions(chartStock.symbol);
+        }, 15000);
+        return () => clearInterval(id);
+    }, [autoRefreshChart, chartStock, chartTimeframe]);
+
     const closeStockChart = () => {
         if (chartInstanceRef.current) {
             chartInstanceRef.current.remove();
@@ -2129,6 +2241,8 @@ export default function SnowAIEarth() {
         setChartFullscreen(false);
         setChartPositions([]);
         setChartLastRefreshed(null);
+        setAutoRefreshChart(false);
+        stockChartKeyRef.current = null;
     };
 
     // Resize the single-stock chart when fullscreen toggles.
@@ -2190,7 +2304,21 @@ export default function SnowAIEarth() {
 
 
     useEffect(() => {
-        if (!chartData || !chartContainerRef.current) return;
+        if (!chartData || !chartContainerRef.current || !chartStock) return;
+
+        // Only preserve the current zoom/pan across a refresh of the SAME
+        // symbol+timeframe -- switching symbols or timeframes should still
+        // reset to fit-all since the data range is fundamentally different.
+        const chartKey = `${chartStock.symbol}|${chartTimeframe}`;
+        const isSameChart = stockChartKeyRef.current === chartKey;
+        stockChartKeyRef.current = chartKey;
+
+        let previousRange = null;
+        if (chartInstanceRef.current && isSameChart) {
+            try {
+                previousRange = chartInstanceRef.current.timeScale().getVisibleLogicalRange();
+            } catch (e) { /* ignore -- fall back to fitContent below */ }
+        }
 
         if (chartInstanceRef.current) {
             chartInstanceRef.current.remove();
@@ -2265,9 +2393,16 @@ export default function SnowAIEarth() {
             }
         });
 
-        chart.timeScale().fitContent();
+        if (previousRange) {
+            try {
+                chart.timeScale().setVisibleLogicalRange(previousRange);
+            } catch (e) {
+                chart.timeScale().fitContent();
+            }
+        } else {
+            chart.timeScale().fitContent();
+        }
         chartInstanceRef.current = chart;
-
 
         const handleResize = () => {
             chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
@@ -2308,12 +2443,19 @@ export default function SnowAIEarth() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <button
+                                style={{ ...styles.refreshButton, ...(autoRefreshChart ? styles.autoRefreshActive : {}) }}
+                                onClick={() => setAutoRefreshChart(a => !a)}
+                                title={autoRefreshChart ? 'Auto-refresh on (every 15s) -- click to turn off' : 'Turn on auto-refresh (every 15s)'}
+                            >
+                                <Timer size={13} color={autoRefreshChart ? '#fff' : COLORS.inkMuted} />
+                            </button>
+                            <button
                                 style={styles.refreshButton}
                                 onClick={refreshStockChart}
                                 disabled={chartLoading}
                                 title={chartLastRefreshed ? `Last refreshed ${chartLastRefreshed.toLocaleTimeString()}` : 'Refresh'}
                             >
-                                <RefreshCw size={13} style={chartLoading ? styles.refreshSpinning : undefined} />
+                                <RefreshCw size={13} color={COLORS.inkMuted} style={chartLoading ? styles.refreshSpinning : undefined} />
                             </button>
                             <button style={styles.fullscreenButtonSmall} onClick={() => setChartFullscreen(f => !f)}>
                                 {chartFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
@@ -2370,6 +2512,29 @@ export default function SnowAIEarth() {
                                         )}
                                     </div>
                                     {lastCandleLabel && <div style={styles.chartHudMeta}>As of {lastCandleLabel} · {chartTimeframe}</div>}
+
+                                    {/* A tad more detail from SnowGlobalStockPick, superimposed too */}
+                                    {(chartStock.sector || chartStock.sub_sector || chartStock.market_cap) && (
+                                        <div style={styles.chartHudMeta}>
+                                            {[chartStock.sector, chartStock.sub_sector, chartStock.market_cap && `Mkt cap ${chartStock.market_cap}`]
+                                                .filter(Boolean).join(' · ')}
+                                        </div>
+                                    )}
+                                    <div style={styles.chartHudBadgeRow}>
+                                        {chartStock.rec && (
+                                            <span style={{ ...styles.chartHudBadge, ...getRecStyle(chartStock.rec) }}>{chartStock.rec}</span>
+                                        )}
+                                        {chartStock.top_pick && <span style={styles.chartHudChip}>⭐ Top pick</span>}
+                                        {typeof chartStock.conviction === 'number' && (
+                                            <span style={styles.chartHudChip}>Conviction {chartStock.conviction}/10</span>
+                                        )}
+                                        {chartStock.analyst_target && (
+                                            <span style={styles.chartHudChip}>Target {chartStock.analyst_target}</span>
+                                        )}
+                                        {chartStock.date_saved && (
+                                            <span style={styles.chartHudChip}>Saved {formatLastSaved(chartStock.date_saved)}</span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Superimposed position details -- entry/SL/TP/live P&L for any
@@ -2485,7 +2650,7 @@ export default function SnowAIEarth() {
                             onClick={() => openMultiChart(symbols)}
                             disabled={multiChartLoading || symbols.length === 0}
                         >
-                            <RefreshCw size={12} style={multiChartLoading ? styles.refreshSpinning : undefined} /> Refresh all
+                            <RefreshCw size={12} color="#fff" style={multiChartLoading ? styles.refreshSpinning : undefined} /> Refresh all
                         </button>
                     </div>
 
@@ -3309,6 +3474,7 @@ export default function SnowAIEarth() {
             color: COLORS.inkMuted, cursor: 'pointer', flexShrink: 0
         },
         refreshSpinning: { animation: 'chartRefreshSpin 0.9s linear infinite' },
+        autoRefreshActive: { background: '#7c3aed', borderColor: '#7c3aed' },
         chartTimeframeRow: {
             display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px',
             borderBottom: `1px solid ${COLORS.border}`, background: COLORS.surface,
@@ -3334,6 +3500,12 @@ export default function SnowAIEarth() {
         chartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         chartHudChange: (up) => ({ fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
         chartHudMeta: { fontSize: '10px', color: '#cbd5e1', marginTop: '3px' },
+        chartHudBadgeRow: { display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap', pointerEvents: 'auto' },
+        chartHudBadge: { padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: '700' },
+        chartHudChip: {
+            fontSize: '10px', color: '#e2e8f0', background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '999px', padding: '2px 8px'
+        },
 
         // Superimposed position (entry/SL/TP/live P&L) readout -- top-right,
         // same free-floating no-box treatment as the price HUD.
