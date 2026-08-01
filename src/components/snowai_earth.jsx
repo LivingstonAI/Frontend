@@ -3,7 +3,7 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw, Timer, ChevronLeft } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw, Timer, ChevronLeft, ExternalLink } from 'lucide-react';
 import { createChart, CandlestickSeries, LineSeries, LineStyle } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -433,7 +433,7 @@ const LauraModalContent = ({
 // the same way LauraModalContent above is its own component -- SnowAIEarth
 // just mounts it and hands it isOpen/onClose/baseUrl.
 // ---------------------------------------------------------------------------
-const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
+const AssetExplorerModal = ({ isOpen, onClose, baseUrl, initialTicker }) => {
     const [isMobile, setIsMobile] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -447,7 +447,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     const [assets, setAssets] = useState([]);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
-    const searchDebounceRef = useRef(null);
+    const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
 
     // Selected asset + chart
     const [selectedAsset, setSelectedAsset] = useState(null);
@@ -471,11 +471,15 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
     }, []);
 
     // ------------------------------------------------------------------
-    // Search / cross-reference
+    // Search / cross-reference -- fully manual on purpose. Nothing fires
+    // until you press Search or hit Enter, so opening the modal doesn't
+    // trigger a "browse everything" fetch you didn't ask for, and typing
+    // doesn't quietly fire a second search behind the one you meant to run.
     // ------------------------------------------------------------------
     const runSearch = useCallback(async (q, sector, category, crossOnlyFlag) => {
         setSearching(true);
         setSearchError('');
+        let results = [];
         try {
             const response = await fetch(`${baseUrl}/api/snowvault/assets/search/`, {
                 method: 'POST',
@@ -484,7 +488,8 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             });
             const data = await response.json();
             if (data.success) {
-                setAssets(data.assets || []);
+                results = data.assets || [];
+                setAssets(results);
             } else {
                 setSearchError(data.error || 'Search failed.');
                 setAssets([]);
@@ -494,13 +499,19 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             setAssets([]);
         } finally {
             setSearching(false);
+            setHasSearchedOnce(true);
         }
+        return results;
     }, [baseUrl]);
 
+    const triggerSearch = () => {
+        runSearch(query, sectorFilter, categoryFilter, crossOnly);
+    };
+
+    // Sectors/categories for the filter dropdowns -- just metadata, not a
+    // search, so this is fine to load automatically on open.
     useEffect(() => {
         if (!isOpen) return;
-
-        // Sectors/categories once per open
         fetch(`${baseUrl}/api/snowvault/assets/sectors/`)
             .then(res => res.json())
             .then(data => {
@@ -510,21 +521,29 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                 }
             })
             .catch(() => {});
+    }, [isOpen, baseUrl]);
 
-        // Initial browsable list
-        runSearch('', '', '', false);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen]);
-
+    // Navigated here from a specific ticker elsewhere (e.g. "Open in Asset
+    // Explorer" on a chart-all-visible card) -- search for it and jump
+    // straight into its chart, instead of waiting for a manual search.
     useEffect(() => {
-        if (!isOpen) return;
-        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-        searchDebounceRef.current = setTimeout(() => {
-            runSearch(query, sectorFilter, categoryFilter, crossOnly);
-        }, 350);
-        return () => clearTimeout(searchDebounceRef.current);
+        if (!isOpen || !initialTicker) return;
+        let cancelled = false;
+        setQuery(initialTicker);
+        (async () => {
+            const results = await runSearch(initialTicker, '', '', false);
+            if (cancelled) return;
+            const upper = initialTicker.toUpperCase();
+            const exact = results.find(a => a.ticker === upper) || results[0];
+            selectAsset(exact || {
+                ticker: upper, name: upper, sector: '', category: '', market_cap: null, curr_price: null,
+                in_watchlist: false, watchlist_label: '', sources: [], cross_referenced: false,
+                country: null, flag: null, latest_scan: null, global_pick: null, last_saved: null,
+            });
+        })();
+        return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [query, sectorFilter, categoryFilter, crossOnly]);
+    }, [isOpen, initialTicker]);
 
     // Group results: country (from the Global Picker match) > sector > list,
     // sorted by last_saved desc within each leaf. Tickers with no country
@@ -799,6 +818,13 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         setAssetPositions([]);
         setChartLastRefreshed(null);
         setAutoRefresh(false);
+        setQuery('');
+        setSectorFilter('');
+        setCategoryFilter('');
+        setCrossOnly(false);
+        setAssets([]);
+        setHasSearchedOnce(false);
+        setSearchError('');
         onClose && onClose();
     };
 
@@ -881,6 +907,11 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
             display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: COLORS.inkMuted,
             cursor: 'pointer', userSelect: 'none',
         },
+        searchSubmitButton: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
+            marginTop: '10px', padding: '9px', borderRadius: '8px', border: 'none',
+            background: COLORS.accent, color: '#fff', fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+        },
         resultsList: { flex: 1, overflowY: 'auto', padding: '8px' },
         groupHeader: {
             display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: '700',
@@ -956,7 +987,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         // legibility against whatever's under it.
         hud: {
             position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 2px rgba(0,0,0,0.45)',
         },
         hudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
         hudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
@@ -968,7 +999,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
         // same free-floating no-box treatment as the price HUD.
         positionHud: {
             position: 'absolute', top: '10px', right: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 2px rgba(0,0,0,0.45)',
             display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end',
         },
         positionHudRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' },
@@ -1052,6 +1083,7 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                     placeholder="Search ticker, name, sector, or country..."
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') triggerSearch(); }}
                                     style={styles.searchInput}
                                 />
                             </div>
@@ -1081,16 +1113,24 @@ const AssetExplorerModal = ({ isOpen, onClose, baseUrl }) => {
                                 />
                                 🔗 Opportunities only (saved in both Trend Scanner &amp; Global Picker)
                             </label>
+                            <button style={styles.searchSubmitButton} onClick={triggerSearch} disabled={searching}>
+                                <Search size={13} /> {searching ? 'Searching...' : 'Search'}
+                            </button>
                         </div>
 
                         <div style={styles.resultsList}>
+                            {!hasSearchedOnce && !searching && (
+                                <div style={styles.emptyRail}>
+                                    Set a query and/or filters above, then press Search -- nothing loads until you ask for it.
+                                </div>
+                            )}
                             {searching && assets.length === 0 && (
                                 <div style={styles.emptyRail}>Searching...</div>
                             )}
                             {searchError && (
                                 <div style={{ ...styles.emptyRail, color: COLORS.negative }}>{searchError}</div>
                             )}
-                            {!searching && !searchError && assets.length === 0 && (
+                            {hasSearchedOnce && !searching && !searchError && assets.length === 0 && (
                                 <div style={styles.emptyRail}>
                                     No assets match yet. Try a different ticker, name, sector, or country.
                                 </div>
@@ -1323,6 +1363,7 @@ export default function SnowAIEarth() {
     const [autoRotate, setAutoRotate] = useState(true);
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [showAssetExplorer, setShowAssetExplorer] = useState(false);
+    const [assetExplorerInitialTicker, setAssetExplorerInitialTicker] = useState(null);
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [showLaura, setShowLaura] = useState(false);
@@ -1570,7 +1611,7 @@ export default function SnowAIEarth() {
             globeRef.current.pointOfView({
                 lat: targetCountry.lat,
                 lng: targetCountry.lng,
-                altitude: 2.5
+                altitude: 0.5
             }, 2000);
 
             setSelectedCountry(resolveCountryName(targetCountry));
@@ -1608,7 +1649,7 @@ export default function SnowAIEarth() {
                 lat /= totalPoints;
             }
 
-            globeRef.current.pointOfView({ lat, lng, altitude: 2.5 }, 2000);
+            globeRef.current.pointOfView({ lat, lng, altitude: 0.5 }, 2000);
 
             const countryName = foundFeature.properties.NAME || foundFeature.properties.name;
             setSelectedCountry(normalizeCountryName(countryName));
@@ -2302,6 +2343,15 @@ export default function SnowAIEarth() {
         setMultiChartError('');
     };
 
+    // From a "chart all visible" mini-chart -- closes the grid (it sits
+    // above Asset Explorer in z-index, so it has to close first) and opens
+    // Asset Explorer jumped straight to that symbol's full chart.
+    const navigateToAssetExplorer = (symbol) => {
+        closeMultiChart();
+        setAssetExplorerInitialTicker(symbol);
+        setShowAssetExplorer(true);
+    };
+
 
     useEffect(() => {
         if (!chartData || !chartContainerRef.current || !chartStock) return;
@@ -2600,8 +2650,6 @@ export default function SnowAIEarth() {
                 grid: { vertLines: { visible: false }, horzLines: { visible: false } },
                 rightPriceScale: { borderColor: MAP_COLORS.border },
                 timeScale: { borderColor: MAP_COLORS.border, timeVisible: isIntraday, secondsVisible: false },
-                handleScroll: false,
-                handleScale: false,
             });
             const candleSeries = addCandleSeries(chart, {
                 upColor: COLORS.positive,
@@ -2720,6 +2768,12 @@ export default function SnowAIEarth() {
                                                     </div>
                                                 )}
                                             </div>
+                                            <button
+                                                style={styles.multiChartOpenButton}
+                                                onClick={() => navigateToAssetExplorer(symbol)}
+                                            >
+                                                <ExternalLink size={11} /> Open in Asset Explorer
+                                            </button>
                                         </div>
                                     );
                                 })}
@@ -3356,14 +3410,20 @@ export default function SnowAIEarth() {
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))'
         },
         multiChartCard: {
-            background: MAP_COLORS.void, border: `1px solid ${COLORS.border}`, borderRadius: '10px', overflow: 'hidden'
+            background: MAP_COLORS.void, border: `1px solid ${COLORS.border}`, borderRadius: '10px', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column'
         },
         multiChartCardCanvasWrap: { position: 'relative', height: isMobile ? '220px' : '200px' },
         multiChartCanvas: { width: '100%', height: '100%' },
         multiChartCardError: { height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' },
+        multiChartOpenButton: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%',
+            padding: '8px', border: 'none', borderTop: `1px solid ${COLORS.border}`, background: COLORS.surface,
+            color: COLORS.inkMuted, fontSize: '11px', fontWeight: '600', cursor: 'pointer'
+        },
         multiChartHud: {
             position: 'absolute', top: '8px', left: '10px', zIndex: 5, pointerEvents: 'none',
-            display: 'flex', flexDirection: 'column', gap: '2px', textShadow: '0 1px 3px rgba(0,0,0,0.85)'
+            display: 'flex', flexDirection: 'column', gap: '2px', textShadow: '0 1px 2px rgba(0,0,0,0.45)'
         },
         multiChartHudSymbol: { fontFamily: COLORS.mono, fontSize: '12px', fontWeight: '700', color: '#f8fafc' },
         multiChartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '11px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
@@ -3494,7 +3554,7 @@ export default function SnowAIEarth() {
         // keeps it legible over the candles underneath.
         chartHud: {
             position: 'absolute', top: '10px', left: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 4px rgba(0,0,0,0.85)'
+            maxWidth: isMobile ? '55%' : '320px', textShadow: '0 1px 2px rgba(0,0,0,0.45)'
         },
         chartHudRow: { display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' },
         chartHudPrice: (up) => ({ fontFamily: COLORS.mono, fontSize: '19px', fontWeight: '700', color: up ? '#4ade80' : '#f87171' }),
@@ -3511,7 +3571,7 @@ export default function SnowAIEarth() {
         // same free-floating no-box treatment as the price HUD.
         positionHud: {
             position: 'absolute', top: '10px', right: '14px', zIndex: 5, pointerEvents: 'none',
-            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 4px rgba(0,0,0,0.85)',
+            maxWidth: isMobile ? '42%' : '260px', textShadow: '0 1px 2px rgba(0,0,0,0.45)',
             display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end'
         },
         positionHudRow: { display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' },
@@ -3819,8 +3879,9 @@ export default function SnowAIEarth() {
             {showAssetExplorer && (
                 <AssetExplorerModal
                     isOpen={showAssetExplorer}
-                    onClose={() => setShowAssetExplorer(false)}
+                    onClose={() => { setShowAssetExplorer(false); setAssetExplorerInitialTicker(null); }}
                     baseUrl={baseUrl}
+                    initialTicker={assetExplorerInitialTicker}
                 />
             )}
             {showLaura && <LauraModalContent
