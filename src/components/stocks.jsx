@@ -2267,6 +2267,134 @@ function BacktestSignalComparisonChart({ bySignal, horizon, onHorizonChange, hor
     );
 }
 
+function BacktestGroupComparisonChart({ title, IconComp, data, horizon, onHorizonChange, horizons, labelize }) {
+    const MIN_SAMPLE = 3;
+    const chartData = Object.entries(data || {})
+        .map(([key, hmap]) => {
+            const cell = hmap[String(horizon)];
+            return { label: labelize ? labelize(key) : key.replace(/_/g, ' '), value: cell?.avgDirectionAdjustedReturn ?? null, winRate: cell?.winRate ?? null, count: cell?.count ?? 0 };
+        })
+        .filter(d => d.value !== null && d.count >= MIN_SAMPLE)
+        .sort((a, b) => b.value - a.value);
+
+    if (chartData.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <IconComp size={15} color="#1a1a1a" />
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>{title}</span>
+                </div>
+                <div style={{ display:'flex', gap:'4px' }}>
+                    {horizons.map(h => (
+                        <button key={h} onClick={() => onHorizonChange(String(h))} style={{
+                            padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                            border:`1px solid ${String(horizon) === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                            backgroundColor: String(horizon) === String(h) ? '#eff6ff' : '#fff',
+                            color: String(horizon) === String(h) ? '#2563eb' : '#94a3b8',
+                        }}>{h}D</button>
+                    ))}
+                </div>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>min. 3 per group shown</span>
+            </div>
+            <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 34)}>
+                <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#334155' }} width={140} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {chartData.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function GlobalPicksPlainEnglish({ gpData }) {
+    if (!gpData || gpData.totalPicks === 0) return null;
+    const REF_HORIZON = '5';
+    const MIN_SAMPLE  = 3;
+    const insights = [];
+
+    const overallCell = gpData.aggregate?.ALL?.[REF_HORIZON];
+    if (overallCell && overallCell.count > 0) {
+        insights.push({
+            Icon: Target, positive: overallCell.avgDirectionAdjustedReturn >= 0,
+            text: `Across ${overallCell.count} saved global picks, the call was right ${overallCell.winRate}% of the time over 5 trading days — averaging ${overallCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${overallCell.avgDirectionAdjustedReturn}% per pick.`,
+        });
+    }
+
+    const recEntries = Object.entries(gpData.byRec || {})
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (recEntries.length > 0) {
+        const sorted = [...recEntries].sort((a, b) => b.cell.avgDirectionAdjustedReturn - a.cell.avgDirectionAdjustedReturn);
+        const best = sorted[0];
+        insights.push({
+            Icon: TrendingUp, positive: true,
+            text: `Best-performing rec label: "${best.key}" — right ${best.cell.winRate}% of the time over 5 days, averaging ${best.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${best.cell.avgDirectionAdjustedReturn}% (${best.cell.count} picks).`,
+        });
+    }
+
+    const topCell = gpData.byTopPick?.['Top Pick']?.[REF_HORIZON];
+    const regCell = gpData.byTopPick?.['Regular']?.[REF_HORIZON];
+    if (topCell && topCell.count >= MIN_SAMPLE && regCell && regCell.count >= MIN_SAMPLE) {
+        const diff = Math.round((topCell.avgDirectionAdjustedReturn - regCell.avgDirectionAdjustedReturn) * 10) / 10;
+        insights.push({
+            Icon: Brain, positive: diff >= 0,
+            text: `Picks flagged as "Top Pick" beat regular picks by ${diff >= 0 ? '+' : ''}${diff}pp on average over 5 days — ${diff >= 0 ? 'the top-pick flag appears to be adding real signal.' : "worth a look — regular picks actually held up better here."}`,
+        });
+    }
+
+    const convEntries = Object.entries(gpData.byConvictionBucket || {})
+        .filter(([k]) => k !== 'Unknown')
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (convEntries.length >= 2) {
+        const rank = { '8-10': 3, '6-7': 2, '4-5': 1, '1-3': 0 };
+        const sorted = [...convEntries].sort((a, b) => rank[b.key] - rank[a.key]);
+        const high = sorted[0], low = sorted[sorted.length - 1];
+        if (high && low && high.key !== low.key) {
+            insights.push({
+                Icon: Gauge, positive: high.cell.avgDirectionAdjustedReturn >= low.cell.avgDirectionAdjustedReturn,
+                text: `High-conviction picks (${high.key}) averaged ${high.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${high.cell.avgDirectionAdjustedReturn}% vs ${low.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${low.cell.avgDirectionAdjustedReturn}% for low-conviction (${low.key}) — ${high.cell.avgDirectionAdjustedReturn >= low.cell.avgDirectionAdjustedReturn ? "conviction level tracks with results so far." : "conviction level isn't tracking with results yet."}`,
+            });
+        }
+    }
+
+    if (gpData.totalPicks < 15) {
+        insights.push({
+            Icon: AlertTriangle, positive: null,
+            text: `Only ${gpData.totalPicks} global picks saved so far — treat these numbers as early signal, not a verdict.`,
+        });
+    }
+
+    if (insights.length === 0) return null;
+
+    return (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'22px' }}>
+            {insights.map((ins, i) => {
+                const color = ins.positive === true ? '#10b981' : ins.positive === false ? '#ef4444' : '#f59e0b';
+                const bg    = ins.positive === true ? '#f0fdf4' : ins.positive === false ? '#fef2f2' : '#fffbeb';
+                const Icon  = ins.Icon;
+                return (
+                    <div key={i} style={{
+                        display:'flex', gap:'10px', alignItems:'flex-start',
+                        padding:'10px 14px', backgroundColor:bg, borderRadius:'10px', border:`1px solid ${color}30`,
+                    }}>
+                        <Icon size={16} color={color} style={{ flexShrink:0, marginTop:'1px' }} />
+                        <div style={{ fontSize:'12.5px', color:'#333', lineHeight:1.55 }}>{ins.text}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -2288,7 +2416,20 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const [btDirFilter,     setBtDirFilter]      = React.useState('');
     const [btVerdictFilter, setBtVerdictFilter]  = React.useState('');
     const BT_HORIZONS = [1, 3, 5, 10, 20];
+
     const [btHorizonFocus, setBtHorizonFocus] = React.useState('5');
+
+    // -- Global Picks backtest (second data source) --
+    const [btSource, setBtSource] = React.useState('scanner'); // 'scanner' | 'globalPicks'
+    const [gpCountryFilter, setGpCountryFilter] = React.useState('');
+    const [gpSectorFilter, setGpSectorFilter] = React.useState('');
+    const [gpRecFilter, setGpRecFilter] = React.useState('');
+    const [gpMinConviction, setGpMinConviction] = React.useState('');
+    const [gpTopPickOnly, setGpTopPickOnly] = React.useState(false);
+    const [gpLoading, setGpLoading] = React.useState(false);
+    const [gpError, setGpError] = React.useState(null);
+    const [gpData, setGpData] = React.useState(null);
+    const [gpHorizonFocus, setGpHorizonFocus] = React.useState('5');
 
     const HIST_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
@@ -2361,7 +2502,47 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
         }
     };
 
-    React.useEffect(() => { if (isOpen && viewMode === 'backtest' && !btData) fetchBacktest(); }, [isOpen, viewMode]);
+    const fetchGlobalPicksBacktest = async () => {
+        setGpLoading(true);
+        setGpError(null);
+        try {
+            const body = { limit: 1000, horizons: BT_HORIZONS };
+            if (tickerSearch.trim())    body.symbol        = tickerSearch.trim().toUpperCase();
+            if (startDate)              body.startDate     = startDate;
+            if (endDate)                body.endDate       = endDate;
+            if (gpCountryFilter.trim()) body.country       = gpCountryFilter.trim();
+            if (gpSectorFilter.trim())  body.sector        = gpSectorFilter.trim();
+            if (gpRecFilter)            body.rec           = gpRecFilter;
+            if (gpMinConviction)        body.minConviction = parseInt(gpMinConviction, 10);
+            if (gpTopPickOnly)          body.topPickOnly   = true;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_global_picks_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpData(json);
+        } catch (e) {
+            setGpError(e.message);
+        } finally {
+            setGpLoading(false);
+        }
+    };
+
+    const runActiveFetch = () => {
+        if (viewMode === 'timeline') { fetchHistory(); return; }
+        if (btSource === 'globalPicks') { fetchGlobalPicksBacktest(); return; }
+        fetchBacktest();
+    };
+    const isActiveFetchLoading = viewMode === 'timeline' ? loading : (btSource === 'globalPicks' ? gpLoading : btLoading);
+
+    React.useEffect(() => {
+        if (!isOpen || viewMode !== 'backtest') return;
+        if (btSource === 'scanner' && !btData) fetchBacktest();
+        if (btSource === 'globalPicks' && !gpData) fetchGlobalPicksBacktest();
+    }, [isOpen, viewMode, btSource]);
 
     const fmtCap = (v) => {
         if (!v) return '—';
@@ -2479,12 +2660,25 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         ))}
                     </div>
 
+                    {viewMode === 'backtest' && (
+                        <div style={{ display:'flex', gap:'6px', marginBottom:'10px' }}>
+                            {[{ s:'scanner', label:'📊 Trend Scanner' }, { s:'globalPicks', label:'🌍 Global Picks' }].map(({ s, label }) => (
+                                <button key={s} onClick={() => setBtSource(s)} style={{
+                                    padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                    border:`1px solid ${btSource === s ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                    backgroundColor: btSource === s ? '#3b82f6' : 'rgba(255,255,255,0.06)',
+                                    color: btSource === s ? '#fff' : 'rgba(255,255,255,0.55)',
+                                }}>{label}</button>
+                            ))}
+                        </div>
+                    )}
+
                     <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center' }}>
                         <input
                             type="text" value={tickerSearch}
                             onChange={e => setTickerSearch(e.target.value.toUpperCase())}
-                            onKeyDown={e => e.key === 'Enter' && (viewMode === 'backtest' ? fetchBacktest() : fetchHistory())}
-                            placeholder="Filter ticker e.g. NVDA"
+                            onKeyDown={e => e.key === 'Enter' && runActiveFetch()}
+                            placeholder={viewMode === 'backtest' && btSource === 'globalPicks' ? 'Filter symbol e.g. 7203.T' : 'Filter ticker e.g. NVDA'}
                             style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', fontWeight:'600', outline:'none', width:'140px', color:'#1a1a1a', backgroundColor:'#fff' }}
                         />
                         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
@@ -2493,7 +2687,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                             style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
 
-                        {viewMode === 'backtest' && (
+                        {viewMode === 'backtest' && btSource === 'scanner' && (
                             <>
                                 <select value={btSignalFilter} onChange={e => setBtSignalFilter(e.target.value)}
                                     style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
@@ -2515,21 +2709,48 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                             </>
                         )}
 
-                        <button onClick={() => viewMode === 'backtest' ? fetchBacktest() : fetchHistory()} disabled={viewMode === 'backtest' ? btLoading : loading} style={{
+                        {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                            <>
+                                <input type="text" value={gpCountryFilter} onChange={e => setGpCountryFilter(e.target.value)}
+                                    placeholder="Country e.g. Japan"
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'110px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <input type="text" value={gpSectorFilter} onChange={e => setGpSectorFilter(e.target.value)}
+                                    placeholder="Sector"
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'100px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <select value={gpRecFilter} onChange={e => setGpRecFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Recs</option>
+                                    <option value="STRONG BUY">Strong Buy</option>
+                                    <option value="BUY">Buy</option>
+                                    <option value="WATCH">Watch</option>
+                                    <option value="HOLD">Hold</option>
+                                </select>
+                                <input type="number" min="1" max="10" value={gpMinConviction} onChange={e => setGpMinConviction(e.target.value)}
+                                    placeholder="Min conv."
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'80px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <label style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'12px', color:'rgba(255,255,255,0.75)', cursor:'pointer' }}>
+                                    <input type="checkbox" checked={gpTopPickOnly} onChange={e => setGpTopPickOnly(e.target.checked)} />
+                                    Top Picks only
+                                </label>
+                            </>
+                        )}
+
+                        <button onClick={runActiveFetch} disabled={isActiveFetchLoading} style={{
                             padding:'6px 16px', borderRadius:'8px',
-                            background: (viewMode === 'backtest' ? btLoading : loading) ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
+                            background: isActiveFetchLoading ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
                             border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
-                            cursor: (viewMode === 'backtest' ? btLoading : loading) ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
+                            cursor: isActiveFetchLoading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
                         }}>
-                            {(viewMode === 'backtest' ? btLoading : loading)
+                            {isActiveFetchLoading
                                 ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> {viewMode === 'backtest' ? 'Crunching...' : 'Loading...'}</>
                                 : <>🔍 {viewMode === 'backtest' ? 'Run Backtest' : 'Search'}</>}
                         </button>
-                        {(tickerSearch || startDate || endDate || btSignalFilter || btDirFilter || btVerdictFilter) && (
+                        {(tickerSearch || startDate || endDate || btSignalFilter || btDirFilter || btVerdictFilter || gpCountryFilter || gpSectorFilter || gpRecFilter || gpMinConviction || gpTopPickOnly) && (
                             <button onClick={() => {
                                 setTickerSearch(''); setStartDate(''); setEndDate('');
                                 setBtSignalFilter(''); setBtDirFilter(''); setBtVerdictFilter('');
-                                setTimeout(() => (viewMode === 'backtest' ? fetchBacktest() : fetchHistory()), 0);
+                                setGpCountryFilter(''); setGpSectorFilter(''); setGpRecFilter(''); setGpMinConviction(''); setGpTopPickOnly(false);
+                                setTimeout(runActiveFetch, 0);
                             }}
                                 style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.8)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>
                                 Clear
@@ -2540,9 +2761,14 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                 {rows.length} snapshot{rows.length !== 1 ? 's' : ''} · {grouped.length} day{grouped.length !== 1 ? 's' : ''}
                             </span>
                         )}
-                        {viewMode === 'backtest' && btData && (
+                        {viewMode === 'backtest' && btSource === 'scanner' && btData && (
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
                                 {btData.totalSnapshots} snapshot{btData.totalSnapshots !== 1 ? 's' : ''} evaluated
+                            </span>
+                        )}
+                        {viewMode === 'backtest' && btSource === 'globalPicks' && gpData && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {gpData.totalPicks} pick{gpData.totalPicks !== 1 ? 's' : ''} evaluated
                             </span>
                         )}
                     </div>
@@ -2699,7 +2925,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                     </>
                     )}
 
-                    {viewMode === 'backtest' && (
+                    {viewMode === 'backtest' && btSource === 'scanner' && (
                         <div style={{ padding:'20px' }}>
                             {btLoading && (
                                 <div style={{ padding:'60px 20px', textAlign:'center' }}>
@@ -2732,6 +2958,55 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                     {renderBacktestTable('By Direction', btData.byDirection, ArrowUpDown)}
                                     {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, Brain)}
                                     {renderBacktestTable('By Scanner Score', btData.byScoreBucket, Gauge)}
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                        <div style={{ padding:'20px' }}>
+                            {gpLoading && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                                    <div style={{ fontSize:'13px', color:'#94a3b8' }}>Pulling price history for global picks and computing forward returns...</div>
+                                </div>
+                            )}
+                            {gpError && !gpLoading && (
+                                <div style={{ padding:'16px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px' }}>⚠️ {gpError}</div>
+                            )}
+                            {!gpLoading && !gpError && gpData && gpData.totalPicks === 0 && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>🌍</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No global picks match these filters</div>
+                                    <div style={{ fontSize:'13px', color:'#64748b' }}>Save picks from the Country-Sector Drill to start building history here.</div>
+                                </div>
+                            )}
+                            {!gpLoading && !gpError && gpData && gpData.totalPicks > 0 && (
+                                <>
+                                    <div style={{
+                                        padding:'10px 14px', backgroundColor:'#eff6ff', border:'1px solid #bfdbfe',
+                                        borderRadius:'8px', fontSize:'12px', color:'#1d4ed8', lineHeight:1.6, marginBottom:'20px',
+                                    }}>
+                                        💡 "Direction" here comes from the rec label — STRONG BUY/BUY count as bullish, anything with SELL/AVOID counts as bearish, WATCH/HOLD are treated as neutral (not flipped). Same direction-adjusted return logic as the Trend Scanner backtest.
+                                    </div>
+                                    <GlobalPicksPlainEnglish gpData={gpData} />
+                                    <BacktestReturnByHorizonChart aggregate={gpData.aggregate} horizons={BT_HORIZONS} />
+                                    <BacktestGroupComparisonChart
+                                        title="Performance by Recommendation" IconComp={Brain}
+                                        data={gpData.byRec} horizon={gpHorizonFocus} onHorizonChange={setGpHorizonFocus} horizons={BT_HORIZONS}
+                                        labelize={k => k}
+                                    />
+                                    <BacktestGroupComparisonChart
+                                        title="Performance by Country" IconComp={Telescope}
+                                        data={gpData.byCountry} horizon={gpHorizonFocus} onHorizonChange={setGpHorizonFocus} horizons={BT_HORIZONS}
+                                        labelize={k => k}
+                                    />
+                                    {renderBacktestTable('Overall', gpData.aggregate, BarChart3)}
+                                    {renderBacktestTable('By Recommendation', gpData.byRec, Brain)}
+                                    {renderBacktestTable('By Country', gpData.byCountry, Telescope)}
+                                    {renderBacktestTable('By Sector', gpData.bySector, Gauge)}
+                                    {renderBacktestTable('By Conviction', gpData.byConvictionBucket, Target)}
+                                    {renderBacktestTable('Top Pick vs Regular', gpData.byTopPick, ArrowUpDown)}
                                 </>
                             )}
                         </div>
