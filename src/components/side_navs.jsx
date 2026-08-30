@@ -418,12 +418,12 @@ function usePageTranslator() {
     return () => clearTimeout(timer);
   }, [window.location.pathname]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('snowai_lang');
-    if (saved && saved !== 'en') {
-      setShowBanner(true);
-    }
-  }, []);
+  // useEffect(() => {
+  //   const saved = localStorage.getItem('snowai_lang');
+  //   if (saved && saved !== 'en') {
+  //     setShowBanner(true);
+  //   }
+  // }, []);
 
   return {
     currentLang,
@@ -450,7 +450,6 @@ function LanguageSwitcher({ translator }) {
         .language-switcher-container {
           margin: 16px 12px;
           position: relative;
-          z-index: 9999;
         }
 
         .lang-trigger-btn {
@@ -509,7 +508,7 @@ function LanguageSwitcher({ translator }) {
           border: 1px solid rgba(0,0,0,0.15);
           border-radius: 12px;
           overflow: hidden;
-          z-index: 10000;
+          z-index: 1060;
           box-shadow: 0 8px 24px rgba(0,0,0,0.15);
           max-height: 400px;
           overflow-y: auto;
@@ -726,7 +725,7 @@ function TranslateBanner({ translator }) {
       top: 16,
       left: '50%',
       transform: 'translateX(-50%)',
-      zIndex: 99999,
+      zIndex: 1055,
       background: '#1e293b',
       color: '#f8fafc',
       borderRadius: 10,
