@@ -8216,4 +8216,3396 @@ React.useEffect(() => {
                                                                                 border: `1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}` }}>
                                                                                 {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
                                                                             </span>
-                                   
+                                                                        )}
+                                                                        {q.beat != null && (
+                                                                            <span style={{ fontSize: '10px' }}>{q.beat ? '✓' : '✗'}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Post-earnings reaction (fetch on demand) */}
+                                                    {!e.isUpcoming && (
+                                                        <div>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    setReactionLoading2(true);
+                                                                    setStockReaction(null);
+                                                                    const res = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                                                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ ticker: e.ticker, earningsDate: e.earningsDate }),
+                                                                    });
+                                                                    const json = await res.json();
+                                                                    setStockReaction(json);
+                                                                    setReactionLoading2(false);
+                                                                }}
+                                                                style={{ width: '100%', padding: '9px', borderRadius: '9px',
+                                                                    backgroundColor: '#0f172a', color: '#60a5fa', border: '1px solid #1e3a5f',
+                                                                    fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}>
+                                                                📊 Load Price Reaction
+                                                            </button>
+                                                            {reactionLoading2 && (
+                                                                <div style={{ textAlign: 'center', padding: '12px', color: '#60a5fa', fontSize: '12px' }}>
+                                                                    <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span> Fetching...
+                                                                </div>
+                                                            )}
+                                                            {stockReaction && !reactionLoading2 && (
+                                                                <ReactionPanel data={stockReaction} onClose={() => setStockReaction(null)} />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Footer CTA */}
+                                                <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+                                                    <button
+                                                        onClick={() => { setShowModal(false); if (onSelectTicker) onSelectTicker(e.ticker); }}
+                                                        style={{ width: '100%', padding: '10px', borderRadius: '9px',
+                                                            background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                                                            color: '#fff', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
+                                                        → Open Full Screener for {e.ticker}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Reaction panel */}
+                        {(reactionLoading || reactionData) && (
+                            <div style={{ padding:'0 20px 16px' }}>
+                                {reactionLoading && (
+                                    <div style={{ padding:'20px', textAlign:'center', color:'#2563eb', backgroundColor:'#eff6ff', borderRadius:'12px', marginTop:'10px', fontSize:'13px' }}>
+                                        <div style={{ fontSize:'22px', animation:'spin 0.8s linear infinite', display:'inline-block', marginBottom:'6px' }}>⏳</div>
+                                        <div>Fetching post-earnings reaction for <strong>{reactionTicker}</strong>...</div>
+                                        <div style={{ fontSize:'11px', color:'#64748b', marginTop:'3px' }}>Pulling ~2 weeks of price data around the earnings date</div>
+                                    </div>
+                                )}
+                                {!reactionLoading && reactionData && (
+                                    <ReactionPanel data={reactionData} onClose={() => setReactionData(null)} />
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk reaction results */}
+            {showBulk && (
+                <div style={{ margin:'0 0 20px', backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e2e8f0', overflow:'hidden' }}>
+                    <div style={{ padding:'14px 20px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>⚡ Bulk Earnings Reaction</div>
+                            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Sorted by biggest D+1 move -- all % from pre-earnings close</div>
+                        </div>
+                        <button onClick={() => setShowBulk(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer' }}>×</button>
+                    </div>
+                    {bulkLoading && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'13px' }}>
+                            <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
+                            <div>Fetching post-earnings data for multiple stocks...</div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>~15-20s</div>
+                        </div>
+                    )}
+                    {!bulkLoading && bulkReaction?.length > 0 && (
+                        <>
+                            <div style={{ overflowX:'auto' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                                            {['Ticker','Sector','Earnings Date','Earn Day','D+1','D+3','D+5','D+10'].map(h => (
+                                                <th key={h} style={{ padding:'9px 12px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bulkReaction.map((r, i) => {
+                                            const col = v => v == null ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+                                            const bg  = v => v == null ? 'transparent' : v > 2 ? 'rgba(16,185,129,0.07)' : v < -2 ? 'rgba(239,68,68,0.07)' : 'transparent';
+                                            const fmt = v => v == null ? '--' : `${v >= 0 ? '+' : ''}${v}%`;
+                                            const sc  = SECTOR_COLORS[SECTOR_MAP[r.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                            return (
+                                                <tr key={i} style={{ borderBottom:'1px solid #f8fafc' }}
+                                                    onMouseEnter={e2=>e2.currentTarget.style.backgroundColor='#f8fafc'}
+                                                    onMouseLeave={e2=>e2.currentTarget.style.backgroundColor=''}>
+                                                    <td style={{ padding:'9px 12px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</td>
+                                                    <td style={{ padding:'9px 12px' }}>
+                                                        <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'8px', backgroundColor:sc.bg, color:sc.text, border:`1px solid ${sc.border}40`, fontWeight:'700' }}>
+                                                            {SECTOR_MAP[r.ticker]||'--'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding:'9px 12px', color:'#475569', whiteSpace:'nowrap' }}>{r.earningsDate}</td>
+                                                    {[r.pctEarnDay, r.pctD1, r.pctD3, r.pctD5, r.pctD10].map((v, j) => (
+                                                        <td key={j} style={{ padding:'9px 12px', fontWeight:'700', color:col(v), backgroundColor:bg(v), textAlign:'center' }}>{fmt(v)}</td>
+                                                    ))}
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {bulkReaction.length > 2 && (() => {
+                                const d1s = bulkReaction.filter(r=>r.pctD1!=null).map(r=>r.pctD1);
+                                const d5s = bulkReaction.filter(r=>r.pctD5!=null).map(r=>r.pctD5);
+                                const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '--';
+                                const up   = bulkReaction.filter(r=>r.pctD1>0).length;
+                                return (
+                                    <div style={{ padding:'12px 20px', backgroundColor:'#f8fafc', borderTop:'1px solid #e2e8f0', display:'flex', gap:'20px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+1: <strong style={{ color: parseFloat(mean(d1s))>=0?'#10b981':'#ef4444' }}>{mean(d1s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+5: <strong style={{ color: parseFloat(mean(d5s))>=0?'#10b981':'#ef4444' }}>{mean(d5s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Positive D+1: <strong style={{ color:'#10b981' }}>{up}/{bulkReaction.length}</strong> ({((up/bulkReaction.length)*100).toFixed(0)}%)</span>
+                                    </div>
+                                );
+                            })()}
+                        </>
+                    )}
+                    {!bulkLoading && bulkReaction?.length === 0 && (
+                        <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No past earnings data found for the current calendar view</div>
+                    )}
+                </div>
+            )}
+
+            {/* Bulk reaction footer */}
+            <div style={{ padding:'12px 20px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                <div style={{ flex:1, fontSize:'11px', color:'#64748b' }}>
+                    <strong style={{ color:'#4c1d95' }}>⚡ Bulk Calculator</strong> -- see how every stock here reacted post-earnings vs its pre-report price
+                </div>
+                <button onClick={fetchBulkReaction} disabled={bulkLoading}
+                    style={{ padding:'7px 14px', borderRadius:'9px', backgroundColor:'#7c3aed', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor: bulkLoading?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
+                    {bulkLoading
+                        ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Calculating...</>
+                        : '⚡ Bulk Reaction'}
+                </button>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
+
+            {previewTicker && (
+                <SabrinaEarningsPreview
+                    ticker={previewTicker}
+                    openaiKey={openaiKey}  // pass this prop into EarningsCalendar
+                    onClose={() => setPreviewTicker(null)}
+                />
+            )}
+
+        </div>
+    );
+}
+
+
+// --- Chart & Insights Tab -----------------------------------------------------
+function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis, compactMode = false }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    const seriesRef = useRef(null);
+    const [chartLoaded, setChartLoaded] = useState(false);
+    const [chartError, setChartError] = useState(null);
+    const [chartInterval, setChartInterval] = useState('1D');
+    const [chartTheme, setChartTheme] = useState('light'); // 'light' | 'dark' | 'hud'
+    const [chartType, setChartType] = useState('candlestick'); // 'candlestick' | 'line' | 'area'
+    const [loadingChart, setLoadingChart] = useState(false);
+    const [sabrinaLoading, setSabrinaLoading] = useState(false);
+    const [sabrinaRec, setSabrinaRec] = useState(null); // persisted rec per ticker
+    const [recError, setRecError] = useState(null);
+    const [screenshotting, setScreenshotting] = useState(false);
+    const [refreshTick, setRefreshTick] = useState(0);      // manual refresh trigger
+    const [autoRefresh, setAutoRefresh] = useState(false);   // auto-refresh toggle
+    const [refreshing, setRefreshing] = useState(false);     // spinner for refresh
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const autoRefreshRef = useRef(null);
+    const twapSeriesRef  = useRef(null); // TWAP line series
+    const bandTopRef     = useRef(null); // deviation band top
+    const bandBotRef     = useRef(null); // deviation band bottom
+    const [showTWAP, setShowTWAP]   = useState(false);
+    const [twapStats, setTwapStats] = useState(null);
+    // -- Extra indicator refs (backend-computed) --
+    const rsiSeriesRef  = useRef(null);
+    const bbMidRef      = useRef(null);
+    const bbTopRef      = useRef(null);
+    const bbBotRef      = useRef(null);
+    const ema20Ref      = useRef(null);
+    const ema50Ref      = useRef(null);
+    const ema200Ref     = useRef(null);
+    const rsiChartRef   = useRef(null);  // separate pane chart for RSI
+    const rsiPaneRef    = useRef(null);  // DOM container for RSI pane
+    const [showBB,    setShowBB]    = useState(false);
+    const [showRSI,   setShowRSI]   = useState(false);
+    const [showEMA,   setShowEMA]   = useState(false);
+    const [rsiVal,    setRsiVal]    = useState(null);
+    const [prePost,   setPrePost]   = useState(false);  // pre/post market toggle
+    const [sessionNow, setSessionNow] = useState(null); // live session state
+    // -- Analyst ratings --
+    const [analystData,        setAnalystData]        = useState(null);
+    const [analystLoading,     setAnalystLoading]     = useState(false);
+    const [analystError,       setAnalystError]       = useState(null);
+    const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
+    // -- Earnings markers on chart --
+    const [showEarningsMarkers, setShowEarningsMarkers] = useState(true);
+    const earningsMarkersRef       = useRef([]); // cached for re-apply on refresh
+    const showEarningsMarkersRef    = useRef(true); // ref mirror for closure safety
+
+    // -- Drawing tools --
+    const LINE_COLORS = [
+        { id:'amber',  hex:'#f59e0b', label:'Amber'  },
+        { id:'red',    hex:'#ef4444', label:'Red'    },
+        { id:'green',  hex:'#10b981', label:'Green'  },
+        { id:'blue',   hex:'#3b82f6', label:'Blue'   },
+        { id:'purple', hex:'#8b5cf6', label:'Purple' },
+        { id:'white',  hex:'#e5e7eb', label:'White'  },
+    ];
+    const drawingModeRef       = useRef(false);
+    const [drawingMode,        setDrawingMode]        = useState(false);
+    const [selectedLineColor,  setSelectedLineColor]  = useState('#f59e0b');
+    const selectedLineColorRef = useRef('#f59e0b');
+    const drawnLinesRef        = useRef([]);
+    const [drawnLines,         setDrawnLines]         = useState([]);
+    const [manualPrice,        setManualPrice]        = useState('');
+    const [manualLabel,        setManualLabel]        = useState('');
+    // -- Video recording --
+    const [isRecording,        setIsRecording]        = useState(false);
+    const [videoBlob,          setVideoBlob]          = useState(null);
+    const [videoUrl,           setVideoUrl]           = useState(null);
+    const [recordingProgress,  setRecordingProgress]  = useState(0); // 0-100
+    const mediaRecorderRef     = useRef(null);
+    const videoChunksRef       = useRef([]);
+    // -- Price alerts --
+    const [alerts,             setAlerts]             = useState([]);
+    const [showAlertForm,      setShowAlertForm]      = useState(false);
+    const [alertPrice,         setAlertPrice]         = useState('');
+    const [alertDir,           setAlertDir]           = useState('above');
+    const [firedAlerts,        setFiredAlerts]        = useState([]);
+    // -- Annotations --
+    const [annotations,        setAnnotations]        = useState({});
+    // -- Compare mode --
+    const [compareTicker,      setCompareTicker]      = useState(null);   // active compare ticker
+    const [showComparePicker,  setShowComparePicker]  = useState(false);  // modal open
+    const [compareSearch,      setCompareSearch]      = useState('');     // search input
+    const [compareCategory,    setCompareCategory]    = useState('stocks');
+    const [compareMode,        setCompareMode]        = useState('side'); // 'side' | 'stack'
+    // -- Options flow --
+    const [optionsData,        setOptionsData]        = useState(null);
+    const [optionsLoading,     setOptionsLoading]     = useState(false);
+    const [optionsError,       setOptionsError]       = useState(null);
+    const [showOptionsPanel,   setShowOptionsPanel]   = useState(false);
+    const [optionsExpiry,      setOptionsExpiry]      = useState(null);
+
+    const [positions,         setPositions]         = useState([]);
+    const [positionsLoading,  setPositionsLoading]  = useState(false);
+    const [showPositions,     setShowPositions]      = useState(true);
+    const positionLinesRef    = useRef({}); 
+    // { [positionId]: { entry, sl, tp, current } } — holds priceLine refs per position
+
+    useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
+    useEffect(() => { showEarningsMarkersRef.current = showEarningsMarkers; }, [showEarningsMarkers]);
+    useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
+
+    // Lower -> Higher timeframes with smart default lookbacks
+    const intervalConfig = {
+        '1m':  { label: '1m',  group: 'Intraday' },
+        '5m':  { label: '5m',  group: 'Intraday' },
+        '15m': { label: '15m', group: 'Intraday' },
+        '30m': { label: '30m', group: 'Intraday' },
+        '1h':  { label: '1H',  group: 'Intraday' },
+        '4h':  { label: '4H',  group: 'Intraday' },
+        '1D':  { label: '1D',  group: 'Daily+'   },
+        '1W':  { label: '1W',  group: 'Daily+'   },
+        '1M':  { label: '1M',  group: 'Daily+'   },
+        '3M':  { label: '3M',  group: 'Daily+'   },
+        '6M':  { label: '6M',  group: 'Daily+'   },
+        '1Y':  { label: '1Y',  group: 'Daily+'   },
+        '2Y':  { label: '2Y',  group: 'Daily+'   },
+    };
+    const intervals = Object.keys(intervalConfig);
+
+    // -- Load TradingView Lightweight Charts from CDN --
+    useEffect(() => {
+        if (window.LightweightCharts) { setChartLoaded(true); return; }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        script.onload = () => setChartLoaded(true);
+        script.onerror = () => setChartError('Failed to load chart library.');
+        document.head.appendChild(script);
+    }, []);
+
+    // -- TWAP + Deviation Band computation --------------------------------------
+    // Uses trapezoidal integration of close price over time (unix seconds)
+    // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
+    // Band = TWAP +/- 1 stddev of (price - TWAP) over the whole dataset
+    // -- Live session tracker -----------------------------------------------------
+    // Uses Intl.DateTimeFormat with America/New_York -- handles DST automatically
+    // regardless of where the user's browser is located (e.g. South Africa, UTC+2).
+    // This is the ONLY correct way to get NYC time -- manual offset math breaks on
+    // DST transitions since getTimezoneOffset() reflects the LOCAL browser timezone.
+    const getSessionState = () => {
+        const now = new Date();
+
+        // Extract NYC time parts directly from the IANA tz database
+        const nyParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour:     'numeric',
+            minute:   'numeric',
+            second:   'numeric',
+            weekday:  'short',
+            hour12:   false,
+        }).formatToParts(now);
+
+        const part = (type) => parseInt(nyParts.find(p => p.type === type)?.value ?? '0', 10);
+        const weekday = nyParts.find(p => p.type === 'weekday')?.value; // 'Mon','Tue'...
+        const h    = part('hour') % 24;   // formatToParts can return 24 for midnight
+        const m    = part('minute');
+        const mins = h * 60 + m;
+
+        // Build a Date object representing NYC "now" for display (toLocaleTimeString)
+        // We need this so the session widget shows actual NYC clock time
+        const nyTimeStr = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false,
+        }).format(now);
+
+        // Determine if NYC is currently on EDT (UTC-4) or EST (UTC-5)
+        // by comparing UTC offset -- Intl handles the DST boundary precisely
+        const nyOffsetMins = (() => {
+            // Trick: format the same instant in UTC and NYC, diff them
+            const utcH = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:'UTC', hour:'numeric', hour12:false }).format(now), 10) % 24;
+            const diff = ((h - utcH + 24) % 24);
+            // diff will be 20 (= -4 mod 24) for EDT, 19 (= -5 mod 24) for EST
+            return diff >= 12 ? diff - 24 : diff; // -> -4 or -5
+        })();
+        const tzLabel = nyOffsetMins === -4 ? 'EDT' : 'EST';
+
+        const isWeekend = weekday === 'Sun' || weekday === 'Sat';
+        if (isWeekend) return { session:'closed', label:'Market Closed', sub:'Weekend', color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+
+        // NYSE session windows (minutes from midnight NYC)
+        const PRE_OPEN   = 4  * 60;       // 04:00
+        const MKT_OPEN   = 9  * 60 + 30;  // 09:30
+        const MKT_CLOSE  = 16 * 60;       // 16:00
+        const POST_CLOSE = 20 * 60;       // 20:00
+
+        const minsUntil = (t) => t - mins;
+        const fmt = (d) => {
+            const abs = Math.abs(d);
+            return `${Math.floor(abs/60).toString().padStart(2,'0')}:${(abs%60).toString().padStart(2,'0')}`;
+        };
+
+        if (mins < PRE_OPEN)   return { session:'closed',   label:'Market Closed', sub:`Pre-market opens in ${fmt(minsUntil(PRE_OPEN))}`,    color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+        if (mins < MKT_OPEN)   return { session:'pre',      label:'Pre-Market',    sub:`Regular opens in ${fmt(minsUntil(MKT_OPEN))}`,        color:'#f59e0b', dot:'#f59e0b', nyTimeStr, tzLabel };
+        if (mins < MKT_CLOSE)  return { session:'regular',  label:'Market Open',   sub:`Closes in ${fmt(minsUntil(MKT_CLOSE))}`,              color:'#10b981', dot:'#10b981', nyTimeStr, tzLabel };
+        if (mins < POST_CLOSE) return { session:'post',     label:'After Hours',   sub:`Post-market closes in ${fmt(minsUntil(POST_CLOSE))}`,  color:'#60a5fa', dot:'#60a5fa', nyTimeStr, tzLabel };
+        return                         { session:'closed',   label:'Market Closed', sub:'After-hours ended',                                   color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+    };
+
+    useEffect(() => {
+        const tick = () => setSessionNow(getSessionState());
+        tick();
+        const id = setInterval(tick, 1000); // every second -- live NYC clock
+        return () => clearInterval(id);
+    }, []);
+
+    // -- Alerts persistence -------------------------------------------------------
+    useEffect(() => {
+        (async () => {
+            try {
+                const ra = await window.storage.get('snowai-alerts');
+                if (ra?.value) setAlerts(JSON.parse(ra.value));
+            } catch {}
+        })();
+    }, []);
+
+    const saveAlerts = async (al) => {
+        setAlerts(al);
+        try { await window.storage.set('snowai-alerts', JSON.stringify(al)); } catch {}
+    };
+
+    // Check price alerts on each refresh
+    const checkAlerts = (candles) => {
+        if (!alerts.length || !candles?.length) return;
+        const latest = candles[candles.length - 1]?.close;
+        if (!latest) return;
+        const fired = []; const remaining = [];
+        alerts.forEach(al => {
+            if (al.ticker !== ticker) { remaining.push(al); return; }
+            const hit = al.dir === 'above' ? latest >= al.price : latest <= al.price;
+            if (hit) {
+                fired.push(al);
+                if (Notification.permission === 'granted')
+                    new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} -- now $${latest.toFixed(2)}` });
+            } else { remaining.push(al); }
+        });
+        if (fired.length) {
+            setFiredAlerts(prev => [...prev, ...fired]);
+            saveAlerts(remaining);
+            // Browser notification -- works if user previously granted permission.
+            // We don't ask for permission here; the toast is the primary alert.
+            fired.forEach(al => {
+                try {
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        new Notification(`🔔 ${al.ticker} price alert`, {
+                            body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price.toFixed(2)}`,
+                            tag:  `snowai-alert-${al.id}`,
+                        });
+                    }
+                } catch {}
+            });
+        }
+    };
+
+    // -- Add a line at an exact price input --------------------------------------
+    const addManualLine = (priceStr, label, color) => {
+        const price = parseFloat(priceStr);
+        if (!price || isNaN(price) || !seriesRef.current) return;
+        const id = Date.now();
+        try {
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color: color || selectedLineColor,
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: label ? `${label} $${price.toFixed(2)}` : `$${price.toFixed(2)}`,
+            });
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color: color || selectedLineColor, label });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color: color || selectedLineColor, label }]);
+        } catch(e) { console.error('[Draw] addManualLine failed', e); }
+    };
+
+    // -- Chart Video Recording ----------------------------------------------------
+    // Strategy: grab the chart container's canvas element, attach MediaRecorder to
+    // its captureStream(), then animate the chart by scrolling through logical range.
+    // Each "frame" is the live canvas -- all styling/theme/indicators preserved.
+    const recordChartVideo = async (targetDurationSec = 30) => {
+        if (!chartRef.current || !seriesRef.current) return;
+        setIsRecording(true);
+        setVideoBlob(null);
+        setVideoUrl(null);
+        setRecordingProgress(0);
+        videoChunksRef.current = [];
+
+        try {
+            const canvas = chartContainerRef.current?.querySelector('canvas');
+            if (!canvas) throw new Error('Chart canvas not found');
+
+            // -- Key insight: record at 24fps, control how long we WAIT per frame --
+            // frameDelay = targetDuration / totalBars  (ms per candle step)
+            // This makes the recording take targetDuration seconds in real time.
+            // Since we capture the canvas stream at 24fps, the resulting video
+            // naturally plays back at ~24fps and lasts ~targetDuration seconds.
+            const PLAYBACK_FPS    = 24;
+            const stream = canvas.captureStream(PLAYBACK_FPS);
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                ? 'video/webm;codecs=vp9'
+                : MediaRecorder.isTypeSupported('video/webm')
+                ? 'video/webm' : 'video/mp4';
+
+            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+            mediaRecorderRef.current = recorder;
+
+            recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data); };
+            recorder.onstop = () => {
+                const blob = new Blob(videoChunksRef.current, { type: mimeType });
+                const url  = URL.createObjectURL(blob);
+                setVideoBlob(blob);
+                setVideoUrl(url);
+                setIsRecording(false);
+                setRecordingProgress(100);
+            };
+
+            recorder.start(200);
+
+            const allData    = seriesRef.current.data?.() ?? [];
+            const totalBars  = allData.length;
+            if (totalBars === 0) { recorder.stop(); return; }
+
+            // Window size = how many bars are visible at once during recording.
+            // Want ~120-150 bars -- enough context to read structure/trends without
+            // being so zoomed out candles become invisible.
+            // Cap at 60% of total so we don't show the whole dataset at once.
+            const windowSize = Math.min(150, Math.max(80, Math.round(totalBars * 0.60)));
+            const rightPad   = Math.round(windowSize * 0.15); // small right-side breathing room
+
+            const frameDelay     = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
+            const barsPerStep    = frameDelay < 60 ? 2 : 1;
+            const effectiveDelay = frameDelay * barsPerStep;
+
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms -> est. ${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
+
+            // -- Hard reset to bar 0 regardless of where user navigated ----------
+            // scrollToPosition(0) alone isn't enough -- setVisibleLogicalRange is authoritative
+            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
+
+            // Small delay so the chart actually renders frame 0 before recorder starts
+            await new Promise(r => setTimeout(r, 400));
+
+            let bar = 0;
+            const animate = () => {
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+                if (bar >= totalBars) {
+                    setTimeout(() => { try { recorder.stop(); } catch {} }, 1500);
+                    return;
+                }
+                chartRef.current.timeScale().setVisibleLogicalRange({
+                    from: Math.max(0, bar - Math.round(windowSize * 0.65)),
+                    to:   bar + rightPad,
+                });
+                setRecordingProgress(Math.round((bar / totalBars) * 95));
+                bar += barsPerStep;
+                setTimeout(animate, effectiveDelay);
+            };
+
+            animate();
+
+        } catch(e) {
+            console.error('[Video] Recording failed:', e);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = () => {
+        try { mediaRecorderRef.current?.stop(); } catch {}
+        setIsRecording(false);
+    };
+
+    const downloadVideo = () => {
+        if (!videoBlob) return;
+        const a = document.createElement('a');
+        a.href = videoUrl;
+        a.download = `${ticker}_${chartInterval}_${new Date().toISOString().slice(0,10)}.webm`;
+        a.click();
+    };
+
+    // Options fetch
+    const fetchOptions = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        console.log('[Options] fetchOptions called for', sym, 'expiry:', optionsExpiry);
+        setOptionsLoading(true);
+        setOptionsError(null);
+        setOptionsData(null);
+        try {
+            const url = `${BACKEND}/api/snowai_options_flow_vault/`;
+            const body = JSON.stringify({ ticker: sym, expiry: optionsExpiry });
+            console.log('[Options] POST', url, body);
+            const res  = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body });
+            console.log('[Options] Response status:', res.status);
+            const json = await res.json();
+            console.log('[Options] Response body:', json);
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setOptionsData(json);
+        } catch (e) {
+            console.error('[Options] Error:', e);
+            setOptionsError(e.message);
+        } finally {
+            setOptionsLoading(false);
+        }
+    };
+
+    // -- Fetch OHLCV + backend-computed indicators in one call ------------------
+    const fetchChartData = async (sym, interval, activeIndicators, includePrePost = false) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker: sym, interval, indicators: activeIndicators, prePost: includePrePost }),
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const json = await res.json();
+        if (!json.candles?.length) throw new Error('No data returned for ' + sym);
+        // Add value alias (needed for line/area series)
+        json.candles = json.candles.map(c => ({ ...c, value: c.close }));
+        return json;
+    };
+
+    // -- Fetch analyst ratings (separate endpoint) ----------------------------
+    const fetchAnalystRatings = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        setAnalystLoading(true);
+        setAnalystError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_vortex_analyst_ratings_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed');
+            setAnalystData(json);
+            setShowAnalystPanel(true);
+        } catch (e) {
+            setAnalystError(e.message);
+        } finally {
+            setAnalystLoading(false);
+        }
+    };
+
+    const fetchPositions = async (sym) => {
+        if (!sym) return;
+        setPositionsLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/positions/?asset=${sym}`);
+            const json = await res.json();
+            setPositions(json.positions || []);
+        } catch (e) {
+            console.error('[Positions]', e);
+        } finally {
+            setPositionsLoading(false);
+        }
+    };
+
+    const clearPositionLines = () => {
+    if (!seriesRef.current) return;
+    Object.values(positionLinesRef.current).forEach(group => {
+        Object.values(group).forEach(pl => {
+            try { seriesRef.current.removePriceLine(pl); } catch (_) {}
+        });
+    });
+    positionLinesRef.current = {};
+};
+
+    const drawPositionLines = (positionList) => {
+        if (!seriesRef.current || !showPositions) return;
+        clearPositionLines();
+
+        positionList.forEach(pos => {
+            const isLong = pos.direction === 'long';
+            const lines  = {};
+
+            // Entry line — blue/white
+            if (pos.entry_price) {
+                lines.entry = seriesRef.current.createPriceLine({
+                    price:            pos.entry_price,
+                    color:            '#3b82f6',
+                    lineWidth:        2,
+                    lineStyle:        0, // solid
+                    axisLabelVisible: true,
+                    title:            `${pos.asset} Entry${pos.direction === 'short' ? ' (S)' : ' (L)'}  $${pos.entry_price}`,
+                });
+            }
+
+            // SL line — always red
+            if (pos.sl_price) {
+                const slLabel = pos.sl_dollars
+                    ? `SL  $${pos.sl_price}  (-$${Math.abs(pos.sl_dollars).toFixed(2)})`
+                    : `SL  $${pos.sl_price}`;
+                lines.sl = seriesRef.current.createPriceLine({
+                    price:            pos.sl_price,
+                    color:            '#ef4444',
+                    lineWidth:        1,
+                    lineStyle:        2, // dashed
+                    axisLabelVisible: true,
+                    title:            slLabel,
+                });
+            }
+
+            // TP line — always green
+            if (pos.tp_price) {
+                const tpLabel = pos.tp_dollars
+                    ? `TP  $${pos.tp_price}  (+$${Math.abs(pos.tp_dollars).toFixed(2)})`
+                    : `TP  $${pos.tp_price}`;
+                lines.tp = seriesRef.current.createPriceLine({
+                    price:            pos.tp_price,
+                    color:            '#10b981',
+                    lineWidth:        1,
+                    lineStyle:        2,
+                    axisLabelVisible: true,
+                    title:            tpLabel,
+                });
+            }
+
+            // Current price line — amber, only if different from entry
+            if (pos.current_price && Math.abs(pos.current_price - pos.entry_price) > 0.001) {
+                const pnl = isLong
+                    ? pos.current_price - pos.entry_price
+                    : pos.entry_price  - pos.current_price;
+                const pnlLabel = `${pnl >= 0 ? '▲' : '▼'} Now  $${pos.current_price}  (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`;
+                lines.current = seriesRef.current.createPriceLine({
+                    price:            pos.current_price,
+                    color:            pnl >= 0 ? '#f59e0b' : '#fb923c',
+                    lineWidth:        1,
+                    lineStyle:        1, // dotted
+                    axisLabelVisible: true,
+                    title:            pnlLabel,
+                });
+            }
+
+            positionLinesRef.current[pos.id] = lines;
+        });
+    };
+
+    // -- Helper: remove a series safely --------------------------------------
+    const removeSeries = (chart, ref) => {
+        if (ref.current && chart) { try { chart.removeSeries(ref.current); } catch {} ref.current = null; }
+    };
+
+    
+    // Replace the existing applyEarningsMarkers function:
+    const applyEarningsMarkers = (series, candles, markersOverride) => {
+        if (!series || !candles?.length) return;
+        const markerDates = markersOverride ?? earningsMarkersRef.current;
+
+        if (!showEarningsMarkersRef.current || !markerDates.length) {
+            try { series.setMarkers([]); } catch {}
+            return;
+        }
+
+        const unixToDate = (t) => {
+            if (typeof t === 'number') {
+                const d = new Date(t * 1000);
+                return [
+                    d.getUTCFullYear(),
+                    String(d.getUTCMonth() + 1).padStart(2, '0'),
+                    String(d.getUTCDate()).padStart(2, '0'),
+                ].join('-');
+            }
+            return String(t).slice(0, 10);
+        };
+
+        // Build date -> candle map — for intraday charts multiple candles
+        // share the same date, so we pick the LAST candle of that day
+        // (closing candle) which is the most meaningful anchor for earnings.
+        const dateToCandle = {};
+        candles.forEach(c => {
+            dateToCandle[unixToDate(c.time)] = c; // later candles overwrite earlier ones = last of day
+        });
+
+        const markers = [];
+        markerDates.forEach(({ date, label, upcoming, beat }) => {
+            // For past earnings on daily+ charts: exact match.
+            // For intraday: walk forward up to 5 trading days to find a candle
+            // (earnings are often reported AH so the reaction shows next day).
+            let candle = dateToCandle[date];
+            if (!candle) {
+                // Try next 5 calendar days — handles weekends / holidays
+                for (let offset = 1; offset <= 5; offset++) {
+                    const d  = new Date(date + 'T12:00:00Z');
+                    d.setUTCDate(d.getUTCDate() + offset);
+                    const ds = d.toISOString().slice(0, 10);
+                    if (dateToCandle[ds]) { candle = dateToCandle[ds]; break; }
+                }
+            }
+            if (!candle) return;
+
+            // Colour logic:
+            // upcoming  → blue  arrow down (from above)
+            // beat      → green arrow up   (from below)
+            // miss      → red   arrow up
+            // unknown   → amber arrow up
+            let color, shape, position;
+            if (upcoming) {
+                color    = '#3b82f6';
+                shape    = 'arrowDown';
+                position = 'aboveBar';
+            } else if (beat === true) {
+                color    = '#10b981';   // green = beat
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else if (beat === false) {
+                color    = '#ef4444';   // red = miss
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else {
+                color    = '#f59e0b';   // amber = no data
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            }
+
+            markers.push({
+                time:     candle.time,
+                position,
+                color,
+                shape,
+                text:     label || 'E',
+                size:     2,
+            });
+        });
+
+        // LightweightCharts requires markers sorted by time ascending
+        markers.sort((a, b) => a.time - b.time);
+        console.log('[Markers] placing', markers.length, 'markers');
+        try { series.setMarkers(markers); } catch (e) { console.error('[Markers] setMarkers failed:', e); }
+    };
+
+    
+    // Replace the existing fetchAndCacheEarningsDate function with this:
+    const fetchAndCacheEarningsDate = async (sym, candles) => {
+        console.log('🔔 fetchAndCacheEarningsDate CALLED for', sym, 'candles:', candles?.length);
+        try {
+            const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_history_chart_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
+            });
+            const json = await res.json();
+            console.log('[EarningsHistory] raw response:', json);
+
+            const allMarkers = [
+                // Past earnings — colour by beat/miss
+                ...(json.markers || []).map(m => ({
+                    date:     m.date,
+                    label:    buildMarkerLabel(m),
+                    upcoming: false,
+                    beat:     m.beat,
+                    eps:      m.epsActual,
+                    surprise: m.surprisePct,
+                })),
+                // Upcoming earnings
+                ...(json.upcoming || []).map(m => ({
+                    date:     m.date,
+                    label:    `📅 E${m.epsEstimate != null ? ' est $' + m.epsEstimate : ''}`,
+                    upcoming: true,
+                    beat:     null,
+                    eps:      null,
+                    surprise: null,
+                })),
+            ];
+
+            console.log('[EarningsHistory] total markers:', allMarkers.length);
+            earningsMarkersRef.current = allMarkers;
+
+            if (seriesRef.current && candles) {
+                applyEarningsMarkers(seriesRef.current, candles, allMarkers);
+            }
+        } catch (e) {
+            console.error('[EarningsHistory] fetch failed:', e);
+            earningsMarkersRef.current = [];
+        }
+    };
+
+    // Add this helper near the top of ChartInsightsTab (outside the component or inside before fetchAndCacheEarningsDate):
+    const buildMarkerLabel = (m) => {
+        const parts = ['E'];
+        if (m.epsActual != null) {
+            parts.push(`$${m.epsActual}`);
+        }
+        if (m.surprisePct != null) {
+            parts.push(`(${m.surprisePct >= 0 ? '+' : ''}${m.surprisePct}%)`);
+        }
+        return parts.join(' ');
+    };
+
+    const applyIndicators = (chart, json, th) => {
+        // clear old overlay series
+        removeSeries(chart, twapSeriesRef);
+        removeSeries(chart, bandTopRef);
+        removeSeries(chart, bandBotRef);
+        removeSeries(chart, bbMidRef);
+        removeSeries(chart, bbTopRef);
+        removeSeries(chart, bbBotRef);
+        removeSeries(chart, ema20Ref);
+        removeSeries(chart, ema50Ref);
+        removeSeries(chart, ema200Ref);
+
+        if (json.twap?.length) {
+            const twapLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, lineStyle: 1, title: 'TWAP', lastValueVisible: true, priceLineVisible: false });
+            twapLine.setData(json.twap);
+            twapSeriesRef.current = twapLine;
+            const bTop = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bTop.setData(json.twapBandTop);
+            bandTopRef.current = bTop;
+            const bBot = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bBot.setData(json.twapBandBot);
+            bandBotRef.current = bBot;
+            setTwapStats(json.twapStats);
+        } else { setTwapStats(null); }
+
+        if (json.bbMid?.length) {
+            const mid = chart.addLineSeries({ color: 'rgba(139,92,246,0.7)', lineWidth: 1, title: 'BB Mid', lastValueVisible: false, priceLineVisible: false });
+            mid.setData(json.bbMid);
+            bbMidRef.current = mid;
+            const top = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            top.setData(json.bbTop);
+            bbTopRef.current = top;
+            const bot = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bot.setData(json.bbBot);
+            bbBotRef.current = bot;
+        }
+
+        if (json.ema20?.length) {
+            const e20 = chart.addLineSeries({ color: '#10b981', lineWidth: 1, title: 'EMA20', lastValueVisible: false, priceLineVisible: false });
+            e20.setData(json.ema20);
+            ema20Ref.current = e20;
+        }
+        if (json.ema50?.length) {
+            const e50 = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'EMA50', lastValueVisible: false, priceLineVisible: false });
+            e50.setData(json.ema50);
+            ema50Ref.current = e50;
+        }
+        if (json.ema200?.length) {
+            const e200 = chart.addLineSeries({ color: '#ef4444', lineWidth: 1, title: 'EMA200', lastValueVisible: false, priceLineVisible: false });
+            e200.setData(json.ema200);
+            ema200Ref.current = e200;
+        }
+
+        // RSI badge (latest value)
+        if (json.rsi?.length) {
+            setRsiVal(json.rsi[json.rsi.length - 1]?.value ?? null);
+        } else { setRsiVal(null); }
+    };
+
+    // Theme config lookup
+    const getThemeConfig = (theme) => {
+        if (theme === 'dark') return {
+            bg: '#0f0f14', text: '#e0e0e0', grid: '#1e1e2e',
+            border: '#2a2a3a', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#60a5fa', areaTop: 'rgba(96,165,250,0.25)', areaBot: 'rgba(96,165,250,0.02)',
+        };
+        if (theme === 'hud') return {
+            bg: '#020b18', text: '#00d4ff', grid: '#0a2540',
+            border: '#0d3a5c', upColor: '#00ffcc', downColor: '#ff4d6a',
+            lineColor: '#00d4ff', areaTop: 'rgba(0,212,255,0.2)', areaBot: 'rgba(0,212,255,0.02)',
+        };
+        // light (default)
+        return {
+            bg: '#ffffff', text: '#333333', grid: '#f0f0f0',
+            border: '#e0e0e0', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#2563eb', areaTop: 'rgba(37,99,235,0.2)', areaBot: 'rgba(37,99,235,0.02)',
+        };
+    };
+
+    // -- Effect A: Create/recreate chart instance (ticker . theme . chartType change) --
+    // Destroys old chart, builds fresh, fits content on first load
+    useEffect(() => {
+        if (!chartLoaded || !chartContainerRef.current || !ticker) return;
+        const LC = window.LightweightCharts;
+
+        if (chartRef.current) { try { chartRef.current.remove(); } catch {} chartRef.current = null; seriesRef.current = null; }
+
+        const container = chartContainerRef.current;
+        const th = getThemeConfig(chartTheme);
+        const chart = LC.createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight || 360,
+            layout: { background: { color: th.bg }, textColor: th.text },
+            grid: { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
+            crosshair: { mode: LC.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: th.border },
+            timeScale: { borderColor: th.border, timeVisible: true, secondsVisible: false },
+            watermark: { visible: false },
+        });
+        chartRef.current = chart;
+
+        const ro = new ResizeObserver(() => {
+            if (chartRef.current && container.clientWidth > 0)
+                chartRef.current.applyOptions({ width: container.clientWidth });
+        });
+        ro.observe(container);
+
+        // Initial data load -- fitContent on first load
+        const activeIndicators = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
+        const initialLoad = async () => {
+            setLoadingChart(true);
+            setChartError(null);
+            try {
+                const json = await fetchChartData(ticker, chartInterval, activeIndicators, prePost);
+                if (!chartRef.current) return;
+                const th2 = getThemeConfig(chartTheme);
+                let series;
+                if (chartType === 'candlestick') {
+                    series = chart.addCandlestickSeries({ upColor: th2.upColor, downColor: th2.downColor, borderUpColor: th2.upColor, borderDownColor: th2.downColor, wickUpColor: th2.upColor, wickDownColor: th2.downColor });
+                    series.setData(json.candles);
+                } else if (chartType === 'area') {
+                    series = chart.addAreaSeries({ lineColor: th2.lineColor, topColor: th2.areaTop, bottomColor: th2.areaBot, lineWidth: 2 });
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
+                } else {
+                    series = chart.addLineSeries({ color: th2.lineColor, lineWidth: 2 });
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
+                }
+                seriesRef.current = series;
+                applyIndicators(chart, json, th2);
+                // Fetch upcoming earnings date async then re-apply markers
+                // Pass candles directly so fetchAndCacheEarningsDate can paint
+                // markers immediately when the async response comes back
+                console.log('🔔 About to call fetchAndCacheEarningsDate for', ticker, 'candles:', json.candles?.length);
+                fetchAndCacheEarningsDate(ticker, json.candles);
+                // First paint with whatever is already cached (empty on first load)
+                console.log('🔔 About to applyEarningsMarkers, series:', !!series, 'candles:', json.candles?.length);
+                applyEarningsMarkers(series, json.candles);
+                chart.timeScale().fitContent();
+                setLastRefreshed(new Date());
+            } catch (e) {
+                setChartError('Could not load chart data. Check ticker or try again.');
+            } finally {
+                setLoadingChart(false);
+            }
+        };
+        // -- Drawing mode click handler ----------------------------------------
+        const handleChartClick = (param) => {
+            if (!drawingModeRef.current || !param.point || !seriesRef.current) return;
+            // coordinateToPrice lives on the series in LWC v4, not on priceScale
+            const price = seriesRef.current.coordinateToPrice(param.point.y);
+            if (price === null || price === undefined || isNaN(price)) return;
+            const id = Date.now();
+            const color = selectedLineColorRef.current;
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color,
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: `$${price.toFixed(2)}`,
+            });
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color }]);
+        };
+        chart.subscribeClick(handleChartClick);
+
+        initialLoad();
+        return () => { ro.disconnect(); chart.unsubscribeClick(handleChartClick); };
+    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // < NO chartInterval here
+
+    // -- Effect B: Refresh data only (interval change . manual refresh . auto-refresh) --
+    // Preserves scroll/zoom position -- does NOT recreate the chart instance
+    useEffect(() => {
+        if (!chartRef.current || !seriesRef.current || !ticker) return;
+
+        const refreshData = async () => {
+            setRefreshing(true);
+            setChartError(null);
+            try {
+                const activeInd = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
+                const json = await fetchChartData(ticker, chartInterval, activeInd, prePost);
+                if (!seriesRef.current || !chartRef.current) return;
+
+                // -- Viewport preservation ------------------------------------
+                // We use getVisibleLogicalRange() (bar-index based) NOT
+                // getVisibleRange() (time based). Reason: setData() triggers an
+                // internal fitContent() inside LightweightCharts which resets the
+                // time-based range before we can restore it. Logical range survives
+                // this because it's index-relative and is re-applied AFTER the
+                // internal fit completes.
+                const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
+
+                // Update price series in-place -- triggers LWC internal fitContent
+                const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
+                seriesRef.current.setData(json.candles.map(mapData));
+
+                // Update all indicator overlays in-place
+                applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
+                applyEarningsMarkers(seriesRef.current, json.candles);
+                checkAlerts(json.candles);
+                // After checkAlerts in refreshData():
+                const latestClose = json.candles?.[json.candles.length - 1]?.close;
+                if (latestClose && positions.length > 0) {
+                    setPositions(prev => prev.map(pos => {
+                        const isLong = pos.direction === 'long';
+                        const pnl    = isLong
+                            ? latestClose - pos.entry_price
+                            : pos.entry_price - latestClose;
+                        // Recalculate dollar distances live — these don't change, 
+                        // but current_price drives the floating P&L line
+                        return { ...pos, current_price: latestClose };
+                    }));
+                    // PATCH the backend for persistence
+                    positions.forEach(pos => {
+                        fetch(`${BACKEND}/api/positions/${pos.id}/price/`, {
+                            method:  'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ current_price: latestClose }),
+                        }).catch(() => {});
+                    });
+                }
+
+                // Restore logical position -- this runs AFTER the internal fit
+                // so it wins. Only skip if we have no prior range (first load).
+                if (logicalRange && logicalRange.from != null && logicalRange.to != null) {
+                    chartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
+                }
+                // If no prior range, leave whatever LWC fitted -- it's correct for first load
+                setLastRefreshed(new Date());
+                // End of refreshData() in Effect B, after setLastRefreshed:
+                if (positions.length > 0 && showPositions) {
+                    setTimeout(() => drawPositionLines(positions), 50);
+                }
+            } catch (e) {
+                setChartError('Refresh failed. Check connection.');
+            } finally {
+                setRefreshing(false);
+            }
+        };
+
+        refreshData();
+    }, [chartInterval, refreshTick, prePost]); // < interval . manual refresh . prePost toggle
+
+    useEffect(() => {
+        if (ticker) fetchPositions(ticker);
+    }, [ticker]);
+
+    useEffect(() => {
+        if (!positions.length) { clearPositionLines(); return; }
+        if (showPositions && seriesRef.current) {
+            drawPositionLines(positions);
+        } else {
+            clearPositionLines();
+        }
+    }, [positions, showPositions]);
+
+    // -- Auto-refresh interval (30s) --
+    useEffect(() => {
+        if (autoRefreshRef.current) { clearInterval(autoRefreshRef.current); autoRefreshRef.current = null; }
+        if (autoRefresh && ticker) {
+            autoRefreshRef.current = setInterval(() => {
+                setRefreshTick(t => t + 1); // nudges Effect B without rebuilding chart
+            }, 30000);
+        }
+        return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+    }, [autoRefresh, ticker]);
+
+    // -- Ask Sabrina for a full recommendation --
+    const askSabrinaForRec = async (imageDataUrl = null) => {
+        if (!openaiKey) { setRecError('OpenAI key not loaded yet.'); return; }
+        setSabrinaLoading(true);
+        setRecError(null);
+
+        const priceInfo = stockData ? `
+Ticker: ${ticker} | Name: ${stockData.longName || ticker}
+Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+P/E: ${stockData.trailingPE?.toFixed(2) || 'N/A'} | 52W High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'} | 52W Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}
+Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}` : `Ticker: ${ticker}`;
+
+        const earningsInfo = earnings?.length ? `\nRecent Earnings (last 4Q):\n` + earnings.slice(0, 4).map(e =>
+            `  ${e.quarter}: Rev $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, EPS $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`
+        ).join('\n') : '';
+
+        const yahooArticles = (news?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  * ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            return parts.join('\n');
+        });
+        const mktxArticles = (marketauxNews?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  * [Marketaux] ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            if (n.highlights && typeof n.highlights === 'string' && n.highlights.length > 10) {
+                parts.push(`    KEY QUOTE: "${n.highlights.substring(0, 200).trim()}"`);
+            }
+            return parts.join('\n');
+        });
+        const allArticles = [...yahooArticles, ...mktxArticles];
+        const newsInfo = allArticles.length
+            ? `\nNews Articles (${allArticles.length} total):\n` + allArticles.join('\n\n')
+            : '';
+
+        const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
+
+        const twapInfo = twapStats ? `\nTWAP Analysis (time-weighted avg price via integral):
+  TWAP: $${twapStats.twap} | Current: $${twapStats.current}
+  Deviation from TWAP: ${twapStats.deviation > 0 ? '+' : ''}${twapStats.deviation}% (+/-1sigma = $${twapStats.std})
+  Signal: ${twapStats.signal === 'EXTENDED_ABOVE' ? 'Price is EXTENDED above TWAP -- mean reversion risk downward' : twapStats.signal === 'EXTENDED_BELOW' ? 'Price is EXTENDED below TWAP -- potential mean reversion bounce' : 'Price is NEAR TWAP -- no strong mean reversion pressure'}` : '';
+
+        const textPrompt = `You are Sabrina, a sharp AI stock analyst. Give me a comprehensive trading recommendation for ${ticker}.
+
+AVAILABLE DATA:
+${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}${twapInfo}
+${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided -- base analysis on the fundamental data above.'}
+
+Respond ONLY with a JSON object (no markdown, no backticks):
+{
+  "verdict": "BUY" | "SELL" | "HOLD" | "WATCH",
+  "confidence": <0-100>,
+  "priceTarget": "<e.g. $195-210 in 3-6 months or N/A>",
+  "timeframe": "<e.g. Short-term (1-3 months)>",
+  "summary": "<2-3 sentences, sharp and direct>",
+  "bullCase": "<1-2 sentences>",
+  "bearCase": "<1-2 sentences>",
+  "keyLevels": "<support and resistance if chart provided, else N/A>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>"],
+  "risks": ["<risk 1>", "<risk 2>"],
+  "sabrinaQuote": "<one punchy first-person take, 1 sentence, with personality>"
+}`;
+
+        try {
+            const messages = imageDataUrl ? [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: imageDataUrl } },
+                        { type: 'text', text: textPrompt }
+                    ]
+                }
+            ] : [{ role: 'user', content: textPrompt }];
+
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 900, temperature: 0.65 })
+            });
+            const data = await res.json();
+            const raw = data.choices?.[0]?.message?.content || '';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            setSabrinaRec({ ...parsed, generatedAt: new Date().toLocaleString(), hadChart: !!imageDataUrl });
+        } catch (e) {
+            setRecError('Sabrina hit a snag. Try again 😼');
+        } finally {
+            setSabrinaLoading(false);
+        }
+    };
+
+    // -- Capture chart as image then send to Sabrina --
+    const captureAndAnalyse = async () => {
+        setScreenshotting(true);
+        try {
+            // TradingView Lightweight Charts has a built-in screenshot method
+            if (chartRef.current) {
+                const canvas = chartRef.current.takeScreenshot();
+                const dataUrl = canvas.toDataURL('image/png');
+                await askSabrinaForRec(dataUrl);
+            } else {
+                await askSabrinaForRec(null);
+            }
+        } catch {
+            await askSabrinaForRec(null);
+        } finally {
+            setScreenshotting(false);
+        }
+    };
+
+    const verdictConfig = {
+        BUY:   { color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', icon: '📈', label: 'BUY' },
+        SELL:  { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', icon: '📉', label: 'SELL' },
+        HOLD:  { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: '|', label: 'HOLD' },
+        WATCH: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '👁', label: 'WATCH' },
+    };
+    const vc = verdictConfig[sabrinaRec?.verdict] || verdictConfig.WATCH;
+
+    const recentEarnings = earnings?.slice(0, 6).filter(e => e.revenue || e.earnings) || [];
+
+    return (
+        <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif", backgroundColor: 'transparent' }}>
+
+            {/* -- Chart Card -- */}
+            {(() => {
+            const th = getThemeConfig(chartTheme);
+            const cardBg     = th.bg;
+            const cardBorder = chartTheme === 'light' ? '#e8e8e8' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+            const cardShadow = chartTheme === 'hud'   ? '0 2px 16px rgba(0,212,255,0.12)' : chartTheme === 'dark' ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.06)';
+            return (
+            <div style={{ backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${cardBorder}`, boxShadow: cardShadow, marginBottom: '20px' }}>
+
+                {/* Chart toolbar -- theme-aware, grouped intervals */}
+                {(() => {
+                    const th = getThemeConfig(chartTheme);
+                    const toolbarBg     = chartTheme === 'light' ? '#fafafa' : chartTheme === 'dark' ? '#1a1a2e' : '#020f1f';
+                    const toolbarBorder = chartTheme === 'light' ? '#f0f0f0' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+                    const titleColor    = chartTheme === 'hud'   ? '#00d4ff' : chartTheme === 'dark' ? '#e0e0e0' : '#1a1a1a';
+                    const btnBase       = chartTheme === 'light' ? { bg: '#fff', text: '#555', border: '#e0e0e0' }
+                                       : chartTheme === 'dark'  ? { bg: '#1e1e2e', text: '#aaa', border: '#2a2a3a' }
+                                       :                          { bg: '#0a1f35', text: '#00aacc', border: '#0d3a5c' };
+                    const btnActive     = chartTheme === 'hud'   ? { bg: '#00d4ff', text: '#020b18', border: '#00d4ff' }
+                                       :                          { bg: '#2563eb',  text: '#fff',    border: '#2563eb' };
+                    const intraday  = intervals.filter(iv => intervalConfig[iv].group === 'Intraday');
+                    const daily     = intervals.filter(iv => intervalConfig[iv].group === 'Daily+');
+                    return (
+                        <div style={{ padding: '12px 14px', borderBottom: `1px solid ${toolbarBorder}`, backgroundColor: toolbarBg, borderRadius: '12px 12px 0 0' }}>
+                            {/* Row 1: title + chart type + theme */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: '15px', fontWeight: '700', color: titleColor, marginRight: '4px' }}>
+                                    {chartTheme === 'hud' ? 'HUD' : '📊'} {ticker}
+                                </div>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {[['candlestick','🕯 Candle'],['area','📉 Area'],['line','~ Line']].map(([t, lbl]) => {
+                                        const active = chartType === t;
+                                        return <button key={t} onClick={() => setChartType(t)} style={{
+                                            padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                                {/* Indicator toggles */}
+                                {[
+                                    { key: 'twap', label: 'TWAP TWAP',   active: showTWAP, toggle: () => setShowTWAP(s=>!s), color: '#f59e0b' },
+                                    { key: 'bb',   label: 'BB',       active: showBB,   toggle: () => setShowBB(s=>!s),   color: '#8b5cf6' },
+                                    { key: 'ema',  label: 'EMA',      active: showEMA,  toggle: () => setShowEMA(s=>!s),  color: '#10b981' },
+                                    { key: 'rsi',  label: `RSI${rsiVal !== null ? ' ' + rsiVal.toFixed(0) : ''}`, active: showRSI, toggle: () => setShowRSI(s=>!s), color: rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa' },
+                                ].map(({ key, label, active, toggle, color }) => (
+                                    <button key={key} onClick={toggle} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? color : btnBase.border}`,
+                                        backgroundColor: active ? color + '1a' : btnBase.bg,
+                                        color: active ? color : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                    }}>{label}</button>
+                                ))}
+
+                                {/* Session tracker widget */}
+                                {sessionNow && (() => {
+                                    const s = sessionNow;
+                                    return (
+                                        <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'8px', backgroundColor: s.color+'14', border:`1px solid ${s.color}30`, marginLeft:'auto' }}>
+                                            <span style={{ width:'7px', height:'7px', borderRadius:'50%', backgroundColor:s.dot, flexShrink:0,
+                                                boxShadow: s.session === 'regular' ? `0 0 0 2px ${s.dot}30` : 'none',
+                                                animation: s.session === 'regular' ? 'sessionPulse 2s ease-in-out infinite' : 'none',
+                                            }} />
+                                            <span style={{ fontSize:'11px', fontWeight:'700', color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>
+                                            <span style={{ fontSize:'10px', color:s.color, opacity:0.7, whiteSpace:'nowrap' }}>{s.nyTimeStr} {s.tzLabel}</span>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Theme switcher */}
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    {[['light','Sun️'],['dark','🌙'],['hud','HUD HUD']].map(([t, lbl]) => {
+                                        const active = chartTheme === t;
+                                        return <button key={t} onClick={() => setChartTheme(t)} style={{
+                                            padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                            </div>
+                            {/* Row 2: interval groups */}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>INTRADAY</span>
+                                {intraday.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                                <div style={{ width: '1px', height: '18px', backgroundColor: toolbarBorder, flexShrink: 0 }} />
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>DAILY+</span>
+                                {daily.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                                <div style={{ width:'1px', height:'16px', backgroundColor:toolbarBorder, flexShrink:0, alignSelf:'center' }} />
+                                {/* Pre/Post market toggle -- intraday only */}
+                                {(() => {
+                                    const isIntraday = intervalConfig[chartInterval]?.group === 'Intraday';
+                                    const active = prePost && isIntraday;
+                                    return (
+                                        <button
+                                            onClick={() => isIntraday && setPrePost(p => !p)}
+                                            title={isIntraday ? 'Toggle pre/post market data' : 'Pre/post only available on intraday timeframes'}
+                                            style={{
+                                                padding:'4px 10px', fontSize:'11px', fontWeight:'700', borderRadius:'6px',
+                                                border:`1px solid ${active ? '#f59e0b' : btnBase.border}`,
+                                                backgroundColor: active ? 'rgba(245,158,11,0.14)' : btnBase.bg,
+                                                color: active ? '#f59e0b' : isIntraday ? btnBase.text : (btnBase.text + '50'),
+                                                cursor: isIntraday ? 'pointer' : 'not-allowed',
+                                                transition:'all 0.15s', whiteSpace:'nowrap', opacity: isIntraday ? 1 : 0.45,
+                                            }}
+                                        >🌅 Pre/Post</button>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Chart container -- explicit height so LightweightCharts renders correctly */}
+                <div style={{ position: 'relative', width: '100%', height: '360px' }}>
+                    {(loadingChart || !chartLoaded) && (() => {
+                        const th2 = getThemeConfig(chartTheme);
+                        const overlayBg   = chartTheme === 'dark' ? 'rgba(15,15,20,0.88)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.88)' : 'rgba(255,255,255,0.9)';
+                        const overlayText = chartTheme === 'hud' ? '#00d4ff' : chartTheme === 'dark' ? '#aaa' : '#666';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: overlayBg, zIndex: 2 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
+                                <div style={{ color: overlayText, fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library...' : 'Fetching data...'}</div>
+                            </div>
+                        </div>
+                        );
+                    })()}
+                    {chartError && !loadingChart && (() => {
+                        const th3 = getThemeConfig(chartTheme);
+                        const errBg = chartTheme === 'dark' ? 'rgba(15,15,20,0.95)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.95)' : 'rgba(255,255,255,0.97)';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px', backgroundColor: errBg }}>
+                            <div style={{ fontSize: '32px' }}>!️</div>
+                            <div style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                            <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: chartTheme==='hud'?'#00d4ff':'#2563eb', color: chartTheme==='hud'?'#020b18':'#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
+                        </div>
+                        );
+                    })()}
+                    <div ref={chartContainerRef} style={{ width: '100%', height: '100%', cursor: drawingMode ? 'crosshair' : 'default' }} />
+                    {drawingMode && (
+                        <div style={{ position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', backgroundColor:'rgba(245,158,11,0.9)', color:'#fff', fontSize:'11px', fontWeight:'700', padding:'4px 12px', borderRadius:'20px', pointerEvents:'none', whiteSpace:'nowrap', zIndex:10 }}>
+                            Edit️ Click on chart to drop a level line
+                        </div>
+                    )}
+                </div>
+
+                {/* TWAP stats strip */}
+                {showTWAP && twapStats && (() => {
+                    const stripBg  = chartTheme === 'hud' ? '#020f1f' : chartTheme === 'dark' ? '#141420' : '#fffbeb';
+                    const stripBdr = chartTheme === 'hud' ? '#0d3a5c' : chartTheme === 'dark' ? '#2a2a3a' : '#fde68a';
+                    const isAbove  = twapStats.signal === 'EXTENDED_ABOVE';
+                    const isBelow  = twapStats.signal === 'EXTENDED_BELOW';
+                    const sigColor = isAbove ? '#ef4444' : isBelow ? '#10b981' : '#f59e0b';
+                    const sigLabel = isAbove ? '^ Extended Above -- mean reversion risk v'
+                                   : isBelow ? 'v Extended Below -- potential bounce ^'
+                                   : '<-> Near TWAP -- balanced';
+                    return (
+                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${stripBdr}`, backgroundColor: stripBg, display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.06em' }}>TWAP TWAP</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: chartTheme === 'light' ? '#333' : '#e0e0e0' }}>${twapStats.twap}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>Deviation</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: twapStats.deviation > 0 ? '#ef4444' : '#10b981' }}>
+                                    {twapStats.deviation > 0 ? '+' : ''}{twapStats.deviation}%
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>+/-1sigma</span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: chartTheme === 'light' ? '#555' : '#aaa' }}>${twapStats.std}</span>
+                            </div>
+                            <div style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: sigColor + '18', border: `1px solid ${sigColor}40`, fontSize: '11px', fontWeight: '700', color: sigColor }}>
+                                {sigLabel}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Position detail panel */}
+                {showPositions && positions.length > 0 && (
+                    <div style={{
+                        padding:         '12px 16px',
+                        borderTop:       `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e2e8f0'}`,
+                        backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#fffbeb',
+                        display:         'flex', flexDirection: 'column', gap: '10px',
+                    }}>
+                        <div style={{
+                            fontSize: '10px', fontWeight: '700',
+                            color: '#f59e0b', letterSpacing: '0.08em',
+                        }}>
+                            📌 OPEN POSITIONS — {ticker}
+                        </div>
+
+                        {positions.map(pos => {
+                            const isLong   = pos.direction === 'long';
+                            const pnl      = pos.current_price
+                                ? (isLong
+                                    ? pos.current_price - pos.entry_price
+                                    : pos.entry_price   - pos.current_price)
+                                : null;
+                            const pnlPct   = pnl != null
+                                ? (pnl / pos.entry_price * 100).toFixed(2)
+                                : null;
+                            const rr = pos.sl_dollars && pos.tp_dollars
+                                ? (Math.abs(pos.tp_dollars) / Math.abs(pos.sl_dollars)).toFixed(2)
+                                : null;
+
+                            return (
+                                <div key={pos.id} style={{
+                                    display:         'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                                    gap:             '8px',
+                                    padding:         '10px 12px',
+                                    backgroundColor: chartTheme==='dark'||chartTheme==='hud' ? '#1e1e2e' : '#fff',
+                                    borderRadius:    '8px',
+                                    border:          `1px solid ${isLong ? '#3b82f630' : '#f8717130'}`,
+                                    borderLeft:      `3px solid ${isLong ? '#3b82f6' : '#f87171'}`,
+                                }}>
+                                    {/* Asset + direction */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>
+                                            POSITION
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: isLong ? '#3b82f6' : '#f87171' }}>
+                                            {isLong ? '▲ LONG' : '▼ SHORT'}
+                                        </div>
+                                        {pos.notes && (
+                                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                                                {pos.notes.slice(0, 30)}{pos.notes.length > 30 ? '…' : ''}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Entry */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>ENTRY</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#3b82f6', fontFamily: 'monospace' }}>
+                                            ${pos.entry_price}
+                                        </div>
+                                    </div>
+
+                                    {/* SL */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>STOP LOSS</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#ef4444', fontFamily: 'monospace' }}>
+                                            ${pos.sl_price ?? '—'}
+                                        </div>
+                                        {pos.sl_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '1px' }}>
+                                                -${Math.abs(pos.sl_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* TP */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>TAKE PROFIT</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981', fontFamily: 'monospace' }}>
+                                            ${pos.tp_price ?? '—'}
+                                        </div>
+                                        {pos.tp_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#10b981', marginTop: '1px' }}>
+                                                +${Math.abs(pos.tp_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Current price + live P&L */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>NOW</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#f59e0b', fontFamily: 'monospace' }}>
+                                            ${pos.current_price?.toFixed(2) ?? '—'}
+                                        </div>
+                                        {pnl != null && (
+                                            <div style={{ fontSize: '10px', color: pnl >= 0 ? '#10b981' : '#ef4444', marginTop: '1px', fontWeight: '700' }}>
+                                                {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPct}%)
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* R:R */}
+                                    {rr && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>R:R</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: parseFloat(rr) >= 2 ? '#10b981' : parseFloat(rr) >= 1 ? '#f59e0b' : '#ef4444', fontFamily: 'monospace' }}>
+                                                1:{rr}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Indicator legend strip */}
+                {(showEMA || showBB || (showRSI && rsiVal !== null)) && (() => {
+                    const stripBg  = chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#f8f8ff';
+                    const stripBdr = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#ede9fe';
+                    const textC    = chartTheme==='light'?'#555':'#aaa';
+                    const rsiColor = rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa';
+                    return (
+                        <div style={{ padding: '7px 16px', borderTop:`1px solid ${stripBdr}`, backgroundColor: stripBg, display:'flex', gap:'16px', flexWrap:'wrap', alignItems:'center' }}>
+                            {showEMA && <span style={{ fontSize:'11px', color: textC }}>
+                                <span style={{ color:'#10b981', fontWeight:'700' }}>- EMA20</span>
+                                {'  '}<span style={{ color:'#3b82f6', fontWeight:'700' }}>- EMA50</span>
+                                {'  '}<span style={{ color:'#ef4444', fontWeight:'700' }}>- EMA200</span>
+                            </span>}
+                            {showBB && <span style={{ fontSize:'11px', color:'#8b5cf6', fontWeight:'700' }}>
+                                -- BB(20,2)
+                            </span>}
+                            {showRSI && rsiVal !== null && (
+                                <span style={{ fontSize:'11px', display:'flex', alignItems:'center', gap:'6px' }}>
+                                    <span style={{ color: textC }}>RSI(14)</span>
+                                    <span style={{ fontWeight:'800', fontSize:'13px', color: rsiColor }}>{rsiVal.toFixed(1)}</span>
+                                    <span style={{ padding:'2px 8px', borderRadius:'20px', backgroundColor: rsiColor+'18', border:`1px solid ${rsiColor}40`, color: rsiColor, fontSize:'10px', fontWeight:'700' }}>
+                                        {rsiVal > 70 ? 'OVERBOUGHT' : rsiVal < 30 ? 'OVERSOLD' : 'NEUTRAL'}
+                                    </span>
+                                </span>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {/* Chart action bar -- theme-aware */}
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
+                    {/* Manual refresh */}
+                    <button
+                        onClick={() => setRefreshTick(t => t + 1)}
+                        disabled={refreshing || loadingChart}
+                        title="Refresh chart data"
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '13px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: refreshing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                    </button>
+                    {/* Auto-refresh toggle */}
+                    <button
+                        onClick={() => setAutoRefresh(a => !a)}
+                        title={autoRefresh ? 'Auto-refresh ON (30s) -- click to disable' : 'Enable auto-refresh every 30s'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0')}`,
+                            backgroundColor: autoRefresh ? (chartTheme==='hud'?'rgba(0,212,255,0.12)':'rgba(16,185,129,0.1)') : (chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff'),
+                            color: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'rgba(0,212,255,0.4)':chartTheme==='dark'?'#555':'#aaa'),
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : 'currentColor', display: 'inline-block', opacity: autoRefresh ? 1 : 0.35 }} />
+                        {autoRefresh ? '30s' : 'Auto'}
+                    </button>
+                    {/* Last refreshed */}
+                    {lastRefreshed && (
+                        <span style={{ fontSize: '11px', color: chartTheme==='hud'?'rgba(0,212,255,0.35)':chartTheme==='dark'?'#3a3a4a':'#ccc' }}>
+                            {lastRefreshed.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
+                        </span>
+                    )}
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Analyst ratings button */}
+                    <button
+                        onClick={() => analystData ? setShowAnalystPanel(p=>!p) : fetchAnalystRatings(ticker)}
+                        disabled={analystLoading}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showAnalystPanel && analystData ? 'rgba(16,185,129,0.1)' : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: analystLoading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s',
+                        }}
+                    >
+                        {analystLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🏦'} Analyst Ratings
+                    </button>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* TradingView link */}
+                    <a
+                        href={`https://www.tradingview.com/chart/?symbol=${ticker}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open ${ticker} on TradingView`}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff',
+                            textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2962ff'; e.currentTarget.style.color = '#2962ff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'; e.currentTarget.style.color = chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff'; }}
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v2H5v14h14v-5h2v7H3V3zm11 0h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3z"/></svg>
+                        TradingView
+                    </a>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Earnings markers toggle */}
+                    <button onClick={() => {
+                        setShowEarningsMarkers(v => {
+                            const next = !v;
+                            // re-apply immediately using current candle data
+                            if (seriesRef.current) {
+                                if (!next) { try { seriesRef.current.setMarkers([]); } catch {} }
+                                else { setRefreshTick(t => t + 1); }
+                            }
+                            return next;
+                        });
+                    }} title="Toggle earnings date markers on chart"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showEarningsMarkers?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        💰 {showEarningsMarkers ? 'Earnings v' : 'Earnings'}
+                    </button>
+                    {/* Drawing tools toggle */}
+                    <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON -- click chart to drop a line' : 'Enable drawing mode'}
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${drawingMode?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: drawingMode?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: drawingMode?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        Edit️ {drawingMode ? 'Drawing' : 'Draw'}
+                    </button>
+
+                    {/* Compare */}
+                    <button onClick={() => setShowComparePicker(true)}
+                        title="Compare with another asset"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${compareTicker?'#3b82f6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: compareTicker?'rgba(59,130,246,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: compareTicker?'#3b82f6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        + {compareTicker ? `vs ${compareTicker}` : 'Compare'}
+                    </button>
+                    {/* Video record */}
+                    <button
+                        onClick={() => isRecording ? stopRecording() : recordChartVideo(45)}
+                        title={isRecording ? 'Stop recording' : 'Record chart playback video'}
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${isRecording?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: isRecording?'rgba(239,68,68,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: isRecording?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {isRecording
+                            ? <><span style={{ width:'8px', height:'8px', borderRadius:'2px', backgroundColor:'#ef4444', display:'inline-block', animation:'pulse 1s ease-in-out infinite' }} /> Stop ({recordingProgress}%)</>
+                            : <>🎬 Record</>}
+                    </button>
+                    {/* Price alert */}
+                    <button onClick={() => { console.log('[Alert] opening modal for', ticker); setShowAlertForm(true); }} title="Set price alert"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: alerts.filter(a=>a.ticker===ticker).length?'rgba(239,68,68,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        🔔 {alerts.filter(a=>a.ticker===ticker).length > 0 ? `Alert (${alerts.filter(a=>a.ticker===ticker).length})` : 'Alert'}
+                    </button>
+
+                    {/* Options flow */}
+                    <button onClick={() => { console.log('[Options] clicked, ticker:', ticker); setShowOptionsPanel(true); fetchOptions(ticker); }} disabled={optionsLoading}
+                        title="Options flow -- put/call ratio, key strikes"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showOptionsPanel&&optionsData?'rgba(139,92,246,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: optionsLoading?'wait':'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {optionsLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🎯'} Options
+                    </button>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Position lines toggle */}
+                    <button
+                        onClick={() => setShowPositions(p => !p)}
+                        title={positions.length > 0 ? `${positions.length} position(s) for ${ticker}` : 'No positions for this ticker'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showPositions && positions.length > 0 ? '#3b82f6' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showPositions && positions.length > 0
+                                ? 'rgba(59,130,246,0.12)'
+                                : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showPositions && positions.length > 0
+                                ? '#3b82f6'
+                                : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            opacity: positionsLoading ? 0.6 : 1,
+                        }}
+                    >
+                        {positionsLoading
+                            ? <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span>
+                            : '📌'}
+                        {positions.length > 0 ? `${positions.length} Position${positions.length > 1 ? 's' : ''}` : 'Positions'}
+                    </button>
+                    <button
+                        onClick={captureAndAnalyse}
+                        disabled={sabrinaLoading || screenshotting || !chartLoaded}
+                        style={{
+                            padding: '9px 18px', borderRadius: '10px',
+                            background: sabrinaLoading || screenshotting ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7c3aed, #db2777)',
+                            border: 'none', color: '#fff', fontSize: '13px', fontWeight: '700',
+                            cursor: sabrinaLoading || screenshotting ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            transition: 'opacity 0.2s',
+                        }}
+                    >
+                        {screenshotting ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>📸</span> Capturing...</> :
+                         sabrinaLoading ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing...</> :
+                         <>😼 Send Chart to Sabrina</>}
+                    </button>
+
+                    <button
+                        onClick={() => askSabrinaForRec(null)}
+                        disabled={sabrinaLoading}
+                        style={{
+                            padding: '9px 16px', borderRadius: '10px',
+                            backgroundColor: '#fff', border: '1px solid #e0e0e0',
+                            color: '#555', fontSize: '13px', fontWeight: '600',
+                            cursor: sabrinaLoading ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                        }}
+                    >
+                        📋 Fundamentals Only
+                    </button>
+
+                    {sabrinaRec && (
+                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: chartTheme==='hud'?'rgba(0,212,255,0.5)':chartTheme==='dark'?'#555':'#aaa' }}>
+                            Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '. 📸 with chart' : '. 📋 fundamentals only'}
+                        </div>
+                    )}
+                </div>
+            </div>
+            ); })()}
+
+            {/* == ALERT MODAL ================================================== */}
+            {showAlertForm && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => { if (e.target === e.currentTarget) setShowAlertForm(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'16px', padding:'28px', width:'360px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ fontSize:'18px', fontWeight:'800', marginBottom:'6px' }}>🔔 Price Alert -- {ticker}</div>
+                        <div style={{ fontSize:'12px', color:'#999', marginBottom:'20px' }}>
+                            Auto-checks every 30s. Toast fires when level is breached.
+                        </div>
+                        <div style={{ marginBottom:'12px' }}>
+                            <label style={{ fontSize:'12px', fontWeight:'700', color:'#555', display:'block', marginBottom:'6px' }}>DIRECTION</label>
+                            <div style={{ display:'flex', gap:'8px' }}>
+                                {['above','below'].map(d => (
+                                    <button key={d} onClick={() => setAlertDir(d)}
+                                        style={{ flex:1, padding:'9px', borderRadius:'8px', border:`2px solid ${alertDir===d?'#ef4444':'#e0e0e0'}`,
+                                            backgroundColor: alertDir===d?'#fef2f2':'#fff',
+                                            color: alertDir===d?'#ef4444':'#555', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>
+                                        {d === 'above' ? '^ Goes above' : 'v Drops below'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ marginBottom:'20px' }}>
+                            <label style={{ fontSize:'12px', fontWeight:'700', color:'#555', display:'block', marginBottom:'6px' }}>TARGET PRICE</label>
+                            <input type="number" step="0.01" placeholder={`e.g. ${stockData?.currentPrice?.toFixed(2) || '195.00'}`}
+                                value={alertPrice} onChange={e => setAlertPrice(e.target.value)}
+                                style={{ width:'100%', padding:'10px 12px', borderRadius:'8px', border:'2px solid #e0e0e0', fontSize:'15px', fontWeight:'700', boxSizing:'border-box', outline:'none' }} />
+                        </div>
+                        {/* Existing alerts for this ticker */}
+                        {alerts.filter(a => a.ticker === ticker).length > 0 && (
+                            <div style={{ marginBottom:'16px' }}>
+                                <div style={{ fontSize:'11px', fontWeight:'700', color:'#999', marginBottom:'8px', letterSpacing:'0.07em' }}>ACTIVE ALERTS</div>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                                    {alerts.filter(a => a.ticker === ticker).map(a => (
+                                        <div key={a.id} style={{ display:'flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'20px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c', fontWeight:'700' }}>
+                                            {a.dir === 'above' ? '^' : 'v'} ${a.price}
+                                            <button onClick={() => saveAlerts(alerts.filter(x => x.id !== a.id))}
+                                                style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'900', fontSize:'14px', lineHeight:1, padding:0 }}>x</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div style={{ display:'flex', gap:'8px' }}>
+                            <button onClick={() => {
+                                if (!alertPrice) return;
+                                const newAlert = { id: Date.now(), ticker, price: parseFloat(alertPrice), dir: alertDir };
+                                console.log('[Alert] Saving alert:', newAlert);
+                                saveAlerts([...alerts, newAlert]);
+                                setAlertPrice('');
+                                setShowAlertForm(false);
+                            }} style={{ flex:1, padding:'11px', borderRadius:'9px', backgroundColor:'#ef4444', color:'#fff', border:'none', fontWeight:'800', fontSize:'14px', cursor:'pointer' }}>
+                                Set Alert
+                            </button>
+                            <button onClick={() => setShowAlertForm(false)}
+                                style={{ padding:'11px 16px', borderRadius:'9px', backgroundColor:'#f0f0f0', color:'#666', border:'none', fontSize:'14px', cursor:'pointer' }}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* == FIRED ALERT TOASTS ============================================ */}
+            {firedAlerts.length > 0 && (
+                <div style={{ position:'fixed', bottom:'90px', right:'24px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
+                    {firedAlerts.slice(-4).map((a, i) => (
+                        <div key={a.id || i} style={{ padding:'14px 18px', backgroundColor:'#ef4444', color:'#fff', borderRadius:'12px', boxShadow:'0 4px 20px rgba(239,68,68,0.5)', fontSize:'13px', fontWeight:'700', display:'flex', gap:'12px', alignItems:'center', minWidth:'260px' }}>
+                            <span style={{ fontSize:'20px' }}>🔔</span>
+                            <div style={{ flex:1 }}>
+                                <div>{a.ticker} {a.dir==='above'?'crossed above':'dropped below'} ${a.price}</div>
+                                <div style={{ fontSize:'11px', opacity:0.8, marginTop:'2px' }}>{new Date().toLocaleTimeString()}</div>
+                            </div>
+                            <button onClick={() => setFiredAlerts(prev => prev.filter((_, j) => j !== i))}
+                                style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:'18px', fontWeight:'700', lineHeight:1 }}>x</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* == DRAWING TOOLKIT ============================================ */}
+            {(drawingMode || drawnLines.length > 0) && (
+                <div style={{ backgroundColor:'#fffbeb', borderRadius:'12px', border:'1px solid #fde68a', padding:'14px 16px', marginBottom:'16px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
+                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>Edit️ Level Lines</span>
+                        {drawnLines.length > 0 && (
+                            <button onClick={() => {
+                                drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch(e) { console.warn('[Draw]', e); } });
+                                drawnLinesRef.current = []; setDrawnLines([]);
+                            }} style={{ fontSize:'11px', color:'#b45309', background:'none', border:'1px solid #fcd34d', borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>Clear all</button>
+                        )}
+                    </div>
+
+                    {/* Colour picker + manual input */}
+                    {drawingMode && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'10px', marginBottom:'12px', alignItems:'flex-end' }}>
+                            {/* Colour swatches */}
+                            <div>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>COLOUR</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    {LINE_COLORS.map(c => (
+                                        <button key={c.id} onClick={() => setSelectedLineColor(c.hex)} title={c.label}
+                                            style={{ width:'20px', height:'20px', borderRadius:'50%', backgroundColor:c.hex, border: selectedLineColor===c.hex ? '3px solid #1a1a1a' : '2px solid transparent', cursor:'pointer', flexShrink:0, transition:'border 0.1s' }} />
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Manual price input */}
+                            <div style={{ flex:1, minWidth:'160px' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>EXACT PRICE</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    <input type="number" step="0.01" placeholder="e.g. 195.50"
+                                        value={manualPrice} onChange={e => setManualPrice(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'80px' }} />
+                                    <input type="text" placeholder="Label (optional)"
+                                        value={manualLabel} onChange={e => setManualLabel(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'90px' }} />
+                                    <button onClick={() => { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); }}
+                                        style={{ padding:'5px 10px', borderRadius:'6px', backgroundColor:'#f59e0b', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {drawingMode && (
+                        <div style={{ fontSize:'11px', color:'#b45309', marginBottom: drawnLines.length > 0 ? '10px' : '0' }}>
+                            Click anywhere on the chart to drop a line . or type an exact price above
+                        </div>
+                    )}
+
+                    {/* Lines list */}
+                    {drawnLines.length > 0 && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                            {drawnLines.map(l => (
+                                <span key={l.id} style={{ padding:'4px 10px', borderRadius:'20px', backgroundColor: l.color + '18', border:`1px solid ${l.color}60`, fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'5px', color: l.color === '#e5e7eb' ? '#555' : l.color }}>
+                                    <span style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:l.color, flexShrink:0 }} />
+                                    {l.label ? `${l.label} ` : ''}${l.price}
+                                    <button onClick={() => {
+                                        const found = drawnLinesRef.current.find(x => x.id === l.id);
+                                        if (found) { try { seriesRef.current?.removePriceLine(found.priceLine); } catch(e) { console.warn('[Draw]', e); } }
+                                        drawnLinesRef.current = drawnLinesRef.current.filter(x => x.id !== l.id);
+                                        setDrawnLines(prev => prev.filter(x => x.id !== l.id));
+                                    }} style={{ background:'none', border:'none', cursor:'pointer', fontWeight:'900', fontSize:'13px', padding:0, lineHeight:1, color:'inherit', opacity:0.7 }}>x</button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+
+            {/* == OPTIONS FLOW PANEL ============================================ */}
+            {showOptionsPanel && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    {optionsLoading && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'14px' }}>
+                            <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
+                            <div>Fetching options chain...</div>
+                        </div>
+                    )}
+                    {optionsError && !optionsLoading && (
+                        <div style={{ padding:'24px 20px' }}>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#b91c1c', marginBottom:'8px' }}>!️ Options Error</div>
+                            <div style={{ fontSize:'13px', color:'#ef4444', backgroundColor:'#fef2f2', padding:'12px', borderRadius:'8px', fontFamily:'monospace' }}>{optionsError}</div>
+                            <div style={{ marginTop:'12px', display:'flex', gap:'8px' }}>
+                                <button onClick={() => fetchOptions(ticker)} style={{ padding:'8px 16px', borderRadius:'8px', backgroundColor:'#8b5cf6', color:'#fff', border:'none', fontWeight:'700', cursor:'pointer' }}>Retry</button>
+                                <button onClick={() => setShowOptionsPanel(false)} style={{ padding:'8px 16px', borderRadius:'8px', backgroundColor:'#f0f0f0', color:'#555', border:'none', cursor:'pointer' }}>Close</button>
+                            </div>
+                        </div>
+                    )}
+                    {optionsData && !optionsLoading && (() => {
+                        const o = optionsData;
+                        const pcr = o.putCallRatio;
+                        const pcrColor = !pcr ? '#aaa' : pcr > 1.2 ? '#ef4444' : pcr < 0.7 ? '#10b981' : '#f59e0b';
+                        const pcrLabel = !pcr ? 'N/A' : pcr > 1.2 ? 'Bearish -- more puts than calls' : pcr < 0.7 ? 'Bullish -- more calls than puts' : 'Neutral';
+                        return (
+                            <>
+                                <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#f5f3ff', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                                    <div>
+                                        <div style={{ fontWeight:'800', fontSize:'15px', color:'#4c1d95' }}>🎯 Options Flow -- {o.ticker} . {o.expiry}</div>
+                                        <div style={{ fontSize:'12px', color:'#7c3aed', marginTop:'2px' }}>What big money is positioning for</div>
+                                    </div>
+                                    <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                                        {o.expiryDates?.length > 1 && (
+                                            <select value={optionsExpiry || o.expiry} onChange={e => { setOptionsExpiry(e.target.value); fetchOptions(ticker); }}
+                                                style={{ padding:'5px 9px', borderRadius:'8px', border:'1px solid #ddd6fe', fontSize:'12px', color:'#4c1d95' }}>
+                                                {o.expiryDates.map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        )}
+                                        <button onClick={() => setShowOptionsPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa' }}>x</button>
+                                    </div>
+                                </div>
+                                {/* Layman explainer */}
+                                <div style={{ padding:'10px 20px', backgroundColor:'#faf5ff', borderBottom:'1px solid #ede9fe', display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                                    <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                    <div style={{ fontSize:'12px', color:'#6b21a8', lineHeight:'1.6' }}>
+                                        <strong>Calls</strong> = right to buy = bet the price goes up. <strong>Puts</strong> = right to sell = bet the price drops.
+                                        <strong> Put/call ratio</strong> below 0.7 = mostly calls = bullish. Above 1.2 = mostly puts = bearish.
+                                        <strong> Open interest</strong> = active contracts. High OI at a price = that level matters.
+                                        <strong> IV</strong> = expected volatility. High IV = big swing expected.
+                                    </div>
+                                </div>
+                                <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'12px' }}>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:`4px solid ${pcrColor}` }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>PUT/CALL RATIO</div>
+                                        <div style={{ fontSize:'26px', fontWeight:'800', color:pcrColor }}>{pcr?.toFixed(2) ?? 'N/A'}</div>
+                                        <div style={{ fontSize:'11px', color:pcrColor, fontWeight:'600', marginTop:'3px' }}>{pcrLabel}</div>
+                                    </div>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #3b82f6' }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>VOLUME</div>
+                                        <div style={{ fontSize:'18px', fontWeight:'800', color:'#1e40af' }}>{o.totalVolume?.toLocaleString() ?? 'N/A'}</div>
+                                        <div style={{ fontSize:'11px', marginTop:'4px', display:'flex', gap:'8px' }}>
+                                            <span style={{ color:'#10b981' }}>📈 {o.callVolume?.toLocaleString()}</span>
+                                            <span style={{ color:'#ef4444' }}>📉 {o.putVolume?.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #6b7280' }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>CURRENT PRICE</div>
+                                        <div style={{ fontSize:'22px', fontWeight:'800', color:'#1a1a1a' }}>${o.currentPrice?.toFixed(2) ?? 'N/A'}</div>
+                                    </div>
+                                </div>
+                                {o.notableStrikes?.length > 0 && (
+                                    <div style={{ padding:'0 20px 20px' }}>
+                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>TOP STRIKES BY OPEN INTEREST (within +/-25% of price)</div>
+                                        <div style={{ overflowX:'auto' }}>
+                                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                                <thead>
+                                                    <tr style={{ backgroundColor:'#f8f9fa' }}>
+                                                        {['Type','Strike','OI','Volume','IV %','Delta from Price'].map(h => (
+                                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#555', borderBottom:'1px solid #f0f0f0' }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {o.notableStrikes.map((s, i) => {
+                                                        const delta = o.currentPrice ? ((s.strike - o.currentPrice) / o.currentPrice * 100).toFixed(1) : null;
+                                                        const isCall = s.type === 'call';
+                                                        return (
+                                                            <tr key={i} style={{ borderBottom:'1px solid #f8f8f8' }}>
+                                                                <td style={{ padding:'8px 10px' }}>
+                                                                    <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor:isCall?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)', color:isCall?'#10b981':'#ef4444' }}>
+                                                                        {isCall ? '📈 CALL' : '📉 PUT'}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding:'8px 10px', fontWeight:'700' }}>${s.strike}</td>
+                                                                <td style={{ padding:'8px 10px' }}>{s.openInterest?.toLocaleString()}</td>
+                                                                <td style={{ padding:'8px 10px' }}>{s.volume?.toLocaleString()}</td>
+                                                                <td style={{ padding:'8px 10px', color:s.impliedVolatility>0.6?'#ef4444':'#333' }}>{s.impliedVolatility?(s.impliedVolatility*100).toFixed(1):'-'}</td>
+                                                                <td style={{ padding:'8px 10px', fontWeight:'700', color:parseFloat(delta)>0?'#10b981':'#ef4444' }}>{delta!==null?`${parseFloat(delta)>0?'+':''}${delta}%`:'-'}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* == VIDEO PLAYER =============================================== */}
+            {(isRecording || videoUrl) && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#0f0f14', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay -- {ticker} . {chartInterval}</div>
+                            <div style={{ fontSize:'12px', color:'#aaa', marginTop:'2px' }}>
+                                {isRecording ? `Recording... ${recordingProgress}% -- animating through data` : '> Playback ready . loops . download to keep'}
+                            </div>
+                        </div>
+                        <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                            {videoUrl && !isRecording && (
+                                <button onClick={downloadVideo}
+                                    style={{ padding:'7px 14px', borderRadius:'8px', backgroundColor:'#2563eb', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' }}>
+                                    v Download .webm
+                                </button>
+                            )}
+                            {videoUrl && (
+                                <button onClick={() => { URL.revokeObjectURL(videoUrl); setVideoUrl(null); setVideoBlob(null); setRecordingProgress(0); }}
+                                    style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#666' }}>x</button>
+                            )}
+                        </div>
+                    </div>
+                    {isRecording && (
+                        <div style={{ padding:'20px', backgroundColor:'#0f0f14' }}>
+                            <div style={{ height:'6px', backgroundColor:'#1e1e2e', borderRadius:'3px', overflow:'hidden', marginBottom:'10px' }}>
+                                <div style={{ height:'100%', width:`${recordingProgress}%`, backgroundColor:'#ef4444', borderRadius:'3px', transition:'width 0.3s ease' }} />
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#ef4444', fontWeight:'700', textAlign:'center' }}>
+                                🔴 Recording chart replay... {recordingProgress}% -- chart is animating through {chartInterval} data
+                            </div>
+                        </div>
+                    )}
+                    {videoUrl && !isRecording && (
+                        <div style={{ backgroundColor:'#0f0f14', padding:'0' }}>
+                            <video
+                                src={videoUrl}
+                                controls
+                                autoPlay
+                                loop
+                                style={{ width:'100%', display:'block', maxHeight:'480px', backgroundColor:'#000' }}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* == COMPARE PICKER MODAL ======================================== */}
+            {showComparePicker && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9500, display:'flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => { if (e.target===e.currentTarget) setShowComparePicker(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'18px', width:'560px', maxWidth:'95vw', maxHeight:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.25)' }}>
+                        <div style={{ padding:'20px 24px 0', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                                <div>
+                                    <div style={{ fontSize:'17px', fontWeight:'800', color:'#1a1a1a' }}>+ Compare with {ticker}</div>
+                                    <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Pick any asset -- a full chart opens side by side</div>
+                                </div>
+                                <button onClick={()=>setShowComparePicker(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>x</button>
+                            </div>
+                            <input autoFocus type="text" placeholder="Search ticker or name... e.g. NVDA, Gold, EUR/USD"
+                                value={compareSearch} onChange={e => setCompareSearch(e.target.value.toUpperCase())}
+                                style={{ width:'100%', padding:'10px 14px', borderRadius:'10px', border:'2px solid #e0e0e0', fontSize:'14px', boxSizing:'border-box', outline:'none', marginBottom:'12px' }} />
+                            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'12px' }}>
+                                {Object.keys(COMPARE_ASSETS).map(cat => (
+                                    <button key={cat} onClick={() => setCompareCategory(cat)}
+                                        style={{ padding:'5px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'none',
+                                            backgroundColor: compareCategory===cat ? '#3b82f6' : '#f0f0f0',
+                                            color: compareCategory===cat ? '#fff' : '#555', textTransform:'capitalize' }}>
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ overflowY:'auto', flex:1, padding:'0 24px 12px' }}>
+                            {compareTicker && (
+                                <div style={{ marginBottom:'10px', display:'flex', alignItems:'center', gap:'8px', padding:'8px 12px', backgroundColor:'#eff6ff', borderRadius:'8px', border:'1px solid #bfdbfe' }}>
+                                    <span style={{ fontSize:'12px', color:'#3b82f6', fontWeight:'700' }}>Comparing: {compareTicker}</span>
+                                    <button onClick={() => { setCompareTicker(null); setShowComparePicker(false); }}
+                                        style={{ marginLeft:'auto', fontSize:'11px', color:'#ef4444', background:'none', border:'1px solid #fecaca', borderRadius:'6px', padding:'2px 8px', cursor:'pointer' }}>Remove</button>
+                                </div>
+                            )}
+                            {(() => {
+                                const allInCat = COMPARE_ASSETS[compareCategory] || [];
+                                const filtered = compareSearch.length > 0
+                                    ? Object.values(COMPARE_ASSETS).flat().filter(a => a.s.includes(compareSearch) || a.n.toUpperCase().includes(compareSearch))
+                                    : allInCat;
+                                if (filtered.length === 0) return <div style={{ padding:'24px', textAlign:'center', color:'#aaa', fontSize:'13px' }}>No results for "{compareSearch}"</div>;
+                                return (
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:'6px' }}>
+                                        {filtered.map(a => (
+                                            <button key={a.s} onClick={() => { setCompareTicker(a.s); setShowComparePicker(false); setCompareSearch(''); }}
+                                                style={{ padding:'8px 10px', borderRadius:'8px', border:`1px solid ${compareTicker===a.s?'#3b82f6':'#e8e8e8'}`,
+                                                    backgroundColor: compareTicker===a.s?'#eff6ff':'#fafafa',
+                                                    cursor:'pointer', textAlign:'left', transition:'all 0.1s' }}>
+                                                <div style={{ fontSize:'12px', fontWeight:'800', color:compareTicker===a.s?'#3b82f6':'#1a1a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.s}</div>
+                                                {a.n !== a.s && <div style={{ fontSize:'10px', color:'#999', marginTop:'1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.n}</div>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div style={{ padding:'12px 24px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+                            <span style={{ fontSize:'12px', color:'#999', fontWeight:'600' }}>Layout:</span>
+                            {[['side','[][] Side by side'],['stack','[]<> Stacked']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'5px 12px', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* == COMPARE DUAL CHART ============================================== */}
+            {compareTicker && (
+                <div style={{ marginBottom:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                        <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>
+                            📊 {ticker} <span style={{ color:'#aaa', fontWeight:'400', margin:'0 4px' }}>vs</span> {compareTicker}
+                        </div>
+                        <div style={{ display:'flex', gap:'6px', marginLeft:'auto' }}>
+                            <span className="compare-layout-toggle" style={{ display:'contents' }}>
+                            {[['side','[][] Side'],['stack','[]<> Stack']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                            </span>
+                            <button onClick={() => setShowComparePicker(true)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', backgroundColor:'#fff', color:'#555' }}>
+                                + Swap
+                            </button>
+                            <button onClick={() => setCompareTicker(null)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444' }}>
+                                x Close
+                            </button>
+                        </div>
+                    </div>
+                    <div className="compare-grid" style={{
+                        display: 'grid',
+                        gridTemplateColumns: compareMode==='side' ? '1fr 1fr' : '1fr',
+                        gap: '14px', alignItems: 'start',
+                    }}>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#888', marginBottom:'5px', paddingLeft:'2px' }}>📈 {ticker} -- primary</div>
+                            <ChartInsightsTab ticker={ticker} stockData={stockData} earnings={earnings} news={news}
+                                marketauxNews={marketauxNews} openaiKey={openaiKey} cachedNewsAnalysis={cachedNewsAnalysis} compactMode={true} />
+                        </div>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#3b82f6', marginBottom:'5px', paddingLeft:'2px' }}>📈 {compareTicker} -- compare</div>
+                            <ChartInsightsTab ticker={compareTicker} stockData={null} earnings={[]} news={[]}
+                                marketauxNews={[]} openaiKey={openaiKey} cachedNewsAnalysis={null} compactMode={true} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* -- Analyst Ratings Panel -- */}
+            {showAnalystPanel && analystData && (() => {
+                const s = analystData.summary;
+                const pt = analystData.priceTarget;
+                const ratings = analystData.recentRatings || [];
+                const history = analystData.history || [];
+                if (!s) return null;
+                const consensusColors = { 'STRONG BUY':'#10b981','BUY':'#34d399','HOLD':'#f59e0b','SELL':'#f87171','STRONG SELL':'#ef4444' };
+                const cc = consensusColors[s.consensus] || '#aaa';
+                const total = s.total || 1;
+                const bars = [
+                    { label:'Strong Buy', val:s.strongBuy, color:'#10b981' },
+                    { label:'Buy',        val:s.buy,       color:'#34d399' },
+                    { label:'Hold',       val:s.hold,      color:'#f59e0b' },
+                    { label:'Sell',       val:s.sell,      color:'#f87171' },
+                    { label:'Strong Sell',val:s.strongSell,color:'#ef4444' },
+                ];
+                const actionColors = { upgrade:'#10b981', downgrade:'#ef4444', initiated:'#3b82f6', reiterated:'#f59e0b', maintain:'#aaa' };
+                return (
+                    <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                        {/* Header */}
+                        <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'10px' }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>🏦 Analyst Ratings -- {analystData.ticker}</div>
+                                <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>{s.total} analysts covering this stock</div>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                                {/* Consensus badge */}
+                                <div style={{ padding:'8px 18px', borderRadius:'24px', backgroundColor:cc+'18', border:`2px solid ${cc}40`, fontSize:'14px', fontWeight:'800', color:cc }}>
+                                    {s.consensus}
+                                </div>
+                                {/* Bullish % */}
+                                <div style={{ textAlign:'center' }}>
+                                    <div style={{ fontSize:'22px', fontWeight:'800', color:'#10b981' }}>{s.bullishPct}%</div>
+                                    <div style={{ fontSize:'10px', color:'#aaa', fontWeight:'600' }}>BULLISH</div>
+                                </div>
+                                <button onClick={() => setShowAnalystPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa', padding:'4px' }}>x</button>
+                            </div>
+                        </div>
+
+                        <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'20px' }}>
+                            {/* Rating breakdown bars */}
+                            <div>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>RATING BREAKDOWN</div>
+                                {bars.map(b => (
+                                    <div key={b.label} style={{ marginBottom:'8px' }}>
+                                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'3px' }}>
+                                            <span style={{ color:'#555', fontWeight:'600' }}>{b.label}</span>
+                                            <span style={{ color:b.color, fontWeight:'700' }}>{b.val}</span>
+                                        </div>
+                                        <div style={{ height:'6px', borderRadius:'3px', backgroundColor:'#f0f0f0', overflow:'hidden' }}>
+                                            <div style={{ height:'100%', width:`${(b.val/total)*100}%`, backgroundColor:b.color, borderRadius:'3px', transition:'width 0.6s ease' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Price target */}
+                            {pt && (
+                                <div>
+                                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>PRICE TARGET ({pt.numberOfAnalysts} analysts)</div>
+                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                                        {[
+                                            { label:'Mean Target', val:`$${pt.mean}`, big:true, color:'#2563eb' },
+                                            { label:'Current Price', val:`$${pt.current}`, big:true, color:'#1a1a1a' },
+                                            { label:'Low Target',  val:`$${pt.low}`,  big:false, color:'#ef4444' },
+                                            { label:'High Target', val:`$${pt.high}`, big:false, color:'#10b981' },
+                                        ].map(item => (
+                                            <div key={item.label} style={{ padding:'10px 12px', backgroundColor:'#f8f9fa', borderRadius:'8px', borderLeft:`3px solid ${item.color}` }}>
+                                                <div style={{ fontSize:'10px', color:'#999', fontWeight:'600', marginBottom:'4px' }}>{item.label}</div>
+                                                <div style={{ fontSize: item.big?'20px':'15px', fontWeight:'800', color:item.color }}>{item.val}</div>
+                                                {item.label==='Mean Target' && pt.current && (
+                                                    <div style={{ fontSize:'11px', color: pt.mean >= pt.current ? '#10b981' : '#ef4444', fontWeight:'700', marginTop:'2px' }}>
+                                                        {pt.mean >= pt.current ? '^' : 'v'} {Math.abs(((pt.mean - pt.current)/pt.current)*100).toFixed(1)}% upside
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recent individual ratings */}
+                        {ratings.length > 0 && (
+                            <div style={{ padding:'0 20px 18px' }}>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>RECENT ANALYST ACTIONS</div>
+                                <div style={{ display:'flex', flexDirection:'column', gap:'6px', maxHeight:'240px', overflowY:'auto' }}>
+                                    {ratings.map((r, i) => {
+                                        const ac = actionColors[r.action?.toLowerCase()] || '#aaa';
+                                        return (
+                                            <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', backgroundColor:'#f8f9fa', borderRadius:'8px', flexWrap:'wrap' }}>
+                                                <span style={{ fontSize:'11px', color:'#aaa', flexShrink:0, minWidth:'80px' }}>{r.date}</span>
+                                                <span style={{ fontSize:'12px', fontWeight:'700', color:'#333', flex:1, minWidth:'100px' }}>{r.firm}</span>
+                                                <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor:ac+'18', color:ac, border:`1px solid ${ac}30`, flexShrink:0 }}>
+                                                    {r.action || 'Update'}
+                                                </span>
+                                                <span style={{ fontSize:'11px', color:'#555', flexShrink:0 }}>
+                                                    {r.fromGrade && r.toGrade ? `${r.fromGrade} -> ${r.toGrade}` : r.toGrade || r.fromGrade || ''}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {analystError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>!️ {analystError}</div>}
+                    </div>
+                );
+            })()}
+
+            {recError && (
+                <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
+                    !️ {recError}
+                </div>
+            )}
+
+            {/* -- Sabrina's Recommendation Card -- */}
+            {!compactMode && sabrinaRec && (
+                <div style={{ backgroundColor: vc.bg, border: `2px solid ${vc.border}`, borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                    {/* Verdict header */}
+                    <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${vc.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '36px', lineHeight: 1, flexShrink: 0 }}>{vc.icon}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '22px', fontWeight: '800', color: vc.color }}>{vc.label}</span>
+                                    <span style={{ backgroundColor: vc.color, color: '#fff', fontSize: '12px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' }}>
+                                        {sabrinaRec.confidence}% confidence
+                                    </span>
+                                    {sabrinaRec.priceTarget && sabrinaRec.priceTarget !== 'N/A' && (
+                                        <span style={{ backgroundColor: '#fff', border: `1px solid ${vc.border}`, color: '#555', fontSize: '12px', fontWeight: '600', padding: '3px 10px', borderRadius: '20px' }}>
+                                            🎯 {sabrinaRec.priceTarget}
+                                        </span>
+                                    )}
+                                    {sabrinaRec.timeframe && (
+                                        <span style={{ fontSize: '12px', color: '#888' }}>. {sabrinaRec.timeframe}</span>
+                                    )}
+                                </div>
+                                <div style={{ fontSize: '15px', color: '#333', lineHeight: '1.6' }}>{sabrinaRec.summary}</div>
+                            </div>
+                        </div>
+
+                        {/* Sabrina quote */}
+                        {sabrinaRec.sabrinaQuote && (
+                            <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderLeft: '3px solid #7c3aed', borderRadius: '8px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '18px', flexShrink: 0 }}>😼</span>
+                                <div style={{ fontSize: '14px', color: '#4c1d95', fontStyle: 'italic', lineHeight: '1.5' }}>"{sabrinaRec.sabrinaQuote}"</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bull / Bear / Levels grid */}
+                    <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                        {sabrinaRec.bullCase && (
+                            <div style={{ backgroundColor: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', letterSpacing: '0.08em', marginBottom: '6px' }}>📈 BULL CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bullCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.bearCase && (
+                            <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', letterSpacing: '0.08em', marginBottom: '6px' }}>📉 BEAR CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bearCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.keyLevels && sabrinaRec.keyLevels !== 'N/A' && (
+                            <div style={{ backgroundColor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb', letterSpacing: '0.08em', marginBottom: '6px' }}>📐 KEY LEVELS</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.keyLevels}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Catalysts + Risks */}
+                    {((sabrinaRec.catalysts?.length > 0) || (sabrinaRec.risks?.length > 0)) && (
+                        <div style={{ padding: '0 20px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            {sabrinaRec.catalysts?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>🚀 CATALYSTS</div>
+                                    {sabrinaRec.catalysts.map((c, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#10b981', fontWeight: '700', flexShrink: 0 }}>{i + 1}.</span>{c}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {sabrinaRec.risks?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>!️ RISKS</div>
+                                    {sabrinaRec.risks.map((r, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#ef4444', fontWeight: '700', flexShrink: 0 }}>v</span>{r}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {!compactMode && (
+                <MomentumVelocityPanel
+                    ticker={ticker}
+                    openaiKey={openaiKey}
+                />
+            )}
+
+            {/* -- Bottom context panels -- */}
+            {!compactMode && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
+                {/* News Insights */}
+                {(news?.filter(n => n?.title).length > 0 || cachedNewsAnalysis) && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📰 News Context</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {/* AI news analysis badge */}
+                            {cachedNewsAnalysis && (() => {
+                                const bColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#2563eb' };
+                                const bIcons  = { BULLISH: '📈', BEARISH: '📉', NEUTRAL: '➡️', MIXED: '🔀' };
+                                const bc = bColors[cachedNewsAnalysis.bias] || '#2563eb';
+                                return (
+                                    <div style={{ padding: '10px 12px', backgroundColor: bc + '10', border: `1px solid ${bc}30`, borderLeft: `3px solid ${bc}`, borderRadius: '8px' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: bc, marginBottom: '4px', letterSpacing: '0.07em' }}>
+                                            {bIcons[cachedNewsAnalysis.bias]} AI NEWS ANALYSIS . {cachedNewsAnalysis.bias} . {cachedNewsAnalysis.confidence}%
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{cachedNewsAnalysis.tldr}</div>
+                                    </div>
+                                );
+                            })()}
+                            {/* Top headlines */}
+                            {news?.filter(n => n?.title).slice(0, 4).map((item, i) => {
+                                const lower = item.title.toLowerCase();
+                                const bull = ['surge','rally','gain','beat','soar','rise','record','profit'].some(w => lower.includes(w));
+                                const bear = ['fall','drop','decline','miss','loss','crash','warn','layoff'].some(w => lower.includes(w));
+                                const dot = bull ? '#10b981' : bear ? '#ef4444' : '#f59e0b';
+                                return (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: dot, flexShrink: 0, marginTop: '5px' }} />
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4' }}>{item.title}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Earnings Snapshot */}
+                {recentEarnings.length > 0 && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>💰 Recent Earnings</div>
+                        </div>
+                        <div style={{ padding: '14px 16px' }}>
+                            {recentEarnings.map((e, i) => {
+                                const rev = e.revenue ? (e.revenue / 1e9).toFixed(1) : null;
+                                const eps = e.earnings ? (e.earnings / 1e9).toFixed(2) : null;
+                                const prev = recentEarnings[i + 1];
+                                const revTrend = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '^' : 'v') : '';
+                                const revColor = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '#10b981' : '#ef4444') : '#999';
+                                return (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < recentEarnings.length - 1 ? '1px solid #f4f4f4' : 'none' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#666', flexShrink: 0 }}>{e.quarter}</div>
+                                        <div style={{ display: 'flex', gap: '14px', fontSize: '13px' }}>
+                                            {rev && <span style={{ color: '#333' }}>Rev <strong>${rev}B</strong> <span style={{ color: revColor, fontSize: '11px' }}>{revTrend}</span></span>}
+                                            {eps && <span style={{ color: '#333' }}>EPS <strong style={{ color: parseFloat(eps) >= 0 ? '#10b981' : '#ef4444' }}>${eps}B</strong></span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Stock Key Stats */}
+                {stockData && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📌 Key Stats</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {[
+                                ['Price',       `$${stockData.currentPrice?.toFixed(2) || 'N/A'}`],
+                                ['Market Cap',  stockData.marketCap ? `$${(stockData.marketCap/1e9).toFixed(1)}B` : 'N/A'],
+                                ['P/E Ratio',   stockData.trailingPE?.toFixed(2) || 'N/A'],
+                                ['52W High',    `$${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}`],
+                                ['52W Low',     `$${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}`],
+                                ['Div Yield',   stockData.dividendYield ? `${(stockData.dividendYield*100).toFixed(2)}%` : 'N/A'],
+                            ].map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', color: '#888', fontWeight: '500' }}>{label}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+            }
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @media (max-width: 600px) {
+                    .chart-toolbar { flex-direction: column; align-items: flex-start !important; }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// --- Main Component -----------------------------------------------------------
+export default function SnowAIStockScreener() {
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
+    const popularStocks = [
+        { name: "Apple", symbol: "AAPL", category: "Tech Giants" },
+        { name: "Microsoft", symbol: "MSFT", category: "Tech Giants" },
+        { name: "Google (Alphabet)", symbol: "GOOGL", category: "Tech Giants" },
+        { name: "Amazon", symbol: "AMZN", category: "Tech Giants" },
+        { name: "Meta (Facebook)", symbol: "META", category: "Tech Giants" },
+        { name: "Tesla", symbol: "TSLA", category: "Tech Giants" },
+        { name: "NVIDIA", symbol: "NVDA", category: "Tech Giants" },
+        { name: "Netflix", symbol: "NFLX", category: "Tech Giants" },
+        { name: "JPMorgan Chase", symbol: "JPM", category: "Financial" },
+        { name: "Bank of America", symbol: "BAC", category: "Financial" },
+        { name: "Wells Fargo", symbol: "WFC", category: "Financial" },
+        { name: "Goldman Sachs", symbol: "GS", category: "Financial" },
+        { name: "Morgan Stanley", symbol: "MS", category: "Financial" },
+        { name: "Visa", symbol: "V", category: "Financial" },
+        { name: "Mastercard", symbol: "MA", category: "Financial" },
+        { name: "American Express", symbol: "AXP", category: "Financial" },
+        { name: "Walmart", symbol: "WMT", category: "Retail" },
+        { name: "Target", symbol: "TGT", category: "Retail" },
+        { name: "Home Depot", symbol: "HD", category: "Retail" },
+        { name: "Nike", symbol: "NKE", category: "Retail" },
+        { name: "Starbucks", symbol: "SBUX", category: "Retail" },
+        { name: "McDonald's", symbol: "MCD", category: "Retail" },
+        { name: "Coca-Cola", symbol: "KO", category: "Retail" },
+        { name: "PepsiCo", symbol: "PEP", category: "Retail" },
+        { name: "FedEx", symbol: "FDX", category: "Retail" },
+        { name: "Johnson & Johnson", symbol: "JNJ", category: "Healthcare" },
+        { name: "Pfizer", symbol: "PFE", category: "Healthcare" },
+        { name: "UnitedHealth", symbol: "UNH", category: "Healthcare" },
+        { name: "Moderna", symbol: "MRNA", category: "Healthcare" },
+        { name: "AbbVie", symbol: "ABBV", category: "Healthcare" },
+        { name: "Eli Lilly", symbol: "LLY", category: "Healthcare" },
+        { name: "Biogen", symbol: "BIIB", category: "Healthcare" },
+        { name: "Cencora", symbol: "COR", category: "Healthcare" },
+        { name: "Intel", symbol: "INTC", category: "Semiconductors" },
+        { name: "AMD", symbol: "AMD", category: "Semiconductors" },
+        { name: "Qualcomm", symbol: "QCOM", category: "Semiconductors" },
+        { name: "Broadcom", symbol: "AVGO", category: "Semiconductors" },
+        { name: "Texas Instruments", symbol: "TXN", category: "Semiconductors" },
+        { name: "ExxonMobil", symbol: "XOM", category: "Energy" },
+        { name: "Chevron", symbol: "CVX", category: "Energy" },
+        { name: "ConocoPhillips", symbol: "COP", category: "Energy" },
+        { name: "NextEra Energy", symbol: "NEE", category: "Energy" },
+        { name: "Devon Energy", symbol: "DVN", category: "Energy" },
+        { name: "Disney", symbol: "DIS", category: "Media" },
+        { name: "Comcast", symbol: "CMCSA", category: "Media" },
+        { name: "Warner Bros Discovery", symbol: "WBD", category: "Media" },
+        { name: "Salesforce", symbol: "CRM", category: "Software" },
+        { name: "Adobe", symbol: "ADBE", category: "Software" },
+        { name: "Oracle", symbol: "ORCL", category: "Software" },
+        { name: "ServiceNow", symbol: "NOW", category: "Software" },
+        { name: "Ford", symbol: "F", category: "Automotive" },
+        { name: "General Motors", symbol: "GM", category: "Automotive" },
+        { name: "Rivian", symbol: "RIVN", category: "Automotive" },
+        { name: "Lucid", symbol: "LCID", category: "Automotive" },
+        { name: "NIO", symbol: "NIO", category: "Automotive" },
+        { name: "Boeing", symbol: "BA", category: "Aerospace" },
+        { name: "Lockheed Martin", symbol: "LMT", category: "Aerospace" },
+        { name: "PayPal", symbol: "PYPL", category: "Fintech" },
+        { name: "Square (Block)", symbol: "SQ", category: "Fintech" },
+        { name: "Shopify", symbol: "SHOP", category: "Fintech" },
+        { name: "Coinbase", symbol: "COIN", category: "Fintech" },
+    ];
+
+    const [ticker, setTicker] = useState('');
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [stockData, setStockData] = useState(null);
+    const [financials, setFinancials] = useState(null);
+    const [earnings, setEarnings] = useState(null);
+    const [news, setNews] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [financialsView, setFinancialsView] = useState('table');
+    const [earningsView, setEarningsView] = useState('table');
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [showModal, setShowModal] = useState(false);
+    const [aiAnalysisRunning, setAiAnalysisRunning] = useState(false);
+    const [aiAnalysisResults, setAiAnalysisResults] = useState(null);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
+    const [mainCachedNewsAnalyses, setMainCachedNewsAnalyses] = useState({});
+    // -- Hoisted news state (persists across tab switches) --
+    const [hoistedMarketauxNews, setHoistedMarketauxNews] = useState([]);
+    const [hoistedFetchingNews, setHoistedFetchingNews] = useState(false);
+    const [hoistedNewsError, setHoistedNewsError] = useState(null);
+    const [hoistedHasFetched, setHoistedHasFetched] = useState(false);
+    const [hoistedActiveNewsTab, setHoistedActiveNewsTab] = useState('yahoo');
+    // -- Hoisted news analysis state (so "View Analysis" button never disappears) --
+    const [hoistedCachedAnalyses, setHoistedCachedAnalyses] = useState({});
+    const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [showScanner, setShowScanner] = React.useState(false);
+    const [showScannerHistory, setShowScannerHistory] = React.useState(false);
+
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            setVoices(availableVoices);
+            if (availableVoices.length > 0 && !selectedVoice) setSelectedVoice(availableVoices[0]);
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }, []);
+
+    useEffect(() => {
+        const fetchOpenAIKey = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/get_openai_key`);
+                if (response.ok) {
+                    const { OPENAI_API_KEY } = await response.json();
+                    setOPENAI_API_KEY(OPENAI_API_KEY);
+                }
+            } catch (err) {
+                console.error('Failed to fetch OpenAI key:', err);
+            }
+        };
+        fetchOpenAIKey();
+    }, []);
+
+    // Sync cached news analyses so ChartInsightsTab can read them
+    useEffect(() => {
+        const syncNewsAnalyses = async () => {
+            try {
+                const result = await window.storage.get('news-analyses');
+                if (result?.value) setMainCachedNewsAnalyses(JSON.parse(result.value));
+            } catch {}
+        };
+        syncNewsAnalyses();
+        // Re-sync whenever tab changes to 'chart' so it's always fresh
+    }, [activeTab]);
+
+    const fetchStockData = async (symbol) => {
+        if (!symbol) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${symbol}`);
+            const data = await response.json();
+            if (response.ok) {
+                setStockData(data.stock_info);
+                setFinancials(data.financials);
+                setEarnings(data.earnings);
+                setNews(data.news || []);
+                setTicker(symbol);
+                // Reset hoisted news state for fresh ticker
+                setHoistedMarketauxNews([]);
+                setHoistedHasFetched(false);
+                setHoistedNewsError(null);
+                setHoistedActiveNewsTab('yahoo');
+                setHoistedShowAnalysisModal(false);
+            } else {
+                setError(data.error || 'Failed to fetch stock data');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const analyzeStock = (stockData) => {
+        const { earnings } = stockData;
+        if (!earnings || earnings.length < 4) return { signal: 'INSUFFICIENT_DATA', confidence: 0, reason: 'Not enough data', revenueDeviation: 0, earningsDeviation: 0 };
+        const recentQuarters = earnings.slice(0, 4);
+        const olderQuarters = earnings.slice(4, 8);
+        const recentRevenue = recentQuarters.filter(q => q.revenue && q.revenue !== 0).map(q => q.revenue);
+        const recentEarnings = recentQuarters.filter(q => q.earnings && q.earnings !== 0).map(q => q.earnings);
+        const olderRevenue = olderQuarters.filter(q => q.revenue && q.revenue !== 0).map(q => q.revenue);
+        const olderEarnings = olderQuarters.filter(q => q.earnings && q.earnings !== 0).map(q => q.earnings);
+        if (recentRevenue.length === 0 || olderRevenue.length === 0) return { signal: 'INSUFFICIENT_DATA', confidence: 0, reason: 'Not enough data', revenueDeviation: 0, earningsDeviation: 0 };
+        const avgRecentRevenue = recentRevenue.reduce((a, b) => a + b, 0) / recentRevenue.length;
+        const avgOlderRevenue = olderRevenue.reduce((a, b) => a + b, 0) / olderRevenue.length;
+        const avgRecentEarnings = recentEarnings.length > 0 ? recentEarnings.reduce((a, b) => a + b, 0) / recentEarnings.length : 0;
+        const avgOlderEarnings = olderEarnings.length > 0 ? olderEarnings.reduce((a, b) => a + b, 0) / olderEarnings.length : 0;
+        const revenueDeviation = ((avgRecentRevenue - avgOlderRevenue) / Math.abs(avgOlderRevenue)) * 100;
+        const earningsDeviation = avgOlderEarnings !== 0 ? ((avgRecentEarnings - avgOlderEarnings) / Math.abs(avgOlderEarnings)) * 100 : 0;
+        const THRESHOLD = 10;
+        let signal = 'NEUTRAL', confidence = 0, reason = '';
+        if (Math.abs(revenueDeviation) > THRESHOLD || Math.abs(earningsDeviation) > THRESHOLD) {
+            if (revenueDeviation > THRESHOLD || earningsDeviation > THRESHOLD) {
+                signal = 'BULLISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant positive growth';
+            } else {
+                signal = 'BEARISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant decline';
+            }
+        } else {
+            signal = 'NEUTRAL'; confidence = 70;
+            reason = 'Performance is stable and within normal range';
+        }
+        return { signal, confidence: Math.round(confidence), reason, revenueDeviation: revenueDeviation.toFixed(2), earningsDeviation: earningsDeviation.toFixed(2), avgRecentRevenue: (avgRecentRevenue / 1e9).toFixed(2), avgOlderRevenue: (avgOlderRevenue / 1e9).toFixed(2), avgRecentEarnings: (avgRecentEarnings / 1e9).toFixed(2), avgOlderEarnings: (avgOlderEarnings / 1e9).toFixed(2) };
+    };
+
+    const runAIAnalysis = async () => {
+        setAiAnalysisRunning(true);
+        setError(null);
+        const results = { bullish: [], bearish: [], neutral: [], insufficient: [], timestamp: new Date().toLocaleString() };
+        try {
+            for (const stock of popularStocks) {
+                try {
+                    const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${stock.symbol}`);
+                    const data = await response.json();
+                    if (response.ok && data.earnings) {
+                        const analysis = analyzeStock(data);
+                        const stockResult = { ...stock, ...analysis, currentPrice: data.stock_info?.currentPrice, marketCap: data.stock_info?.marketCap };
+                        if (analysis.signal === 'BULLISH') results.bullish.push(stockResult);
+                        else if (analysis.signal === 'BEARISH') results.bearish.push(stockResult);
+                        else if (analysis.signal === 'NEUTRAL') results.neutral.push(stockResult);
+                        else results.insufficient.push(stockResult);
+                    }
+                } catch (err) { console.error(`Error analyzing ${stock.symbol}:`, err); }
+            }
+            results.bullish.sort((a, b) => b.confidence - a.confidence);
+            results.bearish.sort((a, b) => b.confidence - a.confidence);
+            results.neutral.sort((a, b) => b.confidence - a.confidence);
+            results.marketSentiment = calculateMarketSentiment(results);
+            setAiAnalysisResults(results);
+            setShowAnalysisModal(true);
+        } catch (err) { setError('Failed to complete AI analysis'); }
+        finally { setAiAnalysisRunning(false); }
+    };
+
+    const calculateMarketSentiment = (results) => {
+        const allAnalyzedStocks = [...results.bullish, ...results.bearish, ...results.neutral];
+        if (allAnalyzedStocks.length === 0) return null;
+        let totalMarketCap = 0, weightedBullishScore = 0, weightedBearishScore = 0, weightedNeutralScore = 0;
+        allAnalyzedStocks.forEach(stock => {
+            const marketCap = stock.marketCap || 0;
+            totalMarketCap += marketCap;
+            if (stock.signal === 'BULLISH') weightedBullishScore += marketCap * (stock.confidence / 100);
+            else if (stock.signal === 'BEARISH') weightedBearishScore += marketCap * (stock.confidence / 100);
+            else weightedNeutralScore += marketCap * (stock.confidence / 100);
+        });
+        const bullishPercentage = totalMarketCap > 0 ? (weightedBullishScore / totalMarketCap) * 100 : 0;
+        const bearishPercentage = totalMarketCap > 0 ? (weightedBearishScore / totalMarketCap) * 100 : 0;
+        const neutralPercentage = totalMarketCap > 0 ? (weightedNeutralScore / totalMarketCap) * 100 : 0;
+        const netSentiment = bullishPercentage - bearishPercentage;
+        let marketOutlook = 'NEUTRAL', marketConfidence = 65, marketDescription = '';
+        let indicesOutlook = { sp500: { direction: 'NEUTRAL', confidence: 65, reasoning: '' }, nasdaq: { direction: 'NEUTRAL', confidence: 65, reasoning: '' }, dowJones: { direction: 'NEUTRAL', confidence: 65, reasoning: '' } };
+        if (netSentiment > 15) {
+            marketOutlook = 'BULLISH'; marketConfidence = Math.min(85, 50 + netSentiment);
+            marketDescription = 'Strong positive momentum across major stocks. Large-cap growth stocks are showing significant earnings expansion.';
+            indicesOutlook = { sp500: { direction: 'BULLISH', confidence: Math.min(85, 50 + netSentiment * 0.9), reasoning: 'Broad-based strength across sectors driving index higher.' }, nasdaq: { direction: 'BULLISH', confidence: Math.min(90, 50 + netSentiment * 1.1), reasoning: 'Tech and growth stocks showing strong momentum.' }, dowJones: { direction: 'BULLISH', confidence: Math.min(80, 50 + netSentiment * 0.85), reasoning: 'Blue-chip stocks demonstrating solid performance.' } };
+        } else if (netSentiment < -15) {
+            marketOutlook = 'BEARISH'; marketConfidence = Math.min(85, 50 + Math.abs(netSentiment));
+            marketDescription = 'Widespread weakness across major stocks. Earnings pressures and declining fundamentals suggest headwinds.';
+            indicesOutlook = { sp500: { direction: 'BEARISH', confidence: Math.min(85, 50 + Math.abs(netSentiment) * 0.9), reasoning: 'Broad-based weakness across multiple sectors.' }, nasdaq: { direction: 'BEARISH', confidence: Math.min(90, 50 + Math.abs(netSentiment) * 1.1), reasoning: 'Tech sector showing significant weakness.' }, dowJones: { direction: 'BEARISH', confidence: Math.min(80, 50 + Math.abs(netSentiment) * 0.85), reasoning: 'Industrial and blue-chip stocks facing headwinds.' } };
+        } else {
+            marketDescription = 'Mixed signals across the market. Stocks showing stable performance with balanced signals, suggesting consolidation.';
+        }
+        const sectorBreakdown = {};
+        allAnalyzedStocks.forEach(stock => {
+            if (!sectorBreakdown[stock.category]) sectorBreakdown[stock.category] = { bullish: 0, bearish: 0, neutral: 0 };
+            if (stock.signal === 'BULLISH') sectorBreakdown[stock.category].bullish++;
+            else if (stock.signal === 'BEARISH') sectorBreakdown[stock.category].bearish++;
+            else sectorBreakdown[stock.category].neutral++;
+        });
+        return { marketOutlook, marketConfidence: Math.round(marketConfidence), marketDescription, bullishPercentage: bullishPercentage.toFixed(1), bearishPercentage: bearishPercentage.toFixed(1), neutralPercentage: neutralPercentage.toFixed(1), bullishCount: results.bullish.length, bearishCount: results.bearish.length, neutralCount: results.neutral.length, totalCount: results.bullish.length + results.bearish.length + results.neutral.length, totalMarketCap: (totalMarketCap / 1e12).toFixed(2), indicesOutlook, sectorBreakdown };
+    };
+
+    const handleSearch = (e) => { e.preventDefault(); if (ticker) fetchStockData(ticker); };
+    const handleStockClick = (symbol) => { fetchStockData(symbol); setShowModal(false); setShowAnalysisModal(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+    const formatNewsDate = (timestamp) => {
+        if (!timestamp || timestamp === 'N/A') return 'N/A';
+        try { return new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        catch { return timestamp; }
+    };
+
+    const prepareFinancialsChartData = () => {
+        if (!financials?.data || !financials?.columns) return [];
+        return financials.columns.map((year, idx) => {
+            const dataPoint = { year };
+            let hasData = false;
+            financials.data.forEach(row => {
+                if (row.values?.[idx] !== null && row.values?.[idx] !== 0) { dataPoint[row.metric] = (row.values[idx] / 1e9).toFixed(2); hasData = true; }
+            });
+            return hasData ? dataPoint : null;
+        }).filter(Boolean).reverse();
+    };
+
+    const prepareEarningsChartData = () => {
+        if (!earnings?.length) return [];
+        return earnings.map(e => {
+            if ((e.revenue && e.revenue !== 0) || (e.earnings && e.earnings !== 0)) {
+                return { quarter: e.quarter, revenue: e.revenue ? (e.revenue / 1e9).toFixed(2) : null, earnings: e.earnings ? (e.earnings / 1e9).toFixed(2) : null };
+            }
+            return null;
+        }).filter(Boolean).reverse();
+    };
+
+    const getChartDomain = () => {
+        const chartData = prepareEarningsChartData();
+        if (!chartData.length) return [0, 'auto'];
+        const allValues = chartData.flatMap(i => [parseFloat(i.revenue), parseFloat(i.earnings)].filter(v => !isNaN(v)));
+        if (!allValues.length) return [0, 'auto'];
+        const min = Math.min(...allValues), max = Math.max(...allValues), pad = (max - min) * 0.2;
+        return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
+    };
+
+    const getFinancialChartDomain = () => {
+        const chartData = prepareFinancialsChartData();
+        if (!chartData.length) return [0, 'auto'];
+        const allValues = chartData.flatMap(item => Object.entries(item).filter(([k]) => k !== 'year').map(([, v]) => parseFloat(v))).filter(v => !isNaN(v));
+        if (!allValues.length) return [0, 'auto'];
+        const min = Math.min(...allValues), max = Math.max(...allValues), pad = (max - min) * 0.2;
+        return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
+    };
+
+    const handleSpeak = () => {
+        if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); }
+        else {
+            const utterance = new SpeechSynthesisUtterance(stockData?.longBusinessSummary || 'No description available.');
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+            setIsSpeaking(true);
+        }
+    };
+
+    const categories = ['All', ...new Set(popularStocks.map(s => s.category))];
+    const filteredStocks = popularStocks.filter(s => {
+        const matchesCategory = selectedCategory === 'All' || s.category === selectedCategory;
+        const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    const styles = {
+        container: { padding: '15px', maxWidth: '1400px', width: '100%', boxSizing: 'border-box' },
+        searchSection: { marginBottom: '20px', backgroundColor: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+        searchForm: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+        input: { padding: '10px 15px', fontSize: '16px', border: '2px solid #e0e0e0', borderRadius: '6px', width: '200px', maxWidth: '100%', outline: 'none', boxSizing: 'border-box' },
+        searchButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+        browseButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+        aiAnalysisButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' },
+        modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px', overflow: 'auto' },
+        modalContent: { backgroundColor: '#fff', borderRadius: '12px', padding: '30px', maxWidth: '1200px', width: '100%', maxHeight: '90vh', overflow: 'auto', position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', boxSizing: 'border-box' },
+        closeButton: { position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#666', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' },
+        modalHeader: { fontSize: '24px', fontWeight: '700', marginBottom: '20px', color: '#1a1a1a' },
+        categoryFilter: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
+        categoryButton: { padding: '8px 16px', fontSize: '14px', border: '2px solid #e0e0e0', borderRadius: '20px', cursor: 'pointer', backgroundColor: '#fff', color: '#666', fontWeight: '500' },
+        categoryButtonActive: { backgroundColor: '#2563eb', color: '#fff', borderColor: '#2563eb' },
+        stockGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', marginTop: '15px' },
+        stockCard: { padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent', textAlign: 'center' },
+        stockName: { fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '4px' },
+        stockSymbol: { fontSize: '13px', color: '#2563eb', fontWeight: '700' },
+        stockCategory: { fontSize: '11px', color: '#999', marginTop: '4px' },
+        analysisCard: { padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '15px', border: '2px solid transparent', cursor: 'pointer' },
+        analysisCardBullish: { borderLeft: '4px solid #10b981', backgroundColor: '#f0fdf4' },
+        analysisCardBearish: { borderLeft: '4px solid #ef4444', backgroundColor: '#fef2f2' },
+        analysisCardNeutral: { borderLeft: '4px solid #f59e0b', backgroundColor: '#fffbeb' },
+        signalBadge: { display: 'inline-block', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', marginRight: '10px', whiteSpace: 'nowrap', flexShrink: 0 },
+        bullishBadge: { backgroundColor: '#10b981', color: '#fff' },
+        bearishBadge: { backgroundColor: '#ef4444', color: '#fff' },
+        neutralBadge: { backgroundColor: '#f59e0b', color: '#fff' },
+        confidenceBadge: { display: 'inline-block', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: '#e0e0e0', color: '#333', whiteSpace: 'nowrap', flexShrink: 0 },
+        analysisSection: { marginBottom: '30px' },
+        analysisSectionTitle: { fontSize: '20px', fontWeight: '700', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' },
+        deviationText: { fontSize: '13px', color: '#666', marginTop: '8px' },
+        tabContainer: { display: 'flex', gap: '5px', marginBottom: '20px', borderBottom: '2px solid #e0e0e0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
+        tab: { padding: '12px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', borderBottom: '3px solid transparent', color: '#666', whiteSpace: 'nowrap', flexShrink: 0 },
+        activeTabStyle: { borderBottom: '3px solid #2563eb', color: '#2563eb' },
+        contentCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px', width: '100%', boxSizing: 'border-box', overflowX: 'auto' },
+        viewToggle: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
+        toggleButton: { padding: '8px 16px', fontSize: '14px', border: '1px solid #e0e0e0', borderRadius: '6px', cursor: 'pointer', backgroundColor: '#fff', color: '#666', fontWeight: '500' },
+        toggleButtonActive: { backgroundColor: '#2563eb', color: '#fff', borderColor: '#2563eb' },
+        overviewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' },
+        statBox: { padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', borderLeft: '4px solid #2563eb' },
+        statLabel: { fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: '500' },
+        statValue: { fontSize: '20px', fontWeight: '700', color: '#1a1a1a', wordBreak: 'break-word' },
+        table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', minWidth: '600px' },
+        th: { textAlign: 'left', padding: '12px', backgroundColor: '#f8f9fa', fontWeight: '600', borderBottom: '2px solid #e0e0e0' },
+        td: { padding: '12px', borderBottom: '1px solid #e0e0e0' },
+        loading: { textAlign: 'center', padding: '40px', fontSize: '18px', color: '#666' },
+        error: { padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '6px', marginTop: '15px' },
+        companyHeader: { marginBottom: '20px' },
+        companyName: { fontSize: '24px', fontWeight: '700', marginBottom: '5px' },
+        companySymbol: { fontSize: '14px', color: '#666' },
+        voiceControls: { display: 'flex', gap: '10px', marginTop: '15px', marginBottom: '15px', flexWrap: 'wrap', alignItems: 'center' },
+        voiceButton: { padding: '8px 16px', fontSize: '14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
+        voiceButtonStop: { backgroundColor: '#ef4444' },
+        marketSentimentCard: { padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '12px', marginBottom: '30px', border: '3px solid #e0e0e0', boxSizing: 'border-box', width: '100%', overflow: 'hidden' },
+        marketSentimentBullish: { borderColor: '#10b981', backgroundColor: '#f0fdf4' },
+        marketSentimentBearish: { borderColor: '#ef4444', backgroundColor: '#fef2f2' },
+        marketSentimentNeutral: { borderColor: '#f59e0b', backgroundColor: '#fffbeb' },
+        sentimentHeader: { fontSize: '20px', fontWeight: '700', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%' },
+        sentimentGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', width: '100%' },
+        sentimentStatBox: { padding: '15px', backgroundColor: '#fff', borderRadius: '8px', textAlign: 'center', boxSizing: 'border-box', minWidth: '0' },
+        indicesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginTop: '20px', width: '100%', maxWidth: '100%', margin: '20px 0 0 0' },
+        indexCard: { padding: '15px', backgroundColor: '#fff', borderRadius: '8px', border: '2px solid #e0e0e0', boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflow: 'hidden', margin: '0' },
+        indexCardBullish: { borderColor: '#10b981' },
+        indexCardBearish: { borderColor: '#ef4444' },
+        indexCardNeutral: { borderColor: '#f59e0b' },
+        indexName: { fontSize: '18px', fontWeight: '700', marginBottom: '10px' },
+        indexDirection: { fontSize: '14px', marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' },
+        indexReasoning: { fontSize: '13px', color: '#666', lineHeight: '1.5', wordWrap: 'break-word', overflowWrap: 'break-word' },
+    };
+
+    return (
+        <div>
+            <div className="header"><Header /></div>
+            <div className="main-page-body">
+                <SideNavs />
+                <div className="main-body-info">
+                    <h5 className="major-upcoming-news-events-header" style={{ padding: '15px', margin: 0 }}>SnowAI Stock Screener</h5>
+
+                    <div style={styles.container}>
+
+                        {/* Search Section */}
+                        <div style={styles.searchSection}>
+                            <div style={styles.searchForm}>
+                                <input
+                                    type="text"
+                                    value={ticker}
+                                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                                    placeholder="Enter ticker (e.g., AAPL)"
+                                    style={styles.input}
+                                />
+                                <button onClick={handleSearch} style={styles.searchButton} disabled={loading}>
+                                    {loading ? 'Loading...' : 'Search'}
+                                </button>
+                                <button onClick={() => setShowModal(true)} style={styles.browseButton}>
+                                    📊 Browse Stocks
+                                </button>
+                                <button onClick={() => setShowCalendar(c => !c)}
+                                    style={{ ...styles.browseButton, backgroundColor: showCalendar ? '#1e3a5f' : '#6366f1' }}>
+                                    📅 {showCalendar ? 'Hide Calendar' : 'Earnings Calendar'}
+                                </button>
+                                <button onClick={runAIAnalysis} style={styles.aiAnalysisButton} disabled={aiAnalysisRunning}>
+                                    {aiAnalysisRunning ? <><span>⏳</span><span>Analyzing...</span></> : <><span>🤖</span><span>AI Stock Analysis</span></>}
+                                </button>
+                                {aiAnalysisResults && (
+                                    <button onClick={() => setShowAnalysisModal(true)} style={{ ...styles.browseButton, backgroundColor: '#f59e0b' }}>
+                                        📊 View Results
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setShowScanner(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#0f172a',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🔭 Trend Scanner
+                                </button>
+
+                                <button
+                                    onClick={() => setShowScannerHistory(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#10b981',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    📜 Scan History
+                                </button>
+
+                            </div>
+                            {error && <div style={styles.error}>{error}</div>}
+                        </div>
+
+                        {/* Earnings Calendar */}
+                        {showCalendar && (
+                            <EarningsCalendar openaiKey={OPENAI_API_KEY} onSelectTicker={(sym) => {
+                                setTicker(sym);
+                            
+                                setShowCalendar(false);
+                                // Trigger a search for the selected ticker
+                                setTimeout(() => {
+                                    const evt = new KeyboardEvent('keypress', { key: 'Enter', bubbles: true });
+                                    document.querySelector('input[placeholder*="ticker"]')?.dispatchEvent(evt);
+                                }, 100);
+                            }} />
+                        )}
+
+                        {/* Browse Stocks Modal */}
+                        {showModal && (
+                            <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                                <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                                    <button style={styles.closeButton} onClick={() => setShowModal(false)}>x</button>
+                                    <div style={styles.modalHeader}>Select a Stock</div>
+                                    <input type="text" placeholder="Search stocks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ ...styles.input, width: '100%', marginBottom: '15px' }} />
+                                    <div style={styles.categoryFilter}>
+                                        {categories.map(category => (
+                                            <button key={category} onClick={() => setSelectedCategory(category)} style={{ ...styles.categoryButton, ...(selectedCategory === category ? styles.categoryButtonActive : {}) }}>
+                                                {category}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={styles.stockGrid}>
+                                        {filteredStocks.map((stock, idx) => (
+                                            <div key={idx} style={styles.stockCard} onClick={() => handleStockClick(stock.symbol)}
+                                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)'; e.currentTarget.style.borderColor = '#2563eb'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'transparent'; }}>
+                                                <div style={styles.stockName}>{stock.name}</div>
+                                                <div style={styles.stockSymbol}>{stock.symbol}</div>
+                                                <div style={styles.stockCategory}>{stock.category}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* AI Analysis Modal */}
+                        {showAnalysisModal && aiAnalysisResults && (
+                            <div style={styles.modalOverlay} onClick={() => setShowAnalysisModal(false)}>
+                                <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                                    <button style={styles.closeButton} onClick={() => setShowAnalysisModal(false)}>x</button>
+                                    <div style={styles.modalHeader}>🤖 AI Stock Analysis Results</div>
+                                    <p style={{ color: '#666', marginBottom: '20px' }}>Analysis completed at {aiAnalysisResults.timestamp}</p>
+
+                                    {aiAnalysisResults.marketSentiment && (
+                                        <div style={{ ...styles.marketSentimentCard, ...(aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? styles.marketSentimentBullish : aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? styles.marketSentimentBearish : styles.marketSentimentNeutral) }}>
+                                            <div style={styles.sentimentHeader}>
+                                                <span style={{ fontSize: '28px', flexShrink: 0 }}>{aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? '📈' : aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? '📉' : '➡️'}</span>
+                                                <span style={{ flex: '1 1 auto', minWidth: 0 }}>Overall Market Sentiment: {aiAnalysisResults.marketSentiment.marketOutlook}</span>
+                                                <span style={styles.confidenceBadge}>{aiAnalysisResults.marketSentiment.marketConfidence}% Confidence</span>
+                                            </div>
+                                            <p style={{ fontSize: '15px', color: '#333', lineHeight: '1.6', marginBottom: '20px' }}>{aiAnalysisResults.marketSentiment.marketDescription}</p>
+                                            <div style={styles.sentimentGrid}>
+                                                {[
+                                                    { label: 'Bullish Signals', pct: aiAnalysisResults.marketSentiment.bullishPercentage, count: aiAnalysisResults.marketSentiment.bullishCount, color: '#10b981' },
+                                                    { label: 'Bearish Signals', pct: aiAnalysisResults.marketSentiment.bearishPercentage, count: aiAnalysisResults.marketSentiment.bearishCount, color: '#ef4444' },
+                                                    { label: 'Neutral/Stable', pct: aiAnalysisResults.marketSentiment.neutralPercentage, count: aiAnalysisResults.marketSentiment.neutralCount, color: '#f59e0b' },
+                                                    { label: 'Total Market Cap', pct: `$${aiAnalysisResults.marketSentiment.totalMarketCap}T`, count: `${aiAnalysisResults.marketSentiment.totalCount} stocks analyzed`, color: '#2563eb' },
+                                                ].map((item, i) => (
+                                                    <div key={i} style={styles.sentimentStatBox}>
+                                                        <div style={{ fontSize: '13px', color: '#666', marginBottom: '5px' }}>{item.label}</div>
+                                                        <div style={{ fontSize: '24px', fontWeight: '700', color: item.color }}>{item.pct}{i < 3 ? '%' : ''}</div>
+                                                        <div style={{ fontSize: '12px', color: '#999' }}>{item.count}{i < 3 ? ' stocks' : ''}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div style={{ marginTop: '25px' }}>
+                                                <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '15px' }}>📊 US Stock Indices Outlook</h4>
+                                                <div style={styles.indicesGrid}>
+                                                    {[
+                                                        { name: 'S&P 500', key: 'sp500' },
+                                                        { name: 'NASDAQ Composite', key: 'nasdaq' },
+                                                        { name: 'Dow Jones Industrial', key: 'dowJones' },
+                                                    ].map(({ name, key }) => {
+                                                        const idx = aiAnalysisResults.marketSentiment.indicesOutlook[key];
+                                                        return (
+                                                            <div key={key} style={{ ...styles.indexCard, ...(idx.direction === 'BULLISH' ? styles.indexCardBullish : idx.direction === 'BEARISH' ? styles.indexCardBearish : styles.indexCardNeutral) }}>
+                                                                <div style={styles.indexName}>{name}</div>
+                                                                <div style={styles.indexDirection}>
+                                                                    <span style={{ ...styles.signalBadge, ...(idx.direction === 'BULLISH' ? styles.bullishBadge : idx.direction === 'BEARISH' ? styles.bearishBadge : styles.neutralBadge) }}>{idx.direction}</span>
+                                                                    <span style={styles.confidenceBadge}>{idx.confidence}%</span>
+                                                                </div>
+                                                                <div style={styles.indexReasoning}>{idx.reasoning}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={styles.categoryFilter}>
+                                        <button onClick={() => setAnalysisFilterCategory('All')} style={{ ...styles.categoryButton, ...(analysisFilterCategory === 'All' ? styles.categoryButtonActive : {}) }}>All Stocks</button>
+                                        {categories.filter(c => c !== 'All').map(category => (
+                                            <button key={category} onClick={() => setAnalysisFilterCategory(category)} style={{ ...styles.categoryButton, ...(analysisFilterCategory === category ? styles.categoryButtonActive : {}) }}>{category}</button>
+                                        ))}
+                                    </div>
+
+                                    {[
+                                        { key: 'bullish', icon: '📈', label: 'Bullish Opportunities', cardStyle: styles.analysisCardBullish, badgeStyle: styles.bullishBadge, hoverShadow: 'rgba(16,185,129,0.2)', devColor: '#10b981' },
+                                        { key: 'bearish', icon: '📉', label: 'Bearish Warnings', cardStyle: styles.analysisCardBearish, badgeStyle: styles.bearishBadge, hoverShadow: 'rgba(239,68,68,0.2)', devColor: '#ef4444' },
+                                        { key: 'neutral', icon: '➡️', label: 'Neutral / Stable', cardStyle: styles.analysisCardNeutral, badgeStyle: styles.neutralBadge, hoverShadow: 'rgba(245,158,11,0.2)', devColor: '#666' },
+                                    ].map(({ key, icon, label, cardStyle, badgeStyle, hoverShadow, devColor }) => {
+                                        const filtered = analysisFilterCategory === 'All' ? aiAnalysisResults[key] : aiAnalysisResults[key].filter(s => s.category === analysisFilterCategory);
+                                        if (!filtered.length) return null;
+                                        return (
+                                            <div key={key} style={styles.analysisSection}>
+                                                <div style={styles.analysisSectionTitle}><span>{icon}</span><span>{label} ({filtered.length})</span></div>
+                                                {filtered.map((stock, idx) => (
+                                                    <div key={idx} style={{ ...styles.analysisCard, ...cardStyle }} onClick={() => handleStockClick(stock.symbol)}
+                                                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(5px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${hoverShadow}`; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                                                            <div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{stock.name} ({stock.symbol})</div>
+                                                                <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{stock.category}</div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <span style={{ ...styles.signalBadge, ...badgeStyle }}>{key.toUpperCase()}</span>
+                                                                <span style={styles.confidenceBadge}>{stock.confidence}% Confidence</span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>{stock.reason}</div>
+                                                        <div style={styles.deviationText}>
+                                                            Revenue Growth: <strong style={{ color: devColor }}>{stock.revenueDeviation > 0 ? '+' : ''}{stock.revenueDeviation}%</strong> |
+                                                            Earnings Growth: <strong style={{ color: devColor }}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Stock Data */}
+                        {stockData && (
+                            <>
+                                <div style={styles.companyHeader}>
+                                    <div style={styles.companyName}>{stockData.longName || ticker}</div>
+                                    <div style={styles.companySymbol}>{stockData.symbol} * {stockData.sector} * {stockData.industry}</div>
+                                </div>
+
+                                <div style={styles.tabContainer}>
+                                    {[
+                                        { id: 'overview',   label: 'Overview' },
+                                        { id: 'financials', label: 'Financials' },
+                                        { id: 'earnings',   label: 'Earnings' },
+                                        { id: 'chart',      label: '📊 Chart' },
+                                        { id: 'news',       label: 'News' },
+                                    ].map(({ id, label }) => (
+                                        <button key={id} style={{ ...styles.tab, ...(activeTab === id ? styles.activeTabStyle : {}) }} onClick={() => setActiveTab(id)}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {activeTab === 'overview' && (
+                                    <div style={styles.contentCard}>
+                                        <h3>Company Overview</h3>
+                                        <div style={styles.overviewGrid}>
+                                            {[
+                                                { label: 'Current Price', value: `$${stockData.currentPrice?.toFixed(2) || 'N/A'}` },
+                                                { label: 'Market Cap', value: stockData.marketCap ? `$${(stockData.marketCap / 1e9).toFixed(2)}B` : 'N/A' },
+                                                { label: 'P/E Ratio', value: stockData.trailingPE?.toFixed(2) || 'N/A' },
+                                                { label: '52 Week High', value: `$${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}` },
+                                                { label: '52 Week Low', value: `$${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}` },
+                                                { label: 'Dividend Yield', value: stockData.dividendYield ? `${(stockData.dividendYield * 100).toFixed(2)}%` : 'N/A' },
+                                            ].map(({ label, value }, i) => (
+                                                <div key={i} style={styles.statBox}>
+                                                    <div style={styles.statLabel}>{label}</div>
+                                                    <div style={styles.statValue}>{value}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ marginTop: '20px' }}>
+                                            <h4>About</h4>
+                                            <div style={styles.voiceControls}>
+                                                <button onClick={handleSpeak} style={{ ...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {}) }}>
+                                                    {isSpeaking ? 'Stop Stop Reading' : '🔊 Read Aloud'}
+                                                </button>
+                                                <select value={selectedVoice?.name || ''} onChange={e => setSelectedVoice(voices.find(v => v.name === e.target.value))}>
+                                                    {voices.map((voice, idx) => <option key={idx} value={voice.name}>{voice.name} ({voice.lang})</option>)}
+                                                </select>
+                                            </div>
+                                            <p style={{ lineHeight: '1.6', color: '#444' }}>{stockData.longBusinessSummary || 'No description available.'}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'financials' && financials && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3>Financial Statements (Annual)</h3>
+                                            <div style={styles.viewToggle}>
+                                                {['table', 'chart'].map(v => (
+                                                    <button key={v} onClick={() => setFinancialsView(v)} style={{ ...styles.toggleButton, ...(financialsView === v ? styles.toggleButtonActive : {}) }}>
+                                                        {v === 'table' ? 'Table View' : 'Chart View'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {financialsView === 'table' ? (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={styles.table}>
+                                                    <thead><tr><th style={styles.th}>Metric</th>{financials.columns?.map((col, idx) => <th key={idx} style={styles.th}>{col}</th>)}</tr></thead>
+                                                    <tbody>{financials.data?.map((row, idx) => (<tr key={idx}><td style={{ ...styles.td, fontWeight: '600' }}>{row.metric}</td>{row.values?.map((val, i) => <td key={i} style={styles.td}>{val && val !== 0 ? `${(val / 1e9).toFixed(2)}B` : 'N/A'}</td>)}</tr>))}</tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={prepareFinancialsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="year" /><YAxis domain={getFinancialChartDomain()} label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={v => `${v}B`} /><Legend />
+                                                    {financials.data?.map((row, idx) => <Line key={idx} type="monotone" dataKey={row.metric} stroke={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][idx % 4]} strokeWidth={2} />)}
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'earnings' && earnings && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3>Quarterly Earnings</h3>
+                                            <div style={styles.viewToggle}>
+                                                {['table', 'chart'].map(v => (
+                                                    <button key={v} onClick={() => setEarningsView(v)} style={{ ...styles.toggleButton, ...(earningsView === v ? styles.toggleButtonActive : {}) }}>
+                                                        {v === 'table' ? 'Table View' : 'Chart View'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {earningsView === 'table' ? (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={styles.table}>
+                                                    <thead><tr><th style={styles.th}>Quarter</th><th style={styles.th}>Revenue</th><th style={styles.th}>Earnings</th></tr></thead>
+                                                    <tbody>{earnings.map((e, idx) => (<tr key={idx}><td style={styles.td}>{e.quarter}</td><td style={styles.td}>{e.revenue && e.revenue !== 0 ? `${(e.revenue / 1e9).toFixed(2)}B` : 'N/A'}</td><td style={styles.td}>{e.earnings && e.earnings !== 0 ? `${(e.earnings / 1e9).toFixed(2)}B` : 'N/A'}</td></tr>))}</tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <BarChart data={prepareEarningsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="quarter" /><YAxis domain={getChartDomain()} label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={v => v ? `${v}B` : 'N/A'} /><Legend />
+                                                    <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
+                                                    <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* -- Chart & Insights Tab -- */}
+                                {activeTab === 'chart' && (
+                                    <div style={{ ...styles.contentCard, padding: 0, backgroundColor: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+                                        <ChartInsightsTab
+                                            ticker={ticker}
+                                            stockData={stockData}
+                                            earnings={earnings}
+                                            news={news}
+                                            marketauxNews={hoistedMarketauxNews}
+                                            openaiKey={OPENAI_API_KEY}
+                                            cachedNewsAnalysis={mainCachedNewsAnalyses[ticker] || null}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* -- Enhanced News Tab -- */}
+                                {activeTab === 'news' && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3 style={{ margin: 0 }}>Recent News</h3>
+                                            <div style={{ fontSize: '13px', color: '#999', backgroundColor: '#f0f4ff', padding: '6px 12px', borderRadius: '20px', border: '1px solid #dbeafe' }}>
+                                                💡 Tip: Fetch Deep News for Marketaux analysis
+                                            </div>
+                                        </div>
+                                        <EnhancedNewsSection
+                                            ticker={ticker}
+                                            baseUrl={baseUrl}
+                                            existingNews={news}
+                                            openaiKey={OPENAI_API_KEY}
+                                            stockData={stockData}
+                                            hoistedMarketauxNews={hoistedMarketauxNews}
+                                            setHoistedMarketauxNews={setHoistedMarketauxNews}
+                                            hoistedFetchingNews={hoistedFetchingNews}
+                                            setHoistedFetchingNews={setHoistedFetchingNews}
+                                            hoistedNewsError={hoistedNewsError}
+                                            setHoistedNewsError={setHoistedNewsError}
+                                            hoistedHasFetched={hoistedHasFetched}
+                                            setHoistedHasFetched={setHoistedHasFetched}
+                                            hoistedActiveNewsTab={hoistedActiveNewsTab}
+                                            setHoistedActiveNewsTab={setHoistedActiveNewsTab}
+                                            hoistedCachedAnalyses={hoistedCachedAnalyses}
+                                            setHoistedCachedAnalyses={setHoistedCachedAnalyses}
+                                            hoistedShowAnalysisModal={hoistedShowAnalysisModal}
+                                            setHoistedShowAnalysisModal={setHoistedShowAnalysisModal}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {!stockData && !loading && (
+                            <div style={styles.loading}>
+                                Enter a stock ticker, browse stocks, or run AI analysis to get started
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Sabrina AI Chatbot -- always available */}
+            <SabrinaChat
+                stockData={stockData}
+                financials={financials}
+                earnings={earnings}
+                news={news}
+                ticker={ticker}
+                openaiKey={OPENAI_API_KEY}
+            />
+            <TrendReversalScanner
+                isOpen={showScanner}
+                onClose={() => setShowScanner(false)}
+                onSelectTicker={handleStockClick}
+                openaiKey={OPENAI_API_KEY}
+            />
+            <ScannerHistoryModal
+                isOpen={showScannerHistory}
+                onClose={() => setShowScannerHistory(false)}
+                onSelectTicker={handleStockClick}
+            />
+
+        </div>
+    );
+}
