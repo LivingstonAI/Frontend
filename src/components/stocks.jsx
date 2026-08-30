@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Target, Brain, Telescope, ArrowUpDown, Gauge, BarChart3, AlertTriangle, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Brain, Telescope, ArrowUpDown, Gauge, BarChart3, AlertTriangle, Calendar, Globe, Award, Repeat } from 'lucide-react';
 import Header from "./header";
 import SideNavs from "./side_navs";
 
@@ -2536,6 +2536,375 @@ function GlobalPicksDetailTable({ rows, horizons, sortField, sortDir, onSort, on
     );
 }
 
+function computeAggregateFromRows(rows, horizons) {
+    const cell = {};
+    horizons.forEach(h => { cell[String(h)] = { count: 0, dirSum: 0, wins: 0 }; });
+    (rows || []).forEach(r => {
+        if (r.error) return;
+        horizons.forEach(h => {
+            const v = r.directionAdjustedReturns?.[String(h)];
+            if (v == null) return;
+            const c = cell[String(h)];
+            c.count += 1; c.dirSum += v; if (v > 0) c.wins += 1;
+        });
+    });
+    const out = { ALL: {} };
+    horizons.forEach(h => {
+        const c = cell[String(h)];
+        out.ALL[String(h)] = c.count === 0
+            ? { count: 0, avgReturn: null, avgDirectionAdjustedReturn: null, winRate: null }
+            : {
+                count: c.count,
+                avgReturn: Math.round((c.dirSum / c.count) * 100) / 100,
+                avgDirectionAdjustedReturn: Math.round((c.dirSum / c.count) * 100) / 100,
+                winRate: Math.round((c.wins / c.count) * 1000) / 10,
+            };
+    });
+    return out;
+}
+
+function normalizeRowsForPerfModal(rawRows, source) {
+    return (rawRows || []).map(r => ({
+        date: r.date,
+        label: source === 'scanner' ? (r.signal || '').replace(/_/g, ' ') : (r.rec || ''),
+        direction: r.direction,
+        scoreLabel: source === 'scanner'
+            ? `Score ${r.score != null ? Math.round(r.score) : '—'}`
+            : `Conviction ${r.conviction ?? '—'}`,
+        entryPrice: r.entryPrice,
+        error: r.error,
+        directionAdjustedReturns: r.directionAdjustedReturns,
+        rawReturns: r.rawReturns,
+    }));
+}
+
+function TickerReturnTimelineTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+        <div style={{ backgroundColor:'#0f172a', color:'#fff', padding:'8px 12px', borderRadius:'8px', fontSize:'12px', lineHeight:1.6 }}>
+            <div style={{ fontWeight:'800' }}>{d.date}</div>
+            <div>{d.label}</div>
+            <div>Return: <strong style={{ color: d.value >= 0 ? '#10b981' : '#ef4444' }}>{d.value >= 0 ? '+' : ''}{d.value}%</strong></div>
+            {d.entryPrice != null && <div>Entry: ${d.entryPrice}</div>}
+        </div>
+    );
+}
+
+function TickerReturnTimelineChart({ rows, horizon }) {
+    const data = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ date: r.date, label: r.label, value: r.directionAdjustedReturns[horizon], entryPrice: r.entryPrice }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    if (data.length === 0) return null;
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <Calendar size={15} color="#1a1a1a" />
+                <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Return Over Time — {horizon}D Horizon</span>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <Tooltip content={<TickerReturnTimelineTooltip />} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function ScannerBacktestTopBottomPerformers({ rows, horizon }) {
+    const resolved = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ ...r, value: r.directionAdjustedReturns[horizon] }));
+    if (resolved.length < 2) return null;
+
+    const sorted = [...resolved].sort((a, b) => b.value - a.value);
+    const best  = sorted[0];
+    const worst = sorted[sorted.length - 1];
+
+    const Card = ({ item, isBest }) => (
+        <div style={{
+            flex:1, minWidth:'220px', padding:'12px 14px', borderRadius:'10px',
+            backgroundColor: isBest ? '#f0fdf4' : '#fef2f2',
+            border:`1px solid ${isBest ? '#bbf7d0' : '#fecaca'}`,
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px' }}>
+                {isBest ? <TrendingUp size={14} color="#10b981" /> : <TrendingDown size={14} color="#ef4444" />}
+                <span style={{ fontSize:'10px', fontWeight:'800', color: isBest ? '#10b981' : '#ef4444', letterSpacing:'0.06em' }}>
+                    {isBest ? 'BEST SIGNAL' : 'WORST SIGNAL'} · {horizon}D
+                </span>
+            </div>
+            <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{item.ticker}</div>
+            <div style={{ fontSize:'11px', color:'#64748b', marginTop:'2px' }}>
+                {(item.signal || '').replace(/_/g,' ')} · {item.direction} · flagged {item.date}
+            </div>
+            <div style={{ fontSize:'20px', fontWeight:'900', color: isBest ? '#10b981' : '#ef4444', marginTop:'6px' }}>
+                {item.value >= 0 ? '+' : ''}{item.value}%
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'22px' }}>
+            <Card item={best} isBest={true} />
+            <Card item={worst} isBest={false} />
+        </div>
+    );
+}
+
+function ScannerBacktestDetailTable({ rows, horizons, onSelectAsset, onSelectTicker, onClose }) {
+    const [search, setSearch] = React.useState('');
+    const [sortField, setSortField] = React.useState('date');
+    const [sortDir, setSortDir] = React.useState('desc');
+
+    if (!rows || rows.length === 0) return null;
+
+    const filtered = search.trim()
+        ? rows.filter(r => r.ticker?.toUpperCase().includes(search.trim().toUpperCase()))
+        : rows;
+
+    const sorted = [...filtered].sort((a, b) => {
+        let av, bv;
+        if (sortField === 'date')        { av = a.date; bv = b.date; }
+        else if (sortField === 'ticker') { av = a.ticker; bv = b.ticker; }
+        else if (sortField === 'signal') { av = a.signal || ''; bv = b.signal || ''; }
+        else if (sortField === 'score')  { av = a.score ?? -1; bv = b.score ?? -1; }
+        else {
+            av = a.directionAdjustedReturns?.[sortField]; av = av == null ? -Infinity : av;
+            bv = b.directionAdjustedReturns?.[sortField]; bv = bv == null ? -Infinity : bv;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const onSort = (field) => {
+        if (field === sortField) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortDir('desc'); }
+    };
+
+    const SortHeader = ({ field, label, align = 'left' }) => (
+        <th onClick={() => onSort(field)} style={{
+            padding:'8px 10px', textAlign:align, fontWeight:'700', color: sortField === field ? '#2563eb' : '#64748b',
+            borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none',
+        }}>
+            {label} {sortField === field ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </th>
+    );
+
+    return (
+        <div style={{ marginBottom:'20px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <Telescope size={14} />
+                    <span style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>Individual Signals — {filtered.length} of {rows.length}</span>
+                </div>
+                <input
+                    type="text" value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder="Search ticker..."
+                    style={{ padding:'4px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'11px', outline:'none', width:'130px' }}
+                />
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>click a column to sort · click a ticker for detailed stats</span>
+            </div>
+            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                    <thead>
+                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                            <SortHeader field="ticker" label="Ticker" />
+                            <SortHeader field="signal" label="Signal" />
+                            <th style={{ padding:'8px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Dir</th>
+                            <SortHeader field="score" label="Score" align="center" />
+                            <SortHeader field="date" label="Date" />
+                            {horizons.map(h => (
+                                <SortHeader key={h} field={String(h)} label={HORIZON_LABELS[h] || `${h}D`} align="center" />
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((r, i) => (
+                            <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <td style={{ padding:'7px 10px', fontWeight:'800', whiteSpace:'nowrap' }}>
+                                    <span onClick={() => onSelectAsset(r.ticker)} style={{ cursor:'pointer', color:'#7c3aed', textDecoration:'underline dotted' }}>
+                                        {r.ticker}
+                                    </span>
+                                    {onSelectTicker && (
+                                        <span onClick={() => { onSelectTicker(r.ticker); onClose && onClose(); }} title="Open in full screener"
+                                            style={{ marginLeft:'6px', fontSize:'10px', color:'#94a3b8', cursor:'pointer' }}>↗</span>
+                                    )}
+                                </td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{(r.signal || '').replace(/_/g,' ')}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                    <span style={{
+                                        fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                        backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                        color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'}</span>
+                                </td>
+                                <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{r.score != null ? Math.round(r.score) : '—'}</td>
+                                <td style={{ padding:'7px 10px', color:'#64748b', whiteSpace:'nowrap' }}>{r.date}</td>
+                                {horizons.map(h => {
+                                    if (r.error) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }} title={r.error}>err</td>;
+                                    const v = r.directionAdjustedReturns?.[String(h)];
+                                    if (v == null) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                    return (
+                                        <td key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: v >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {v >= 0 ? '+' : ''}{v}%
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                        {sorted.length === 0 && (
+                            <tr><td colSpan={5 + horizons.length} style={{ padding:'20px', textAlign:'center', color:'#94a3b8' }}>No tickers match "{search}"</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function TickerPerformanceModal({ symbol, rows, horizons, sourceLabel, onClose, onOpenInScreener }) {
+    const [horizon, setHorizon] = React.useState('5');
+    if (!symbol) return null;
+
+    const resolvedCount = rows.filter(r => !r.error).length;
+    const errorCount = rows.length - resolvedCount;
+    const aggregate = computeAggregateFromRows(rows, horizons);
+    const currentCell = aggregate.ALL[horizon];
+
+    const sortedByDate = [...rows].sort((a, b) => b.date.localeCompare(a.date));
+    const firstDate = rows.length ? [...rows].sort((a, b) => a.date.localeCompare(b.date))[0].date : null;
+    const lastDate  = rows.length ? sortedByDate[0].date : null;
+
+    const resolvedAtHorizon = rows.filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null);
+    const best  = resolvedAtHorizon.length ? [...resolvedAtHorizon].sort((a, b) => b.directionAdjustedReturns[horizon] - a.directionAdjustedReturns[horizon])[0] : null;
+    const worst = resolvedAtHorizon.length ? [...resolvedAtHorizon].sort((a, b) => a.directionAdjustedReturns[horizon] - b.directionAdjustedReturns[horizon])[0] : null;
+
+    return (
+        <div
+            style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10035, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto' }}
+            onClick={onClose}
+        >
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'720px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.3)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                    <div>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                            <BarChart3 size={18} color="#fff" />
+                            <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>{symbol}</span>
+                            <span style={{ fontSize:'11px', fontWeight:'700', padding:'2px 9px', borderRadius:'20px', backgroundColor:'rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.8)' }}>{sourceLabel}</span>
+                        </div>
+                        <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                            {rows.length} occurrence{rows.length !== 1 ? 's' : ''} {firstDate && lastDate ? `· ${firstDate} → ${lastDate}` : ''}
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                </div>
+
+                <div style={{ padding:'20px', maxHeight:'72vh', overflowY:'auto' }}>
+                    <div style={{ display:'flex', gap:'6px', marginBottom:'16px' }}>
+                        {horizons.map(h => (
+                            <button key={h} onClick={() => setHorizon(String(h))} style={{
+                                padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${horizon === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                                backgroundColor: horizon === String(h) ? '#eff6ff' : '#fff',
+                                color: horizon === String(h) ? '#2563eb' : '#94a3b8',
+                            }}>{h}D</button>
+                        ))}
+                    </div>
+
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'10px', marginBottom:'22px' }}>
+                        {[
+                            { label:'Occurrences', value: rows.length, Icon: Repeat, color:'#3b82f6' },
+                            { label:`Win Rate (${horizon}D)`, value: currentCell?.winRate != null ? `${currentCell.winRate}%` : '—', Icon: Target, color: currentCell?.winRate >= 50 ? '#10b981' : '#ef4444' },
+                            { label:`Avg Return (${horizon}D)`, value: currentCell?.avgDirectionAdjustedReturn != null ? `${currentCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${currentCell.avgDirectionAdjustedReturn}%` : '—', Icon: BarChart3, color: currentCell?.avgDirectionAdjustedReturn >= 0 ? '#10b981' : '#ef4444' },
+                            { label:'Data Errors', value: errorCount, Icon: AlertTriangle, color: errorCount > 0 ? '#f59e0b' : '#94a3b8' },
+                        ].map((s, i) => (
+                            <div key={i} style={{ padding:'12px', borderRadius:'10px', backgroundColor:'#f8fafc', border:'1px solid #e2e8f0' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                    <s.Icon size={12} color={s.color} />
+                                    <span style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.05em' }}>{s.label.toUpperCase()}</span>
+                                </div>
+                                <div style={{ fontSize:'17px', fontWeight:'800', color:s.color }}>{s.value}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {(best || worst) && (
+                        <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'22px' }}>
+                            {best && (
+                                <div style={{ flex:1, minWidth:'200px', padding:'10px 12px', borderRadius:'10px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                        <Award size={13} color="#10b981" />
+                                        <span style={{ fontSize:'10px', fontWeight:'800', color:'#10b981' }}>BEST CALL</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'#333' }}>{best.date} · {best.label}</div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#10b981' }}>+{best.directionAdjustedReturns[horizon]}%</div>
+                                </div>
+                            )}
+                            {worst && (
+                                <div style={{ flex:1, minWidth:'200px', padding:'10px 12px', borderRadius:'10px', backgroundColor:'#fef2f2', border:'1px solid #fecaca' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                        <TrendingDown size={13} color="#ef4444" />
+                                        <span style={{ fontSize:'10px', fontWeight:'800', color:'#ef4444' }}>WORST CALL</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'#333' }}>{worst.date} · {worst.label}</div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#ef4444' }}>{worst.directionAdjustedReturns[horizon]}%</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <BacktestReturnByHorizonChart aggregate={aggregate} horizons={horizons} />
+                    <TickerReturnTimelineChart rows={rows} horizon={horizon} />
+
+                    <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px' }}>All Occurrences</div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'6px', marginBottom:'12px' }}>
+                        {sortedByDate.map((r, i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'11px', color:'#64748b', minWidth:'75px' }}>{r.date}</span>
+                                <span style={{ fontSize:'11px', color:'#475569' }}>{r.label}</span>
+                                <span style={{
+                                    fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                    backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                    color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                }}>{r.direction}</span>
+                                <span style={{ fontSize:'10px', color:'#94a3b8' }}>{r.scoreLabel}</span>
+                                <span style={{ marginLeft:'auto', fontSize:'12px', fontWeight:'800',
+                                    color: r.error ? '#94a3b8' : (r.directionAdjustedReturns?.[horizon] >= 0 ? '#10b981' : '#ef4444') }}>
+                                    {r.error ? 'no data' : (r.directionAdjustedReturns?.[horizon] != null ? `${r.directionAdjustedReturns[horizon] >= 0 ? '+' : ''}${r.directionAdjustedReturns[horizon]}%` : '—')}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {onOpenInScreener && (
+                        <button onClick={onOpenInScreener} style={{
+                            width:'100%', padding:'11px', borderRadius:'10px',
+                            background:'linear-gradient(135deg,#1e3a5f,#2563eb)', color:'#fff', border:'none',
+                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                        }}>→ Open {symbol} in Full Screener</button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
@@ -2575,6 +2944,9 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const [gpHasRun, setGpHasRun] = React.useState(false);
     const [gpSortField, setGpSortField] = React.useState('date');
     const [gpSortDir, setGpSortDir] = React.useState('desc');
+
+    // -- Performance detail modal (works for either source) --
+    const [perfModalAsset, setPerfModalAsset] = React.useState(null); // { symbol, source: 'scanner' | 'globalPicks' }
 
     const HIST_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
@@ -2760,7 +3132,8 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
 
     if (!isOpen) return null;
 
-    return (
+        return (
+        <>
         <div
             style={{
                 position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10025,
@@ -3099,19 +3472,26 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                         💡 Returns below are <strong>direction-adjusted</strong> — a BEARISH signal that saw price fall is counted as a <em>win</em>, not a loss. Win rate = % of resolved snapshots where the direction call was correct at that horizon. Horizons with no data yet are excluded, not guessed at.
                                     </div>
                                     <BacktestPlainEnglish btData={btData} />
+                                    <ScannerBacktestTopBottomPerformers rows={btData.rows} horizon={btHorizonFocus} />
                                     <BacktestReturnByHorizonChart aggregate={btData.aggregate} horizons={BT_HORIZONS} />
                                     <BacktestSignalComparisonChart bySignal={btData.bySignal} horizon={btHorizonFocus} onHorizonChange={setBtHorizonFocus} horizons={BT_HORIZONS} />
                                     {renderBacktestTable('Overall', btData.aggregate, BarChart3)}
                                     {renderBacktestTable('By Signal', btData.bySignal, Telescope)}
                                     {renderBacktestTable('By Direction', btData.byDirection, ArrowUpDown)}
                                     {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, Brain)}
-                                    {renderBacktestTable('By Scanner Score', btData.byScoreBucket, Gauge)}
+                                                                        {renderBacktestTable('By Scanner Score', btData.byScoreBucket, Gauge)}
+                                    <ScannerBacktestDetailTable
+                                        rows={btData.rows} horizons={BT_HORIZONS}
+                                        onSelectAsset={(ticker) => setPerfModalAsset({ symbol: ticker, source: 'scanner' })}
+                                        onSelectTicker={onSelectTicker}
+                                        onClose={onClose}
+                                    />
                                 </>
                             )}
                         </div>
                     )}
 
-                                        {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                    {viewMode === 'backtest' && btSource === 'globalPicks' && (
                         <div style={{ padding:'20px' }}>
                             {!gpHasRun && !gpLoading && (
                                 <div style={{ padding:'50px 20px', textAlign:'center' }}>
@@ -3184,10 +3564,26 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                 </div>
             </div>
 
-            <style>{`
+                        <style>{`
                 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
             `}</style>
         </div>
+
+        {perfModalAsset && (
+            <TickerPerformanceModal
+                symbol={perfModalAsset.symbol}
+                rows={
+                    perfModalAsset.source === 'scanner'
+                        ? normalizeRowsForPerfModal((btData?.rows || []).filter(r => r.ticker === perfModalAsset.symbol), 'scanner')
+                        : normalizeRowsForPerfModal((gpData?.rows || []).filter(r => r.symbol === perfModalAsset.symbol), 'globalPicks')
+                }
+                horizons={BT_HORIZONS}
+                sourceLabel={perfModalAsset.source === 'scanner' ? 'Trend Scanner' : 'Global Stock Picks'}
+                onClose={() => setPerfModalAsset(null)}
+                onOpenInScreener={onSelectTicker ? () => { onSelectTicker(perfModalAsset.symbol); setPerfModalAsset(null); onClose && onClose(); } : null}
+            />
+        )}
+        </>
     );
 }
 
