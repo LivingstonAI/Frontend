@@ -2394,6 +2394,148 @@ function GlobalPicksPlainEnglish({ gpData }) {
     );
 }
 
+function GlobalPicksTopBottomPerformers({ rows, horizon }) {
+    const resolved = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ ...r, value: r.directionAdjustedReturns[horizon] }));
+    if (resolved.length < 2) return null;
+
+    const sorted = [...resolved].sort((a, b) => b.value - a.value);
+    const best  = sorted[0];
+    const worst = sorted[sorted.length - 1];
+
+    const Card = ({ item, isBest }) => (
+        <div style={{
+            flex:1, minWidth:'220px', padding:'12px 14px', borderRadius:'10px',
+            backgroundColor: isBest ? '#f0fdf4' : '#fef2f2',
+            border:`1px solid ${isBest ? '#bbf7d0' : '#fecaca'}`,
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px' }}>
+                {isBest ? <TrendingUp size={14} color="#10b981" /> : <TrendingDown size={14} color="#ef4444" />}
+                <span style={{ fontSize:'10px', fontWeight:'800', color: isBest ? '#10b981' : '#ef4444', letterSpacing:'0.06em' }}>
+                    {isBest ? 'BEST PERFORMER' : 'WORST PERFORMER'} · {horizon}D
+                </span>
+            </div>
+            <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>
+                {item.flag} {item.symbol} <span style={{ fontWeight:'500', color:'#64748b', fontSize:'12px' }}>({item.name})</span>
+            </div>
+            <div style={{ fontSize:'11px', color:'#64748b', marginTop:'2px' }}>
+                {item.country} · {item.sector} · {item.rec} · saved {item.date}
+            </div>
+            <div style={{ fontSize:'20px', fontWeight:'900', color: isBest ? '#10b981' : '#ef4444', marginTop:'6px' }}>
+                {item.value >= 0 ? '+' : ''}{item.value}%
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'22px' }}>
+            <Card item={best} isBest={true} />
+            <Card item={worst} isBest={false} />
+        </div>
+    );
+}
+
+function GlobalPicksDetailTable({ rows, horizons, sortField, sortDir, onSort, onSelectTicker, onClose }) {
+    if (!rows || rows.length === 0) return null;
+
+    const sorted = [...rows].sort((a, b) => {
+        let av, bv;
+        if (sortField === 'date')          { av = a.date; bv = b.date; }
+        else if (sortField === 'symbol')   { av = a.symbol; bv = b.symbol; }
+        else if (sortField === 'country')  { av = a.country || ''; bv = b.country || ''; }
+        else if (sortField === 'sector')   { av = a.sector || ''; bv = b.sector || ''; }
+        else if (sortField === 'conviction') { av = a.conviction ?? -1; bv = b.conviction ?? -1; }
+        else {
+            av = a.directionAdjustedReturns?.[sortField]; av = av == null ? -Infinity : av;
+            bv = b.directionAdjustedReturns?.[sortField]; bv = bv == null ? -Infinity : bv;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const SortHeader = ({ field, label, align = 'left' }) => (
+        <th
+            onClick={() => onSort(field)}
+            style={{
+                padding:'8px 10px', textAlign:align, fontWeight:'700', color: sortField === field ? '#7c3aed' : '#64748b',
+                borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none',
+            }}
+        >
+            {label} {sortField === field ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </th>
+    );
+
+    return (
+        <div style={{ marginBottom:'20px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <span style={{ fontSize:'14px' }}>🌍</span>
+                <span style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>Individual Picks — {rows.length} total</span>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>click a column to sort · click a symbol to open in screener</span>
+            </div>
+            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                    <thead>
+                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                            <SortHeader field="symbol" label="Symbol" />
+                            <SortHeader field="country" label="Country" />
+                            <SortHeader field="sector" label="Sector" />
+                            <SortHeader field="conviction" label="Conv." align="center" />
+                            <SortHeader field="date" label="Saved" />
+                            <th style={{ padding:'8px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Dir</th>
+                            {horizons.map(h => (
+                                <SortHeader key={h} field={String(h)} label={HORIZON_LABELS[h] || `${h}D`} align="center" />
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((r, i) => (
+                            <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <td style={{ padding:'7px 10px', fontWeight:'800', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                    {onSelectTicker ? (
+                                        <span
+                                            onClick={() => { onSelectTicker(r.symbol); onClose && onClose(); }}
+                                            style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}
+                                        >{r.flag} {r.symbol}</span>
+                                    ) : <>{r.flag} {r.symbol}</>}
+                                    {r.topPick && <span title="Flagged as Top Pick" style={{ marginLeft:'4px' }}>⭐</span>}
+                                </td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{r.country}</td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{r.sector}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{r.conviction ?? '—'}</td>
+                                <td style={{ padding:'7px 10px', color:'#64748b', whiteSpace:'nowrap' }}>{r.date}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                    <span style={{
+                                        fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                        backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                        color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'}</span>
+                                </td>
+                                {horizons.map(h => {
+                                    if (r.error) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }} title={r.error}>err</td>;
+                                    const v = r.directionAdjustedReturns?.[String(h)];
+                                    if (v == null) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                    return (
+                                        <td key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: v >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {v >= 0 ? '+' : ''}{v}%
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
@@ -2430,6 +2572,9 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const [gpError, setGpError] = React.useState(null);
     const [gpData, setGpData] = React.useState(null);
     const [gpHorizonFocus, setGpHorizonFocus] = React.useState('5');
+    const [gpHasRun, setGpHasRun] = React.useState(false);
+    const [gpSortField, setGpSortField] = React.useState('date');
+    const [gpSortDir, setGpSortDir] = React.useState('desc');
 
     const HIST_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
@@ -2505,6 +2650,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const fetchGlobalPicksBacktest = async () => {
         setGpLoading(true);
         setGpError(null);
+        setGpHasRun(true);
         try {
             const body = { limit: 1000, horizons: BT_HORIZONS };
             if (tickerSearch.trim())    body.symbol        = tickerSearch.trim().toUpperCase();
@@ -2538,10 +2684,11 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     };
     const isActiveFetchLoading = viewMode === 'timeline' ? loading : (btSource === 'globalPicks' ? gpLoading : btLoading);
 
-    React.useEffect(() => {
+        React.useEffect(() => {
         if (!isOpen || viewMode !== 'backtest') return;
         if (btSource === 'scanner' && !btData) fetchBacktest();
-        if (btSource === 'globalPicks' && !gpData) fetchGlobalPicksBacktest();
+        // Global Picks intentionally does NOT auto-run — country/sector/rec
+        // should be chosen first, then the user explicitly hits "Run Backtest".
     }, [isOpen, viewMode, btSource]);
 
     const fmtCap = (v) => {
@@ -2746,10 +2893,11 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                 : <>🔍 {viewMode === 'backtest' ? 'Run Backtest' : 'Search'}</>}
                         </button>
                         {(tickerSearch || startDate || endDate || btSignalFilter || btDirFilter || btVerdictFilter || gpCountryFilter || gpSectorFilter || gpRecFilter || gpMinConviction || gpTopPickOnly) && (
-                            <button onClick={() => {
+                                                        <button onClick={() => {
                                 setTickerSearch(''); setStartDate(''); setEndDate('');
                                 setBtSignalFilter(''); setBtDirFilter(''); setBtVerdictFilter('');
                                 setGpCountryFilter(''); setGpSectorFilter(''); setGpRecFilter(''); setGpMinConviction(''); setGpTopPickOnly(false);
+                                if (viewMode === 'backtest' && btSource === 'globalPicks') { setGpData(null); setGpHasRun(false); return; }
                                 setTimeout(runActiveFetch, 0);
                             }}
                                 style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.8)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>
@@ -2963,8 +3111,19 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                         </div>
                     )}
 
-                    {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                                        {viewMode === 'backtest' && btSource === 'globalPicks' && (
                         <div style={{ padding:'20px' }}>
+                            {!gpHasRun && !gpLoading && (
+                                <div style={{ padding:'50px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>🌍</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>
+                                        Choose what to backtest
+                                    </div>
+                                    <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'420px', margin:'0 auto', lineHeight:1.6 }}>
+                                        Enter a <strong>country</strong> and/or <strong>sector</strong> above (or set a min conviction / Top Picks only), then hit <strong>Run Backtest</strong>. This pulls real price history for every matching pick, so it's not instant — that's why it doesn't run automatically.
+                                    </div>
+                                </div>
+                            )}
                             {gpLoading && (
                                 <div style={{ padding:'60px 20px', textAlign:'center' }}>
                                     <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
@@ -2974,14 +3133,14 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                             {gpError && !gpLoading && (
                                 <div style={{ padding:'16px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px' }}>⚠️ {gpError}</div>
                             )}
-                            {!gpLoading && !gpError && gpData && gpData.totalPicks === 0 && (
+                            {gpHasRun && !gpLoading && !gpError && gpData && gpData.totalPicks === 0 && (
                                 <div style={{ padding:'60px 20px', textAlign:'center' }}>
                                     <div style={{ fontSize:'40px', marginBottom:'12px' }}>🌍</div>
                                     <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No global picks match these filters</div>
-                                    <div style={{ fontSize:'13px', color:'#64748b' }}>Save picks from the Country-Sector Drill to start building history here.</div>
+                                    <div style={{ fontSize:'13px', color:'#64748b' }}>Try a broader country/sector, or save picks from the Country-Sector Drill first.</div>
                                 </div>
                             )}
-                            {!gpLoading && !gpError && gpData && gpData.totalPicks > 0 && (
+                            {gpHasRun && !gpLoading && !gpError && gpData && gpData.totalPicks > 0 && (
                                 <>
                                     <div style={{
                                         padding:'10px 14px', backgroundColor:'#eff6ff', border:'1px solid #bfdbfe',
@@ -2990,6 +3149,7 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                         💡 "Direction" here comes from the rec label — STRONG BUY/BUY count as bullish, anything with SELL/AVOID counts as bearish, WATCH/HOLD are treated as neutral (not flipped). Same direction-adjusted return logic as the Trend Scanner backtest.
                                     </div>
                                     <GlobalPicksPlainEnglish gpData={gpData} />
+                                    <GlobalPicksTopBottomPerformers rows={gpData.rows} horizon={gpHorizonFocus} />
                                     <BacktestReturnByHorizonChart aggregate={gpData.aggregate} horizons={BT_HORIZONS} />
                                     <BacktestGroupComparisonChart
                                         title="Performance by Recommendation" IconComp={Brain}
@@ -3007,6 +3167,16 @@ function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
                                     {renderBacktestTable('By Sector', gpData.bySector, Gauge)}
                                     {renderBacktestTable('By Conviction', gpData.byConvictionBucket, Target)}
                                     {renderBacktestTable('Top Pick vs Regular', gpData.byTopPick, ArrowUpDown)}
+                                    <GlobalPicksDetailTable
+                                        rows={gpData.rows} horizons={BT_HORIZONS}
+                                        sortField={gpSortField} sortDir={gpSortDir}
+                                        onSort={(field) => {
+                                            if (field === gpSortField) setGpSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                            else { setGpSortField(field); setGpSortDir('desc'); }
+                                        }}
+                                        onSelectTicker={onSelectTicker}
+                                        onClose={onClose}
+                                    />
                                 </>
                             )}
                         </div>
