@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
@@ -106,6 +107,236 @@ import kilometro from '../LOS COMUNISTAS DÓNDE ESTÁN_  AFROHOUSE  KILOMETRO.mp
 import chess_slowed from '../joyful - chess (slowed).mp3';
 import chess from '../Chess Type Beat.mp3';
 
+// ---------------------------------------------------------------------------
+// Global market backdrop data — shared by the 2D map and the 3D globe so the
+// two views always agree on where each hub sits.
+// ---------------------------------------------------------------------------
+
+// px/py are positions in a 1000x500 equirectangular projection (matches the
+// map SVG's viewBox), derived from lat/lng. lat/lng are reused directly by
+// the 3D globe. `tz` (when present) keys into the `times` state so a hub can
+// show a live local clock.
+const MARKET_HUBS = [
+  { name: "New York", lat: 40.7, lng: -74.0, px: 294, py: 137, tz: "NewYork" },
+  { name: "London", lat: 51.5, lng: -0.1, px: 500, py: 107, tz: "London" },
+  { name: "Frankfurt", lat: 50.1, lng: 8.68, px: 524, py: 111 },
+  { name: "Tokyo", lat: 35.7, lng: 139.7, px: 888, py: 151, tz: "Tokyo" },
+  { name: "Hong Kong", lat: 22.3, lng: 114.2, px: 817, py: 188 },
+  { name: "Shanghai", lat: 31.2, lng: 121.5, px: 838, py: 163 },
+  { name: "Singapore", lat: 1.35, lng: 103.8, px: 788, py: 246 },
+  { name: "Sydney", lat: -33.9, lng: 151.2, px: 920, py: 344 },
+];
+
+// Simplified, stylized landmass silhouettes (not survey-accurate — a dotted,
+// low-poly abstraction in the same 1000x500 space as the hubs above).
+const CONTINENT_PATHS = [
+  // North America
+  "M100,60 C160,30 260,35 300,70 C330,90 320,130 300,150 C310,180 290,210 260,230 C240,250 200,255 180,240 C160,255 140,250 130,230 C100,220 80,190 90,160 C70,130 80,90 100,60 Z",
+  // South America
+  "M260,260 C300,255 330,270 340,300 C350,330 340,360 330,390 C325,420 310,450 290,460 C275,440 270,410 265,380 C250,350 245,320 250,290 C252,275 255,265 260,260 Z",
+  // Europe
+  "M470,70 C510,55 555,60 580,80 C590,100 580,120 560,130 C540,140 510,145 490,135 C475,125 465,100 470,70 Z",
+  // Africa
+  "M490,140 C540,135 590,145 610,170 C625,200 620,240 610,270 C600,310 585,350 565,375 C550,390 535,385 525,365 C510,340 500,310 495,280 C485,250 480,220 483,190 C485,170 487,155 490,140 Z",
+  // Asia (mainland)
+  "M580,40 C680,20 800,30 900,60 C940,80 950,110 930,140 C910,160 880,150 850,160 C860,190 840,220 810,230 C790,238 770,225 755,210 C740,230 715,235 700,220 C680,235 655,230 645,210 C620,215 600,200 590,175 C575,150 570,110 575,80 C577,65 578,50 580,40 Z",
+  // Japan
+  "M865,110 C880,105 895,115 895,135 C900,155 890,170 875,165 C865,155 862,130 865,110 Z",
+  // Maritime Southeast Asia
+  "M740,225 C780,220 820,230 840,245 C820,255 780,258 750,250 C740,245 738,235 740,225 Z",
+  // Australia
+  "M840,300 C890,290 940,300 965,325 C975,345 965,365 945,375 C915,385 875,380 850,365 C835,350 830,330 840,300 Z",
+];
+
+// Convert lat/lng (degrees) to a point on a sphere of the given radius.
+function latLngToVector3(lat, lng, radius) {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+  const x = -radius * Math.sin(phi) * Math.cos(theta);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
+  return new THREE.Vector3(x, y, z);
+}
+
+// ---------------------------------------------------------------------------
+// 2D world map background — dotted continents, a day/night light sweep, and
+// pulsing markers over the major market hubs (with live time for NY/London/Tokyo).
+// ---------------------------------------------------------------------------
+function GlobalMarketMap({ active, times }) {
+  return (
+    <div className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
+      <svg
+        className="snowai-map-svg"
+        viewBox="0 0 1000 500"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern id="landDots" width="9" height="9" patternUnits="userSpaceOnUse">
+            <circle cx="1.4" cy="1.4" r="1.4" fill="rgba(158,207,251,0.4)" />
+          </pattern>
+        </defs>
+
+        <g>
+          {CONTINENT_PATHS.map((d, i) => (
+            <path key={i} d={d} fill="url(#landDots)" stroke="rgba(158,207,251,0.12)" strokeWidth="1" />
+          ))}
+        </g>
+
+        {MARKET_HUBS.map((hub) => {
+          const delayStyle = { animationDelay: `${-((hub.px / 1000) * 24)}s` };
+          return (
+            <g key={hub.name}>
+              <circle className="snowai-hub-ring" cx={hub.px} cy={hub.py} r="9" style={delayStyle} />
+              <circle className="snowai-hub-dot" cx={hub.px} cy={hub.py} r="3" style={delayStyle} />
+              {hub.tz && (
+                <text className="snowai-hub-label" x={hub.px} y={hub.py - 14} textAnchor="middle">
+                  {hub.name} · {times[hub.tz]}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="snowai-map-sweep" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 3D transparent globe — wireframe sphere + glowing hub markers + connecting
+// arcs, slowly auto-rotating. Renders with an alpha-cleared canvas so it sits
+// as a translucent backdrop rather than a solid object.
+// ---------------------------------------------------------------------------
+function GlobalMarketGlobe({ active }) {
+  const mountRef = useRef(null);
+  const activeRef = useRef(active);
+
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  useEffect(() => {
+    const mountEl = mountRef.current;
+    if (!mountEl) return;
+
+    const width = mountEl.clientWidth || window.innerWidth;
+    const height = mountEl.clientHeight || window.innerHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    camera.position.z = 5.5;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    renderer.setClearColor(0x000000, 0);
+    mountEl.appendChild(renderer.domElement);
+
+    const globeGroup = new THREE.Group();
+    scene.add(globeGroup);
+
+    // Transparent wireframe sphere
+    const wireGeo = new THREE.SphereGeometry(2, 28, 20);
+    const wireMat = new THREE.MeshBasicMaterial({
+      color: 0x2979ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28,
+    });
+    const wireSphere = new THREE.Mesh(wireGeo, wireMat);
+    globeGroup.add(wireSphere);
+
+    // Soft round texture for hub markers
+    const dotCanvas = document.createElement("canvas");
+    dotCanvas.width = 64;
+    dotCanvas.height = 64;
+    const dotCtx = dotCanvas.getContext("2d");
+    const grad = dotCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.4, "rgba(158,207,251,0.9)");
+    grad.addColorStop(1, "rgba(158,207,251,0)");
+    dotCtx.fillStyle = grad;
+    dotCtx.fillRect(0, 0, 64, 64);
+    const dotTexture = new THREE.CanvasTexture(dotCanvas);
+
+    // Hub markers
+    const hubPositions = [];
+    MARKET_HUBS.forEach((hub) => {
+      const v = latLngToVector3(hub.lat, hub.lng, 2.05);
+      hubPositions.push(v.x, v.y, v.z);
+    });
+    const hubGeo = new THREE.BufferGeometry();
+    hubGeo.setAttribute("position", new THREE.Float32BufferAttribute(hubPositions, 3));
+    const hubMat = new THREE.PointsMaterial({
+      size: 0.18,
+      map: dotTexture,
+      transparent: true,
+      depthWrite: false,
+      color: 0xffffff,
+    });
+    const hubPoints = new THREE.Points(hubGeo, hubMat);
+    globeGroup.add(hubPoints);
+
+    // Connecting arcs between hubs, tracing a loop around the globe
+    const arcMat = new THREE.LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
+    const arcLines = [];
+    for (let i = 0; i < MARKET_HUBS.length; i++) {
+      const a = MARKET_HUBS[i];
+      const b = MARKET_HUBS[(i + 1) % MARKET_HUBS.length];
+      const start = latLngToVector3(a.lat, a.lng, 2.02);
+      const end = latLngToVector3(b.lat, b.lng, 2.02);
+      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(2.4);
+      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+      const arcGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(24));
+      const arcLine = new THREE.Line(arcGeo, arcMat);
+      globeGroup.add(arcLine);
+      arcLines.push(arcLine);
+    }
+
+    let frameId;
+    let lastTime = performance.now();
+    const animate = (t) => {
+      frameId = requestAnimationFrame(animate);
+      if (document.hidden || !activeRef.current) return;
+      const delta = t - lastTime;
+      lastTime = t;
+      globeGroup.rotation.y += delta * 0.00006;
+      renderer.render(scene, camera);
+    };
+    frameId = requestAnimationFrame(animate);
+
+    const handleResize = () => {
+      const w = mountEl.clientWidth || window.innerWidth;
+      const h = mountEl.clientHeight || window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", handleResize);
+      wireGeo.dispose();
+      wireMat.dispose();
+      hubGeo.dispose();
+      hubMat.dispose();
+      dotTexture.dispose();
+      arcMat.dispose();
+      arcLines.forEach((line) => line.geometry.dispose());
+      renderer.dispose();
+      if (mountEl.contains(renderer.domElement)) {
+        mountEl.removeChild(renderer.domElement);
+      }
+    };
+  }, []);
+
+  return (
+    <div className={`snowai-globe-layer ${active ? "is-active" : "is-hidden"}`}>
+      <div className="snowai-globe-wrap" ref={mountRef} />
+    </div>
+  );
+}
 
 export default function SnowAILandingPage() {
   const [times, setTimes] = useState({
@@ -125,6 +356,9 @@ export default function SnowAILandingPage() {
 
     return () => clearInterval(intervalId);
   }, []);
+
+  // Landing page background: "map" (2D) or "globe" (3D transparent globe)
+  const [bgMode, setBgMode] = useState("map");
 
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -623,7 +857,145 @@ export default function SnowAILandingPage() {
             width: 95%;
           }
         }
+
+        /* ------------------------------------------------------------- */
+        /* Global backdrop: 2D market map + 3D transparent globe          */
+        /* ------------------------------------------------------------- */
+
+        .snowai-bg-layer {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        .snowai-map-layer,
+        .snowai-globe-layer {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          transition: opacity 1s ease;
+        }
+
+        .snowai-map-layer.is-active,
+        .snowai-globe-layer.is-active {
+          opacity: 1;
+        }
+
+        .snowai-map-svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
+        .snowai-hub-dot {
+          fill: #9ecffb;
+          animation: hubPulse 24s linear infinite;
+        }
+
+        .snowai-hub-ring {
+          fill: none;
+          stroke: #68a6db;
+          stroke-width: 1;
+          opacity: 0.6;
+          animation: hubRingPulse 24s linear infinite;
+        }
+
+        .snowai-hub-label {
+          fill: #9ecffb;
+          font-size: 11px;
+          letter-spacing: 0.3px;
+          filter: drop-shadow(0 0 3px rgba(158, 207, 251, 0.85));
+        }
+
+        @media (max-width: 600px) {
+          .snowai-hub-label {
+            display: none;
+          }
+        }
+
+        @keyframes hubPulse {
+          0% { r: 5; fill: #ffffff; }
+          8% { r: 3; fill: #9ecffb; }
+          100% { r: 3; fill: #9ecffb; }
+        }
+
+        @keyframes hubRingPulse {
+          0% { r: 9; opacity: 0.6; }
+          8% { r: 9; opacity: 0.8; }
+          40% { r: 22; opacity: 0; }
+          100% { r: 22; opacity: 0; }
+        }
+
+        .snowai-map-sweep {
+          position: absolute;
+          top: 0;
+          left: -20%;
+          width: 20%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(158, 207, 251, 0.35), transparent);
+          mix-blend-mode: screen;
+          pointer-events: none;
+          animation: sweepAcross 24s linear infinite;
+        }
+
+        @keyframes sweepAcross {
+          from { transform: translateX(0); }
+          to { transform: translateX(600%); }
+        }
+
+        .snowai-globe-wrap {
+          width: 100%;
+          height: 100%;
+        }
+
+        .snowai-globe-wrap canvas {
+          display: block;
+        }
+
+        .snowai-bg-toggle {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 15;
+          background: rgba(10, 15, 31, 0.6);
+          color: #ffffff;
+          border: 1px solid rgba(104, 166, 219, 0.5);
+          border-radius: 20px;
+          padding: 8px 16px;
+          font-size: 13px;
+          cursor: pointer;
+          backdrop-filter: blur(4px);
+          transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .snowai-bg-toggle:hover {
+          background: rgba(41, 121, 255, 0.35);
+          border-color: #68a6db;
+        }
+
+        @media (max-width: 480px) {
+          .snowai-bg-toggle {
+            bottom: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            font-size: 11px;
+          }
+        }
       `}</style>
+
+      <div className="snowai-bg-layer">
+        <GlobalMarketMap active={bgMode === "map"} times={times} />
+        <GlobalMarketGlobe active={bgMode === "globe"} />
+      </div>
+      <button
+        className="snowai-bg-toggle"
+        onClick={() => setBgMode((m) => (m === "map" ? "globe" : "map"))}
+        aria-label="Toggle background view"
+      >
+        {bgMode === "map" ? "View 3D Globe" : "View World Map"}
+      </button>
 
       <div id="snowflake-container"></div>
       
