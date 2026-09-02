@@ -315,8 +315,8 @@ function GlobalMarketMap({ active, times }) {
 // camera off and angling it down slightly so the larger, shifted sphere
 // still fits fully in frame.
 // ---------------------------------------------------------------------------
-const GLOBE_RADIUS = 2.4; // was 2 — larger sphere to wrap the whole hero column
-const GLOBE_VERTICAL_OFFSET = -0.6; // shifts the sphere down so it envelops logo → buttons
+const GLOBE_RADIUS = 3.2; // Increased to envelop the full hero column
+const GLOBE_VERTICAL_OFFSET = 0.2; // Adjusted to center on hero content
 
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
@@ -335,11 +335,9 @@ function GlobalMarketGlobe({ active }) {
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
-    // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
-    // sphere, and angled down slightly so the downward-shifted globe group
-    // still sits fully in frame around the hero content.
-    camera.position.z = 4.2;
-    camera.position.y = 0.4;
+    // Backed off and angled to accommodate the larger sphere
+    camera.position.z = 5.2;
+    camera.position.y = 0.8;
     camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
@@ -361,7 +359,7 @@ function GlobalMarketGlobe({ active }) {
       color: 0x2979ff,
       wireframe: true,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.25,
     });
     const wireSphere = new Mesh(wireGeo, wireMat);
     globeGroup.add(wireSphere);
@@ -407,7 +405,7 @@ function GlobalMarketGlobe({ active }) {
       const b = MARKET_HUBS[(i + 1) % MARKET_HUBS.length];
       const start = latLngToVector3(a.lat, a.lng, GLOBE_RADIUS + 0.02);
       const end = latLngToVector3(b.lat, b.lng, GLOBE_RADIUS + 0.02);
-      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS + 0.4);
+      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS + 0.5);
       const curve = new QuadraticBezierCurve3(start, mid, end);
       const arcGeo = new BufferGeometry().setFromPoints(curve.getPoints(24));
       const arcLine = new Line(arcGeo, arcMat);
@@ -422,7 +420,7 @@ function GlobalMarketGlobe({ active }) {
       if (document.hidden || !activeRef.current) return;
       const delta = t - lastTime;
       lastTime = t;
-      globeGroup.rotation.y += delta * 0.00006;
+      globeGroup.rotation.y += delta * 0.00005;
       renderer.render(scene, camera);
     };
     frameId = requestAnimationFrame(animate);
@@ -769,6 +767,7 @@ export default function SnowAILandingPage() {
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          background: #0a0f1f;
         }
 
         .snowai-hero-content {
@@ -777,6 +776,38 @@ export default function SnowAILandingPage() {
           display: flex;
           flex-direction: column;
           align-items: center;
+          padding: 20px;
+        }
+
+        .snowai-title {
+          font-size: clamp(3rem, 10vw, 6rem);
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          margin-bottom: 20px;
+          text-shadow: 0 0 20px rgba(158, 207, 251, 0.3);
+        }
+
+        .snowai-title span {
+          display: inline-block;
+          animation: titleFloat 3s ease-in-out infinite;
+          color: #ffffff;
+        }
+
+        .snowai-title span:nth-child(1) { animation-delay: 0s; }
+        .snowai-title span:nth-child(2) { animation-delay: 0.1s; }
+        .snowai-title span:nth-child(3) { animation-delay: 0.2s; }
+        .snowai-title span:nth-child(4) { animation-delay: 0.3s; }
+        .snowai-title span:nth-child(5) { animation-delay: 0.4s; }
+        .snowai-title span:nth-child(6) { animation-delay: 0.5s; }
+
+        @keyframes titleFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
 
         .snowai-slogan {
@@ -861,18 +892,18 @@ export default function SnowAILandingPage() {
         }
 
         .mouse-glow {
-          position: absolute;
+          position: fixed;
           width: 50px;
           height: 50px;
           background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 80%);
           pointer-events: none;
           mix-blend-mode: screen;
           transition: transform 0.1s ease;
-          z-index: 5;
+          z-index: 9999;
         }
 
         .falling-character {
-          position: absolute;
+          position: fixed;
           top: -5%;
           color: #ffffff;
           font-size: 18px;
@@ -880,6 +911,7 @@ export default function SnowAILandingPage() {
           animation: fall linear infinite;
           transition: transform 0.2s ease, opacity 0.2s ease;
           z-index: 1;
+          pointer-events: none;
         }
 
         @keyframes fall {
@@ -1015,6 +1047,8 @@ export default function SnowAILandingPage() {
           inset: 0;
           opacity: 0;
           transition: opacity 1s ease;
+          width: 100%;
+          height: 100%;
         }
 
         .snowai-map-layer.is-active,
@@ -1022,10 +1056,16 @@ export default function SnowAILandingPage() {
           opacity: 1;
         }
 
+        /* Fix for 2D map visibility */
         .snowai-map-svg {
           width: 100%;
           height: 100%;
           display: block;
+        }
+
+        .snowai-map-svg svg {
+          width: 100%;
+          height: 100%;
         }
 
         /* Fallback/base rule for the countries — the authoritative fill
@@ -1056,9 +1096,11 @@ export default function SnowAILandingPage() {
           filter: drop-shadow(0 0 3px rgba(158, 207, 251, 0.85));
         }
 
+        /* Show hub labels on mobile when hovered or when the hub has a timezone */
         @media (max-width: 600px) {
           .snowai-hub-label {
-            display: none;
+            font-size: 9px;
+            display: block;
           }
         }
 
@@ -1087,6 +1129,8 @@ export default function SnowAILandingPage() {
 
         .snowai-globe-wrap canvas {
           display: block;
+          width: 100%;
+          height: 100%;
         }
 
         .snowai-bg-toggle {

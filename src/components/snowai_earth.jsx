@@ -3933,6 +3933,6 @@ export default function SnowAIEarth() {
                 input::placeholder { color: ${COLORS.inkFaint}; }
                 button:active { transform: scale(0.98); }
             `}</style>
-        < /div>
+        </div>
     );
 }
