@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { geoNaturalEarth1, geoPath, geoGraticule } from "d3-geo";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import * as d3 from "d3";
 import {
   Vector3,
   Scene,
@@ -179,65 +179,176 @@ function easeInOutSine(t) {
 }
 
 // ---------------------------------------------------------------------------
-// 2D world map background — D3 geographic projection + market hubs,
-// pulsing markers over the major hubs, and a soft light that travels
-// hub-to-hub across the map instead of sweeping in a straight line.
+// 2D world map background — fetches the same real-world GeoJSON that
+// SnowAIEarth's 2D map uses, and draws it into the SVG the exact same way
+// that component does: imperative D3 (select/append/attr) building the
+// land + hubs once per resize, rather than React re-rendering the whole
+// projection on every state change. The old version here hand-rolled its
+// own rough continent geometry and pulled `geoNaturalEarth1`/`geoPath`/
+// `geoGraticule` straight from the standalone "d3-geo" package instead of
+// the "d3" bundle the rest of the app already depends on — mirroring
+// SnowAIEarth exactly (real GeoJSON + the full "d3" import) is what fixes
+// it showing up here.
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 2D world map background — D3 geographic projection + self-contained
-// continent geometry. D3 handles the projection and all hub placement, so
-// resizing the SVG never requires hand-tuned pixel coordinates.
-// ---------------------------------------------------------------------------
-const WORLD_FEATURES = [
-  // North America
-  [[-168,72],[-150,70],[-138,60],[-125,55],[-124,48],[-117,32],[-105,25],[-97,26],[-88,30],[-82,25],[-80,18],[-92,15],[-105,20],[-116,24],[-125,32],[-135,42],[-150,50],[-160,58],[-168,72]],
-  // South America
-  [[-82,12],[-72,8],[-64,2],[-58,-8],[-52,-18],[-48,-30],[-53,-42],[-60,-52],[-68,-56],[-73,-48],[-70,-35],[-76,-20],[-80,-5],[-82,12]],
-  // Europe
-  [[-11,36],[-4,43],[4,42],[12,45],[20,47],[30,55],[36,60],[30,68],[18,70],[8,62],[0,58],[-8,54],[-11,45],[-11,36]],
-  // Africa
-  [[-18,35],[-5,37],[10,34],[22,32],[33,28],[40,15],[43,4],[38,-10],[32,-23],[24,-34],[12,-35],[2,-28],[-7,-12],[-15,5],[-18,20],[-18,35]],
-  // Asia
-  [[28,40],[42,42],[55,50],[68,55],[82,60],[100,56],[118,52],[135,48],[150,45],[160,55],[170,65],[180,70],[180,35],[165,30],[150,25],[138,18],[125,20],[115,10],[105,8],[96,20],[85,24],[75,18],[65,22],[55,28],[44,30],[34,35],[28,40]],
-  // India / Southeast Asia
-  [[68,25],[78,30],[88,24],[92,15],[104,8],[108,-2],[101,-8],[94,2],[86,8],[80,6],[74,12],[68,25]],
-  // Japan
-  [[130,33],[136,37],[141,42],[145,39],[143,32],[137,28],[130,33]],
-  // Australia
-  [[113,-11],[128,-13],[143,-12],[153,-20],[153,-31],[145,-39],[132,-43],[120,-38],[113,-28],[113,-11]],
-  // Greenland
-  [[-73,60],[-55,60],[-42,68],[-30,75],[-38,82],[-55,84],[-68,78],[-73,68],[-73,60]],
-  // Madagascar
-  [[48,-13],[51,-20],[50,-26],[46,-25],[44,-18],[48,-13]],
-];
-
 function GlobalMarketMap({ active, times }) {
-  const [sweepPos, setSweepPos] = useState(MARKET_HUBS[0]);
-  const rafRef = useRef(null);
+  const containerRef = useRef(null);
   const svgRef = useRef(null);
-  const [mapSize, setMapSize] = useState({ width: 1000, height: 500 });
+  const projectionRef = useRef(null);
+  const sweepNodesRef = useRef({ glow: null, dot: null });
+  const rafRef = useRef(null);
+  const [geoJsonData, setGeoJsonData] = useState(null);
 
+  // Pull in the same real-world GeoJSON SnowAIEarth's 2D map uses.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setGeoJsonData(data);
+      })
+      .catch((err) => {
+        console.error("Error loading world map data:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Build the map imperatively into the ref'd <svg> — the same approach
+  // SnowAIEarth.drawD3Map uses: select/append/attr, built once per resize
+  // rather than rebuilt on every render. Rebuilding on every `times` tick
+  // is what made a map like this disappear before, so hub-clock text is
+  // updated separately below instead of ever triggering a rebuild.
+  const drawMap = useCallback(() => {
+    if (!geoJsonData || !geoJsonData.features || !svgRef.current || !containerRef.current) return;
+
+    const container = containerRef.current;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    const svg = d3.select(svgRef.current);
+    svg.selectAll("*").remove();
+    svg.attr("width", width).attr("height", height).attr("viewBox", `0 0 ${width} ${height}`);
+
+    const projection = d3.geoNaturalEarth1().fitSize([width, height], geoJsonData);
+    projectionRef.current = projection;
+    const path = d3.geoPath().projection(projection);
+    const graticule = d3.geoGraticule().step([30, 30]);
+
+    const defs = svg.append("defs");
+    const glowGrad = defs
+      .append("radialGradient")
+      .attr("id", "snowaiSweepGlow")
+      .attr("cx", "50%")
+      .attr("cy", "50%")
+      .attr("r", "50%");
+    glowGrad.append("stop").attr("offset", "0%").attr("stop-color", "#9ecffb").attr("stop-opacity", 0.95);
+    glowGrad.append("stop").attr("offset", "45%").attr("stop-color", "#68a6db").attr("stop-opacity", 0.35);
+    glowGrad.append("stop").attr("offset", "100%").attr("stop-color", "#68a6db").attr("stop-opacity", 0);
+
+    svg.append("path").datum(graticule()).attr("d", path).attr("class", "snowai-map-grid");
+
+    svg
+      .append("g")
+      .attr("class", "snowai-map-land")
+      .selectAll("path")
+      .data(geoJsonData.features)
+      .enter()
+      .append("path")
+      .attr("d", path)
+      .attr("fill", MAP_COLORS.land)
+      .attr("stroke", MAP_COLORS.border)
+      .attr("stroke-width", 0.7);
+
+    // Traveling light overlay — created once here, position updated
+    // imperatively in the sweep effect below so the map underneath never
+    // has to be touched again.
+    const sweepGroup = svg.append("g").attr("class", "snowai-map-sweep");
+    const sweepGlow = sweepGroup
+      .append("circle")
+      .attr("r", 34)
+      .attr("fill", "url(#snowaiSweepGlow)")
+      .attr("class", "snowai-sweep-glow");
+    const sweepDot = sweepGroup.append("circle").attr("r", 7).attr("fill", "#ffffff").attr("opacity", 0.8);
+    sweepNodesRef.current = { glow: sweepGlow.node(), dot: sweepDot.node() };
+
+    const hubGroup = svg.append("g").attr("class", "snowai-map-hubs");
+    MARKET_HUBS.forEach((hub) => {
+      const coords = projection([hub.lng, hub.lat]);
+      if (!coords) return;
+      const g = hubGroup
+        .append("g")
+        .attr("class", "snowai-map-hub")
+        .attr("data-hub", hub.name)
+        .attr("transform", `translate(${coords[0]},${coords[1]})`);
+      g.append("circle").attr("r", 10).attr("class", "snowai-hub-ring");
+      g.append("circle").attr("r", 4).attr("class", "snowai-hub-dot");
+      g.append("text")
+        .attr("class", "snowai-hub-label")
+        .attr("y", -16)
+        .attr("text-anchor", "middle")
+        .text(hub.name + (hub.tz && times[hub.tz] ? ` · ${times[hub.tz]}` : ""));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geoJsonData]);
+
+  useEffect(() => {
+    const timer = setTimeout(drawMap, 100);
+    return () => clearTimeout(timer);
+  }, [drawMap]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const timer = setTimeout(drawMap, 200);
+      return () => clearTimeout(timer);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [drawMap]);
+
+  // Keep the hub clocks current without ever rebuilding the map.
+  useEffect(() => {
+    if (!svgRef.current) return;
+    MARKET_HUBS.forEach((hub) => {
+      if (!hub.tz || !times[hub.tz]) return;
+      d3.select(svgRef.current)
+        .select(`g[data-hub="${hub.name}"] text`)
+        .text(`${hub.name} · ${times[hub.tz]}`);
+    });
+  });
+
+  // Sweep the traveling light hub-to-hub by moving the two overlay
+  // circles created in drawMap directly — the underlying map is never
+  // touched by this loop, so it can't cause the map to disappear.
   useEffect(() => {
     if (!active) return;
     let segmentStart = performance.now();
     let hubIndex = 0;
 
     const tick = (t) => {
-      const from = MARKET_HUBS[hubIndex];
-      const to = MARKET_HUBS[(hubIndex + 1) % MARKET_HUBS.length];
-      const elapsed = t - segmentStart;
-      const rawT = Math.min(elapsed / SWEEP_SEGMENT_MS, 1);
-      const e = easeInOutSine(rawT);
-
-      setSweepPos({
-        name: "sweep",
-        lng: from.lng + (to.lng - from.lng) * e,
-        lat: from.lat + (to.lat - from.lat) * e,
-      });
-
-      if (rawT >= 1) {
-        hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
-        segmentStart = t;
+      const projection = projectionRef.current;
+      const { glow, dot } = sweepNodesRef.current;
+      if (projection && glow && dot) {
+        const from = MARKET_HUBS[hubIndex];
+        const to = MARKET_HUBS[(hubIndex + 1) % MARKET_HUBS.length];
+        const elapsed = t - segmentStart;
+        const rawT = Math.min(elapsed / SWEEP_SEGMENT_MS, 1);
+        const e = easeInOutSine(rawT);
+        const coords = projection([
+          from.lng + (to.lng - from.lng) * e,
+          from.lat + (to.lat - from.lat) * e,
+        ]);
+        if (coords) {
+          glow.setAttribute("cx", coords[0]);
+          glow.setAttribute("cy", coords[1]);
+          dot.setAttribute("cx", coords[0]);
+          dot.setAttribute("cy", coords[1]);
+        }
+        if (rawT >= 1) {
+          hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
+          segmentStart = t;
+        }
       }
       rafRef.current = requestAnimationFrame(tick);
     };
@@ -246,84 +357,9 @@ function GlobalMarketMap({ active, times }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [active]);
 
-  useEffect(() => {
-    const svgEl = svgRef.current;
-    if (!svgEl) return;
-    const resize = () => {
-      const rect = svgEl.getBoundingClientRect();
-      if (rect.width && rect.height) {
-        setMapSize({ width: rect.width, height: rect.height });
-      }
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(svgEl);
-    return () => observer.disconnect();
-  }, []);
-
-  const world = {
-    type: "FeatureCollection",
-    features: WORLD_FEATURES.map((coordinates, index) => ({
-      type: "Feature",
-      id: index,
-      properties: {},
-      geometry: { type: "Polygon", coordinates: [coordinates] },
-    })),
-  };
-
-  const projection = geoNaturalEarth1().fitSize([mapSize.width || 1000, mapSize.height || 500], world);
-  const path = geoPath(projection);
-  const graticule = geoGraticule().step([30, 30]);
-
-  const sweepPoint = projection([sweepPos.lng, sweepPos.lat]);
-  const hubPoints = MARKET_HUBS.map((hub) => ({ ...hub, point: projection([hub.lng, hub.lat]) }));
-
   return (
-    <div className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
-      <svg
-        ref={svgRef}
-        className="snowai-map-svg"
-        viewBox={`0 0 ${mapSize.width || 1000} ${mapSize.height || 500}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label="Global financial market map"
-      >
-        <defs>
-          <radialGradient id="sweepGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#9ecffb" stopOpacity="0.95" />
-            <stop offset="45%" stopColor="#68a6db" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#68a6db" stopOpacity="0" />
-          </radialGradient>
-          <filter id="mapGlow" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-        </defs>
-
-        <path d={path(graticule())} className="snowai-map-grid" />
-
-        <g className="snowai-map-land">
-          {world.features.map((feature) => (
-            <path key={feature.id} d={path(feature)} />
-          ))}
-        </g>
-
-        {sweepPoint && (
-          <>
-            <circle cx={sweepPoint[0]} cy={sweepPoint[1]} r="34" fill="url(#sweepGlow)" className="snowai-sweep-glow" />
-            <circle cx={sweepPoint[0]} cy={sweepPoint[1]} r="7" fill="#ffffff" opacity="0.8" filter="url(#mapGlow)" />
-          </>
-        )}
-
-        {hubPoints.map((hub) => (
-          <g key={hub.name} className="snowai-map-hub">
-            <circle cx={hub.point[0]} cy={hub.point[1]} r="10" className="snowai-hub-ring" />
-            <circle cx={hub.point[0]} cy={hub.point[1]} r="4" className="snowai-hub-dot" />
-            <text x={hub.point[0]} y={hub.point[1] - 16} textAnchor="middle" className="snowai-hub-label">
-              {hub.name}{hub.tz ? ` · ${times[hub.tz]}` : ""}
-            </text>
-          </g>
-        ))}
-      </svg>
+    <div ref={containerRef} className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
+      <svg ref={svgRef} className="snowai-map-svg" role="img" aria-label="Global financial market map" />
     </div>
   );
 }
@@ -1062,9 +1098,6 @@ export default function SnowAILandingPage() {
         }
 
         .snowai-map-land path {
-          fill: rgba(22, 35, 61, 0.78);
-          stroke: rgba(158, 207, 251, 0.5);
-          stroke-width: 1.2;
           vector-effect: non-scaling-stroke;
         }
 
