@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'site.webmanifest'],
       workbox: {
-        maximumFileSizeToCacheInBytes: 14 * 1024 * 1024, // 14 MB (accommodates your 13.7 MB bundle)
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024, // 14 MB (accommodates your 13.7 MB bundle)
       },
       manifest: {
         name: "SnowAI",

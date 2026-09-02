@@ -1,6 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-
+import {
+  Vector3,
+  Scene,
+  PerspectiveCamera,
+  WebGLRenderer,
+  Group,
+  SphereGeometry,
+  MeshBasicMaterial,
+  Mesh,
+  CanvasTexture,
+  BufferGeometry,
+  Float32BufferAttribute,
+  PointsMaterial,
+  Points,
+  LineBasicMaterial,
+  Line,
+  QuadraticBezierCurve3,
+} from "three";
 
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
@@ -156,7 +172,7 @@ function latLngToVector3(lat, lng, radius) {
   const x = -radius * Math.sin(phi) * Math.cos(theta);
   const z = radius * Math.sin(phi) * Math.sin(theta);
   const y = radius * Math.cos(phi);
-  return new THREE.Vector3(x, y, z);
+  return new Vector3(x, y, z);
 }
 
 // ---------------------------------------------------------------------------
@@ -223,28 +239,28 @@ function GlobalMarketGlobe({ active }) {
     const width = mountEl.clientWidth || window.innerWidth;
     const height = mountEl.clientHeight || window.innerHeight;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
     camera.position.z = 5.5;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
     mountEl.appendChild(renderer.domElement);
 
-    const globeGroup = new THREE.Group();
+    const globeGroup = new Group();
     scene.add(globeGroup);
 
     // Transparent wireframe sphere
-    const wireGeo = new THREE.SphereGeometry(2, 28, 20);
-    const wireMat = new THREE.MeshBasicMaterial({
+    const wireGeo = new SphereGeometry(2, 28, 20);
+    const wireMat = new MeshBasicMaterial({
       color: 0x2979ff,
       wireframe: true,
       transparent: true,
       opacity: 0.28,
     });
-    const wireSphere = new THREE.Mesh(wireGeo, wireMat);
+    const wireSphere = new Mesh(wireGeo, wireMat);
     globeGroup.add(wireSphere);
 
     // Soft round texture for hub markers
@@ -258,7 +274,7 @@ function GlobalMarketGlobe({ active }) {
     grad.addColorStop(1, "rgba(158,207,251,0)");
     dotCtx.fillStyle = grad;
     dotCtx.fillRect(0, 0, 64, 64);
-    const dotTexture = new THREE.CanvasTexture(dotCanvas);
+    const dotTexture = new CanvasTexture(dotCanvas);
 
     // Hub markers
     const hubPositions = [];
@@ -266,20 +282,20 @@ function GlobalMarketGlobe({ active }) {
       const v = latLngToVector3(hub.lat, hub.lng, 2.05);
       hubPositions.push(v.x, v.y, v.z);
     });
-    const hubGeo = new THREE.BufferGeometry();
-    hubGeo.setAttribute("position", new THREE.Float32BufferAttribute(hubPositions, 3));
-    const hubMat = new THREE.PointsMaterial({
+    const hubGeo = new BufferGeometry();
+    hubGeo.setAttribute("position", new Float32BufferAttribute(hubPositions, 3));
+    const hubMat = new PointsMaterial({
       size: 0.18,
       map: dotTexture,
       transparent: true,
       depthWrite: false,
       color: 0xffffff,
     });
-    const hubPoints = new THREE.Points(hubGeo, hubMat);
+    const hubPoints = new Points(hubGeo, hubMat);
     globeGroup.add(hubPoints);
 
     // Connecting arcs between hubs, tracing a loop around the globe
-    const arcMat = new THREE.LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
+    const arcMat = new LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
     const arcLines = [];
     for (let i = 0; i < MARKET_HUBS.length; i++) {
       const a = MARKET_HUBS[i];
@@ -287,9 +303,9 @@ function GlobalMarketGlobe({ active }) {
       const start = latLngToVector3(a.lat, a.lng, 2.02);
       const end = latLngToVector3(b.lat, b.lng, 2.02);
       const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(2.4);
-      const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-      const arcGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(24));
-      const arcLine = new THREE.Line(arcGeo, arcMat);
+      const curve = new QuadraticBezierCurve3(start, mid, end);
+      const arcGeo = new BufferGeometry().setFromPoints(curve.getPoints(24));
+      const arcLine = new Line(arcGeo, arcMat);
       globeGroup.add(arcLine);
       arcLines.push(arcLine);
     }
