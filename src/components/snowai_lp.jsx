@@ -155,6 +155,19 @@ const WORLD_TOPOJSON_URL = "/geo/world-110m.json";
 // sweep spends easing between each consecutive pair before moving on.
 const SWEEP_SEGMENT_MS = 3000;
 
+// ---------------------------------------------------------------------------
+// Shared dark palette for the 2D map + 3D globe backdrop, matching the
+// technique used in the SnowAIEarth component (MAP_COLORS there): solid,
+// visible land fill against the void, instead of a near-transparent tint
+// that disappears against the page background.
+// ---------------------------------------------------------------------------
+const MAP_COLORS = {
+  land: "#16233d",
+  landHover: "#1d3f78",
+  border: "rgba(158, 207, 251, 0.45)",
+  borderHover: "#68a6db",
+};
+
 // Convert lat/lng (degrees) to a point on a sphere of the given radius.
 function latLngToVector3(lat, lng, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -230,10 +243,30 @@ function GlobalMarketMap({ active, times }) {
                 key={geo.rsmKey}
                 geography={geo}
                 className="snowai-country"
+                // Solid fill (matching MAP_COLORS.land in SnowAIEarth) set
+                // directly via style so it always wins regardless of any
+                // conflicting CSS specificity — this is what was making
+                // countries invisible before (a 12%-opacity fill in the
+                // stylesheet with nothing solid backing it up).
                 style={{
-                  default: { outline: "none" },
-                  hover: { outline: "none" },
-                  pressed: { outline: "none" },
+                  default: {
+                    fill: MAP_COLORS.land,
+                    stroke: MAP_COLORS.border,
+                    strokeWidth: 0.6,
+                    outline: "none",
+                  },
+                  hover: {
+                    fill: MAP_COLORS.landHover,
+                    stroke: MAP_COLORS.borderHover,
+                    strokeWidth: 0.6,
+                    outline: "none",
+                  },
+                  pressed: {
+                    fill: MAP_COLORS.landHover,
+                    stroke: MAP_COLORS.borderHover,
+                    strokeWidth: 0.6,
+                    outline: "none",
+                  },
                 }}
               />
             ))
@@ -272,7 +305,19 @@ function GlobalMarketMap({ active, times }) {
 // arcs, slowly auto-rotating. Scoped to a positioned parent (the hero stage)
 // rather than the full viewport, so it visually wraps the title/slogan/
 // buttons instead of sitting behind the entire page.
+//
+// Repositioned/rescaled so the sphere envelops the full hero column — from
+// the SnowAI logo down through the Play Music button — instead of sitting
+// centered and small on the whole stage. This is done by (a) growing the
+// sphere radius so it has enough surface area to wrap a taller column of
+// content, (b) shifting the globe group downward so its upper arc clears
+// the title and its lower arc clears the buttons, and (c) backing the
+// camera off and angling it down slightly so the larger, shifted sphere
+// still fits fully in frame.
 // ---------------------------------------------------------------------------
+const GLOBE_RADIUS = 2.4; // was 2 — larger sphere to wrap the whole hero column
+const GLOBE_VERTICAL_OFFSET = -0.6; // shifts the sphere down so it envelops logo → buttons
+
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
   const activeRef = useRef(active);
@@ -290,9 +335,12 @@ function GlobalMarketGlobe({ active }) {
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
-    // Pulled in from 5.5 -> 3.2 so the sphere reads as large enough to
-    // wrap around the hero content instead of sitting small and distant.
-    camera.position.z = 3.2;
+    // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
+    // sphere, and angled down slightly so the downward-shifted globe group
+    // still sits fully in frame around the hero content.
+    camera.position.z = 4.2;
+    camera.position.y = 0.4;
+    camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -301,10 +349,14 @@ function GlobalMarketGlobe({ active }) {
     mountEl.appendChild(renderer.domElement);
 
     const globeGroup = new Group();
+    // Shifts the whole sphere + markers + arcs down so the visible arc
+    // wraps from above the "SnowAI" title down past the Log In / Play
+    // Music buttons, instead of centering on empty space above the title.
+    globeGroup.position.y = GLOBE_VERTICAL_OFFSET;
     scene.add(globeGroup);
 
     // Transparent wireframe sphere
-    const wireGeo = new SphereGeometry(2, 28, 20);
+    const wireGeo = new SphereGeometry(GLOBE_RADIUS, 28, 20);
     const wireMat = new MeshBasicMaterial({
       color: 0x2979ff,
       wireframe: true,
@@ -327,10 +379,11 @@ function GlobalMarketGlobe({ active }) {
     dotCtx.fillRect(0, 0, 64, 64);
     const dotTexture = new CanvasTexture(dotCanvas);
 
-    // Hub markers
+    // Hub markers — radius scaled up to match GLOBE_RADIUS so markers sit
+    // right on the sphere's surface rather than floating inside/outside it.
     const hubPositions = [];
     MARKET_HUBS.forEach((hub) => {
-      const v = latLngToVector3(hub.lat, hub.lng, 2.05);
+      const v = latLngToVector3(hub.lat, hub.lng, GLOBE_RADIUS + 0.05);
       hubPositions.push(v.x, v.y, v.z);
     });
     const hubGeo = new BufferGeometry();
@@ -345,15 +398,16 @@ function GlobalMarketGlobe({ active }) {
     const hubPoints = new Points(hubGeo, hubMat);
     globeGroup.add(hubPoints);
 
-    // Connecting arcs between hubs, tracing a loop around the globe
+    // Connecting arcs between hubs, tracing a loop around the globe —
+    // radii scaled to match GLOBE_RADIUS.
     const arcMat = new LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
     const arcLines = [];
     for (let i = 0; i < MARKET_HUBS.length; i++) {
       const a = MARKET_HUBS[i];
       const b = MARKET_HUBS[(i + 1) % MARKET_HUBS.length];
-      const start = latLngToVector3(a.lat, a.lng, 2.02);
-      const end = latLngToVector3(b.lat, b.lng, 2.02);
-      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(2.4);
+      const start = latLngToVector3(a.lat, a.lng, GLOBE_RADIUS + 0.02);
+      const end = latLngToVector3(b.lat, b.lng, GLOBE_RADIUS + 0.02);
+      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS + 0.4);
       const curve = new QuadraticBezierCurve3(start, mid, end);
       const arcGeo = new BufferGeometry().setFromPoints(curve.getPoints(24));
       const arcLine = new Line(arcGeo, arcMat);
@@ -974,10 +1028,12 @@ export default function SnowAILandingPage() {
           display: block;
         }
 
+        /* Fallback/base rule for the countries — the authoritative fill
+           now comes from the inline style prop on <Geography> (see
+           GlobalMarketMap above), matching the solid MAP_COLORS technique
+           used in SnowAIEarth. This class just keeps the outline reset. */
         .snowai-country {
-          fill: rgba(41, 121, 255, 0.12);
-          stroke: rgba(158, 207, 251, 0.35);
-          stroke-width: 0.5;
+          outline: none;
         }
 
         .snowai-hub-dot {
