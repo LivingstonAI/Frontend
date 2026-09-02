@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { geoNaturalEarth1, geoPath, geoGraticule } from "d3-geo";
 import {
   Vector3,
   Scene,
@@ -129,7 +130,7 @@ import chess from '../Chess Type Beat.mp3';
 // two views always agree on where each hub sits.
 // ---------------------------------------------------------------------------
 
-// lat/lng feed both react-simple-maps (2D) and the Three.js globe (3D)
+// lat/lng feed both the D3-driven 2D map and the Three.js globe (3D)
 // directly, so the two views can never drift out of sync the way the old
 // hand-projected px/py values could. `tz` (when present) keys into the
 // `times` state so a hub can show a live local clock.
@@ -178,46 +179,43 @@ function easeInOutSine(t) {
 }
 
 // ---------------------------------------------------------------------------
-// 2D world map background — real country borders via react-simple-maps,
+// 2D world map background — D3 geographic projection + market hubs,
 // pulsing markers over the major hubs, and a soft light that travels
 // hub-to-hub across the map instead of sweeping in a straight line.
 // ---------------------------------------------------------------------------
-function projectMapPoint(lat, lng) {
-  // Equirectangular projection used by the self-contained SVG map.
-  // This deliberately avoids an external TopoJSON file so the map cannot fail
-  // because /geo/world-110m.json is missing or unreachable.
-  return {
-    x: ((lng + 180) / 360) * 1000,
-    y: ((90 - lat) / 180) * 500,
-  };
-}
-
-const MAP_CONTINENTS = [
+// ---------------------------------------------------------------------------
+// 2D world map background — D3 geographic projection + self-contained
+// continent geometry. D3 handles the projection and all hub placement, so
+// resizing the SVG never requires hand-tuned pixel coordinates.
+// ---------------------------------------------------------------------------
+const WORLD_FEATURES = [
   // North America
-  "M 78 105 L 130 72 L 205 58 L 265 88 L 300 125 L 282 158 L 245 168 L 224 202 L 188 214 L 158 192 L 126 205 L 103 178 L 76 165 L 60 135 Z",
+  [[-168,72],[-150,70],[-138,60],[-125,55],[-124,48],[-117,32],[-105,25],[-97,26],[-88,30],[-82,25],[-80,18],[-92,15],[-105,20],[-116,24],[-125,32],[-135,42],[-150,50],[-160,58],[-168,72]],
   // South America
-  "M 280 246 L 323 265 L 345 302 L 337 340 L 320 374 L 300 405 L 276 432 L 254 420 L 262 385 L 250 350 L 258 316 L 242 280 Z",
+  [[-82,12],[-72,8],[-64,2],[-58,-8],[-52,-18],[-48,-30],[-53,-42],[-60,-52],[-68,-56],[-73,-48],[-70,-35],[-76,-20],[-80,-5],[-82,12]],
   // Europe
-  "M 474 112 L 500 92 L 535 96 L 558 112 L 548 132 L 520 136 L 500 128 L 478 138 L 458 127 Z",
+  [[-11,36],[-4,43],[4,42],[12,45],[20,47],[30,55],[36,60],[30,68],[18,70],[8,62],[0,58],[-8,54],[-11,45],[-11,36]],
   // Africa
-  "M 470 160 L 520 155 L 554 178 L 560 222 L 548 270 L 525 318 L 495 344 L 465 320 L 452 276 L 444 226 L 452 188 Z",
+  [[-18,35],[-5,37],[10,34],[22,32],[33,28],[40,15],[43,4],[38,-10],[32,-23],[24,-34],[12,-35],[2,-28],[-7,-12],[-15,5],[-18,20],[-18,35]],
   // Asia
-  "M 545 100 L 610 70 L 695 62 L 770 82 L 842 112 L 900 145 L 872 176 L 820 182 L 790 210 L 735 205 L 700 185 L 654 192 L 620 170 L 580 168 L 552 145 Z",
+  [[28,40],[42,42],[55,50],[68,55],[82,60],[100,56],[118,52],[135,48],[150,45],[160,55],[170,65],[180,70],[180,35],[165,30],[150,25],[138,18],[125,20],[115,10],[105,8],[96,20],[85,24],[75,18],[65,22],[55,28],[44,30],[34,35],[28,40]],
   // India / Southeast Asia
-  "M 650 190 L 684 210 L 700 248 L 682 270 L 660 250 L 642 220 Z",
+  [[68,25],[78,30],[88,24],[92,15],[104,8],[108,-2],[101,-8],[94,2],[86,8],[80,6],[74,12],[68,25]],
   // Japan
-  "M 824 188 L 838 178 L 846 194 L 836 211 L 824 220 L 817 207 Z",
+  [[130,33],[136,37],[141,42],[145,39],[143,32],[137,28],[130,33]],
   // Australia
-  "M 750 344 L 812 328 L 872 346 L 900 382 L 882 415 L 830 430 L 780 416 L 742 382 Z",
+  [[113,-11],[128,-13],[143,-12],[153,-20],[153,-31],[145,-39],[132,-43],[120,-38],[113,-28],[113,-11]],
   // Greenland
-  "M 315 40 L 365 28 L 405 45 L 395 82 L 350 92 L 318 75 Z",
+  [[-73,60],[-55,60],[-42,68],[-30,75],[-38,82],[-55,84],[-68,78],[-73,68],[-73,60]],
   // Madagascar
-  "M 575 322 L 588 312 L 596 338 L 584 360 L 572 348 Z",
+  [[48,-13],[51,-20],[50,-26],[46,-25],[44,-18],[48,-13]],
 ];
 
 function GlobalMarketMap({ active, times }) {
-  const [sweepPos, setSweepPos] = useState(projectMapPoint(MARKET_HUBS[0].lat, MARKET_HUBS[0].lng));
+  const [sweepPos, setSweepPos] = useState(MARKET_HUBS[0]);
   const rafRef = useRef(null);
+  const svgRef = useRef(null);
+  const [mapSize, setMapSize] = useState({ width: 1000, height: 500 });
 
   useEffect(() => {
     if (!active) return;
@@ -230,11 +228,12 @@ function GlobalMarketMap({ active, times }) {
       const elapsed = t - segmentStart;
       const rawT = Math.min(elapsed / SWEEP_SEGMENT_MS, 1);
       const e = easeInOutSine(rawT);
-      const point = projectMapPoint(
-        from.lat + (to.lat - from.lat) * e,
-        from.lng + (to.lng - from.lng) * e
-      );
-      setSweepPos(point);
+
+      setSweepPos({
+        name: "sweep",
+        lng: from.lng + (to.lng - from.lng) * e,
+        lat: from.lat + (to.lat - from.lat) * e,
+      });
 
       if (rawT >= 1) {
         hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
@@ -247,11 +246,44 @@ function GlobalMarketMap({ active, times }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [active]);
 
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const resize = () => {
+      const rect = svgEl.getBoundingClientRect();
+      if (rect.width && rect.height) {
+        setMapSize({ width: rect.width, height: rect.height });
+      }
+    };
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(svgEl);
+    return () => observer.disconnect();
+  }, []);
+
+  const world = {
+    type: "FeatureCollection",
+    features: WORLD_FEATURES.map((coordinates, index) => ({
+      type: "Feature",
+      id: index,
+      properties: {},
+      geometry: { type: "Polygon", coordinates: [coordinates] },
+    })),
+  };
+
+  const projection = geoNaturalEarth1().fitSize([mapSize.width || 1000, mapSize.height || 500], world);
+  const path = geoPath(projection);
+  const graticule = geoGraticule().step([30, 30]);
+
+  const sweepPoint = projection([sweepPos.lng, sweepPos.lat]);
+  const hubPoints = MARKET_HUBS.map((hub) => ({ ...hub, point: projection([hub.lng, hub.lat]) }));
+
   return (
     <div className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
       <svg
+        ref={svgRef}
         className="snowai-map-svg"
-        viewBox="0 0 1000 500"
+        viewBox={`0 0 ${mapSize.width || 1000} ${mapSize.height || 500}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="Global financial market map"
@@ -267,34 +299,30 @@ function GlobalMarketMap({ active, times }) {
           </filter>
         </defs>
 
-        {/* Self-contained world silhouette: no TopoJSON/CDN/public asset required. */}
+        <path d={path(graticule())} className="snowai-map-grid" />
+
         <g className="snowai-map-land">
-          {MAP_CONTINENTS.map((path, index) => (
-            <path key={index} d={path} />
+          {world.features.map((feature) => (
+            <path key={feature.id} d={path(feature)} />
           ))}
         </g>
 
-        {/* Subtle latitude/longitude grid makes the map read clearly on mobile. */}
-        <g className="snowai-map-grid">
-          {[100, 200, 300, 400].map((y) => <line key={`lat-${y}`} x1="0" y1={y} x2="1000" y2={y} />)}
-          {[200, 400, 600, 800].map((x) => <line key={`lng-${x}`} x1={x} y1="0" x2={x} y2="500" />)}
-        </g>
+        {sweepPoint && (
+          <>
+            <circle cx={sweepPoint[0]} cy={sweepPoint[1]} r="34" fill="url(#sweepGlow)" className="snowai-sweep-glow" />
+            <circle cx={sweepPoint[0]} cy={sweepPoint[1]} r="7" fill="#ffffff" opacity="0.8" filter="url(#mapGlow)" />
+          </>
+        )}
 
-        <circle cx={sweepPos.x} cy={sweepPos.y} r="34" fill="url(#sweepGlow)" className="snowai-sweep-glow" />
-        <circle cx={sweepPos.x} cy={sweepPos.y} r="7" fill="#ffffff" opacity="0.8" filter="url(#mapGlow)" />
-
-        {MARKET_HUBS.map((hub) => {
-          const point = projectMapPoint(hub.lat, hub.lng);
-          return (
-            <g key={hub.name} className="snowai-map-hub">
-              <circle cx={point.x} cy={point.y} r="10" className="snowai-hub-ring" />
-              <circle cx={point.x} cy={point.y} r="4" className="snowai-hub-dot" />
-              <text x={point.x} y={point.y - 16} textAnchor="middle" className="snowai-hub-label">
-                {hub.name}{hub.tz ? ` · ${times[hub.tz]}` : ""}
-              </text>
-            </g>
-          );
-        })}
+        {hubPoints.map((hub) => (
+          <g key={hub.name} className="snowai-map-hub">
+            <circle cx={hub.point[0]} cy={hub.point[1]} r="10" className="snowai-hub-ring" />
+            <circle cx={hub.point[0]} cy={hub.point[1]} r="4" className="snowai-hub-dot" />
+            <text x={hub.point[0]} y={hub.point[1] - 16} textAnchor="middle" className="snowai-hub-label">
+              {hub.name}{hub.tz ? ` · ${times[hub.tz]}` : ""}
+            </text>
+          </g>
+        ))}
       </svg>
     </div>
   );
@@ -315,8 +343,8 @@ function GlobalMarketMap({ active, times }) {
 // camera off and angling it down slightly so the larger, shifted sphere
 // still fits fully in frame.
 // ---------------------------------------------------------------------------
-const GLOBE_RADIUS = 2.85;
-const GLOBE_VERTICAL_OFFSET = -0.15;
+const GLOBE_RADIUS = 2.3;
+const GLOBE_VERTICAL_OFFSET = -0.2;
 
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
@@ -338,7 +366,7 @@ function GlobalMarketGlobe({ active }) {
     // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
     // sphere, and angled down slightly so the downward-shifted globe group
     // still sits fully in frame around the hero content.
-    camera.position.z = 4.7;
+    camera.position.z = 4.25;
     camera.position.y = 0;
     camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
 
@@ -431,7 +459,7 @@ function GlobalMarketGlobe({ active }) {
       const w = mountEl.clientWidth || window.innerWidth;
       const h = mountEl.clientHeight || window.innerHeight;
       camera.aspect = w / h;
-      camera.position.z = w <= 600 ? 5.1 : 4.7;
+      camera.position.z = w <= 600 ? 4.7 : 4.25;
       camera.position.y = 0;
       camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
       camera.updateProjectionMatrix();
@@ -1040,7 +1068,8 @@ export default function SnowAILandingPage() {
           vector-effect: non-scaling-stroke;
         }
 
-        .snowai-map-grid line {
+        .snowai-map-grid {
+          fill: none;
           stroke: rgba(158, 207, 251, 0.08);
           stroke-width: 1;
           vector-effect: non-scaling-stroke;
@@ -1094,10 +1123,10 @@ export default function SnowAILandingPage() {
 
         .snowai-globe-wrap {
           position: absolute;
-          left: -18%;
-          top: -18%;
-          width: 136%;
-          height: 136%;
+          left: -10%;
+          top: -10%;
+          width: 120%;
+          height: 120%;
         }
 
         .snowai-globe-wrap canvas {
@@ -1108,10 +1137,10 @@ export default function SnowAILandingPage() {
 
         @media (max-width: 600px) {
           .snowai-globe-wrap {
-            left: -30%;
-            top: -18%;
-            width: 160%;
-            height: 136%;
+            left: -20%;
+            top: -10%;
+            width: 140%;
+            height: 120%;
           }
         }
 
@@ -1226,4 +1255,3 @@ export default function SnowAILandingPage() {
     </div>
   );
 }
-
