@@ -126,14 +126,9 @@ import chess_slowed from '../joyful - chess (slowed).mp3';
 import chess from '../Chess Type Beat.mp3';
 
 // ---------------------------------------------------------------------------
-// Global market backdrop data — shared by the 2D map and the 3D globe so the
-// two views always agree on where each hub sits.
+// Global market backdrop data
 // ---------------------------------------------------------------------------
 
-// lat/lng feed both react-simple-maps (2D) and the Three.js globe (3D)
-// directly, so the two views can never drift out of sync the way the old
-// hand-projected px/py values could. `tz` (when present) keys into the
-// `times` state so a hub can show a live local clock.
 const MARKET_HUBS = [
   { name: "New York", lat: 40.7, lng: -74.0, tz: "NewYork" },
   { name: "London", lat: 51.5, lng: -0.1, tz: "London" },
@@ -145,22 +140,10 @@ const MARKET_HUBS = [
   { name: "Sydney", lat: -33.9, lng: 151.2 },
 ];
 
-// World country outlines (TopoJSON) for react-simple-maps. Host this file
-// yourself (e.g. /public/geo/world-110m.json) instead of hitting a third
-// party CDN in production — world-atlas's world/110m is the standard pick:
-// https://github.com/topojson/world-atlas
 const WORLD_TOPOJSON_URL = "/geo/world-110m.json";
 
-// Order hubs are visited in for the light sweep, and how long (ms) the
-// sweep spends easing between each consecutive pair before moving on.
 const SWEEP_SEGMENT_MS = 3000;
 
-// ---------------------------------------------------------------------------
-// Shared dark palette for the 2D map + 3D globe backdrop, matching the
-// technique used in the SnowAIEarth component (MAP_COLORS there): solid,
-// visible land fill against the void, instead of a near-transparent tint
-// that disappears against the page background.
-// ---------------------------------------------------------------------------
 const MAP_COLORS = {
   land: "#16233d",
   landHover: "#1d3f78",
@@ -168,7 +151,6 @@ const MAP_COLORS = {
   borderHover: "#68a6db",
 };
 
-// Convert lat/lng (degrees) to a point on a sphere of the given radius.
 function latLngToVector3(lat, lng, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lng + 180) * (Math.PI / 180);
@@ -178,23 +160,25 @@ function latLngToVector3(lat, lng, radius) {
   return new Vector3(x, y, z);
 }
 
-// Simple ease for the sweep's motion between hubs.
 function easeInOutSine(t) {
   return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
 // ---------------------------------------------------------------------------
-// 2D world map background — real country borders via react-simple-maps,
-// pulsing markers over the major hubs, and a soft light that travels
-// hub-to-hub across the map instead of sweeping in a straight line.
+// 2D world map
 // ---------------------------------------------------------------------------
+
 function GlobalMarketMap({ active, times }) {
-  const [sweepPos, setSweepPos] = useState({ x: MARKET_HUBS[0].lng, y: MARKET_HUBS[0].lat });
+  const [sweepPos, setSweepPos] = useState({
+    x: MARKET_HUBS[0].lng,
+    y: MARKET_HUBS[0].lat
+  });
   const [hoveredHub, setHoveredHub] = useState(null);
   const rafRef = useRef(null);
 
   useEffect(() => {
     if (!active) return;
+
     let segmentStart = performance.now();
     let hubIndex = 0;
 
@@ -214,10 +198,12 @@ function GlobalMarketMap({ active, times }) {
         hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
         segmentStart = t;
       }
+
       rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
+
     return () => cancelAnimationFrame(rafRef.current);
   }, [active]);
 
@@ -225,7 +211,13 @@ function GlobalMarketMap({ active, times }) {
     <div className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
       <ComposableMap
         projection="geoMercator"
-        projectionConfig={{ scale: 130, center: [10, 20] }}
+        projectionConfig={{
+          scale:
+            typeof window !== "undefined" && window.innerWidth <= 600
+              ? 90
+              : 130,
+          center: [10, 20],
+        }}
         className="snowai-map-svg"
       >
         <defs>
@@ -269,7 +261,11 @@ function GlobalMarketMap({ active, times }) {
         </Geographies>
 
         <Marker coordinates={[sweepPos.x, sweepPos.y]}>
-          <circle r={38} fill="url(#sweepGlow)" className="snowai-sweep-glow" />
+          <circle
+            r={38}
+            fill="url(#sweepGlow)"
+            className="snowai-sweep-glow"
+          />
         </Marker>
 
         {MARKET_HUBS.map((hub) => (
@@ -277,13 +273,21 @@ function GlobalMarketMap({ active, times }) {
             key={hub.name}
             coordinates={[hub.lng, hub.lat]}
             onMouseEnter={() => setHoveredHub(hub.name)}
-            onMouseLeave={() => setHoveredHub((h) => (h === hub.name ? null : h))}
+            onMouseLeave={() =>
+              setHoveredHub((h) => (h === hub.name ? null : h))
+            }
           >
             <circle r={9} className="snowai-hub-ring" />
             <circle r={3} className="snowai-hub-dot" />
+
             {(hub.tz || hoveredHub === hub.name) && (
-              <text textAnchor="middle" y={-14} className="snowai-hub-label">
-                {hub.name}{hub.tz ? ` · ${times[hub.tz]}` : ""}
+              <text
+                textAnchor="middle"
+                y={-14}
+                className="snowai-hub-label"
+              >
+                {hub.name}
+                {hub.tz ? ` · ${times[hub.tz]}` : ""}
               </text>
             )}
           </Marker>
@@ -294,22 +298,11 @@ function GlobalMarketMap({ active, times }) {
 }
 
 // ---------------------------------------------------------------------------
-// 3D transparent globe — wireframe sphere + glowing hub markers + connecting
-// arcs, slowly auto-rotating. Scoped to a positioned parent (the hero stage)
-// rather than the full viewport, so it visually wraps the title/slogan/
-// buttons instead of sitting behind the entire page.
-//
-// Repositioned/rescaled so the sphere envelops the full hero column — from
-// the SnowAI logo down through the Play Music button — instead of sitting
-// centered and small on the whole stage. This is done by (a) growing the
-// sphere radius so it has enough surface area to wrap a taller column of
-// content, (b) shifting the globe group downward so its upper arc clears
-// the title and its lower arc clears the buttons, and (c) backing the
-// camera off and angling it down slightly so the larger, shifted sphere
-// still fits fully in frame.
+// 3D transparent globe
 // ---------------------------------------------------------------------------
-const GLOBE_RADIUS = 3.2; // Increased to envelop the full hero column
-const GLOBE_VERTICAL_OFFSET = 0.0; // Centered to cover logo through buttons
+
+const GLOBE_RADIUS = 2.4;
+const GLOBE_VERTICAL_OFFSET = -0.6;
 
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
@@ -327,53 +320,96 @@ function GlobalMarketGlobe({ active }) {
     const height = mountEl.clientHeight || window.innerHeight;
 
     const scene = new Scene();
-    const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.z = 5.5;
-    camera.position.y = 0.0;
-    camera.lookAt(0, 0, 0);
 
-    const renderer = new WebGLRenderer({ alpha: true, antialias: true });
+    const camera = new PerspectiveCamera(
+      45,
+      width / height,
+      0.1,
+      100
+    );
+
+    const isMobile = width <= 600;
+
+    camera.position.z = isMobile ? 5.2 : 4.2;
+    camera.position.y = isMobile ? 0.2 : 0.4;
+    camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
+
+    const renderer = new WebGLRenderer({
+      alpha: true,
+      antialias: true,
+    });
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
+
     mountEl.appendChild(renderer.domElement);
 
     const globeGroup = new Group();
+
+    globeGroup.position.y = GLOBE_VERTICAL_OFFSET;
+
     scene.add(globeGroup);
 
-    // Transparent wireframe sphere
-    const wireGeo = new SphereGeometry(GLOBE_RADIUS, 28, 20);
+    const wireGeo = new SphereGeometry(
+      GLOBE_RADIUS,
+      28,
+      20
+    );
+
     const wireMat = new MeshBasicMaterial({
       color: 0x2979ff,
       wireframe: true,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.28,
     });
+
     const wireSphere = new Mesh(wireGeo, wireMat);
     globeGroup.add(wireSphere);
 
-    // Soft round texture for hub markers
     const dotCanvas = document.createElement("canvas");
     dotCanvas.width = 64;
     dotCanvas.height = 64;
+
     const dotCtx = dotCanvas.getContext("2d");
-    const grad = dotCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+
+    const grad = dotCtx.createRadialGradient(
+      32,
+           32,
+      0,
+      32,
+      32,
+      32
+    );
+
     grad.addColorStop(0, "rgba(255,255,255,1)");
     grad.addColorStop(0.4, "rgba(158,207,251,0.9)");
     grad.addColorStop(1, "rgba(158,207,251,0)");
+
     dotCtx.fillStyle = grad;
     dotCtx.fillRect(0, 0, 64, 64);
+
     const dotTexture = new CanvasTexture(dotCanvas);
 
-    // Hub markers — radius scaled up to match GLOBE_RADIUS so markers sit
-    // right on the sphere's surface rather than floating inside/outside it.
     const hubPositions = [];
+
     MARKET_HUBS.forEach((hub) => {
-      const v = latLngToVector3(hub.lat, hub.lng, GLOBE_RADIUS + 0.05);
+      const v = latLngToVector3(
+        hub.lat,
+        hub.lng,
+        GLOBE_RADIUS + 0.05
+      );
+
       hubPositions.push(v.x, v.y, v.z);
     });
+
     const hubGeo = new BufferGeometry();
-    hubGeo.setAttribute("position", new Float32BufferAttribute(hubPositions, 3));
+
+    hubGeo.setAttribute(
+      "position",
+      new Float32BufferAttribute(hubPositions, 3)
+    );
+
     const hubMat = new PointsMaterial({
       size: 0.18,
       map: dotTexture,
@@ -381,58 +417,107 @@ function GlobalMarketGlobe({ active }) {
       depthWrite: false,
       color: 0xffffff,
     });
+
     const hubPoints = new Points(hubGeo, hubMat);
     globeGroup.add(hubPoints);
 
-    // Connecting arcs between hubs, tracing a loop around the globe —
-    // radii scaled to match GLOBE_RADIUS.
-    const arcMat = new LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
+    const arcMat = new LineBasicMaterial({
+      color: 0x68a6db,
+      transparent: true,
+      opacity: 0.35,
+    });
+
     const arcLines = [];
+
     for (let i = 0; i < MARKET_HUBS.length; i++) {
       const a = MARKET_HUBS[i];
       const b = MARKET_HUBS[(i + 1) % MARKET_HUBS.length];
-      const start = latLngToVector3(a.lat, a.lng, GLOBE_RADIUS + 0.02);
-      const end = latLngToVector3(b.lat, b.lng, GLOBE_RADIUS + 0.02);
-      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS + 0.5);
-      const curve = new QuadraticBezierCurve3(start, mid, end);
-      const arcGeo = new BufferGeometry().setFromPoints(curve.getPoints(24));
+
+      const start = latLngToVector3(
+        a.lat,
+        a.lng,
+        GLOBE_RADIUS + 0.02
+      );
+
+      const end = latLngToVector3(
+        b.lat,
+        b.lng,
+        GLOBE_RADIUS + 0.02
+      );
+
+      const mid = start
+        .clone()
+        .add(end)
+        .multiplyScalar(0.5)
+        .normalize()
+        .multiplyScalar(GLOBE_RADIUS + 0.4);
+
+      const curve = new QuadraticBezierCurve3(
+        start,
+        mid,
+        end
+      );
+
+      const arcGeo = new BufferGeometry().setFromPoints(
+        curve.getPoints(24)
+      );
+
       const arcLine = new Line(arcGeo, arcMat);
+
       globeGroup.add(arcLine);
       arcLines.push(arcLine);
     }
 
     let frameId;
     let lastTime = performance.now();
+
     const animate = (t) => {
       frameId = requestAnimationFrame(animate);
+
       if (document.hidden || !activeRef.current) return;
+
       const delta = t - lastTime;
       lastTime = t;
-      globeGroup.rotation.y += delta * 0.00005;
+
+      globeGroup.rotation.y += delta * 0.00006;
+
       renderer.render(scene, camera);
     };
+
     frameId = requestAnimationFrame(animate);
 
     const handleResize = () => {
       const w = mountEl.clientWidth || window.innerWidth;
       const h = mountEl.clientHeight || window.innerHeight;
+
       camera.aspect = w / h;
+      camera.position.z = w <= 600 ? 5.2 : 4.2;
+      camera.position.y = w <= 600 ? 0.2 : 0.4;
+      camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
+
       camera.updateProjectionMatrix();
+
       renderer.setSize(w, h);
     };
+
     window.addEventListener("resize", handleResize);
 
     return () => {
       cancelAnimationFrame(frameId);
+
       window.removeEventListener("resize", handleResize);
+
       wireGeo.dispose();
       wireMat.dispose();
       hubGeo.dispose();
       hubMat.dispose();
       dotTexture.dispose();
       arcMat.dispose();
+
       arcLines.forEach((line) => line.geometry.dispose());
+
       renderer.dispose();
+
       if (mountEl.contains(renderer.domElement)) {
         mountEl.removeChild(renderer.domElement);
       }
@@ -440,32 +525,50 @@ function GlobalMarketGlobe({ active }) {
   }, []);
 
   return (
-    <div className={`snowai-globe-layer ${active ? "is-active" : "is-hidden"}`}>
-      <div className="snowai-globe-wrap" ref={mountRef} />
+    <div
+      className={`snowai-globe-layer ${
+        active ? "is-active" : "is-hidden"
+      }`}
+    >
+      <div
+        className="snowai-globe-wrap"
+        ref={mountRef}
+      />
     </div>
   );
 }
 
 export default function SnowAILandingPage() {
   const [times, setTimes] = useState({
-    NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
-    London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
-    Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
+    NewYork: new Date().toLocaleTimeString("en-US", {
+      timeZone: "America/New_York",
+    }),
+    London: new Date().toLocaleTimeString("en-GB", {
+      timeZone: "Europe/London",
+    }),
+    Tokyo: new Date().toLocaleTimeString("ja-JP", {
+      timeZone: "Asia/Tokyo",
+    }),
   });
 
   useEffect(() => {
     const intervalId = setInterval(() => {
       setTimes({
-        NewYork: new Date().toLocaleTimeString("en-US", { timeZone: "America/New_York" }),
-        London: new Date().toLocaleTimeString("en-GB", { timeZone: "Europe/London" }),
-        Tokyo: new Date().toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" }),
+        NewYork: new Date().toLocaleTimeString("en-US", {
+          timeZone: "America/New_York",
+        }),
+        London: new Date().toLocaleTimeString("en-GB", {
+          timeZone: "Europe/London",
+        }),
+        Tokyo: new Date().toLocaleTimeString("ja-JP", {
+          timeZone: "Asia/Tokyo",
+        }),
       });
     }, 1000);
 
     return () => clearInterval(intervalId);
   }, []);
 
-  // Landing page background: "map" (2D) or "globe" (3D transparent globe)
   const [bgMode, setBgMode] = useState("map");
 
   const audioRef = useRef(null);
@@ -473,7 +576,6 @@ export default function SnowAILandingPage() {
   const [currentSong, setCurrentSong] = useState("");
   const [showSongModal, setShowSongModal] = useState(false);
 
-  // Slogan animation state
   const [currentSlogan, setCurrentSlogan] = useState("");
   const [sloganIndex, setSloganIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -492,145 +594,158 @@ export default function SnowAILandingPage() {
     "Строим то, что другие не могут себе представить."
   ];
 
-  // Song library
-    const songs = {
-      "1": { name: "MIT👨‍🎓📖🚀", file: mit },
-      "2": { name: "Atreides Theme ⚔️", file: atreides_theme },
-      "3": { name: "Jingle Bells", file: jingleBells },
-      "4": { name: "Snow Storm", file: snowStorm },
-      "5": { name: "Love Story", file: love_story },
-      "6": { name: "Ezio's Family", file: ezio_family },
-      "7": { name: "Hymn for The Weekend", file: hymn_for_the_weekend },
-      "8": { name: "Daydreaming", file: daydreaming },
-      "9": { name: "Me Times Two", file: me_times_two},
-      "10": { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
-      "11": { name: "Should I Stay or Should I Go", file: should_i_stay },
-      "12": { name: "The Middle", file: the_middle },
-      "13": { name: "Quiet Night", file: quiet_night },
-      "14": { name: "Feels", file: feels },
-      "15": { name: "I'm Good (Blue)", file: im_good },
-      "16": { name: "Never Give Up", file: never_give_up },
-      "17": { name: "Gravity", file: gravity },
-      "18": { name: "Closer", file: closer },
-      "19": { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
-      "20": { name: "Waiting 💙", file: waiting },
-      "21": { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
-      "22": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
-      "23": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
-      "24": { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
-      "25": { name: "When I'm With You - Arcando", file: when_im_with_you },
-      "26": { name: "Coffee Time ☕", file: coffee_time },
-      "27": { name: "Coffee Lounge ☕", file: coffee_lounge },
-      "28": { name: "Good Vibes 😌", file: good_vibes },
-      "29": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
-      "30": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
-      "31": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
-      "32": { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
-      "33": { name: "Honey Jam 🍯", file: honey_jam },
-      "34": { name: "Floral 🌺💮", file: floral },
-      "35": { name: "Lemon Cake 🍋🍰", file: lemon_cake },
-      "36": { name: "Marshmellow 😋", file: marshmellow},
-      "37": { name: "Rose 🌹", file: rose},
-      "38": { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
-      "39": { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
-      "40": { name: "Somnus Theme 🐺🥷", file: somnus_theme },
-      "41": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
-      "42": { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
-      "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
-      "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
-      "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
-      "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
-      "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
-      "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
-      "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
-      "50": { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
-      "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
-      "52": { name: "Afternoon of Konoha 🌳", file: afternoon_of_konoha },
-      "53": { name: "Chosen ⌛", file: chosen },
-      "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
-      "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
-      "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
-      "57": { name: "Forever Star 🌃", file: forever_star },
-      "58": { name: "Copines 🌳", file: copines },
-      "59": { name: "Dizzy Joakim Karud 🎒👨‍🎓", file: dizzy },
-      "60": { name: "Classic 😎🏖️", file: classic },
-      "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
-      "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
-      "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
-      "64": { name: "A Million Colors 🎺", file: a_million_colors },
-      "65": { name: "Anna's Smile 🌹", file: annas_smile},
-      "66": { name: "Strangers 🪶", file: strangers },
-      "67": { name: "Memory 🪶", file: memory },
-      "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
-      "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
-      "70": { name: "Levitating 🦸‍♂️", file: levitating },
-      "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
-      "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
-      "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
-      "74": { name: "Youth - Hu Qihao 🏄🎧", file: little_time_youth },
-      "75": { name: "Bomb - 1022 🌃", file: bomb_2022 },
-      "76": { name: "Daisies 🌼", file: daisies },
-      "77": { name: "Timeless ⌛", file: timeless },
-      "78": { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
-      "79": { name: "Xonada 🟣", file: xonada },
-      "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
-      "81": { name: "Sunroof 🏙️", file: sunroof },
-      "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
-      "83": { name: "Divine General Mahoraga", file: big_raga },
-      "84": { name: "Love Story 🌃", file: love_story_lyrics },
-      "85": { name: "Love Story (Russian) 🌃", file: russian_love_story },
-      "86": { name: "TXT - Lovesong 🎧", file: lovesong },
-      "87": { name: "Everything's Good 🏖️🏄", file: everythings_good },
-      "88": { name: "Coffee Date ☕🦫", file: coffee_date },
-      "89": { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study },
-      "90": { name: "Kambulat Ona 🎸", file: kambulat_ona },
-      "91": { name: "Killing Butterflies 🦋", file: killing_butterflies },
-      "92": { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang },
-      "93": { name: "Will & Evelyn", file: will_evelyn },
-      "94": { name: "No Batidao 🇧🇷🕺", file: no_batidao },
-      "95": { name: "Celebrate - Alan Avry 🦜", file: celebrate_alan },
-      "96": { name: "GODS - 뉴진스", file: gods },
-      "97": { name: "MENTE MA 🏄", file: mente_ma },
-      "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
-      "99": { name: "Dècembre 🇫🇷", file: decembre },
-      "100": { name: "If I am With You ☀️", file: honored_one },
-      "101": { name: "Answer to My Love 🎧", file: answer_to_my_love },
-      "102": { name: "Afrohouse Kilometro 🕺", file: kilometro },
-      "103": { name: "Joyful - Chess (SLOWED)", file: chess_slowed },
-      "104": { name: "Joyful - Chess", file: chess },
-    };
-
+  const songs = {
+    "1": { name: "MIT👨‍🎓📖🚀", file: mit },
+    "2": { name: "Atreides Theme ⚔️", file: atreides_theme },
+    "3": { name: "Jingle Bells", file: jingleBells },
+    "4": { name: "Snow Storm", file: snowStorm },
+    "5": { name: "Love Story", file: love_story },
+    "6": { name: "Ezio's Family", file: ezio_family },
+    "7": { name: "Hymn for The Weekend", file: hymn_for_the_weekend },
+    "8": { name: "Daydreaming", file: daydreaming },
+    "9": { name: "Me Times Two", file: me_times_two },
+    "10": { name: "We Don't Talk Anymore", file: we_dont_talk_anymore },
+    "11": { name: "Should I Stay or Should I Go", file: should_i_stay },
+    "12": { name: "The Middle", file: the_middle },
+    "13": { name: "Quiet Night", file: quiet_night },
+    "14": { name: "Feels", file: feels },
+    "15": { name: "I'm Good (Blue)", file: im_good },
+    "16": { name: "Never Give Up", file: never_give_up },
+    "17": { name: "Gravity", file: gravity },
+    "18": { name: "Closer", file: closer },
+    "19": { name: "Bloody Mary (Edit)", file: bloody_mary_edit },
+    "20": { name: "Waiting 💙", file: waiting },
+    "21": { name: "Wish (Wonderland) ✨🎸", file: wish_wonderland },
+    "22": { name: "Welcome to Columbia!📖🚀", file: welcome_to_columbia },
+    "23": { name: "沉溺（你让我的心不再结冰) 🎶🌆", file: 沉溺 },
+    "24": { name: "Shoot to Thrill - ACDC 🤖🎸", file: shoot_to_thrill },
+    "25": { name: "When I'm With You - Arcando", file: when_im_with_you },
+    "26": { name: "Coffee Time ☕", file: coffee_time },
+    "27": { name: "Coffee Lounge ☕", file: coffee_lounge },
+    "28": { name: "Good Vibes 😌", file: good_vibes },
+    "29": { name: "Iced Coffee Jazz ☕🎶", file: iced_coffee_jazz },
+    "30": { name: "Sitting in a Café ☕👨‍💻", file: sitting_in_a_cafe },
+    "31": { name: "Lex MIT Car 🤖🚗", file: lex_mit_car },
+    "32": { name: "Keep it lowkey 🎺", file: keep_it_lowkey },
+    "33": { name: "Honey Jam 🍯", file: honey_jam },
+    "34": { name: "Floral 🌺💮", file: floral },
+    "35": { name: "Lemon Cake 🍋🍰", file: lemon_cake },
+    "36": { name: "Marshmellow 😋", file: marshmellow },
+    "37": { name: "Rose 🌹", file: rose },
+    "38": { name: "This is MIT 👨‍🎓📚", file: this_is_mit },
+    "39": { name: "Dune: Time between storms ⌛🗡️", file: time_between_storms },
+    "40": { name: "Somnus Theme 🐺🥷", file: somnus_theme },
+    "41": { name: "Joji - Your Man 🦸‍♂️🦸‍♀️", file: your_man },
+    "42": { name: "Cry Baby - SZA 🌃🌃", file: cry_baby },
+    "43": { name: "Genesis - Jorma Kaukonen 🧑🏾‍🤝‍👩🏼👨‍💻👩‍💻", file: genesis },
+    "44": { name: "Rewrite the Stars 🌃", file: rewrite_the_stars },
+    "45": { name: "Bloodline - Ariana Grande 🎤", file: bloodline },
+    "46": { name: "Stromae, Pomme - “Ma Meilleure Ennemie” (from Arcane Season 2)🌃", file: ma_meilleure_enemie },
+    "47": { name: "Diverseddie 舵 - Procrastination 拖延症 😌👨‍💻", file: procrastination },
+    "48": { name: "Duncan's Theme 🗡️", file: duncan_theme },
+    "49": { name: "MIT Hall That Never Ends 👨‍🎓🎶", file: mit_hall },
+    "50": { name: "Empire State of Mind 🗽🌆", file: empire_state_of_mind },
+    "51": { name: "Here Comes The Sun 🌄", file: here_comes_the_sun },
+    "52": { name: "Afternoon of Konoha 🌳", file: afternoon_of_konoha },
+    "53": { name: "Chosen ⌛", file: chosen },
+    "54": { name: "Spin U Around 🎼💙", file: spin_u_round },
+    "55": { name: "Feel it 🦸‍♂️🦸‍♀️", file: feel_it },
+    "56": { name: "Mona Lisa 🎨🖌️", file: mona_lisa },
+    "57": { name: "Forever Star 🌃", file: forever_star },
+    "58": { name: "Copines 🌳", file: copines },
+    "59": { name: "Dizzy Joakim Karud 🎒👨‍🎓", file: dizzy },
+    "60": { name: "Classic 😎🏖️", file: classic },
+    "61": { name: "Classic (slowed) 🏄‍♂️", file: classic_slowed },
+    "62": { name: "Sound of April 🌃🎧", file: sound_of_april },
+    "63": { name: "What are you waiting for? 🏄‍♂️", file: what_are_you_waiting_for },
+    "64": { name: "A Million Colors 🎺", file: a_million_colors },
+    "65": { name: "Anna's Smile 🌹", file: annas_smile },
+    "66": { name: "Strangers 🪶", file: strangers },
+    "67": { name: "Memory 🪶", file: memory },
+    "68": { name: "아무노래 ~ ZICO 🇰🇷", file: any_song },
+    "69": { name: "NOKIA X T.G.I.F. 🌃", file: nokia_remix },
+    "70": { name: "Levitating 🦸‍♂️", file: levitating },
+    "71": { name: "22 (Remix) 🤵", file: twentytwo_remix },
+    "72": { name: "Free - Rumi and Jinu🌹 ", file: free },
+    "73": { name: "Once upon a time - remix slowed 🌃", file: once_upon_a_time_trend },
+    "74": { name: "Youth - Hu Qihao 🏄🎧", file: little_time_youth },
+    "75": { name: "Bomb - 1022 🌃", file: bomb_2022 },
+    "76": { name: "Daisies 🌼", file: daisies },
+    "77": { name: "Timeless ⌛", file: timeless },
+    "78": { name: "Judas 👉🔴🔵👈🟣☝️", file: judas },
+    "79": { name: "Xonada 🟣", file: xonada },
+    "80": { name: "Coffee Talk ☕👨‍💻", file: coffee_talk },
+    "81": { name: "Sunroof 🏙️", file: sunroof },
+    "82": { name: "Can you hear the music? 🎼", file: can_you_hear },
+    "83": { name: "Divine General Mahoraga", file: big_raga },
+    "84": { name: "Love Story 🌃", file: love_story_lyrics },
+    "85": { name: "Love Story (Russian) 🌃", file: russian_love_story },
+    "86": { name: "TXT - Lovesong 🎧", file: lovesong },
+    "87": { name: "Everything's Good 🏖️🏄", file: everythings_good },
+    "88": { name: "Coffee Date ☕🦫", file: coffee_date },
+    "89": { name: "K-Drama Study Motivation 🇰🇷 (1)", file: kdrama_study },
+    "90": { name: "Kambulat Ona 🎸", file: kambulat_ona },
+    "91": { name: "Killing Butterflies 🦋", file: killing_butterflies },
+    "92": { name: "Lil Boo Thang 🏖️😎", file: lil_boo_thang },
+    "93": { name: "Will & Evelyn", file: will_evelyn },
+    "94": { name: "No Batidao 🇧🇷🕺", file: no_batidao },
+    "95": { name: "Celebrate - Alan Avry 🦜", file: celebrate_alan },
+    "96": { name: "GODS - 뉴진스", file: gods },
+    "97": { name: "MENTE MA 🏄", file: mente_ma },
+    "98": { name: "Ba Fang Lai Cai🎧🌃", file: bang_lai },
+    "99": { name: "Dècembre 🇫🇷", file: decembre },
+    "100": { name: "If I am With You ☀️", file: honored_one },
+    "101": { name: "Answer to My Love 🎧", file: answer_to_my_love },
+    "102": { name: "Afrohouse Kilometro 🕺", file: kilometro },
+    "103": { name: "Joyful - Chess (SLOWED)", file: chess_slowed },
+    "104": { name: "Joyful - Chess", file: chess },
+  };
 
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const filteredSongs = Object.entries(songs).filter(([key, song]) =>
-    song.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const filteredSongs = Object.entries(songs).filter(
+    ([key, song]) =>
+      song.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Fixed slogan typewriter effect
   useEffect(() => {
     const timeout = setTimeout(() => {
       const currentSloganText = slogans[sloganIndex];
-      
-      if (!isDeleting && charIndex < currentSloganText.length) {
+
+      if (
+        !isDeleting &&
+        charIndex < currentSloganText.length
+      ) {
         const nextChar = [...currentSloganText][charIndex];
-        setCurrentSlogan(prev => prev + nextChar);
+
+        setCurrentSlogan((prev) => prev + nextChar);
         setCharIndex(charIndex + 1);
       } else if (isDeleting && charIndex > 0) {
         const chars = [...currentSlogan];
-        setCurrentSlogan(chars.slice(0, -1).join(''));
+
+        setCurrentSlogan(chars.slice(0, -1).join(""));
         setCharIndex(charIndex - 1);
-      } else if (!isDeleting && charIndex === currentSloganText.length) {
+      } else if (
+        !isDeleting &&
+        charIndex === currentSloganText.length
+      ) {
         setTimeout(() => setIsDeleting(true), 3000);
       } else if (isDeleting && charIndex === 0) {
         setIsDeleting(false);
         setCurrentSlogan("");
-        setSloganIndex((prev) => (prev + 1) % slogans.length);
+        setSloganIndex(
+          (prev) => (prev + 1) % slogans.length
+        );
       }
     }, isDeleting ? 75 : 120);
 
     return () => clearTimeout(timeout);
-  }, [charIndex, isDeleting, sloganIndex, currentSlogan]);
+  }, [
+    charIndex,
+    isDeleting,
+    sloganIndex,
+    currentSlogan,
+  ]);
 
   const handlePlayToggle = () => {
     if (!isPlaying) {
@@ -639,6 +754,7 @@ export default function SnowAILandingPage() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
+
       setIsPlaying(false);
     }
   };
@@ -650,78 +766,125 @@ export default function SnowAILandingPage() {
   };
 
   useEffect(() => {
-    if (currentSong && isPlaying && audioRef.current) {
-      audioRef.current.play().catch(error => {
+    if (
+      currentSong &&
+      isPlaying &&
+      audioRef.current
+    ) {
+      audioRef.current.play().catch((error) => {
         console.error("Error playing audio:", error);
       });
     }
   }, [currentSong, isPlaying]);
 
   const createFallingCharacters = () => {
-    const container = document.getElementById("snowflake-container");
+    const container = document.getElementById(
+      "snowflake-container"
+    );
+
     if (container) {
       const characters = [
-        '雪', '冬', '美', '爱', '风', '光', '云', '星', '梦', '智', 
+        '雪', '冬', '美', '爱', '风', '光', '云', '星', '梦', '智',
         '慧', '学', '研', '科', '技', '未', '来', '创', '新', '思',
         '天', '地', '山', '水', '人', '心', '情', '感', '知', '道',
-        '눈', '겨', '울', '아', '름', '사', '랑', '바', '람', '빛', 
+        '눈', '겨', '울', '아', '름', '사', '랑', '바', '람', '빛',
         '구', '름', '별', '꿈', '지', '혜', '배', '움', '과', '학',
         '미', '래', '창', '조', '생', '각', '하', '늘', '땅', '산'
       ];
-      
+
       const characterCount = 25;
-      
+
       for (let i = 0; i < characterCount; i++) {
-        const character = document.createElement("div");
+        const character =
+          document.createElement("div");
+
         character.className = "falling-character";
-        
-        const randomChar = characters[Math.floor(Math.random() * characters.length)];
+
+        const randomChar =
+          characters[
+            Math.floor(
+              Math.random() * characters.length
+            )
+          ];
+
         character.innerText = randomChar;
-        
-        character.style.left = `${Math.random() * 100}vw`;
-        character.style.fontSize = `${Math.random() * 12 + 14}px`;
-        character.style.animationDuration = `${Math.random() * 8 + 15}s`;
-        character.style.animationDelay = `${Math.random() * 3}s`;
-        character.style.opacity = Math.random() * 0.7 + 0.3;
-        character.style.transform = `rotate(${Math.random() * 360}deg)`;
-        
+
+        character.style.left =
+          `${Math.random() * 100}vw`;
+
+        character.style.fontSize =
+          `${Math.random() * 12 + 14}px`;
+
+        character.style.animationDuration =
+          `${Math.random() * 8 + 15}s`;
+
+        character.style.animationDelay =
+          `${Math.random() * 3}s`;
+
+        character.style.opacity =
+          Math.random() * 0.7 + 0.3;
+
+        character.style.transform =
+          `rotate(${Math.random() * 360}deg)`;
+
         container.appendChild(character);
-        
-        character.addEventListener("animationend", () => {
-          if (character.parentNode === container) {
-            container.removeChild(character);
+
+        character.addEventListener(
+          "animationend",
+          () => {
+            if (character.parentNode === container) {
+              container.removeChild(character);
+            }
           }
-        });
+        );
       }
     }
   };
-  
+
   useEffect(() => {
     createFallingCharacters();
-    
+
     const maxCharacters = 40;
-    
+
     const intervalId = setInterval(() => {
-      const container = document.getElementById("snowflake-container");
-      if (container && container.children.length < maxCharacters) {
+      const container =
+        document.getElementById(
+          "snowflake-container"
+        );
+
+      if (
+        container &&
+        container.children.length < maxCharacters
+      ) {
         createFallingCharacters();
       }
     }, 5000);
-    
+
     return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
     const glow = document.createElement("div");
+
     glow.className = "mouse-glow";
+
     document.body.appendChild(glow);
 
     const handleMouseMove = (e) => {
-      glow.style.transform = `translate(${e.clientX - 25}px, ${e.clientY - 25}px)`;
+      glow.style.transform =
+        `translate(${e.clientX - 25}px, ${e.clientY - 25}px)`;
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
+    document.addEventListener(
+      "mousemove",
+      handleMouseMove
+    );
+
+    return () =>
+      document.removeEventListener(
+        "mousemove",
+        handleMouseMove
+      );
   }, []);
 
   return (
@@ -741,11 +904,6 @@ export default function SnowAILandingPage() {
           overflow-x: hidden;
         }
 
-        /* ------------------------------------------------------------- */
-        /* Hero stage: wraps the title/slogan/buttons + the scoped        */
-        /* backdrop (map or globe) that envelops them                     */
-        /* ------------------------------------------------------------- */
-
         .snowai-hero-stage {
           position: relative;
           min-height: 100vh;
@@ -763,37 +921,6 @@ export default function SnowAILandingPage() {
           display: flex;
           flex-direction: column;
           align-items: center;
-        }
-
-        .snowai-title {
-          font-size: clamp(3rem, 10vw, 6rem);
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          margin-bottom: 20px;
-          text-shadow: 0 0 20px rgba(158, 207, 251, 0.3);
-        }
-
-        .snowai-title span {
-          display: inline-block;
-          animation: titleFloat 3s ease-in-out infinite;
-          color: #ffffff;
-        }
-
-        .snowai-title span:nth-child(1) { animation-delay: 0s; }
-        .snowai-title span:nth-child(2) { animation-delay: 0.1s; }
-        .snowai-title span:nth-child(3) { animation-delay: 0.2s; }
-        .snowai-title span:nth-child(4) { animation-delay: 0.3s; }
-        .snowai-title span:nth-child(5) { animation-delay: 0.4s; }
-        .snowai-title span:nth-child(6) { animation-delay: 0.5s; }
-
-        @keyframes titleFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0; }
         }
 
         .snowai-slogan {
@@ -867,6 +994,7 @@ export default function SnowAILandingPage() {
           0%, 100% {
             box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
           }
+
           50% {
             box-shadow: 0 4px 18px rgba(41, 121, 255, 0.5);
           }
@@ -878,18 +1006,22 @@ export default function SnowAILandingPage() {
         }
 
         .mouse-glow {
-          position: fixed;
+          position: absolute;
           width: 50px;
           height: 50px;
-          background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 80%);
+          background: radial-gradient(
+            circle,
+            rgba(255,255,255,0.5) 0%,
+            rgba(255,255,255,0) 80%
+          );
           pointer-events: none;
           mix-blend-mode: screen;
           transition: transform 0.1s ease;
-          z-index: 9999;
+          z-index: 5;
         }
 
         .falling-character {
-          position: fixed;
+          position: absolute;
           top: -5%;
           color: #ffffff;
           font-size: 18px;
@@ -1014,8 +1146,7 @@ export default function SnowAILandingPage() {
         }
 
         /* ------------------------------------------------------------- */
-        /* Backdrop: 2D market map + 3D transparent globe, both scoped    */
-        /* to .snowai-hero-stage so they envelop the hero content only    */
+        /* Backdrop: 2D market map + 3D transparent globe                */
         /* ------------------------------------------------------------- */
 
         .snowai-bg-layer {
@@ -1045,11 +1176,6 @@ export default function SnowAILandingPage() {
           display: block;
         }
 
-        .snowai-map-svg svg {
-          width: 100%;
-          height: 100%;
-        }
-
         .snowai-country {
           outline: none;
         }
@@ -1074,21 +1200,35 @@ export default function SnowAILandingPage() {
           filter: drop-shadow(0 0 3px rgba(158, 207, 251, 0.85));
         }
 
-        /* Show hub labels on mobile */
         @media (max-width: 600px) {
           .snowai-hub-label {
-            font-size: 9px;
+            display: block;
+            font-size: 8px;
+            letter-spacing: 0;
+            pointer-events: none;
           }
         }
 
         @keyframes hubPulse {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
+          0%, 100% {
+            opacity: 0.7;
+          }
+
+          50% {
+            opacity: 1;
+          }
         }
 
         @keyframes hubRingPulse {
-          0% { r: 9; opacity: 0.6; }
-          100% { r: 22; opacity: 0; }
+          0% {
+            r: 9;
+            opacity: 0.6;
+          }
+
+          100% {
+            r: 22;
+            opacity: 0;
+          }
         }
 
         .snowai-sweep-glow {
@@ -1137,41 +1277,75 @@ export default function SnowAILandingPage() {
       `}</style>
 
       <div className="snowai-hero-stage">
+
         <div className="snowai-bg-layer">
-          <GlobalMarketMap active={bgMode === "map"} times={times} />
-          <GlobalMarketGlobe active={bgMode === "globe"} />
+          <GlobalMarketMap
+            active={bgMode === "map"}
+            times={times}
+          />
+
+          <GlobalMarketGlobe
+            active={bgMode === "globe"}
+          />
         </div>
 
         <div id="snowflake-container"></div>
 
         <div className="snowai-hero-content">
           <h1 className="snowai-title">
-            {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
-              <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
-            ))}
+            {["S", "n", "o", "w", "A", "I"].map(
+              (letter, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    animationDelay: `${idx * 0.2}s`
+                  }}
+                >
+                  {letter}
+                </span>
+              )
+            )}
           </h1>
 
           <div className="snowai-slogan">
             {currentSlogan}
           </div>
 
-          <a href="/login" className="snowai-button">Log In</a>
+          <a
+            href="/login"
+            className="snowai-button"
+          >
+            Log In
+          </a>
 
-          <button className="snowai-button" onClick={handlePlayToggle}>
+          <button
+            className="snowai-button"
+            onClick={handlePlayToggle}
+          >
             {isPlaying ? "Stop Music" : "Play Music"}
           </button>
         </div>
 
         <button
           className="snowai-bg-toggle"
-          onClick={() => setBgMode((m) => (m === "map" ? "globe" : "map"))}
+          onClick={() =>
+            setBgMode((m) =>
+              m === "map" ? "globe" : "map"
+            )
+          }
           aria-label="Toggle background view"
         >
-          {bgMode === "map" ? "View 3D Globe" : "View World Map"}
+          {bgMode === "map"
+            ? "View 3D Globe"
+            : "View World Map"}
         </button>
       </div>
 
-      <audio ref={audioRef} src={currentSong} loop />
+      <audio
+        ref={audioRef}
+        src={currentSong}
+        loop
+      />
 
       {showSongModal && (
         <div className="landing-page-song-modal-overlay">
@@ -1184,7 +1358,9 @@ export default function SnowAILandingPage() {
                 className="form-control"
                 placeholder="Search for a song..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
               />
             </div>
 
@@ -1194,19 +1370,25 @@ export default function SnowAILandingPage() {
                   <li
                     key={key}
                     className="song-option"
-                    onClick={() => handleSongSelection(song.file)}
+                    onClick={() =>
+                      handleSongSelection(song.file)
+                    }
                   >
                     {song.name}
                   </li>
                 ))
               ) : (
-                <li className="song-option">No songs found</li>
+                <li className="song-option">
+                  No songs found
+                </li>
               )}
             </ul>
 
             <button
               className="close-modal-btn-lp"
-              onClick={() => setShowSongModal(false)}
+              onClick={() =>
+                setShowSongModal(false)
+              }
             >
               Close
             </button>
