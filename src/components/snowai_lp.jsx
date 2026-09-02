@@ -162,9 +162,10 @@ const SWEEP_SEGMENT_MS = 3000;
 // that disappears against the page background.
 // ---------------------------------------------------------------------------
 const MAP_COLORS = {
-  land: "#16233d",
-  landHover: "#1d3f78",
-  border: "rgba(158, 207, 251, 0.45)",
+  ocean: "#0a1628",  // Added ocean color for the map background
+  land: "#1a3a5c",   // Lighter blue so it's visible against dark background
+  landHover: "#2a5a8c",
+  border: "rgba(158, 207, 251, 0.6)",
   borderHover: "#68a6db",
 };
 
@@ -243,11 +244,6 @@ function GlobalMarketMap({ active, times }) {
                 key={geo.rsmKey}
                 geography={geo}
                 className="snowai-country"
-                // Solid fill (matching MAP_COLORS.land in SnowAIEarth) set
-                // directly via style so it always wins regardless of any
-                // conflicting CSS specificity — this is what was making
-                // countries invisible before (a 12%-opacity fill in the
-                // stylesheet with nothing solid backing it up).
                 style={{
                   default: {
                     fill: MAP_COLORS.land,
@@ -305,18 +301,9 @@ function GlobalMarketMap({ active, times }) {
 // arcs, slowly auto-rotating. Scoped to a positioned parent (the hero stage)
 // rather than the full viewport, so it visually wraps the title/slogan/
 // buttons instead of sitting behind the entire page.
-//
-// Repositioned/rescaled so the sphere envelops the full hero column — from
-// the SnowAI logo down through the Play Music button — instead of sitting
-// centered and small on the whole stage. This is done by (a) growing the
-// sphere radius so it has enough surface area to wrap a taller column of
-// content, (b) shifting the globe group downward so its upper arc clears
-// the title and its lower arc clears the buttons, and (c) backing the
-// camera off and angling it down slightly so the larger, shifted sphere
-// still fits fully in frame.
 // ---------------------------------------------------------------------------
-const GLOBE_RADIUS = 2.4; // was 2 — larger sphere to wrap the whole hero column
-const GLOBE_VERTICAL_OFFSET = -0.6; // shifts the sphere down so it envelops logo → buttons
+const GLOBE_RADIUS = 2.4;
+const GLOBE_VERTICAL_OFFSET = -0.6;
 
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
@@ -335,9 +322,6 @@ function GlobalMarketGlobe({ active }) {
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
-    // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
-    // sphere, and angled down slightly so the downward-shifted globe group
-    // still sits fully in frame around the hero content.
     camera.position.z = 4.2;
     camera.position.y = 0.4;
     camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
@@ -349,9 +333,6 @@ function GlobalMarketGlobe({ active }) {
     mountEl.appendChild(renderer.domElement);
 
     const globeGroup = new Group();
-    // Shifts the whole sphere + markers + arcs down so the visible arc
-    // wraps from above the "SnowAI" title down past the Log In / Play
-    // Music buttons, instead of centering on empty space above the title.
     globeGroup.position.y = GLOBE_VERTICAL_OFFSET;
     scene.add(globeGroup);
 
@@ -753,6 +734,7 @@ export default function SnowAILandingPage() {
           width: 100%;
           height: 100%;
           overflow-x: hidden;
+          background: #050d1a;
         }
 
         /* ------------------------------------------------------------- */
@@ -769,14 +751,143 @@ export default function SnowAILandingPage() {
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          background: #050d1a;
         }
 
+        /* Background layers - positioned behind content */
+        .snowai-bg-layer {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          overflow: hidden;
+          pointer-events: none;
+          background: #050d1a;
+        }
+
+        .snowai-map-layer,
+        .snowai-globe-layer {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          transition: opacity 1s ease;
+          width: 100%;
+          height: 100%;
+        }
+
+        .snowai-map-layer.is-active,
+        .snowai-globe-layer.is-active {
+          opacity: 1;
+        }
+
+        .snowai-map-svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
+        /* Map ocean background - fill the entire SVG area */
+        .snowai-map-svg {
+          background: #0a1628;
+        }
+
+        /* Country styling - now visible! */
+        .snowai-country {
+          outline: none;
+        }
+
+        /* Hub markers */
+        .snowai-hub-dot {
+          fill: #9ecffb;
+          animation: hubPulse 3s ease-in-out infinite;
+        }
+
+        .snowai-hub-ring {
+          fill: none;
+          stroke: #68a6db;
+          stroke-width: 1.5;
+          opacity: 0.6;
+          animation: hubRingPulse 3s ease-out infinite;
+        }
+
+        .snowai-hub-label {
+          fill: #ffffff;
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+          filter: drop-shadow(0 0 8px rgba(158, 207, 251, 0.9)) drop-shadow(0 0 15px rgba(41, 121, 255, 0.5));
+          text-shadow: 0 0 10px rgba(0,0,0,0.9);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* Show hub labels on mobile - removed the display:none */
+        @media (max-width: 600px) {
+          .snowai-hub-label {
+            font-size: 8px;
+          }
+        }
+
+        @keyframes hubPulse {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
+        }
+
+        @keyframes hubRingPulse {
+          0% { r: 9; opacity: 0.6; }
+          100% { r: 22; opacity: 0; }
+        }
+
+        /* The traveling light — a radial glow riding a Marker across real
+           lat/lng coordinates, so it visibly passes over countries rather
+           than a flat bar crossing the screen. */
+        .snowai-sweep-glow {
+          mix-blend-mode: screen;
+          pointer-events: none;
+        }
+
+        /* Globe wrapper */
+        .snowai-globe-wrap {
+          width: 100%;
+          height: 100%;
+        }
+
+        .snowai-globe-wrap canvas {
+          display: block;
+        }
+
+        /* Hero content - positioned above the background */
         .snowai-hero-content {
           position: relative;
           z-index: 10;
           display: flex;
           flex-direction: column;
           align-items: center;
+          padding: 20px;
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* SnowAI Logo Title */
+        .snowai-title {
+          font-size: clamp(3rem, 10vw, 6rem);
+          font-weight: 900;
+          letter-spacing: 0.1em;
+          text-shadow: 0 0 30px rgba(41, 121, 255, 0.6);
+          margin-bottom: 20px;
+          display: flex;
+          gap: 0.05em;
+        }
+
+        .snowai-title span {
+          display: inline-block;
+          color: #ffffff;
+          animation: titleFloat 3s ease-in-out infinite;
+          text-shadow: 0 0 20px #2979ff, 0 0 40px #2979ff;
+        }
+
+        @keyframes titleFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-5px); }
         }
 
         .snowai-slogan {
@@ -807,6 +918,11 @@ export default function SnowAILandingPage() {
           width: 2px;
           background: #ffffff;
           animation: blink 0.8s step-end infinite;
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
         }
 
         @media (max-width: 768px) {
@@ -844,6 +960,8 @@ export default function SnowAILandingPage() {
           cursor: pointer;
           margin: 10px;
           display: inline-block;
+          min-width: 150px;
+          text-align: center;
         }
 
         @keyframes glow {
@@ -860,8 +978,39 @@ export default function SnowAILandingPage() {
           box-shadow: 0 4px 20px rgba(41, 121, 255, 0.6);
         }
 
+        /* Background toggle button */
+        .snowai-bg-toggle {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 15;
+          background: rgba(10, 15, 31, 0.8);
+          color: #ffffff;
+          border: 1px solid rgba(104, 166, 219, 0.5);
+          border-radius: 20px;
+          padding: 8px 16px;
+          font-size: 13px;
+          cursor: pointer;
+          backdrop-filter: blur(4px);
+          transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .snowai-bg-toggle:hover {
+          background: rgba(41, 121, 255, 0.35);
+          border-color: #68a6db;
+        }
+
+        @media (max-width: 480px) {
+          .snowai-bg-toggle {
+            bottom: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            font-size: 11px;
+          }
+        }
+
         .mouse-glow {
-          position: absolute;
+          position: fixed;
           width: 50px;
           height: 50px;
           background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 80%);
@@ -872,14 +1021,15 @@ export default function SnowAILandingPage() {
         }
 
         .falling-character {
-          position: absolute;
+          position: fixed;
           top: -5%;
-          color: #ffffff;
+          color: rgba(255, 255, 255, 0.6);
           font-size: 18px;
           opacity: 0.8;
           animation: fall linear infinite;
           transition: transform 0.2s ease, opacity 0.2s ease;
           z-index: 1;
+          pointer-events: none;
         }
 
         @keyframes fall {
@@ -888,18 +1038,13 @@ export default function SnowAILandingPage() {
           }
         }
 
-        .falling-character:hover {
-          transform: scale(1.5) rotate(15deg);
-          opacity: 0.5;
-        }
-
         .landing-page-song-modal-overlay {
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.8);
+          background: rgba(0, 0, 0, 0.85);
           display: flex;
           justify-content: center;
           align-items: center;
@@ -993,129 +1138,6 @@ export default function SnowAILandingPage() {
           .landing-page-song-modal {
             padding: 20px;
             width: 95%;
-          }
-        }
-
-        /* ------------------------------------------------------------- */
-        /* Backdrop: 2D market map + 3D transparent globe, both scoped    */
-        /* to .snowai-hero-stage so they envelop the hero content only    */
-        /* ------------------------------------------------------------- */
-
-        .snowai-bg-layer {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          overflow: hidden;
-          pointer-events: none;
-        }
-
-        .snowai-map-layer,
-        .snowai-globe-layer {
-          position: absolute;
-          inset: 0;
-          opacity: 0;
-          transition: opacity 1s ease;
-        }
-
-        .snowai-map-layer.is-active,
-        .snowai-globe-layer.is-active {
-          opacity: 1;
-        }
-
-        .snowai-map-svg {
-          width: 100%;
-          height: 100%;
-          display: block;
-        }
-
-        /* Fallback/base rule for the countries — the authoritative fill
-           now comes from the inline style prop on <Geography> (see
-           GlobalMarketMap above), matching the solid MAP_COLORS technique
-           used in SnowAIEarth. This class just keeps the outline reset. */
-        .snowai-country {
-          outline: none;
-        }
-
-        .snowai-hub-dot {
-          fill: #9ecffb;
-          animation: hubPulse 3s ease-in-out infinite;
-        }
-
-        .snowai-hub-ring {
-          fill: none;
-          stroke: #68a6db;
-          stroke-width: 1;
-          opacity: 0.6;
-          animation: hubRingPulse 3s ease-out infinite;
-        }
-
-        .snowai-hub-label {
-          fill: #9ecffb;
-          font-size: 11px;
-          letter-spacing: 0.3px;
-          filter: drop-shadow(0 0 3px rgba(158, 207, 251, 0.85));
-        }
-
-        @media (max-width: 600px) {
-          .snowai-hub-label {
-            display: none;
-          }
-        }
-
-        @keyframes hubPulse {
-          0%, 100% { opacity: 0.7; }
-          50% { opacity: 1; }
-        }
-
-        @keyframes hubRingPulse {
-          0% { r: 9; opacity: 0.6; }
-          100% { r: 22; opacity: 0; }
-        }
-
-        /* The traveling light — a radial glow riding a Marker across real
-           lat/lng coordinates, so it visibly passes over countries rather
-           than a flat bar crossing the screen. */
-        .snowai-sweep-glow {
-          mix-blend-mode: screen;
-          pointer-events: none;
-        }
-
-        .snowai-globe-wrap {
-          width: 100%;
-          height: 100%;
-        }
-
-        .snowai-globe-wrap canvas {
-          display: block;
-        }
-
-        .snowai-bg-toggle {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          z-index: 15;
-          background: rgba(10, 15, 31, 0.6);
-          color: #ffffff;
-          border: 1px solid rgba(104, 166, 219, 0.5);
-          border-radius: 20px;
-          padding: 8px 16px;
-          font-size: 13px;
-          cursor: pointer;
-          backdrop-filter: blur(4px);
-          transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-
-        .snowai-bg-toggle:hover {
-          background: rgba(41, 121, 255, 0.35);
-          border-color: #68a6db;
-        }
-
-        @media (max-width: 480px) {
-          .snowai-bg-toggle {
-            bottom: 12px;
-            right: 12px;
-            padding: 6px 12px;
-            font-size: 11px;
           }
         }
       `}</style>
