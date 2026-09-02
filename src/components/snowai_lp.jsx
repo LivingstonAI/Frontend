@@ -27,7 +27,7 @@ import ezio_family from "../Assassin's Creed 2 OST  Jesper Kyd - Ezio's Family (
 import hymn_for_the_weekend from '../Coldplay - Hymn For The Weekend (Lyrics).mp3';
 import daydreaming from '../Marc Wavy - Daydreaming (Official Lyric Video).mp3';
 import me_times_two from '../Raptures - Me Times Two (ft. Moav)  Electronic Pop  NCS - Copyright Free Music.mp3';
-import we_dont_talk_anymore from "../We Don't Talk Anymore我们不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
+import we_dont_talk_anymore from "../We Don't Talk Anymore我們不再交談Charlie Puth ft.Selena Gomez 中文字幕.mp3";
 import should_i_stay from '../The Clash - Should I Stay or Should I Go (Official Audio).mp3';
 import the_middle from '../Zedd, Maren Morris, Grey - The Middle (Lyric Video).mp3';
 import quiet_night from '../Tokyo Music Walker - Quiet Night.mp3';
