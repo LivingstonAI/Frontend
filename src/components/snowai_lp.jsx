@@ -17,6 +17,7 @@ import {
   Line,
   QuadraticBezierCurve3,
 } from "three";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 
 // Import all the songs
 import jingleBells from '../jingle_bells.mp3';
@@ -129,41 +130,30 @@ import chess from '../Chess Type Beat.mp3';
 // two views always agree on where each hub sits.
 // ---------------------------------------------------------------------------
 
-// px/py are positions in a 1000x500 equirectangular projection (matches the
-// map SVG's viewBox), derived from lat/lng. lat/lng are reused directly by
-// the 3D globe. `tz` (when present) keys into the `times` state so a hub can
-// show a live local clock.
+// lat/lng feed both react-simple-maps (2D) and the Three.js globe (3D)
+// directly, so the two views can never drift out of sync the way the old
+// hand-projected px/py values could. `tz` (when present) keys into the
+// `times` state so a hub can show a live local clock.
 const MARKET_HUBS = [
-  { name: "New York", lat: 40.7, lng: -74.0, px: 294, py: 137, tz: "NewYork" },
-  { name: "London", lat: 51.5, lng: -0.1, px: 500, py: 107, tz: "London" },
-  { name: "Frankfurt", lat: 50.1, lng: 8.68, px: 524, py: 111 },
-  { name: "Tokyo", lat: 35.7, lng: 139.7, px: 888, py: 151, tz: "Tokyo" },
-  { name: "Hong Kong", lat: 22.3, lng: 114.2, px: 817, py: 188 },
-  { name: "Shanghai", lat: 31.2, lng: 121.5, px: 838, py: 163 },
-  { name: "Singapore", lat: 1.35, lng: 103.8, px: 788, py: 246 },
-  { name: "Sydney", lat: -33.9, lng: 151.2, px: 920, py: 344 },
+  { name: "New York", lat: 40.7, lng: -74.0, tz: "NewYork" },
+  { name: "London", lat: 51.5, lng: -0.1, tz: "London" },
+  { name: "Frankfurt", lat: 50.1, lng: 8.68 },
+  { name: "Tokyo", lat: 35.7, lng: 139.7, tz: "Tokyo" },
+  { name: "Hong Kong", lat: 22.3, lng: 114.2 },
+  { name: "Shanghai", lat: 31.2, lng: 121.5 },
+  { name: "Singapore", lat: 1.35, lng: 103.8 },
+  { name: "Sydney", lat: -33.9, lng: 151.2 },
 ];
 
-// Simplified, stylized landmass silhouettes (not survey-accurate — a dotted,
-// low-poly abstraction in the same 1000x500 space as the hubs above).
-const CONTINENT_PATHS = [
-  // North America
-  "M100,60 C160,30 260,35 300,70 C330,90 320,130 300,150 C310,180 290,210 260,230 C240,250 200,255 180,240 C160,255 140,250 130,230 C100,220 80,190 90,160 C70,130 80,90 100,60 Z",
-  // South America
-  "M260,260 C300,255 330,270 340,300 C350,330 340,360 330,390 C325,420 310,450 290,460 C275,440 270,410 265,380 C250,350 245,320 250,290 C252,275 255,265 260,260 Z",
-  // Europe
-  "M470,70 C510,55 555,60 580,80 C590,100 580,120 560,130 C540,140 510,145 490,135 C475,125 465,100 470,70 Z",
-  // Africa
-  "M490,140 C540,135 590,145 610,170 C625,200 620,240 610,270 C600,310 585,350 565,375 C550,390 535,385 525,365 C510,340 500,310 495,280 C485,250 480,220 483,190 C485,170 487,155 490,140 Z",
-  // Asia (mainland)
-  "M580,40 C680,20 800,30 900,60 C940,80 950,110 930,140 C910,160 880,150 850,160 C860,190 840,220 810,230 C790,238 770,225 755,210 C740,230 715,235 700,220 C680,235 655,230 645,210 C620,215 600,200 590,175 C575,150 570,110 575,80 C577,65 578,50 580,40 Z",
-  // Japan
-  "M865,110 C880,105 895,115 895,135 C900,155 890,170 875,165 C865,155 862,130 865,110 Z",
-  // Maritime Southeast Asia
-  "M740,225 C780,220 820,230 840,245 C820,255 780,258 750,250 C740,245 738,235 740,225 Z",
-  // Australia
-  "M840,300 C890,290 940,300 965,325 C975,345 965,365 945,375 C915,385 875,380 850,365 C835,350 830,330 840,300 Z",
-];
+// World country outlines (TopoJSON) for react-simple-maps. Host this file
+// yourself (e.g. /public/geo/world-110m.json) instead of hitting a third
+// party CDN in production — world-atlas's world/110m is the standard pick:
+// https://github.com/topojson/world-atlas
+const WORLD_TOPOJSON_URL = "/geo/world-110m.json";
+
+// Order hubs are visited in for the light sweep, and how long (ms) the
+// sweep spends easing between each consecutive pair before moving on.
+const SWEEP_SEGMENT_MS = 3000;
 
 // Convert lat/lng (degrees) to a point on a sphere of the given radius.
 function latLngToVector3(lat, lng, radius) {
@@ -175,54 +165,113 @@ function latLngToVector3(lat, lng, radius) {
   return new Vector3(x, y, z);
 }
 
+// Simple ease for the sweep's motion between hubs.
+function easeInOutSine(t) {
+  return -(Math.cos(Math.PI * t) - 1) / 2;
+}
+
 // ---------------------------------------------------------------------------
-// 2D world map background — dotted continents, a day/night light sweep, and
-// pulsing markers over the major market hubs (with live time for NY/London/Tokyo).
+// 2D world map background — real country borders via react-simple-maps,
+// pulsing markers over the major hubs, and a soft light that travels
+// hub-to-hub across the map instead of sweeping in a straight line.
 // ---------------------------------------------------------------------------
 function GlobalMarketMap({ active, times }) {
+  const [sweepPos, setSweepPos] = useState({ x: MARKET_HUBS[0].lng, y: MARKET_HUBS[0].lat });
+  const [hoveredHub, setHoveredHub] = useState(null);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) return;
+    let segmentStart = performance.now();
+    let hubIndex = 0;
+
+    const tick = (t) => {
+      const from = MARKET_HUBS[hubIndex];
+      const to = MARKET_HUBS[(hubIndex + 1) % MARKET_HUBS.length];
+      const elapsed = t - segmentStart;
+      const rawT = Math.min(elapsed / SWEEP_SEGMENT_MS, 1);
+      const e = easeInOutSine(rawT);
+
+      setSweepPos({
+        x: from.lng + (to.lng - from.lng) * e,
+        y: from.lat + (to.lat - from.lat) * e,
+      });
+
+      if (rawT >= 1) {
+        hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
+        segmentStart = t;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [active]);
+
   return (
     <div className={`snowai-map-layer ${active ? "is-active" : "is-hidden"}`}>
-      <svg
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{ scale: 130, center: [10, 20] }}
         className="snowai-map-svg"
-        viewBox="0 0 1000 500"
-        xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <pattern id="landDots" width="9" height="9" patternUnits="userSpaceOnUse">
-            <circle cx="1.4" cy="1.4" r="1.4" fill="rgba(158,207,251,0.4)" />
-          </pattern>
+          <radialGradient id="sweepGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#9ecffb" stopOpacity="0.9" />
+            <stop offset="45%" stopColor="#68a6db" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#68a6db" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
-        <g>
-          {CONTINENT_PATHS.map((d, i) => (
-            <path key={i} d={d} fill="url(#landDots)" stroke="rgba(158,207,251,0.12)" strokeWidth="1" />
-          ))}
-        </g>
+        <Geographies geography={WORLD_TOPOJSON_URL}>
+          {({ geographies }) =>
+            geographies.map((geo) => (
+              <Geography
+                key={geo.rsmKey}
+                geography={geo}
+                className="snowai-country"
+                style={{
+                  default: { outline: "none" },
+                  hover: { outline: "none" },
+                  pressed: { outline: "none" },
+                }}
+              />
+            ))
+          }
+        </Geographies>
 
-        {MARKET_HUBS.map((hub) => {
-          const delayStyle = { animationDelay: `${-((hub.px / 1000) * 24)}s` };
-          return (
-            <g key={hub.name}>
-              <circle className="snowai-hub-ring" cx={hub.px} cy={hub.py} r="9" style={delayStyle} />
-              <circle className="snowai-hub-dot" cx={hub.px} cy={hub.py} r="3" style={delayStyle} />
-              {hub.tz && (
-                <text className="snowai-hub-label" x={hub.px} y={hub.py - 14} textAnchor="middle">
-                  {hub.name} · {times[hub.tz]}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-      <div className="snowai-map-sweep" />
+        {/* Light that travels hub-to-hub across the actual landmasses,
+            instead of a straight vertical bar sweeping the screen. */}
+        <Marker coordinates={[sweepPos.x, sweepPos.y]}>
+          <circle r={38} fill="url(#sweepGlow)" className="snowai-sweep-glow" />
+        </Marker>
+
+        {MARKET_HUBS.map((hub) => (
+          <Marker
+            key={hub.name}
+            coordinates={[hub.lng, hub.lat]}
+            onMouseEnter={() => setHoveredHub(hub.name)}
+            onMouseLeave={() => setHoveredHub((h) => (h === hub.name ? null : h))}
+          >
+            <circle r={9} className="snowai-hub-ring" />
+            <circle r={3} className="snowai-hub-dot" />
+            {(hub.tz || hoveredHub === hub.name) && (
+              <text textAnchor="middle" y={-14} className="snowai-hub-label">
+                {hub.name}{hub.tz ? ` · ${times[hub.tz]}` : ""}
+              </text>
+            )}
+          </Marker>
+        ))}
+      </ComposableMap>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
 // 3D transparent globe — wireframe sphere + glowing hub markers + connecting
-// arcs, slowly auto-rotating. Renders with an alpha-cleared canvas so it sits
-// as a translucent backdrop rather than a solid object.
+// arcs, slowly auto-rotating. Scoped to a positioned parent (the hero stage)
+// rather than the full viewport, so it visually wraps the title/slogan/
+// buttons instead of sitting behind the entire page.
 // ---------------------------------------------------------------------------
 function GlobalMarketGlobe({ active }) {
   const mountRef = useRef(null);
@@ -241,7 +290,9 @@ function GlobalMarketGlobe({ active }) {
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.z = 5.5;
+    // Pulled in from 5.5 -> 3.2 so the sphere reads as large enough to
+    // wrap around the hero content instead of sitting small and distant.
+    camera.position.z = 3.2;
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -522,25 +573,21 @@ export default function SnowAILandingPage() {
       const currentSloganText = slogans[sloganIndex];
       
       if (!isDeleting && charIndex < currentSloganText.length) {
-        // Typing forward - use proper Unicode-aware substring
         const nextChar = [...currentSloganText][charIndex];
         setCurrentSlogan(prev => prev + nextChar);
         setCharIndex(charIndex + 1);
       } else if (isDeleting && charIndex > 0) {
-        // Deleting backward - use proper Unicode-aware substring
         const chars = [...currentSlogan];
         setCurrentSlogan(chars.slice(0, -1).join(''));
         setCharIndex(charIndex - 1);
       } else if (!isDeleting && charIndex === currentSloganText.length) {
-        // Finished typing, wait longer then start deleting
         setTimeout(() => setIsDeleting(true), 3000);
       } else if (isDeleting && charIndex === 0) {
-        // Finished deleting, move to next slogan
         setIsDeleting(false);
         setCurrentSlogan("");
         setSloganIndex((prev) => (prev + 1) % slogans.length);
       }
-    }, isDeleting ? 75 : 120); // Slightly slower typing for better visibility
+    }, isDeleting ? 75 : 120);
 
     return () => clearTimeout(timeout);
   }, [charIndex, isDeleting, sloganIndex, currentSlogan]);
@@ -562,7 +609,6 @@ export default function SnowAILandingPage() {
     setShowSongModal(false);
   };
 
-  // Effect to handle audio playback when currentSong changes
   useEffect(() => {
     if (currentSong && isPlaying && audioRef.current) {
       audioRef.current.play().catch(error => {
@@ -655,6 +701,29 @@ export default function SnowAILandingPage() {
           overflow-x: hidden;
         }
 
+        /* ------------------------------------------------------------- */
+        /* Hero stage: wraps the title/slogan/buttons + the scoped        */
+        /* backdrop (map or globe) that envelops them                     */
+        /* ------------------------------------------------------------- */
+
+        .snowai-hero-stage {
+          position: relative;
+          min-height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .snowai-hero-content {
+          position: relative;
+          z-index: 10;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
 
         .snowai-slogan {
           font-size: clamp(1rem, 3vw, 1.5rem);
@@ -705,8 +774,6 @@ export default function SnowAILandingPage() {
             line-height: 1.2;
           }
         }
-
-        
 
         .snowai-button {
           font-size: clamp(1rem, 2.5vw, 1.2rem);
@@ -876,11 +943,12 @@ export default function SnowAILandingPage() {
         }
 
         /* ------------------------------------------------------------- */
-        /* Global backdrop: 2D market map + 3D transparent globe          */
+        /* Backdrop: 2D market map + 3D transparent globe, both scoped    */
+        /* to .snowai-hero-stage so they envelop the hero content only    */
         /* ------------------------------------------------------------- */
 
         .snowai-bg-layer {
-          position: fixed;
+          position: absolute;
           inset: 0;
           z-index: 0;
           overflow: hidden;
@@ -906,9 +974,15 @@ export default function SnowAILandingPage() {
           display: block;
         }
 
+        .snowai-country {
+          fill: rgba(41, 121, 255, 0.12);
+          stroke: rgba(158, 207, 251, 0.35);
+          stroke-width: 0.5;
+        }
+
         .snowai-hub-dot {
           fill: #9ecffb;
-          animation: hubPulse 24s linear infinite;
+          animation: hubPulse 3s ease-in-out infinite;
         }
 
         .snowai-hub-ring {
@@ -916,7 +990,7 @@ export default function SnowAILandingPage() {
           stroke: #68a6db;
           stroke-width: 1;
           opacity: 0.6;
-          animation: hubRingPulse 24s linear infinite;
+          animation: hubRingPulse 3s ease-out infinite;
         }
 
         .snowai-hub-label {
@@ -933,33 +1007,21 @@ export default function SnowAILandingPage() {
         }
 
         @keyframes hubPulse {
-          0% { r: 5; fill: #ffffff; }
-          8% { r: 3; fill: #9ecffb; }
-          100% { r: 3; fill: #9ecffb; }
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
 
         @keyframes hubRingPulse {
           0% { r: 9; opacity: 0.6; }
-          8% { r: 9; opacity: 0.8; }
-          40% { r: 22; opacity: 0; }
           100% { r: 22; opacity: 0; }
         }
 
-        .snowai-map-sweep {
-          position: absolute;
-          top: 0;
-          left: -20%;
-          width: 20%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(158, 207, 251, 0.35), transparent);
+        /* The traveling light — a radial glow riding a Marker across real
+           lat/lng coordinates, so it visibly passes over countries rather
+           than a flat bar crossing the screen. */
+        .snowai-sweep-glow {
           mix-blend-mode: screen;
           pointer-events: none;
-          animation: sweepAcross 24s linear infinite;
-        }
-
-        @keyframes sweepAcross {
-          from { transform: translateX(0); }
-          to { transform: translateX(600%); }
         }
 
         .snowai-globe-wrap {
@@ -1002,36 +1064,41 @@ export default function SnowAILandingPage() {
         }
       `}</style>
 
-      <div className="snowai-bg-layer">
-        <GlobalMarketMap active={bgMode === "map"} times={times} />
-        <GlobalMarketGlobe active={bgMode === "globe"} />
-      </div>
-      <button
-        className="snowai-bg-toggle"
-        onClick={() => setBgMode((m) => (m === "map" ? "globe" : "map"))}
-        aria-label="Toggle background view"
-      >
-        {bgMode === "map" ? "View 3D Globe" : "View World Map"}
-      </button>
+      <div className="snowai-hero-stage">
+        <div className="snowai-bg-layer">
+          <GlobalMarketMap active={bgMode === "map"} times={times} />
+          <GlobalMarketGlobe active={bgMode === "globe"} />
+        </div>
 
-      <div id="snowflake-container"></div>
-      
-      <h1 className="snowai-title">
-        {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
-          <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
-        ))}
-      </h1>
-      
-      <div className="snowai-slogan">
-        {currentSlogan}
+        <div id="snowflake-container"></div>
+
+        <div className="snowai-hero-content">
+          <h1 className="snowai-title">
+            {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
+              <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
+            ))}
+          </h1>
+
+          <div className="snowai-slogan">
+            {currentSlogan}
+          </div>
+
+          <a href="/login" className="snowai-button">Log In</a>
+
+          <button className="snowai-button" onClick={handlePlayToggle}>
+            {isPlaying ? "Stop Music" : "Play Music"}
+          </button>
+        </div>
+
+        <button
+          className="snowai-bg-toggle"
+          onClick={() => setBgMode((m) => (m === "map" ? "globe" : "map"))}
+          aria-label="Toggle background view"
+        >
+          {bgMode === "map" ? "View 3D Globe" : "View World Map"}
+        </button>
       </div>
-      
-      <a href="/login" className="snowai-button">Log In</a>
-      
-      <button className="snowai-button" onClick={handlePlayToggle}>
-        {isPlaying ? "Stop Music" : "Play Music"}
-      </button>
-      
+
       <audio ref={audioRef} src={currentSong} loop />
 
       {showSongModal && (
