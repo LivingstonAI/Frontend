@@ -232,6 +232,17 @@ function GlobalMarketMap({ active, times }) {
     svg.attr("width", width).attr("height", height).attr("viewBox", `0 0 ${width} ${height}`);
 
     const projection = d3.geoNaturalEarth1().fitSize([width, height], geoJsonData);
+
+    // On narrow/tall mobile viewports, fitSize fits the map to the
+    // (much narrower) width and leaves a lot of empty void above and
+    // below it. Scale up around the same center point so the map
+    // actually fills more of the mobile screen instead of floating in a
+    // mostly-empty container -- edges just crop, which the <svg>'s
+    // default overflow:hidden already handles.
+    if (width <= 600) {
+      projection.scale(projection.scale() * 1.7);
+    }
+
     projectionRef.current = projection;
     const path = d3.geoPath().projection(projection);
     const graticule = d3.geoGraticule().step([30, 30]);
@@ -401,8 +412,13 @@ function GlobalMarketGlobe({ active }) {
     const camera = new PerspectiveCamera(50, width / height, 0.1, 100);
     // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
     // sphere, and angled down slightly so the downward-shifted globe group
-    // still sits fully in frame around the hero content.
-    camera.position.z = 4.25;
+    // still sits fully in frame around the hero content. Pulled back
+    // further on mobile so the globe covers noticeably less of the
+    // screen there -- this now also applies at first paint (previously
+    // the mobile distance only kicked in after a `resize` event, which
+    // real phones rarely fire, so mobile was loading at the desktop
+    // distance every time).
+    camera.position.z = width <= 600 ? 5.5 : 4.25;
     camera.position.y = 0;
     camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
 
@@ -495,7 +511,7 @@ function GlobalMarketGlobe({ active }) {
       const w = mountEl.clientWidth || window.innerWidth;
       const h = mountEl.clientHeight || window.innerHeight;
       camera.aspect = w / h;
-      camera.position.z = w <= 600 ? 4.7 : 4.25;
+      camera.position.z = w <= 600 ? 5.5 : 4.25;
       camera.position.y = 0;
       camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
       camera.updateProjectionMatrix();
@@ -1170,10 +1186,10 @@ export default function SnowAILandingPage() {
 
         @media (max-width: 600px) {
           .snowai-globe-wrap {
-            left: -20%;
-            top: -10%;
-            width: 140%;
-            height: 120%;
+            left: -2.5%;
+            top: -2.5%;
+            width: 105%;
+            height: 105%;
           }
         }
 
