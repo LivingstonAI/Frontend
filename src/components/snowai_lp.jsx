@@ -194,7 +194,7 @@ function GlobalMarketMap({ active, times }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
-  const sweepNodesRef = useRef({ glow: null, dot: null });
+  const sweepNodesRef = useRef({ anchor: null, verticalStretch: 1 });
   const rafRef = useRef(null);
   const [geoJsonData, setGeoJsonData] = useState(null);
 
@@ -232,20 +232,20 @@ function GlobalMarketMap({ active, times }) {
     svg.attr("width", width).attr("height", height).attr("viewBox", `0 0 ${width} ${height}`);
 
     const projection = d3.geoNaturalEarth1().fitSize([width, height], geoJsonData);
-
-    // On narrow/tall mobile viewports, fitSize fits the map to the
-    // (much narrower) width and leaves a lot of empty void above and
-    // below it. Scale up around the same center point so the map
-    // actually fills more of the mobile screen instead of floating in a
-    // mostly-empty container -- edges just crop, which the <svg>'s
-    // default overflow:hidden already handles.
-    if (width <= 600) {
-      projection.scale(projection.scale() * 1.7);
-    }
-
     projectionRef.current = projection;
     const path = d3.geoPath().projection(projection);
     const graticule = d3.geoGraticule().step([30, 30]);
+
+    // On narrow/tall mobile viewports, fitSize fits the map to the width
+    // (the constraining dimension for a wide world map in a tall
+    // container) and leaves a lot of empty void above and below it.
+    // Stretch the map group vertically only -- not horizontally, it
+    // already spans the full width -- around the container's vertical
+    // center, so it actually fills the mobile screen top-to-bottom
+    // instead of floating as a thin strip. Hub markers/text/sweep get a
+    // counter-scale below so they stay circular instead of stretching
+    // along with the land shapes.
+    const verticalStretch = width <= 600 ? 1.45 : 1;
 
     const defs = svg.append("defs");
     const glowGrad = defs
@@ -258,9 +258,17 @@ function GlobalMarketMap({ active, times }) {
     glowGrad.append("stop").attr("offset", "45%").attr("stop-color", "#68a6db").attr("stop-opacity", 0.35);
     glowGrad.append("stop").attr("offset", "100%").attr("stop-color", "#68a6db").attr("stop-opacity", 0);
 
-    svg.append("path").datum(graticule()).attr("d", path).attr("class", "snowai-map-grid");
+    const mapGroup = svg.append("g").attr("class", "snowai-map-content");
+    if (verticalStretch !== 1) {
+      mapGroup.attr(
+        "transform",
+        `translate(0, ${(height / 2) * (1 - verticalStretch)}) scale(1, ${verticalStretch})`
+      );
+    }
 
-    svg
+    mapGroup.append("path").datum(graticule()).attr("d", path).attr("class", "snowai-map-grid");
+
+    mapGroup
       .append("g")
       .attr("class", "snowai-map-land")
       .selectAll("path")
@@ -272,19 +280,22 @@ function GlobalMarketMap({ active, times }) {
       .attr("stroke", MAP_COLORS.border)
       .attr("stroke-width", 0.7);
 
-    // Traveling light overlay — created once here, position updated
-    // imperatively in the sweep effect below so the map underneath never
-    // has to be touched again.
-    const sweepGroup = svg.append("g").attr("class", "snowai-map-sweep");
-    const sweepGlow = sweepGroup
+    // Traveling light overlay — created once here inside an anchor group
+    // whose transform is updated imperatively in the sweep effect below,
+    // so the map underneath never has to be touched again. The anchor
+    // carries its own counter-scale so the glow stays a circle rather
+    // than stretching with the map group's vertical scale.
+    const sweepGroup = mapGroup.append("g").attr("class", "snowai-map-sweep");
+    const sweepAnchor = sweepGroup.append("g").attr("class", "snowai-sweep-anchor");
+    sweepAnchor
       .append("circle")
       .attr("r", 34)
       .attr("fill", "url(#snowaiSweepGlow)")
       .attr("class", "snowai-sweep-glow");
-    const sweepDot = sweepGroup.append("circle").attr("r", 7).attr("fill", "#ffffff").attr("opacity", 0.8);
-    sweepNodesRef.current = { glow: sweepGlow.node(), dot: sweepDot.node() };
+    sweepAnchor.append("circle").attr("r", 7).attr("fill", "#ffffff").attr("opacity", 0.8);
+    sweepNodesRef.current = { anchor: sweepAnchor.node(), verticalStretch };
 
-    const hubGroup = svg.append("g").attr("class", "snowai-map-hubs");
+    const hubGroup = mapGroup.append("g").attr("class", "snowai-map-hubs");
     MARKET_HUBS.forEach((hub) => {
       const coords = projection([hub.lng, hub.lat]);
       if (!coords) return;
@@ -292,7 +303,7 @@ function GlobalMarketMap({ active, times }) {
         .append("g")
         .attr("class", "snowai-map-hub")
         .attr("data-hub", hub.name)
-        .attr("transform", `translate(${coords[0]},${coords[1]})`);
+        .attr("transform", `translate(${coords[0]},${coords[1]}) scale(1, ${1 / verticalStretch})`);
       g.append("circle").attr("r", 10).attr("class", "snowai-hub-ring");
       g.append("circle").attr("r", 4).attr("class", "snowai-hub-dot");
       g.append("text")
@@ -329,9 +340,9 @@ function GlobalMarketMap({ active, times }) {
     });
   });
 
-  // Sweep the traveling light hub-to-hub by moving the two overlay
-  // circles created in drawMap directly — the underlying map is never
-  // touched by this loop, so it can't cause the map to disappear.
+  // Sweep the traveling light hub-to-hub by moving the anchor group
+  // created in drawMap directly — the underlying map is never touched by
+  // this loop, so it can't cause the map to disappear.
   useEffect(() => {
     if (!active) return;
     let segmentStart = performance.now();
@@ -339,8 +350,8 @@ function GlobalMarketMap({ active, times }) {
 
     const tick = (t) => {
       const projection = projectionRef.current;
-      const { glow, dot } = sweepNodesRef.current;
-      if (projection && glow && dot) {
+      const { anchor, verticalStretch } = sweepNodesRef.current;
+      if (projection && anchor) {
         const from = MARKET_HUBS[hubIndex];
         const to = MARKET_HUBS[(hubIndex + 1) % MARKET_HUBS.length];
         const elapsed = t - segmentStart;
@@ -351,10 +362,10 @@ function GlobalMarketMap({ active, times }) {
           from.lat + (to.lat - from.lat) * e,
         ]);
         if (coords) {
-          glow.setAttribute("cx", coords[0]);
-          glow.setAttribute("cy", coords[1]);
-          dot.setAttribute("cx", coords[0]);
-          dot.setAttribute("cy", coords[1]);
+          anchor.setAttribute(
+            "transform",
+            `translate(${coords[0]},${coords[1]}) scale(1, ${1 / (verticalStretch || 1)})`
+          );
         }
         if (rawT >= 1) {
           hubIndex = (hubIndex + 1) % MARKET_HUBS.length;
@@ -408,19 +419,25 @@ function GlobalMarketGlobe({ active }) {
     const width = mountEl.clientWidth || window.innerWidth;
     const height = mountEl.clientHeight || window.innerHeight;
 
+    // Mobile gets a genuinely smaller globe -- not just a further camera
+    // and a bigger crop-zoom (that wasn't cutting it) -- the sphere,
+    // hub markers, arcs, and its vertical shift all scale down together,
+    // so it reads as a small decorative accent instead of dominating the
+    // screen.
+    const isMobileGlobe = width <= 600;
+    const radius = isMobileGlobe ? GLOBE_RADIUS * 0.55 : GLOBE_RADIUS;
+    const verticalOffset = isMobileGlobe ? GLOBE_VERTICAL_OFFSET * 0.55 : GLOBE_VERTICAL_OFFSET;
+    const hubMarkerSize = isMobileGlobe ? 0.18 * 0.55 : 0.18;
+    const cameraZ = isMobileGlobe ? 4.6 : 4.25;
+
     const scene = new Scene();
     const camera = new PerspectiveCamera(50, width / height, 0.1, 100);
     // Backed off from 3.2 -> 4.2 to accommodate the larger (2.4-radius)
     // sphere, and angled down slightly so the downward-shifted globe group
-    // still sits fully in frame around the hero content. Pulled back
-    // further on mobile so the globe covers noticeably less of the
-    // screen there -- this now also applies at first paint (previously
-    // the mobile distance only kicked in after a `resize` event, which
-    // real phones rarely fire, so mobile was loading at the desktop
-    // distance every time).
-    camera.position.z = width <= 600 ? 5.5 : 4.25;
+    // still sits fully in frame around the hero content.
+    camera.position.z = cameraZ;
     camera.position.y = 0;
-    camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
+    camera.lookAt(0, verticalOffset, 0);
 
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -432,11 +449,11 @@ function GlobalMarketGlobe({ active }) {
     // Shifts the whole sphere + markers + arcs down so the visible arc
     // wraps from above the "SnowAI" title down past the Log In / Play
     // Music buttons, instead of centering on empty space above the title.
-    globeGroup.position.y = GLOBE_VERTICAL_OFFSET;
+    globeGroup.position.y = verticalOffset;
     scene.add(globeGroup);
 
     // Transparent wireframe sphere
-    const wireGeo = new SphereGeometry(GLOBE_RADIUS, 28, 20);
+    const wireGeo = new SphereGeometry(radius, 28, 20);
     const wireMat = new MeshBasicMaterial({
       color: 0x2979ff,
       wireframe: true,
@@ -459,17 +476,17 @@ function GlobalMarketGlobe({ active }) {
     dotCtx.fillRect(0, 0, 64, 64);
     const dotTexture = new CanvasTexture(dotCanvas);
 
-    // Hub markers — radius scaled up to match GLOBE_RADIUS so markers sit
-    // right on the sphere's surface rather than floating inside/outside it.
+    // Hub markers — radius scaled up to match the sphere's radius so
+    // markers sit right on its surface rather than floating inside/outside it.
     const hubPositions = [];
     MARKET_HUBS.forEach((hub) => {
-      const v = latLngToVector3(hub.lat, hub.lng, GLOBE_RADIUS + 0.05);
+      const v = latLngToVector3(hub.lat, hub.lng, radius + 0.05);
       hubPositions.push(v.x, v.y, v.z);
     });
     const hubGeo = new BufferGeometry();
     hubGeo.setAttribute("position", new Float32BufferAttribute(hubPositions, 3));
     const hubMat = new PointsMaterial({
-      size: 0.18,
+      size: hubMarkerSize,
       map: dotTexture,
       transparent: true,
       depthWrite: false,
@@ -479,15 +496,15 @@ function GlobalMarketGlobe({ active }) {
     globeGroup.add(hubPoints);
 
     // Connecting arcs between hubs, tracing a loop around the globe —
-    // radii scaled to match GLOBE_RADIUS.
+    // radii scaled to match the sphere's radius.
     const arcMat = new LineBasicMaterial({ color: 0x68a6db, transparent: true, opacity: 0.35 });
     const arcLines = [];
     for (let i = 0; i < MARKET_HUBS.length; i++) {
       const a = MARKET_HUBS[i];
       const b = MARKET_HUBS[(i + 1) % MARKET_HUBS.length];
-      const start = latLngToVector3(a.lat, a.lng, GLOBE_RADIUS + 0.02);
-      const end = latLngToVector3(b.lat, b.lng, GLOBE_RADIUS + 0.02);
-      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(GLOBE_RADIUS + 0.4);
+      const start = latLngToVector3(a.lat, a.lng, radius + 0.02);
+      const end = latLngToVector3(b.lat, b.lng, radius + 0.02);
+      const mid = start.clone().add(end).multiplyScalar(0.5).normalize().multiplyScalar(radius + 0.4);
       const curve = new QuadraticBezierCurve3(start, mid, end);
       const arcGeo = new BufferGeometry().setFromPoints(curve.getPoints(24));
       const arcLine = new Line(arcGeo, arcMat);
@@ -511,9 +528,13 @@ function GlobalMarketGlobe({ active }) {
       const w = mountEl.clientWidth || window.innerWidth;
       const h = mountEl.clientHeight || window.innerHeight;
       camera.aspect = w / h;
-      camera.position.z = w <= 600 ? 5.5 : 4.25;
+      // Re-uses the same cameraZ/verticalOffset the geometry was actually
+      // built with at mount, rather than re-deriving from the new width --
+      // the sphere's own size is fixed once built, so the camera settings
+      // that go with it shouldn't drift out of sync with it on resize.
+      camera.position.z = cameraZ;
       camera.position.y = 0;
-      camera.lookAt(0, GLOBE_VERTICAL_OFFSET, 0);
+      camera.lookAt(0, verticalOffset, 0);
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
@@ -1186,10 +1207,10 @@ export default function SnowAILandingPage() {
 
         @media (max-width: 600px) {
           .snowai-globe-wrap {
-            left: -2.5%;
-            top: -2.5%;
-            width: 105%;
-            height: 105%;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
           }
         }
 
