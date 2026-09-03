@@ -238,15 +238,25 @@ function GlobalMarketMap({ active, times }) {
 
     // On narrow/tall mobile viewports, fitSize fits the map to the width
     // (the constraining dimension for a wide world map in a tall
-    // container) and leaves a lot of empty void above and below it.
-    // Stretch the map group to fill more of the screen -- mostly
-    // vertically (that's where the empty space actually is), plus a
-    // touch of horizontal stretch too -- around the container's center,
-    // so it fills the mobile screen instead of floating as a thin strip.
-    // Hub markers/text/sweep get a counter-scale below so they stay
-    // circular instead of stretching along with the land shapes.
-    const horizontalStretch = width <= 600 ? 1.12 : 1;
-    const verticalStretch = width <= 600 ? 1.65 : 1;
+    // container) and leaves empty void above and below it. Rather than
+    // stretching by a guessed constant, measure the map's actual
+    // rendered bounds and compute exactly the vertical stretch needed to
+    // fill ~97% of the container height -- so it self-adjusts to
+    // whatever the real phone's aspect ratio is instead of over- or
+    // under-shooting. Capped at 1.9x so an unusually tall/narrow screen
+    // can't stretch the land into mush. A small fixed horizontal nudge
+    // rides along with it. Hub markers/text/sweep get a counter-scale
+    // below so they stay circular instead of stretching with the map.
+    let horizontalStretch = 1;
+    let verticalStretch = 1;
+    if (width <= 600) {
+      const bounds = path.bounds(geoJsonData);
+      const mapHeight = bounds[1][1] - bounds[0][1];
+      if (mapHeight > 0) {
+        verticalStretch = Math.min(Math.max((height * 0.97) / mapHeight, 1), 1.9);
+      }
+      horizontalStretch = 1.1;
+    }
 
     const defs = svg.append("defs");
     const glowGrad = defs
