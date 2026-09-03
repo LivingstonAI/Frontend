@@ -133,11 +133,17 @@ import chess from '../Chess Type Beat.mp3';
 // lat/lng feed both the D3-driven 2D map and the Three.js globe (3D)
 // directly, so the two views can never drift out of sync the way the old
 // hand-projected px/py values could. `tz` (when present) keys into the
-// `times` state so a hub can show a live local clock.
+// `times` state so a hub can show a live local clock. `major: false`
+// marks a hub as secondary -- it still gets a dot/ring on the map and a
+// marker + arcs on the 3D globe, but its text label is skipped on
+// mobile (2D map only) to keep a longer hub list from turning into
+// label soup on a small screen.
 const MARKET_HUBS = [
   { name: "New York", lat: 40.7, lng: -74.0, tz: "NewYork" },
   { name: "London", lat: 51.5, lng: -0.1, tz: "London" },
   { name: "Frankfurt", lat: 50.1, lng: 8.68 },
+  { name: "Moscow", lat: 55.75, lng: 37.62, major: false },
+  { name: "St. Petersburg", lat: 59.93, lng: 30.34, major: false },
   { name: "Tokyo", lat: 35.7, lng: 139.7, tz: "Tokyo" },
   { name: "Hong Kong", lat: 22.3, lng: 114.2 },
   { name: "Shanghai", lat: 31.2, lng: 121.5 },
@@ -190,7 +196,7 @@ function easeInOutSine(t) {
 // SnowAIEarth exactly (real GeoJSON + the full "d3" import) is what fixes
 // it showing up here.
 // ---------------------------------------------------------------------------
-function GlobalMarketMap({ active, times }) {
+function GlobalMarketMap({ active, times, heroContentRef }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
@@ -306,6 +312,31 @@ function GlobalMarketMap({ active, times }) {
     sweepAnchor.append("circle").attr("r", 7).attr("fill", "#ffffff").attr("opacity", 0.8);
     sweepNodesRef.current = { anchor: sweepAnchor.node(), horizontalStretch, verticalStretch };
 
+    // Keep-clear zone around the actual hero title/slogan/buttons -- so a
+    // hub label never renders directly under the logo. Measured live off
+    // the real DOM box (passed down via heroContentRef) rather than a
+    // guessed rectangle, so it tracks however big that content actually
+    // is at the current viewport size.
+    let keepClear = null;
+    if (heroContentRef && heroContentRef.current) {
+      const contentRect = heroContentRef.current.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const pad = 24;
+      keepClear = {
+        x0: contentRect.left - containerRect.left - pad,
+        y0: contentRect.top - containerRect.top - pad,
+        x1: contentRect.right - containerRect.left + pad,
+        y1: contentRect.bottom - containerRect.top + pad,
+      };
+    }
+    // A hub's group sits at (coords) *inside* mapGroup, which itself
+    // carries the stretch transform -- so its actual on-screen position
+    // is the stretch applied to coords, not coords directly.
+    const toScreen = (coords) => [
+      (width / 2) * (1 - horizontalStretch) + horizontalStretch * coords[0],
+      (height / 2) * (1 - verticalStretch) + verticalStretch * coords[1],
+    ];
+
     const hubGroup = mapGroup.append("g").attr("class", "snowai-map-hubs");
     MARKET_HUBS.forEach((hub) => {
       const coords = projection([hub.lng, hub.lat]);
@@ -320,11 +351,23 @@ function GlobalMarketMap({ active, times }) {
         );
       g.append("circle").attr("r", 10).attr("class", "snowai-hub-ring");
       g.append("circle").attr("r", 4).attr("class", "snowai-hub-dot");
-      g.append("text")
-        .attr("class", "snowai-hub-label")
-        .attr("y", -16)
-        .attr("text-anchor", "middle")
-        .text(hub.name + (hub.tz && times[hub.tz] ? ` · ${times[hub.tz]}` : ""));
+
+      const [screenX, screenY] = toScreen(coords);
+      const underLogo =
+        keepClear && screenX >= keepClear.x0 && screenX <= keepClear.x1 && screenY >= keepClear.y0 && screenY <= keepClear.y1;
+      const isMajor = hub.major !== false;
+      // Minor hubs (the newer, denser additions) skip their text label on
+      // mobile entirely -- the dot/ring still shows so the hub is there,
+      // it just doesn't add to label clutter on a small screen.
+      const showLabel = !underLogo && (isMajor || width > 600);
+
+      if (showLabel) {
+        g.append("text")
+          .attr("class", "snowai-hub-label")
+          .attr("y", -16)
+          .attr("text-anchor", "middle")
+          .text(hub.name + (hub.tz && times[hub.tz] ? ` · ${times[hub.tz]}` : ""));
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geoJsonData]);
@@ -601,6 +644,9 @@ export default function SnowAILandingPage() {
 
   // Landing page background: "map" (2D) or "globe" (3D transparent globe)
   const [bgMode, setBgMode] = useState("map");
+  // Real DOM box of the title/slogan/buttons, handed down to the 2D map so
+  // it can keep hub labels from rendering underneath the logo.
+  const heroContentRef = useRef(null);
 
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1263,13 +1309,13 @@ export default function SnowAILandingPage() {
 
       <div className="snowai-hero-stage">
         <div className="snowai-bg-layer">
-          <GlobalMarketMap active={bgMode === "map"} times={times} />
+          <GlobalMarketMap active={bgMode === "map"} times={times} heroContentRef={heroContentRef} />
           <GlobalMarketGlobe active={bgMode === "globe"} />
         </div>
 
         <div id="snowflake-container"></div>
 
-        <div className="snowai-hero-content">
+        <div className="snowai-hero-content" ref={heroContentRef}>
           <h1 className="snowai-title">
             {["S", "n", "o", "w", "A", "I"].map((letter, idx) => (
               <span key={idx} style={{ animationDelay: `${idx * 0.2}s` }}>{letter}</span>
