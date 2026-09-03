@@ -194,7 +194,7 @@ function GlobalMarketMap({ active, times }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const projectionRef = useRef(null);
-  const sweepNodesRef = useRef({ anchor: null, verticalStretch: 1 });
+  const sweepNodesRef = useRef({ anchor: null, horizontalStretch: 1, verticalStretch: 1 });
   const rafRef = useRef(null);
   const [geoJsonData, setGeoJsonData] = useState(null);
 
@@ -239,13 +239,14 @@ function GlobalMarketMap({ active, times }) {
     // On narrow/tall mobile viewports, fitSize fits the map to the width
     // (the constraining dimension for a wide world map in a tall
     // container) and leaves a lot of empty void above and below it.
-    // Stretch the map group vertically only -- not horizontally, it
-    // already spans the full width -- around the container's vertical
-    // center, so it actually fills the mobile screen top-to-bottom
-    // instead of floating as a thin strip. Hub markers/text/sweep get a
-    // counter-scale below so they stay circular instead of stretching
-    // along with the land shapes.
-    const verticalStretch = width <= 600 ? 1.45 : 1;
+    // Stretch the map group to fill more of the screen -- mostly
+    // vertically (that's where the empty space actually is), plus a
+    // touch of horizontal stretch too -- around the container's center,
+    // so it fills the mobile screen instead of floating as a thin strip.
+    // Hub markers/text/sweep get a counter-scale below so they stay
+    // circular instead of stretching along with the land shapes.
+    const horizontalStretch = width <= 600 ? 1.12 : 1;
+    const verticalStretch = width <= 600 ? 1.65 : 1;
 
     const defs = svg.append("defs");
     const glowGrad = defs
@@ -259,10 +260,10 @@ function GlobalMarketMap({ active, times }) {
     glowGrad.append("stop").attr("offset", "100%").attr("stop-color", "#68a6db").attr("stop-opacity", 0);
 
     const mapGroup = svg.append("g").attr("class", "snowai-map-content");
-    if (verticalStretch !== 1) {
+    if (horizontalStretch !== 1 || verticalStretch !== 1) {
       mapGroup.attr(
         "transform",
-        `translate(0, ${(height / 2) * (1 - verticalStretch)}) scale(1, ${verticalStretch})`
+        `translate(${(width / 2) * (1 - horizontalStretch)}, ${(height / 2) * (1 - verticalStretch)}) scale(${horizontalStretch}, ${verticalStretch})`
       );
     }
 
@@ -293,7 +294,7 @@ function GlobalMarketMap({ active, times }) {
       .attr("fill", "url(#snowaiSweepGlow)")
       .attr("class", "snowai-sweep-glow");
     sweepAnchor.append("circle").attr("r", 7).attr("fill", "#ffffff").attr("opacity", 0.8);
-    sweepNodesRef.current = { anchor: sweepAnchor.node(), verticalStretch };
+    sweepNodesRef.current = { anchor: sweepAnchor.node(), horizontalStretch, verticalStretch };
 
     const hubGroup = mapGroup.append("g").attr("class", "snowai-map-hubs");
     MARKET_HUBS.forEach((hub) => {
@@ -303,7 +304,10 @@ function GlobalMarketMap({ active, times }) {
         .append("g")
         .attr("class", "snowai-map-hub")
         .attr("data-hub", hub.name)
-        .attr("transform", `translate(${coords[0]},${coords[1]}) scale(1, ${1 / verticalStretch})`);
+        .attr(
+          "transform",
+          `translate(${coords[0]},${coords[1]}) scale(${1 / horizontalStretch}, ${1 / verticalStretch})`
+        );
       g.append("circle").attr("r", 10).attr("class", "snowai-hub-ring");
       g.append("circle").attr("r", 4).attr("class", "snowai-hub-dot");
       g.append("text")
@@ -350,7 +354,7 @@ function GlobalMarketMap({ active, times }) {
 
     const tick = (t) => {
       const projection = projectionRef.current;
-      const { anchor, verticalStretch } = sweepNodesRef.current;
+      const { anchor, horizontalStretch, verticalStretch } = sweepNodesRef.current;
       if (projection && anchor) {
         const from = MARKET_HUBS[hubIndex];
         const to = MARKET_HUBS[(hubIndex + 1) % MARKET_HUBS.length];
@@ -364,7 +368,7 @@ function GlobalMarketMap({ active, times }) {
         if (coords) {
           anchor.setAttribute(
             "transform",
-            `translate(${coords[0]},${coords[1]}) scale(1, ${1 / (verticalStretch || 1)})`
+            `translate(${coords[0]},${coords[1]}) scale(${1 / (horizontalStretch || 1)}, ${1 / (verticalStretch || 1)})`
           );
         }
         if (rawT >= 1) {
@@ -423,11 +427,13 @@ function GlobalMarketGlobe({ active }) {
     // and a bigger crop-zoom (that wasn't cutting it) -- the sphere,
     // hub markers, arcs, and its vertical shift all scale down together,
     // so it reads as a small decorative accent instead of dominating the
-    // screen.
+    // screen. Bumped up a little from 0.55 -> 0.62 for a slightly taller
+    // presence.
     const isMobileGlobe = width <= 600;
-    const radius = isMobileGlobe ? GLOBE_RADIUS * 0.55 : GLOBE_RADIUS;
-    const verticalOffset = isMobileGlobe ? GLOBE_VERTICAL_OFFSET * 0.55 : GLOBE_VERTICAL_OFFSET;
-    const hubMarkerSize = isMobileGlobe ? 0.18 * 0.55 : 0.18;
+    const mobileGlobeScale = 0.62;
+    const radius = isMobileGlobe ? GLOBE_RADIUS * mobileGlobeScale : GLOBE_RADIUS;
+    const verticalOffset = isMobileGlobe ? GLOBE_VERTICAL_OFFSET * mobileGlobeScale : GLOBE_VERTICAL_OFFSET;
+    const hubMarkerSize = isMobileGlobe ? 0.18 * mobileGlobeScale : 0.18;
     const cameraZ = isMobileGlobe ? 4.6 : 4.25;
 
     const scene = new Scene();
