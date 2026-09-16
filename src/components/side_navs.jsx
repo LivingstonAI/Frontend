@@ -113,6 +113,7 @@ import answer_to_my_love from '../Answer To My Love.mp3';
 import kilometro from '../LOS COMUNISTAS DÓNDE ESTÁN_  AFROHOUSE  KILOMETRO.mp3';
 import chess_slowed from '../joyful - chess (slowed).mp3';
 import chess from '../Chess Type Beat.mp3';
+import jalebi_gojo from '../Gojo Edit l Jujutsu Kaisen l Tesher - Jalebi Baby (Slowed).mp3';
 
 // ─── PAGE TRANSLATOR HOOK WITH CACHE AND EMAIL AUTH ─────────────────────────
 
@@ -924,6 +925,7 @@ export default function SideNavs() {
     { name: "Afrohouse Kilometro 🕺", file: kilometro },
     { name: "Joyful - Chess (Slowed)", file: chess_slowed },
     { name: "Joyful - Chess", file: chess },
+    { name: "Jalebi Baby", file: jalebi_gojo },
   ];
 
   const handleTouchNavigation = (route, itemName) => {

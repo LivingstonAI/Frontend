@@ -124,6 +124,7 @@ import answer_to_my_love from '../Answer To My Love.mp3';
 import kilometro from '../LOS COMUNISTAS DÓNDE ESTÁN_  AFROHOUSE  KILOMETRO.mp3';
 import chess_slowed from '../joyful - chess (slowed).mp3';
 import chess from '../Chess Type Beat.mp3';
+import jalebi_gojo from '../Gojo Edit l Jujutsu Kaisen l Tesher - Jalebi Baby (Slowed).mp3';
 
 // ---------------------------------------------------------------------------
 // Global market backdrop data — shared by the 2D map and the 3D globe so the
@@ -778,6 +779,7 @@ export default function SnowAILandingPage() {
       "102": { name: "Afrohouse Kilometro 🕺", file: kilometro },
       "103": { name: "Joyful - Chess (SLOWED)", file: chess_slowed },
       "104": { name: "Joyful - Chess", file: chess },
+      "105": { name: "Jalebi Baby", file: jalebi_gojo },
     };
 
 
