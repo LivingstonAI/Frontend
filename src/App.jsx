@@ -96,6 +96,7 @@ import DataTracker from './components/data_tracker.jsx';
 import SnowMeet from './components/snow_meet.jsx';
 import CompaniesofInterest from './components/companies.jsx';
 import StreetViewExplorer from './components/universe.jsx';
+import Game from './components/game.jsx';
 
 import Zhenya from './components/zhenya';
 import Sections from './components/sections';
@@ -639,6 +640,12 @@ function App() {
             <Route path='/universe' element={
               <ProtectedRoute>
                 <StreetViewExplorer />
+              </ProtectedRoute>
+            } />
+
+            <Route path='/game' element={
+              <ProtectedRoute>
+                <Game />
               </ProtectedRoute>
             } />
 

@@ -1235,6 +1235,8 @@ export default function SideNavs() {
         <Link to="/snow_meet" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-telephone-outbound-fill"></i></p></button></Link>
         <Link to="/companies" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-buildings"></i></p></button></Link>
         <Link to="/universe" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-globe"></i></p></button></Link>
+        <Link to="/game" className="side-nav"><button className="btn btn-light side-nav-btn"><p><i class="bi bi-globe"></i></p></button></Link>
+
         </div>
 
       <div className="side-navs-cellphone">
@@ -1299,6 +1301,8 @@ export default function SideNavs() {
         <Link to="/snow_meet" className="side-nav"><i class="bi bi-telephone-outbound-fill"></i></Link>
         <Link to="/companies" className="side-nav"><i class="bi bi-buildings"></i></Link>
         <Link to="/universe" className="side-nav"><i class="bi bi-globe"></i></Link>
+        <Link to="/game" className="side-nav"><i class="bi bi-globe"></i></Link>
+
       </div>
 
       <br />
