@@ -760,7 +760,7 @@ class ArcadeEngine {
       else { this.comboCountP2++; this.comboTimerP2 = 1.45; }
 
       this.spawnHitParticles(
-        defender.mesh.position.clone().add(new THREE.Vector3(0, 1.7, 0)),
+        defender.mesh.position.clone().add(new this.THREE.Vector3(0, 1.7, 0)),
         attacker.charData.hexColor
       );
       this.cameraShake = attacker.state === 'HEAVY' ? 0.3 : 0.18;
@@ -775,7 +775,7 @@ class ArcadeEngine {
         setTimeout(() => {
           if (this.active && defender.state !== 'KO') {
             defender.takeDamage(7 * (attacker.charData.power / 80));
-            this.spawnHitParticles(defender.mesh.position.clone().add(new THREE.Vector3(0, 1.6, 0)), attacker.charData.hexColor);
+            this.spawnHitParticles(defender.mesh.position.clone().add(new this.THREE.Vector3(0, 1.6, 0)), attacker.charData.hexColor);
           }
         }, 180);
       }
@@ -811,7 +811,7 @@ class ArcadeEngine {
       const proj = this.projectiles[i];
       proj.mesh.position.x += proj.dir * proj.speed * delta;
 
-      const dist = proj.mesh.position.distanceTo(proj.target.mesh.position.clone().add(new THREE.Vector3(0, 1.8, 0)));
+      const dist = proj.mesh.position.distanceTo(proj.target.mesh.position.clone().add(new this.THREE.Vector3(0, 1.8, 0)));
       if (dist < 1.2) {
         proj.target.takeDamage(25);
         this.spawnHitParticles(proj.mesh.position, proj.owner.charData.hexColor);
@@ -1049,18 +1049,26 @@ const styles = {
     background: '#030712',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '1.5rem',
     fontFamily: 'monospace',
     color: '#fff',
-    userSelect: 'none'
+    userSelect: 'none',
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch'
+  },
+  charSelectInner: {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100%',
+    padding: '1.5rem',
+    gap: '1.5rem'
   },
   charSelectHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottom: '1px solid rgba(21,94,117,0.5)',
-    paddingBottom: '1rem'
+    paddingBottom: '1rem',
+    flexShrink: 0
   },
   backButton: {
     display: 'flex',
@@ -1072,7 +1080,8 @@ const styles = {
     letterSpacing: '0.05em',
     background: 'none',
     border: 'none',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontFamily: 'monospace'
   },
   charSelectTitle: {
     fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
@@ -1090,7 +1099,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
     gap: '1rem',
-    margin: '1.5rem 0'
+    flexShrink: 0
   },
   rosterCard: {
     position: 'relative',
@@ -1161,7 +1170,7 @@ const styles = {
     border: '1px solid rgba(112,26,117,0.5)',
     borderRadius: '0.75rem',
     padding: '1rem',
-    marginBottom: '0.75rem'
+    flexShrink: 0
   },
   weaponLoadoutTitle: {
     fontSize: '0.625rem',
@@ -1185,7 +1194,8 @@ const styles = {
     fontSize: '0.625rem',
     fontWeight: 700,
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    fontFamily: 'monospace'
   },
   weaponButtonActive: {
     borderColor: '#22d3ee',
@@ -1205,7 +1215,8 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '1.5rem'
+    gap: '1.5rem',
+    flexShrink: 0
   },
   selectedPreviewInner: {
     display: 'flex',
@@ -1222,7 +1233,8 @@ const styles = {
     justifyContent: 'center',
     fontSize: '1.5rem',
     fontWeight: 900,
-    border: '2px solid'
+    border: '2px solid',
+    flexShrink: 0
   },
   selectedName: {
     fontSize: '1.25rem',
@@ -1253,7 +1265,8 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
     border: 'none',
-    boxShadow: '0 0 25px rgba(0,240,255,0.4)'
+    boxShadow: '0 0 25px rgba(0,240,255,0.4)',
+    fontFamily: 'monospace'
   },
 
   // HUD
@@ -1460,7 +1473,8 @@ const styles = {
     justifyContent: 'center',
     gap: '0.5rem',
     border: 'none',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    fontFamily: 'monospace'
   },
   pauseButtonSecondary: {
     padding: '0.75rem',
@@ -1474,7 +1488,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    fontFamily: 'monospace'
   },
 
   // Match Over
@@ -1514,7 +1529,8 @@ const styles = {
     cursor: 'pointer',
     border: 'none',
     boxShadow: '0 0 25px rgba(0,240,255,0.5)',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    fontFamily: 'monospace'
   },
 
   // Dialogue
@@ -1558,7 +1574,8 @@ const styles = {
     gap: '0.5rem',
     background: 'none',
     color: '#22d3ee',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontFamily: 'monospace'
   },
   dialogueGrid: {
     display: 'grid',
@@ -1621,7 +1638,8 @@ const styles = {
     fontWeight: 900,
     borderRadius: '0.5rem',
     border: 'none',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontFamily: 'monospace'
   }
 };
 
@@ -1654,111 +1672,113 @@ const CharacterSelect = ({ onSelect, onBack }) => {
 
   return (
     <div style={styles.charSelect}>
-      <div style={styles.charSelectHeader}>
-        <button onClick={onBack} style={styles.backButton}>
-          <ArrowLeft size={16} /> Main Menu
-        </button>
-        <h2 style={styles.charSelectTitle}>SELECT YOUR FIGHTER</h2>
-        <div style={styles.rosterCount}>ROSTER: 08/08</div>
-      </div>
+      <div style={styles.charSelectInner}>
+        <div style={styles.charSelectHeader}>
+          <button onClick={onBack} style={styles.backButton}>
+            <ArrowLeft size={16} /> Main Menu
+          </button>
+          <h2 style={styles.charSelectTitle}>SELECT YOUR FIGHTER</h2>
+          <div style={styles.rosterCount}>ROSTER: 08/08</div>
+        </div>
 
-      <div style={styles.rosterGrid}>
-        {CHARACTERS.map((char) => {
-          const isP1 = selectedP1.id === char.id;
-          const isP2 = selectedP2.id === char.id;
+        <div style={styles.rosterGrid}>
+          {CHARACTERS.map((char) => {
+            const isP1 = selectedP1.id === char.id;
+            const isP2 = selectedP2.id === char.id;
 
-          return (
-            <div
-              key={char.id}
-              onClick={() => {
-                sfx.init();
-                sfx.playPunch();
-                setSelectedP1(char);
-                const availableP2 = CHARACTERS.filter(c => c.id !== char.id);
-                setSelectedP2(availableP2[Math.floor(Math.random() * availableP2.length)]);
-              }}
-              style={{
-                ...styles.rosterCard,
-                ...(isP1 ? styles.rosterCardP1 : isP2 ? styles.rosterCardP2 : {})
-              }}
-            >
-              <div style={styles.rosterCardTop}>
-                <span style={{ ...styles.rosterCardTitle, color: char.color }}>
-                  {char.title} · {WEAPONS[char.weapon].name}
-                </span>
-                {isP1 && <span style={{ ...styles.rosterBadge, background: '#22d3ee' }}>P1</span>}
-                {isP2 && <span style={{ ...styles.rosterBadge, background: '#ef4444' }}>CPU</span>}
-              </div>
+            return (
+              <div
+                key={char.id}
+                onClick={() => {
+                  sfx.init();
+                  sfx.playPunch();
+                  setSelectedP1(char);
+                  const availableP2 = CHARACTERS.filter(c => c.id !== char.id);
+                  setSelectedP2(availableP2[Math.floor(Math.random() * availableP2.length)]);
+                }}
+                style={{
+                  ...styles.rosterCard,
+                  ...(isP1 ? styles.rosterCardP1 : isP2 ? styles.rosterCardP2 : {})
+                }}
+              >
+                <div style={styles.rosterCardTop}>
+                  <span style={{ ...styles.rosterCardTitle, color: char.color }}>
+                    {char.title} · {WEAPONS[char.weapon].name}
+                  </span>
+                  {isP1 && <span style={{ ...styles.rosterBadge, background: '#22d3ee' }}>P1</span>}
+                  {isP2 && <span style={{ ...styles.rosterBadge, background: '#ef4444' }}>CPU</span>}
+                </div>
 
-              <div style={{ ...styles.rosterCardName, color: char.color }}>
-                {char.name}
-              </div>
+                <div style={{ ...styles.rosterCardName, color: char.color }}>
+                  {char.name}
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <div style={styles.statRow}>
-                  <span>SPD</span>
-                  <div style={styles.statBarBg}>
-                    <div style={{ ...styles.statBarFill, background: '#22d3ee', width: `${char.speed}%` }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div style={styles.statRow}>
+                    <span>SPD</span>
+                    <div style={styles.statBarBg}>
+                      <div style={{ ...styles.statBarFill, background: '#22d3ee', width: `${char.speed}%` }} />
+                    </div>
+                  </div>
+                  <div style={styles.statRow}>
+                    <span>PWR</span>
+                    <div style={styles.statBarBg}>
+                      <div style={{ ...styles.statBarFill, background: '#d946ef', width: `${char.power}%` }} />
+                    </div>
                   </div>
                 </div>
-                <div style={styles.statRow}>
-                  <span>PWR</span>
-                  <div style={styles.statBarBg}>
-                    <div style={{ ...styles.statBarFill, background: '#d946ef', width: `${char.power}%` }} />
-                  </div>
-                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={styles.weaponLoadout}>
-        <div style={styles.weaponLoadoutTitle}>WEAPON LOADOUT — {selectedP1.name}</div>
-        <div style={styles.weaponButtons}>
-          {Object.entries(WEAPONS).map(([weaponId, weapon]) => (
-            <button
-              key={weaponId}
-              onClick={() => setSelectedP1({ ...selectedP1, weapon: weaponId })}
-              style={{
-                ...styles.weaponButton,
-                ...(selectedP1.weapon === weaponId ? styles.weaponButtonActive : {})
-              }}
-            >
-              <span style={{ color: selectedP1.color }}>{weapon.icon}</span> {weapon.name}
-            </button>
-          ))}
+            );
+          })}
         </div>
-        <div style={styles.weaponStats}>
-          {WEAPONS[selectedP1.weapon].light}: {WEAPONS[selectedP1.weapon].lightDamage} dmg ·
-          {WEAPONS[selectedP1.weapon].heavy}: {WEAPONS[selectedP1.weapon].heavyDamage} dmg ·
-          Range: {WEAPONS[selectedP1.weapon].range}
-        </div>
-      </div>
 
-      <div style={styles.selectedPreview}>
-        <div style={styles.selectedPreviewInner}>
-          <div style={{ ...styles.selectedAvatar, borderColor: selectedP1.color, color: selectedP1.color }}>
-            {selectedP1.name[0]}
+        <div style={styles.weaponLoadout}>
+          <div style={styles.weaponLoadoutTitle}>WEAPON LOADOUT — {selectedP1.name}</div>
+          <div style={styles.weaponButtons}>
+            {Object.entries(WEAPONS).map(([weaponId, weapon]) => (
+              <button
+                key={weaponId}
+                onClick={() => setSelectedP1({ ...selectedP1, weapon: weaponId })}
+                style={{
+                  ...styles.weaponButton,
+                  ...(selectedP1.weapon === weaponId ? styles.weaponButtonActive : {})
+                }}
+              >
+                <span style={{ color: selectedP1.color }}>{weapon.icon}</span> {weapon.name}
+              </button>
+            ))}
           </div>
-          <div>
-            <h3 style={styles.selectedName}>{selectedP1.name} - {selectedP1.title}</h3>
-            <p style={styles.selectedQuote}>"{selectedP1.quote}"</p>
-            <div style={styles.selectedWeaponInfo}>
-              <Zap size={12} /> WEAPON: {WEAPONS[selectedP1.weapon].name} · SPECIAL: {selectedP1.specialName} ({selectedP1.specialDesc})
-            </div>
+          <div style={styles.weaponStats}>
+            {WEAPONS[selectedP1.weapon].light}: {WEAPONS[selectedP1.weapon].lightDamage} dmg ·
+            {WEAPONS[selectedP1.weapon].heavy}: {WEAPONS[selectedP1.weapon].heavyDamage} dmg ·
+            Range: {WEAPONS[selectedP1.weapon].range}
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            sfx.playAnnounce();
-            onSelect(selectedP1, selectedP2);
-          }}
-          style={styles.confirmButton}
-        >
-          CONFIRM & BATTLE
-        </button>
+        <div style={styles.selectedPreview}>
+          <div style={styles.selectedPreviewInner}>
+            <div style={{ ...styles.selectedAvatar, borderColor: selectedP1.color, color: selectedP1.color }}>
+              {selectedP1.name[0]}
+            </div>
+            <div>
+              <h3 style={styles.selectedName}>{selectedP1.name} - {selectedP1.title}</h3>
+              <p style={styles.selectedQuote}>"{selectedP1.quote}"</p>
+              <div style={styles.selectedWeaponInfo}>
+                <Zap size={12} /> WEAPON: {WEAPONS[selectedP1.weapon].name} · SPECIAL: {selectedP1.specialName} ({selectedP1.specialDesc})
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              sfx.playAnnounce();
+              onSelect(selectedP1, selectedP2);
+            }}
+            style={styles.confirmButton}
+          >
+            CONFIRM & BATTLE
+          </button>
+        </div>
       </div>
     </div>
   );
