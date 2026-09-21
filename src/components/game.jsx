@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Shield, Zap, Sparkles, Trophy, Flame, Swords, ArrowLeft, Volume2, VolumeX, Cpu, User } from 'lucide-react';
+import { Play, Pause, RotateCcw, Shield, Zap, Sparkles, Trophy, Flame, Swords, ArrowLeft, Volume2, VolumeX, Cpu, User, SkipForward } from 'lucide-react';
 
 // Custom hook to load Three.js dynamically
 const useThreeJS = () => {
@@ -164,14 +164,14 @@ const WEAPONS = {
 };
 
 const CHARACTERS = [
-  {id:'maya',name:'Maya Chen',title:'Neon Ronin',gender:'F',weapon:'sword',color:'#22d3ee',hexColor:0x22d3ee,secondaryColor:0x0f172a,speed:91,power:78,defense:67,specialName:'Moonflash',specialDesc:'A lightning dash that ends in a cross-body blade strike.',specialType:'DASH',ability:'Afterimage',abilityDesc:'A perfect block creates a brief evasive afterimage.',quote:'A clean blade. A clear mind.',winLine:'You fought well. But hesitation costs everything.',loseLine:'Not today. I will sharpen this lesson.',look:'ronin'},
-  {id:'ethan',name:'Ethan Cole',title:'Iron Sentinel',gender:'M',weapon:'staff',color:'#f59e0b',hexColor:0xf59e0b,secondaryColor:0x1f2937,speed:68,power:88,defense:93,specialName:'Aegis Crash',specialDesc:'A brutal staff shockwave that punishes close pressure.',specialType:'SHOCKWAVE',ability:'Fortify',abilityDesc:'Blocking charges armor and empowers the next heavy hit.',quote:'Stand your ground. Make them move.',winLine:'You could not break the wall.',loseLine:'Solid hit. My guard was late.',look:'armor'},
-  {id:'leila',name:'Leila Okafor',title:'Crimson Dancer',gender:'F',weapon:'nunchaku',color:'#f43f5e',hexColor:0xf43f5e,secondaryColor:0x3f0a20,speed:96,power:74,defense:60,specialName:'Scarlet Spiral',specialDesc:'A spinning multi-hit rush that builds combo momentum.',specialType:'SPIN',ability:'Momentum',abilityDesc:'Consecutive hits make the next attack faster and stronger.',quote:'If you can see the chain, you are already late.',winLine:'Too slow. The rhythm belonged to me.',loseLine:'You broke my rhythm. Respect.',look:'dancer'},
-  {id:'noah',name:'Noah Williams',title:'Street Phantom',gender:'M',weapon:'tonfa',color:'#a855f7',hexColor:0xa855f7,secondaryColor:0x171329,speed:94,power:73,defense:62,specialName:'Blink Counter',specialDesc:'A phase step that appears behind the opponent.',specialType:'TELEPORT',ability:'Phase Step',abilityDesc:'A successful block can reposition Noah behind the attacker.',quote:'You do not need to be stronger if you are never where they swing.',winLine:'You were looking in the wrong direction.',loseLine:'Clean counter. I will take the lesson.',look:'street'},
-  {id:'sophia',name:'Sophia Reyes',title:'Solar Huntress',gender:'F',weapon:'bow',color:'#facc15',hexColor:0xfacc15,secondaryColor:0x312e81,speed:83,power:82,defense:65,specialName:'Solar Rain',specialDesc:'Three charged arrows fill the arena with pressure.',specialType:'ARROWS',ability:'Deadeye',abilityDesc:'Heavy shots gain extra range and damage.',quote:'Distance is not safety. It is just another angle.',winLine:'You let me choose the range.',loseLine:'You closed the distance perfectly.',look:'hunter'},
-  {id:'marcus',name:'Marcus Reed',title:'Thunder Boxer',gender:'M',weapon:'gauntlet',color:'#06b6d4',hexColor:0x06b6d4,secondaryColor:0x082f49,speed:87,power:96,defense:74,specialName:'Voltage Upper',specialDesc:'An electrified uppercut that launches opponents.',specialType:'UPPERCUT',ability:'Overcharge',abilityDesc:'Heavy gauntlet hits store charge for bonus impact.',quote:'Come close. I promise the electricity is worth it.',winLine:'Power is not loud. The impact is.',loseLine:'That was one hell of a hit.',look:'fighter'},
-  {id:'riley',name:'Riley Park',title:'Orbit Ace',gender:'N',weapon:'chakram',color:'#8b5cf6',hexColor:0x8b5cf6,secondaryColor:0x111827,speed:89,power:80,defense:70,specialName:'Event Horizon',specialDesc:'A giant orbiting chakram that returns for a second hit.',specialType:'ORBIT',ability:'Recall',abilityDesc:'Heavy chakram attacks can strike once on the way back.',quote:'One throw. Two chances.',winLine:'The return angle was yours to lose.',loseLine:'Nice read. You caught the return.',look:'pilot'},
-  {id:'daniel',name:'Daniel Park',title:'Crimson Spear',gender:'M',weapon:'spear',color:'#fb923c',hexColor:0xfb923c,secondaryColor:0x431407,speed:76,power:91,defense:78,specialName:'Dragon Vault',specialDesc:'A long-range vaulting thrust with huge reach.',specialType:'LUNGE',ability:'Reach',abilityDesc:'Spear attacks gain extra range and interrupt projectiles.',quote:'Keep your distance. That is where the spear lives.',winLine:'You stepped into my range.',loseLine:'You got inside my guard.',look:'warrior'}
+  {id:'maya',name:'Maya Chen',title:'Neon Ronin',gender:'F',weapon:'sword',color:'#22d3ee',hexColor:0x22d3ee,secondaryColor:0x0f172a,skinColor:0xe8b48a,hairColor:0x0a0a0f,speed:91,power:78,defense:67,specialName:'Moonflash',specialDesc:'A lightning dash that ends in a cross-body blade strike.',specialType:'DASH',ability:'Afterimage',abilityDesc:'A perfect block creates a brief evasive afterimage.',quote:'A clean blade. A clear mind.',winLine:'You fought well. But hesitation costs everything.',loseLine:'Not today. I will sharpen this lesson.',look:'ronin'},
+  {id:'ethan',name:'Ethan Cole',title:'Iron Sentinel',gender:'M',weapon:'staff',color:'#f59e0b',hexColor:0xf59e0b,secondaryColor:0x1f2937,skinColor:0xd49a6e,hairColor:0x3a2312,speed:68,power:88,defense:93,specialName:'Aegis Crash',specialDesc:'A brutal staff shockwave that punishes close pressure.',specialType:'SHOCKWAVE',ability:'Fortify',abilityDesc:'Blocking charges armor and empowers the next heavy hit.',quote:'Stand your ground. Make them move.',winLine:'You could not break the wall.',loseLine:'Solid hit. My guard was late.',look:'armor'},
+  {id:'leila',name:'Leila Okafor',title:'Crimson Dancer',gender:'F',weapon:'nunchaku',color:'#f43f5e',hexColor:0xf43f5e,secondaryColor:0x3f0a20,skinColor:0x8d5524,hairColor:0x1a0a08,speed:96,power:74,defense:60,specialName:'Scarlet Spiral',specialDesc:'A spinning multi-hit rush that builds combo momentum.',specialType:'SPIN',ability:'Momentum',abilityDesc:'Consecutive hits make the next attack faster and stronger.',quote:'If you can see the chain, you are already late.',winLine:'Too slow. The rhythm belonged to me.',loseLine:'You broke my rhythm. Respect.',look:'dancer'},
+  {id:'noah',name:'Noah Williams',title:'Street Phantom',gender:'M',weapon:'tonfa',color:'#a855f7',hexColor:0xa855f7,secondaryColor:0x171329,skinColor:0x6b4423,hairColor:0x0a0a0a,speed:94,power:73,defense:62,specialName:'Blink Counter',specialDesc:'A phase step that appears behind the opponent.',specialType:'TELEPORT',ability:'Phase Step',abilityDesc:'A successful block can reposition Noah behind the attacker.',quote:'You do not need to be stronger if you are never where they swing.',winLine:'You were looking in the wrong direction.',loseLine:'Clean counter. I will take the lesson.',look:'street'},
+  {id:'sophia',name:'Sophia Reyes',title:'Solar Huntress',gender:'F',weapon:'bow',color:'#facc15',hexColor:0xfacc15,secondaryColor:0x312e81,skinColor:0xc68642,hairColor:0x2d1810,speed:83,power:82,defense:65,specialName:'Solar Rain',specialDesc:'Three charged arrows fill the arena with pressure.',specialType:'ARROWS',ability:'Deadeye',abilityDesc:'Heavy shots gain extra range and damage.',quote:'Distance is not safety. It is just another angle.',winLine:'You let me choose the range.',loseLine:'You closed the distance perfectly.',look:'hunter'},
+  {id:'marcus',name:'Marcus Reed',title:'Thunder Boxer',gender:'M',weapon:'gauntlet',color:'#06b6d4',hexColor:0x06b6d4,secondaryColor:0x082f49,skinColor:0x5a3a1e,hairColor:0x0a0a0a,speed:87,power:96,defense:74,specialName:'Voltage Upper',specialDesc:'An electrified uppercut that launches opponents.',specialType:'UPPERCUT',ability:'Overcharge',abilityDesc:'Heavy gauntlet hits store charge for bonus impact.',quote:'Come close. I promise the electricity is worth it.',winLine:'Power is not loud. The impact is.',loseLine:'That was one hell of a hit.',look:'fighter'},
+  {id:'riley',name:'Riley Park',title:'Orbit Ace',gender:'N',weapon:'chakram',color:'#8b5cf6',hexColor:0x8b5cf6,secondaryColor:0x111827,skinColor:0xe0ac69,hairColor:0x1a1a2e,speed:89,power:80,defense:70,specialName:'Event Horizon',specialDesc:'A giant orbiting chakram that returns for a second hit.',specialType:'ORBIT',ability:'Recall',abilityDesc:'Heavy chakram attacks can strike once on the way back.',quote:'One throw. Two chances.',winLine:'The return angle was yours to lose.',loseLine:'Nice read. You caught the return.',look:'pilot'},
+  {id:'daniel',name:'Daniel Park',title:'Crimson Spear',gender:'M',weapon:'spear',color:'#fb923c',hexColor:0xfb923c,secondaryColor:0x431407,skinColor:0xd9a06b,hairColor:0x0a0a0a,speed:76,power:91,defense:78,specialName:'Dragon Vault',specialDesc:'A long-range vaulting thrust with huge reach.',specialType:'LUNGE',ability:'Reach',abilityDesc:'Spear attacks gain extra range and interrupt projectiles.',quote:'Keep your distance. That is where the spear lives.',winLine:'You stepped into my range.',loseLine:'You got inside my guard.',look:'warrior'}
 ];
 
 class ArcadeFighter {
@@ -208,25 +208,22 @@ class ArcadeFighter {
     const THREE = this.THREE;
     const primaryColor = this.charData.hexColor;
     const secColor = this.charData.secondaryColor;
+    const skinColor = this.charData.skinColor;
+    const hairColor = this.charData.hairColor;
 
-    const mainMat = new THREE.MeshStandardMaterial({
-      color: primaryColor,
-      roughness: 0.3,
-      metalness: 0.7,
-      emissive: primaryColor,
-      emissiveIntensity: 0.25
-    });
+    // ---- Materials ----
+    const skinMat = new THREE.MeshStandardMaterial({ color: skinColor, roughness: 0.7, metalness: 0.05 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: hairColor, roughness: 0.5, metalness: 0.1 });
+    const primaryMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.35, metalness: 0.55, emissive: primaryColor, emissiveIntensity: 0.15 });
+    const secMat = new THREE.MeshStandardMaterial({ color: secColor, roughness: 0.6, metalness: 0.3 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x0a0a14, roughness: 0.85, metalness: 0.1 });
+    const beltMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.7, metalness: 0.4 });
+    const accentGlowMat = new THREE.MeshBasicMaterial({ color: primaryColor });
+    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xf5f5f5 });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
 
-    const secMat = new THREE.MeshStandardMaterial({
-      color: secColor,
-      roughness: 0.4,
-      metalness: 0.6
-    });
-
-    const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x111122,
-      roughness: 0.8
-    });
+    const isFemale = this.charData.gender === 'F';
+    const isMale = this.charData.gender === 'M';
 
     const createPart = (geo, mat, x=0, y=0, z=0) => {
       const m = new THREE.Mesh(geo, mat);
@@ -236,129 +233,638 @@ class ArcadeFighter {
       return m;
     };
 
-    this.torso = createPart(new THREE.BoxGeometry(0.8, 1.2, 0.5), mainMat, 0, 1.6, 0);
+    // ============================================================
+    // BODY PROPORTIONS (differentiated by gender)
+    // ============================================================
+    // Females: slightly narrower shoulders, wider hips, longer legs
+    // Males: broader shoulders, narrower hips
+    const shoulderW = isFemale ? 0.44 : 0.52;
+    const hipW = isFemale ? 0.38 : 0.32;
+    const waistW = isFemale ? 0.32 : 0.36;
+    const torsoH = 1.05;
+
+    // ---- TORSO ----
+    // Chest
+    this.torso = createPart(new THREE.BoxGeometry(shoulderW * 2, torsoH * 0.55, 0.42), primaryMat, 0, 1.85, 0);
     this.mesh.add(this.torso);
 
-    if (this.charData.id === 'titan') {
-      const armor = createPart(new THREE.BoxGeometry(1.1, 0.8, 0.7), secMat, 0, 1.7, 0);
-      this.mesh.add(armor);
-    } else if (this.charData.id === 'shadow') {
-      const padL = createPart(new THREE.BoxGeometry(0.4, 0.2, 0.4), secMat, 0.6, 2.1, 0);
-      const padR = createPart(new THREE.BoxGeometry(0.4, 0.2, 0.4), secMat, -0.6, 2.1, 0);
-      this.mesh.add(padL);
-      this.mesh.add(padR);
-    }
+    // Waist
+    this.waist = createPart(new THREE.BoxGeometry(waistW * 2, torsoH * 0.35, 0.38), primaryMat, 0, 1.42, 0);
+    this.mesh.add(this.waist);
 
-    this.head = createPart(new THREE.SphereGeometry(0.32, 16, 16), secMat, 0, 2.5, 0);
+    // Hips
+    this.hips = createPart(new THREE.BoxGeometry(hipW * 2, torsoH * 0.25, 0.42), secMat, 0, 1.18, 0);
+    this.mesh.add(this.hips);
+
+    // Chest accent / emblem
+    const emblem = createPart(new THREE.BoxGeometry(0.32, 0.32, 0.04), accentGlowMat, 0, 2.0, 0.22);
+    this.mesh.add(emblem);
+
+    // ---- NECK ----
+    this.neck = createPart(new THREE.CylinderGeometry(0.11, 0.13, 0.16, 12), skinMat, 0, 2.46, 0);
+    this.mesh.add(this.neck);
+
+    // ============================================================
+    // HEAD & FACE
+    // ============================================================
+    this.head = createPart(new THREE.SphereGeometry(0.27, 20, 20), skinMat, 0, 2.72, 0);
+    this.head.scale.set(0.92, 1.05, 0.95);
     this.mesh.add(this.head);
 
-    const visorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const visor = createPart(new THREE.BoxGeometry(0.4, 0.1, 0.2), visorMat, 0, 2.55, 0.2);
-    this.mesh.add(visor);
+    // Jaw definition
+    const jaw = createPart(new THREE.BoxGeometry(0.36, 0.16, 0.32), skinMat, 0, 2.6, 0.02);
+    jaw.geometry.translate(0, 0, 0);
+    this.mesh.add(jaw);
 
-    const createJointLimb = (w, h, d, px, py, pz) => {
+    // Eyes (whites)
+    const eyeL = createPart(new THREE.SphereGeometry(0.05, 10, 10), eyeWhiteMat, 0.09, 2.74, 0.24);
+    const eyeR = createPart(new THREE.SphereGeometry(0.05, 10, 10), eyeWhiteMat, -0.09, 2.74, 0.24);
+    eyeL.scale.set(1, 1, 0.5);
+    eyeR.scale.set(1, 1, 0.5);
+    this.mesh.add(eyeL, eyeR);
+
+    // Pupils
+    const pupilL = createPart(new THREE.SphereGeometry(0.025, 8, 8), pupilMat, 0.09, 2.74, 0.28);
+    const pupilR = createPart(new THREE.SphereGeometry(0.025, 8, 8), pupilMat, -0.09, 2.74, 0.28);
+    this.mesh.add(pupilL, pupilR);
+
+    // Eyebrows
+    const browL = createPart(new THREE.BoxGeometry(0.09, 0.02, 0.04), hairMat, 0.09, 2.82, 0.24);
+    const browR = createPart(new THREE.BoxGeometry(0.09, 0.02, 0.04), hairMat, -0.09, 2.82, 0.24);
+    browL.rotation.z = isFemale ? 0.12 : -0.05;
+    browR.rotation.z = isFemale ? -0.12 : 0.05;
+    this.mesh.add(browL, browR);
+
+    // Nose
+    const nose = createPart(new THREE.ConeGeometry(0.035, 0.07, 8), skinMat, 0, 2.68, 0.26);
+    nose.rotation.x = -Math.PI / 2;
+    this.mesh.add(nose);
+
+    // Mouth (subtle line)
+    const mouth = createPart(new THREE.BoxGeometry(0.08, 0.015, 0.02), new THREE.MeshBasicMaterial({ color: 0x8a3a3a }), 0, 2.58, 0.25);
+    this.mesh.add(mouth);
+
+    // ============================================================
+    // HAIR (unique per character)
+    // ============================================================
+    const hairGroup = new THREE.Group();
+
+    // Base cap of hair covering top of head
+    const hairCap = createPart(new THREE.SphereGeometry(0.30, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat, 0, 2.72, 0);
+    hairCap.scale.set(0.95, 1.05, 0.98);
+    hairGroup.add(hairCap);
+
+    // Side/back coverage
+    const hairBack = createPart(new THREE.SphereGeometry(0.28, 20, 20), hairMat, 0, 2.70, -0.08);
+    hairBack.scale.set(0.95, 0.9, 0.9);
+    hairGroup.add(hairBack);
+
+    // ---- Character-specific hairstyles ----
+    if (this.charData.look === 'ronin') {
+      // Maya: Long straight black hair with side ponytail, hair strands framing face
+      const sideL = createPart(new THREE.BoxGeometry(0.08, 0.55, 0.14), hairMat, 0.26, 2.55, 0.02);
+      sideL.rotation.z = 0.08;
+      const sideR = createPart(new THREE.BoxGeometry(0.08, 0.55, 0.14), hairMat, -0.26, 2.55, 0.02);
+      sideR.rotation.z = -0.08;
+      hairGroup.add(sideL, sideR);
+
+      // High side ponytail
+      const ponyBase = createPart(new THREE.SphereGeometry(0.09, 10, 10), hairMat, 0.26, 2.85, -0.06);
+      const pony = createPart(new THREE.CylinderGeometry(0.07, 0.05, 0.85, 10), hairMat, 0.28, 2.45, -0.16);
+      pony.rotation.x = -0.28;
+      pony.rotation.z = 0.15;
+      hairGroup.add(ponyBase, pony);
+
+      // Bangs
+      const bangs = createPart(new THREE.BoxGeometry(0.42, 0.16, 0.14), hairMat, 0, 2.88, 0.22);
+      bangs.rotation.x = -0.15;
+      hairGroup.add(bangs);
+    } else if (this.charData.look === 'armor') {
+      // Ethan: Short military buzz cut
+      const buzz = createPart(new THREE.SphereGeometry(0.28, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat, 0, 2.74, 0);
+      buzz.scale.set(0.95, 0.85, 0.95);
+      hairGroup.add(buzz);
+
+      // Slight stubble hint
+      const stubble = createPart(new THREE.SphereGeometry(0.26, 16, 16), new THREE.MeshStandardMaterial({ color: hairColor, roughness: 0.9, metalness: 0 }), 0, 2.60, 0.02);
+      stubble.scale.set(0.95, 0.5, 0.95);
+      stubble.material.opacity = 0.35;
+      stubble.material.transparent = true;
+      hairGroup.add(stubble);
+    } else if (this.charData.look === 'dancer') {
+      // Leila: Long braids with beads, natural texture
+      // Bigger hair silhouette
+      const afro = createPart(new THREE.SphereGeometry(0.34, 16, 16), hairMat, 0, 2.78, -0.04);
+      afro.scale.set(1, 0.85, 1);
+      hairGroup.add(afro);
+
+      // Multiple braids falling down
+      const braidPositions = [
+        { x: 0.24, z: 0.06, rot: 0.15 },
+        { x: -0.24, z: 0.06, rot: -0.15 },
+        { x: 0.18, z: -0.18, rot: 0.1 },
+        { x: -0.18, z: -0.18, rot: -0.1 },
+        { x: 0.05, z: -0.26, rot: 0 },
+      ];
+      braidPositions.forEach((bp) => {
+        const braid = createPart(new THREE.CylinderGeometry(0.045, 0.03, 0.75, 8), hairMat, bp.x, 2.45, bp.z);
+        braid.rotation.z = bp.rot;
+        braid.rotation.x = -0.1;
+        hairGroup.add(braid);
+
+        // Bead at end
+        const bead = createPart(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshStandardMaterial({ color: primaryColor, metalness: 0.9, roughness: 0.2, emissive: primaryColor, emissiveIntensity: 0.4 }), bp.x + bp.rot * 0.3, 2.08, bp.z);
+        hairGroup.add(bead);
+      });
+
+      // Headband
+      const band = createPart(new THREE.TorusGeometry(0.29, 0.025, 8, 24), new THREE.MeshStandardMaterial({ color: primaryColor, metalness: 0.6, roughness: 0.3, emissive: primaryColor, emissiveIntensity: 0.3 }), 0, 2.78, 0);
+      band.rotation.x = Math.PI / 2;
+      hairGroup.add(band);
+    } else if (this.charData.look === 'street') {
+      // Noah: Fade with high top, hoodie vibe
+      const top = createPart(new THREE.BoxGeometry(0.42, 0.28, 0.42), hairMat, 0, 2.88, -0.02);
+      top.geometry.translate(0, 0, 0);
+      hairGroup.add(top);
+
+      // Faded sides (shorter)
+      const fadeL = createPart(new THREE.SphereGeometry(0.26, 12, 12, 0, Math.PI, 0, Math.PI * 0.6), hairMat, 0.02, 2.74, 0);
+      hairGroup.add(fadeL);
+    } else if (this.charData.look === 'hunter') {
+      // Sophia: Long wavy dark hair, high ponytail
+      const sideL = createPart(new THREE.BoxGeometry(0.09, 0.6, 0.16), hairMat, 0.27, 2.5, 0.02);
+      const sideR = createPart(new THREE.BoxGeometry(0.09, 0.6, 0.16), hairMat, -0.27, 2.5, 0.02);
+      hairGroup.add(sideL, sideR);
+
+      // High ponytail
+      const ponyBase = createPart(new THREE.SphereGeometry(0.11, 10, 10), hairMat, 0, 2.92, -0.06);
+      const pony = createPart(new THREE.CylinderGeometry(0.09, 0.05, 1.0, 10), hairMat, 0, 2.45, -0.22);
+      pony.rotation.x = -0.3;
+      hairGroup.add(ponyBase, pony);
+
+      // Swept bangs
+      const bangs = createPart(new THREE.BoxGeometry(0.44, 0.18, 0.14), hairMat, 0.04, 2.88, 0.22);
+      bangs.rotation.z = 0.2;
+      bangs.rotation.x = -0.15;
+      hairGroup.add(bangs);
+    } else if (this.charData.look === 'fighter') {
+      // Marcus: Short curly/shaved with clean lines
+      const fade = createPart(new THREE.SphereGeometry(0.28, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat, 0, 2.74, 0);
+      fade.scale.set(0.95, 0.7, 0.95);
+      hairGroup.add(fade);
+
+      // Slight curl texture on top
+      for (let i = 0; i < 6; i++) {
+        const c = createPart(new THREE.SphereGeometry(0.06, 6, 6), hairMat, (Math.random() - 0.5) * 0.3, 2.9 + Math.random() * 0.04, (Math.random() - 0.5) * 0.2);
+        hairGroup.add(c);
+      }
+
+      // Line-up edge
+      const line = createPart(new THREE.BoxGeometry(0.5, 0.02, 0.02), new THREE.MeshBasicMaterial({ color: 0x000000 }), 0, 2.86, 0.26);
+      hairGroup.add(line);
+    } else if (this.charData.look === 'pilot') {
+      // Riley: Androgynous undercut with swept top
+      const side = createPart(new THREE.SphereGeometry(0.27, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat, 0, 2.72, 0);
+      hairGroup.add(side);
+
+      // Swept top going to one side
+      const top = createPart(new THREE.BoxGeometry(0.5, 0.2, 0.42), hairMat, 0.06, 2.9, -0.02);
+      top.rotation.z = -0.15;
+      hairGroup.add(top);
+
+      // Shaved side accent
+      const accent = createPart(new THREE.BoxGeometry(0.02, 0.22, 0.4), new THREE.MeshBasicMaterial({ color: primaryColor }), -0.28, 2.74, 0);
+      hairGroup.add(accent);
+    } else if (this.charData.look === 'warrior') {
+      // Daniel: Long warrior hair tied back
+      const backHair = createPart(new THREE.SphereGeometry(0.29, 16, 16), hairMat, 0, 2.7, -0.08);
+      backHair.scale.set(0.95, 1, 0.95);
+      hairGroup.add(backHair);
+
+      // Low ponytail
+      const tail = createPart(new THREE.CylinderGeometry(0.07, 0.04, 0.9, 10), hairMat, 0, 2.35, -0.24);
+      tail.rotation.x = -0.18;
+      hairGroup.add(tail);
+
+      // Headband
+      const band = createPart(new THREE.TorusGeometry(0.29, 0.03, 8, 24), new THREE.MeshStandardMaterial({ color: primaryColor, metalness: 0.7, roughness: 0.3, emissive: primaryColor, emissiveIntensity: 0.3 }), 0, 2.82, 0);
+      band.rotation.x = Math.PI / 2;
+      hairGroup.add(band);
+
+      // Bangs framing face
+      const bangL = createPart(new THREE.BoxGeometry(0.1, 0.3, 0.12), hairMat, 0.22, 2.74, 0.2);
+      const bangR = createPart(new THREE.BoxGeometry(0.1, 0.3, 0.12), hairMat, -0.22, 2.74, 0.2);
+      hairGroup.add(bangL, bangR);
+    }
+
+    this.mesh.add(hairGroup);
+
+    // ============================================================
+    // CLOTHING / OUTFIT (gender-appropriate)
+    // ============================================================
+    const outfitGroup = new THREE.Group();
+
+    // Everyone gets a belt
+    const belt = createPart(new THREE.TorusGeometry(hipW + 0.02, 0.045, 8, 24), beltMat, 0, 1.3, 0);
+    belt.rotation.x = Math.PI / 2;
+    outfitGroup.add(belt);
+
+    // Belt buckle / accent
+    const buckle = createPart(new THREE.BoxGeometry(0.16, 0.16, 0.05), accentGlowMat, 0, 1.3, hipW + 0.02);
+    outfitGroup.add(buckle);
+
+    if (this.charData.look === 'ronin') {
+      // Maya: Kimono-style top with obi, split skirt/leggings, armored shoulders
+      // Upper kimono (covers chest, cross-over front)
+      const kimonoTop = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.02, 0.85, 0.46), primaryMat, 0, 1.9, 0);
+      outfitGroup.add(kimonoTop);
+
+      // Cross-over front panel
+      const crossPanel = createPart(new THREE.BoxGeometry(0.34, 0.8, 0.04), secMat, 0.04, 1.85, 0.24);
+      crossPanel.rotation.z = 0.15;
+      outfitGroup.add(crossPanel);
+
+      // Obi (wide belt)
+      const obi = createPart(new THREE.BoxGeometry(waistW * 2 + 0.06, 0.22, 0.42), secMat, 0, 1.36, 0);
+      outfitGroup.add(obi);
+
+      // Obi knot in back
+      const obiKnot = createPart(new THREE.BoxGeometry(0.3, 0.2, 0.18), secMat, 0, 1.36, -0.28);
+      outfitGroup.add(obiKnot);
+
+      // Split skirt panels (two flaps on sides)
+      const skirtL = createPart(new THREE.BoxGeometry(0.28, 0.7, 0.42), primaryMat, 0.16, 0.9, 0);
+      skirtL.rotation.z = 0.06;
+      const skirtR = createPart(new THREE.BoxGeometry(0.28, 0.7, 0.42), primaryMat, -0.16, 0.9, 0);
+      skirtR.rotation.z = -0.06;
+      outfitGroup.add(skirtL, skirtR);
+
+      // Shoulder pauldron (left shoulder only - asymmetric ronin style)
+      const pauldron = createPart(new THREE.BoxGeometry(0.32, 0.14, 0.42), secMat, -shoulderW - 0.02, 2.22, 0);
+      pauldron.rotation.z = 0.15;
+      outfitGroup.add(pauldron);
+      const pauldronGlow = createPart(new THREE.BoxGeometry(0.3, 0.04, 0.05), accentGlowMat, -shoulderW - 0.02, 2.22, 0.22);
+      outfitGroup.add(pauldronGlow);
+    } else if (this.charData.look === 'armor') {
+      // Ethan: Heavy plate armor, broad shoulders, chest plate
+      const chestPlate = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.15, 0.9, 0.5), secMat, 0, 1.9, 0);
+      outfitGroup.add(chestPlate);
+
+      // Chest plate detailing (vertical ridges)
+      const ridge1 = createPart(new THREE.BoxGeometry(0.06, 0.7, 0.04), primaryMat, 0.12, 1.9, 0.26);
+      const ridge2 = createPart(new THREE.BoxGeometry(0.06, 0.7, 0.04), primaryMat, -0.12, 1.9, 0.26);
+      outfitGroup.add(ridge1, ridge2);
+
+      // Central chest emblem
+      const emblem = createPart(new THREE.BoxGeometry(0.2, 0.2, 0.05), accentGlowMat, 0, 1.95, 0.28);
+      outfitGroup.add(emblem);
+
+      // Wide armored shoulder pads (both sides)
+      const padL = createPart(new THREE.BoxGeometry(0.4, 0.24, 0.5), secMat, shoulderW + 0.08, 2.25, 0);
+      padL.rotation.z = -0.12;
+      const padR = createPart(new THREE.BoxGeometry(0.4, 0.24, 0.5), secMat, -shoulderW - 0.08, 2.25, 0);
+      padR.rotation.z = 0.12;
+      outfitGroup.add(padL, padR);
+
+      // Pauldron glows
+      const padGlowL = createPart(new THREE.BoxGeometry(0.36, 0.04, 0.06), accentGlowMat, shoulderW + 0.08, 2.25, 0.24);
+      const padGlowR = createPart(new THREE.BoxGeometry(0.36, 0.04, 0.06), accentGlowMat, -shoulderW - 0.08, 2.25, 0.24);
+      outfitGroup.add(padGlowL, padGlowR);
+
+      // Armored tassets (hip guards)
+      const tassetL = createPart(new THREE.BoxGeometry(0.2, 0.35, 0.4), secMat, 0.22, 1.05, 0);
+      const tassetR = createPart(new THREE.BoxGeometry(0.2, 0.35, 0.4), secMat, -0.22, 1.05, 0);
+      outfitGroup.add(tassetL, tassetR);
+    } else if (this.charData.look === 'dancer') {
+      // Leila: Flowing performance outfit, asymmetric top, flowing skirt
+      // Asymmetric crop top
+      const cropTop = createPart(new THREE.BoxGeometry(shoulderW * 2, 0.5, 0.4), primaryMat, 0, 2.0, 0);
+      outfitGroup.add(cropTop);
+
+      // Diagonal strap across chest
+      const strap = createPart(new THREE.BoxGeometry(0.1, 0.9, 0.42), secMat, 0.1, 1.95, 0);
+      strap.rotation.z = 0.35;
+      outfitGroup.add(strap);
+
+      // Exposed midriff (just skin showing - the waist box is skin colored already)
+      // Wrap skirt
+      const skirt = createPart(new THREE.BoxGeometry(hipW * 2 + 0.08, 0.85, 0.44), primaryMat, 0, 0.85, 0);
+      outfitGroup.add(skirt);
+
+      // Skirt panel overlays for flowing look
+      const panelL = createPart(new THREE.BoxGeometry(0.22, 0.95, 0.02), secMat, 0.28, 0.8, 0.22);
+      panelL.rotation.z = 0.1;
+      const panelR = createPart(new THREE.BoxGeometry(0.22, 0.95, 0.02), secMat, -0.28, 0.8, 0.22);
+      panelR.rotation.z = -0.1;
+      outfitGroup.add(panelL, panelR);
+
+      // Hip accent bands (armor rings on hips)
+      const hipRingL = createPart(new THREE.TorusGeometry(0.14, 0.025, 6, 16), accentGlowMat, 0.32, 1.15, 0);
+      hipRingL.rotation.y = Math.PI / 2;
+      const hipRingR = createPart(new THREE.TorusGeometry(0.14, 0.025, 6, 16), accentGlowMat, -0.32, 1.15, 0);
+      hipRingR.rotation.y = Math.PI / 2;
+      outfitGroup.add(hipRingL, hipRingR);
+
+      // Shoulder accent (one shoulder)
+      const shoulderAccent = createPart(new THREE.BoxGeometry(0.3, 0.12, 0.4), secMat, shoulderW + 0.02, 2.24, 0);
+      outfitGroup.add(shoulderAccent);
+    } else if (this.charData.look === 'street') {
+      // Noah: Hoodie with hood down, jogger pants feel, taped wrists
+      const hoodieTop = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.05, 0.95, 0.48), secMat, 0, 1.9, 0);
+      outfitGroup.add(hoodieTop);
+
+      // Hood down (behind neck)
+      const hood = createPart(new THREE.SphereGeometry(0.28, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.6), secMat, 0, 2.35, -0.18);
+      hood.rotation.x = Math.PI * 0.15;
+      outfitGroup.add(hood);
+
+      // Kangaroo pocket
+      const pocket = createPart(new THREE.BoxGeometry(0.45, 0.24, 0.04), primaryMat, 0, 1.55, 0.25);
+      outfitGroup.add(pocket);
+
+      // Drawstrings
+      const stringL = createPart(new THREE.BoxGeometry(0.02, 0.22, 0.02), accentGlowMat, 0.08, 2.15, 0.26);
+      const stringR = createPart(new THREE.BoxGeometry(0.02, 0.22, 0.02), accentGlowMat, -0.08, 2.15, 0.26);
+      outfitGroup.add(stringL, stringR);
+
+      // Waist band of pants
+      const waistBand = createPart(new THREE.BoxGeometry(hipW * 2 + 0.04, 0.18, 0.42), primaryMat, 0, 1.28, 0);
+      outfitGroup.add(waistBand);
+
+      // Chest emblem / logo
+      const emblem = createPart(new THREE.BoxGeometry(0.22, 0.22, 0.04), accentGlowMat, 0, 2.0, 0.25);
+      outfitGroup.add(emblem);
+    } else if (this.charData.look === 'hunter') {
+      // Sophia: Fitted tactical outfit, quiver strap, cape/poncho
+      const tacticalTop = createPart(new THREE.BoxGeometry(shoulderW * 2, 0.85, 0.42), primaryMat, 0, 1.9, 0);
+      outfitGroup.add(tacticalTop);
+
+      // V-neck collar
+      const collar = createPart(new THREE.BoxGeometry(0.42, 0.12, 0.42), secMat, 0, 2.32, 0);
+      outfitGroup.add(collar);
+
+      // Quiver strap crossing diagonally
+      const quiverStrap = createPart(new THREE.BoxGeometry(0.09, 1.0, 0.44), secMat, 0.02, 1.9, 0);
+      quiverStrap.rotation.z = 0.4;
+      outfitGroup.add(quiverStrap);
+
+      // Belt with pouches
+      const pouchL = createPart(new THREE.BoxGeometry(0.14, 0.16, 0.1), secMat, 0.22, 1.28, 0.24);
+      const pouchR = createPart(new THREE.BoxGeometry(0.14, 0.16, 0.1), secMat, -0.22, 1.28, 0.24);
+      outfitGroup.add(pouchL, pouchR);
+
+      // Hip wrap / tassets (fabric)
+      const hipWrapL = createPart(new THREE.BoxGeometry(0.22, 0.5, 0.42), secMat, 0.24, 1.0, 0);
+      hipWrapL.rotation.z = 0.08;
+      const hipWrapR = createPart(new THREE.BoxGeometry(0.22, 0.5, 0.42), secMat, -0.24, 1.0, 0);
+      hipWrapR.rotation.z = -0.08;
+      outfitGroup.add(hipWrapL, hipWrapR);
+
+      // Chest cross emblem
+      const crossV = createPart(new THREE.BoxGeometry(0.04, 0.22, 0.04), accentGlowMat, 0, 2.0, 0.24);
+      const crossH = createPart(new THREE.BoxGeometry(0.16, 0.04, 0.04), accentGlowMat, 0, 2.0, 0.24);
+      outfitGroup.add(crossV, crossH);
+    } else if (this.charData.look === 'fighter') {
+      // Marcus: Boxing-style tank top, wraps, shorts
+      const tank = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.02, 0.7, 0.42), primaryMat, 0, 1.95, 0);
+      outfitGroup.add(tank);
+
+      // Chest opening (V shape - just visual accent)
+      const chestV = createPart(new THREE.BoxGeometry(0.3, 0.4, 0.04), skinMat, 0, 2.1, 0.22);
+      outfitGroup.add(chestV);
+
+      // Wraps at waist
+      const wraps = createPart(new THREE.BoxGeometry(waistW * 2 + 0.08, 0.22, 0.44), secMat, 0, 1.4, 0);
+      outfitGroup.add(wraps);
+
+      // Shorts
+      const shorts = createPart(new THREE.BoxGeometry(hipW * 2 + 0.06, 0.5, 0.44), primaryMat, 0, 1.0, 0);
+      outfitGroup.add(shorts);
+
+      // Side stripes on shorts
+      const stripeL = createPart(new THREE.BoxGeometry(0.04, 0.5, 0.46), accentGlowMat, 0.24, 1.0, 0);
+      const stripeR = createPart(new THREE.BoxGeometry(0.04, 0.5, 0.46), accentGlowMat, -0.24, 1.0, 0);
+      outfitGroup.add(stripeL, stripeR);
+
+      // Champion belt buckle
+      const bigBuckle = createPart(new THREE.BoxGeometry(0.24, 0.2, 0.06), accentGlowMat, 0, 1.28, hipW + 0.02);
+      outfitGroup.add(bigBuckle);
+    } else if (this.charData.look === 'pilot') {
+      // Riley: Flight jacket, asymmetric design, tech accents
+      const jacket = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.06, 0.85, 0.48), primaryMat, 0, 1.9, 0);
+      outfitGroup.add(jacket);
+
+      // Jacket collar (popped)
+      const collarL = createPart(new THREE.BoxGeometry(0.14, 0.2, 0.36), secMat, 0.22, 2.28, 0);
+      collarL.rotation.z = -0.2;
+      const collarR = createPart(new THREE.BoxGeometry(0.14, 0.2, 0.36), secMat, -0.22, 2.28, 0);
+      collarR.rotation.z = 0.2;
+      outfitGroup.add(collarL, collarR);
+
+      // Zipper line
+      const zipper = createPart(new THREE.BoxGeometry(0.03, 0.85, 0.04), accentGlowMat, 0, 1.9, 0.25);
+      outfitGroup.add(zipper);
+
+      // Shoulder patch
+      const patch = createPart(new THREE.BoxGeometry(0.16, 0.16, 0.04), accentGlowMat, shoulderW - 0.02, 2.15, 0.25);
+      outfitGroup.add(patch);
+
+      // Utility belt
+      const utilityBelt = createPart(new THREE.BoxGeometry(waistW * 2 + 0.08, 0.2, 0.44), secMat, 0, 1.38, 0);
+      outfitGroup.add(utilityBelt);
+
+      // Utility pouches
+      const pouch1 = createPart(new THREE.BoxGeometry(0.12, 0.14, 0.12), secMat, 0.18, 1.28, 0.22);
+      const pouch2 = createPart(new THREE.BoxGeometry(0.12, 0.14, 0.12), secMat, -0.18, 1.28, 0.22);
+      outfitGroup.add(pouch1, pouch2);
+
+      // Tech leg straps
+      const legStrapL = createPart(new THREE.BoxGeometry(0.28, 0.08, 0.42), accentGlowMat, 0.16, 0.62, 0);
+      const legStrapR = createPart(new THREE.BoxGeometry(0.28, 0.08, 0.42), accentGlowMat, -0.16, 0.62, 0);
+      outfitGroup.add(legStrapL, legStrapR);
+    } else if (this.charData.look === 'warrior') {
+      // Daniel: Layered samurai-style armor, flowing coat
+      const chestArmor = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.06, 0.85, 0.48), primaryMat, 0, 1.9, 0);
+      outfitGroup.add(chestArmor);
+
+      // Layered chest plates (horizontal bands)
+      for (let i = 0; i < 3; i++) {
+        const band = createPart(new THREE.BoxGeometry(shoulderW * 2 + 0.08, 0.08, 0.5), secMat, 0, 2.15 - i * 0.22, 0);
+        outfitGroup.add(band);
+      }
+
+      // Flowing long coat tails (back)
+      const coatTail = createPart(new THREE.BoxGeometry(0.85, 1.2, 0.14), secMat, 0, 1.0, -0.28);
+      outfitGroup.add(coatTail);
+
+      // Coat side panels
+      const coatSideL = createPart(new THREE.BoxGeometry(0.18, 1.1, 0.42), secMat, 0.28, 1.0, 0);
+      const coatSideR = createPart(new THREE.BoxGeometry(0.18, 1.1, 0.42), secMat, -0.28, 1.0, 0);
+      outfitGroup.add(coatSideL, coatSideR);
+
+      // Shoulder guards (both)
+      const guardL = createPart(new THREE.BoxGeometry(0.34, 0.18, 0.46), secMat, shoulderW + 0.04, 2.24, 0);
+      guardL.rotation.z = -0.1;
+      const guardR = createPart(new THREE.BoxGeometry(0.34, 0.18, 0.46), secMat, -shoulderW - 0.04, 2.24, 0);
+      guardR.rotation.z = 0.1;
+      outfitGroup.add(guardL, guardR);
+
+      // Back banner pole (emblem)
+      const pole = createPart(new THREE.CylinderGeometry(0.02, 0.02, 1.6, 6), darkMat, -0.5, 2.0, -0.3);
+      outfitGroup.add(pole);
+      const banner = createPart(new THREE.BoxGeometry(0.22, 0.7, 0.02), accentGlowMat, -0.5, 2.2, -0.3);
+      outfitGroup.add(banner);
+    }
+
+    this.mesh.add(outfitGroup);
+
+    // ============================================================
+    // LIMBS (with proper joint hierarchy)
+    // ============================================================
+    const armW = isFemale ? 0.18 : 0.22;
+    const legW = isFemale ? 0.22 : 0.26;
+
+    const createJointLimb = (w, h, d, px, py, pz, mat, options = {}) => {
       const pivot = new THREE.Group();
       pivot.position.set(px, py, pz);
       const geo = new THREE.BoxGeometry(w, h, d);
       geo.translate(0, -h/2, 0);
-      const limbMesh = new THREE.Mesh(geo, mainMat);
+      const limbMesh = new THREE.Mesh(geo, mat);
       limbMesh.castShadow = true;
       pivot.add(limbMesh);
+
+      // Optionally add hand/foot
+      if (options.hand) {
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(w * 0.9, 10, 10), skinMat);
+        hand.position.y = -h - 0.02;
+        hand.castShadow = true;
+        pivot.add(hand);
+      }
+      if (options.foot) {
+        const foot = new THREE.Mesh(new THREE.BoxGeometry(w * 1.3, 0.14, d * 1.7), darkMat);
+        foot.position.set(0, -h + 0.05, d * 0.3);
+        foot.castShadow = true;
+        pivot.add(foot);
+      }
+
       this.mesh.add(pivot);
       return pivot;
     };
 
-    this.leftArm = createJointLimb(0.22, 0.9, 0.22, 0.55, 2.1, 0);
-    this.rightArm = createJointLimb(0.22, 0.9, 0.22, -0.55, 2.1, 0);
-    this.leftLeg = createJointLimb(0.26, 1.1, 0.26, 0.25, 1.0, 0);
-    this.rightLeg = createJointLimb(0.26, 1.1, 0.26, -0.25, 1.0, 0);
+    // Arms (skin colored upper, with sleeves if applicable)
+    this.leftArm = createJointLimb(armW, 0.92, armW, shoulderW - 0.02, 2.28, 0, primaryMat, { hand: true });
+    this.rightArm = createJointLimb(armW, 0.92, armW, -shoulderW + 0.02, 2.28, 0, primaryMat, { hand: true });
 
-    const hairMat = new THREE.MeshStandardMaterial({ color: 0x090b13, roughness: 0.55, metalness: 0.05 });
-    const accentMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.25, metalness: 0.65, emissive: primaryColor, emissiveIntensity: 0.2 });
+    // Legs
+    this.leftLeg = createJointLimb(legW, 1.15, legW, hipW - 0.08, 1.15, 0, secMat, { foot: true });
+    this.rightLeg = createJointLimb(legW, 1.15, legW, -hipW + 0.08, 1.15, 0, secMat, { foot: true });
 
-    const hairGeo = new THREE.SphereGeometry(0.38, 12, 8);
-    const hair = createPart(hairGeo, hairMat, 0, 2.68, -0.02);
-    hair.scale.y = this.charData.gender === 'F' ? 0.72 : 0.58;
-    this.mesh.add(hair);
-
-    if (this.charData.look === 'ronin' || this.charData.look === 'hunter') {
-      const pony = createPart(new THREE.CylinderGeometry(0.10, 0.17, 0.72, 8), hairMat, 0.28, 2.35, -0.25);
-      pony.rotation.x = -0.45;
-      this.mesh.add(pony);
-    }
-    if (this.charData.look === 'dancer') {
-      [-0.25,0.25].forEach((x,i)=>{
-        const braid=createPart(new THREE.CylinderGeometry(0.07,0.12,0.62,8),hairMat,x,2.35,-0.23);
-        braid.rotation.x=i?0.35:-0.35;
-        this.mesh.add(braid);
-      });
+    // Forearm guards / wraps (for some characters)
+    if (this.charData.look === 'fighter' || this.charData.look === 'street' || this.charData.look === 'ronin') {
+      const wrapMat = new THREE.MeshStandardMaterial({ color: 0x1a1a22, roughness: 0.8 });
+      const wrapL = createPart(new THREE.BoxGeometry(armW + 0.02, 0.32, armW + 0.02), wrapMat, 0, -0.7, 0);
+      this.leftArm.add(wrapL);
+      const wrapR = createPart(new THREE.BoxGeometry(armW + 0.02, 0.32, armW + 0.02), wrapMat, 0, -0.7, 0);
+      this.rightArm.add(wrapR);
     }
 
-    if (this.charData.look === 'armor') {
-      const chest=createPart(new THREE.BoxGeometry(1.12,0.68,0.68),secMat,0,1.68,0);
-      const plate=createPart(new THREE.BoxGeometry(0.72,0.08,0.06),accentMat,0,1.82,0.37);
-      this.mesh.add(chest,plate);
-    } else if (this.charData.look === 'ronin' || this.charData.look === 'warrior') {
-      const coat=createPart(new THREE.BoxGeometry(1.0,0.9,0.18),secMat,0,1.55,-0.25);
-      coat.rotation.x=-0.15;
-      const sash=createPart(new THREE.BoxGeometry(1.05,0.16,0.55),accentMat,0,1.28,0);
-      this.mesh.add(coat,sash);
-    } else if (this.charData.look === 'street') {
-      const hoodie=createPart(new THREE.ConeGeometry(0.58,0.72,4),secMat,0,1.55,-0.12);
-      hoodie.rotation.y=Math.PI/4;
-      this.mesh.add(hoodie);
-    } else if (this.charData.look === 'dancer') {
-      const sash=createPart(new THREE.BoxGeometry(1.05,0.13,0.62),accentMat,0,1.35,0);
-      sash.rotation.z=-0.12;
-      this.mesh.add(sash);
-    } else {
-      const chestGlow=createPart(new THREE.BoxGeometry(0.58,0.08,0.05),accentMat,0,1.78,0.29);
-      this.mesh.add(chestGlow);
+    // Shoulder pads (attach to arms so they move with them)
+    if (this.charData.look === 'armor' || this.charData.look === 'warrior') {
+      const padL = createPart(new THREE.BoxGeometry(0.26, 0.16, 0.36), secMat, 0, 0.05, 0);
+      this.leftArm.add(padL);
+      const padR = createPart(new THREE.BoxGeometry(0.26, 0.16, 0.36), secMat, 0, 0.05, 0);
+      this.rightArm.add(padR);
     }
 
-    const weaponMat=new THREE.MeshStandardMaterial({color:0xcbd5e1,roughness:0.22,metalness:0.9});
-    const weaponGlow=new THREE.MeshBasicMaterial({color:primaryColor});
-    const weaponGroup=new THREE.Group();
-    if(this.charData.weapon==='sword'){
-      const blade=createPart(new THREE.BoxGeometry(0.07,1.45,0.11),weaponMat,0,0.7,0);
-      blade.rotation.z=-0.22;
-      const guard=createPart(new THREE.BoxGeometry(0.4,0.06,0.15),accentMat,0,1.42,0);
-      weaponGroup.add(blade,guard);
-    } else if(this.charData.weapon==='staff' || this.charData.weapon==='spear'){
-      const shaft=createPart(new THREE.CylinderGeometry(0.05,0.05,2.35,10),secMat,0,1.15,0);
-      shaft.rotation.z=Math.PI/2;
-      const tip=createPart(new THREE.ConeGeometry(0.15,0.38,8),this.charData.weapon==='spear'?weaponMat:accentMat,1.18,1.15,0);
-      tip.rotation.z=-Math.PI/2;
-      weaponGroup.add(shaft,tip);
-    } else if(this.charData.weapon==='nunchaku'){
-      const a=createPart(new THREE.CylinderGeometry(0.055,0.055,0.5,8),secMat,-0.14,0,0);
-      const b=createPart(new THREE.CylinderGeometry(0.055,0.055,0.5,8),secMat,0.14,0,0);
-      const chain=createPart(new THREE.CylinderGeometry(0.025,0.025,0.2,6),weaponMat,0,0,0); chain.rotation.z=Math.PI/2;
-      weaponGroup.add(a,b,chain);
-    } else if(this.charData.weapon==='chakram'){
-      const ring=createPart(new THREE.TorusGeometry(0.26,0.055,8,22),weaponMat,0,0,0);
-      const core=createPart(new THREE.SphereGeometry(0.08,8,8),weaponGlow,0,0,0);
-      weaponGroup.add(ring,core);
-    } else if(this.charData.weapon==='tonfa'){
-      const bar=createPart(new THREE.BoxGeometry(0.12,0.72,0.12),weaponMat,0,0,0);
-      const grip=createPart(new THREE.BoxGeometry(0.1,0.3,0.1),secMat,0.18,0,0); grip.rotation.z=Math.PI/2;
-      weaponGroup.add(bar,grip);
-    } else if(this.charData.weapon==='gauntlet'){
-      const glove=createPart(new THREE.BoxGeometry(0.3,0.38,0.3),secMat,0,0,0);
-      const arc=createPart(new THREE.TorusGeometry(0.14,0.03,6,16),weaponGlow,0,0,0.16);
-      weaponGroup.add(glove,arc);
-    } else if(this.charData.weapon==='bow'){
-      const arc=createPart(new THREE.TorusGeometry(0.48,0.045,8,18,Math.PI),accentMat,0,0,0);
-      arc.rotation.z=Math.PI/2;
-      const string=createPart(new THREE.BoxGeometry(0.02,0.88,0.02),weaponGlow,0,0,0);
-      weaponGroup.add(arc,string);
+    // ============================================================
+    // WEAPON
+    // ============================================================
+    const weaponMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.22, metalness: 0.9 });
+    const weaponGlow = new THREE.MeshBasicMaterial({ color: primaryColor });
+    const weaponHandleMat = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.8 });
+    const weaponGroup = new THREE.Group();
+
+    if (this.charData.weapon === 'sword') {
+      // Katana: handle, guard, curved blade
+      const handle = createPart(new THREE.CylinderGeometry(0.035, 0.035, 0.32, 10), weaponHandleMat, 0, 0.16, 0);
+      const guard = createPart(new THREE.CylinderGeometry(0.11, 0.11, 0.03, 12), new THREE.MeshStandardMaterial({ color: 0x8b6b3a, metalness: 0.8, roughness: 0.3 }), 0, 0.34, 0);
+      const blade = createPart(new THREE.BoxGeometry(0.055, 1.5, 0.11), weaponMat, 0, 1.1, 0);
+      // Slight curve
+      blade.rotation.z = -0.06;
+      const tip = createPart(new THREE.ConeGeometry(0.055, 0.16, 4), weaponMat, 0.04, 1.87, 0);
+      weaponGroup.add(handle, guard, blade, tip);
+    } else if (this.charData.weapon === 'staff') {
+      // Bo staff: long shaft with end caps
+      const shaft = createPart(new THREE.CylinderGeometry(0.045, 0.045, 2.4, 12), weaponHandleMat, 0, 1.2, 0);
+      const cap1 = createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.14, 12), primaryMat, 0, 2.4, 0);
+      const cap2 = createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.14, 12), primaryMat, 0, 0, 0);
+      weaponGroup.add(shaft, cap1, cap2);
+      weaponGroup.rotation.z = Math.PI / 2;
+      weaponGroup.position.set(0, 0, 0);
+    } else if (this.charData.weapon === 'spear') {
+      // Spear: long shaft + spearhead
+      const shaft = createPart(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 12), weaponHandleMat, 0, 1.3, 0);
+      const collar = createPart(new THREE.CylinderGeometry(0.07, 0.07, 0.08, 12), primaryMat, 0, 2.62, 0);
+      const blade = createPart(new THREE.ConeGeometry(0.11, 0.5, 6), weaponMat, 0, 2.9, 0);
+      const bladeAccent = createPart(new THREE.BoxGeometry(0.02, 0.3, 0.02), accentGlowMat, 0.08, 2.85, 0);
+      weaponGroup.add(shaft, collar, blade, bladeAccent);
+      weaponGroup.rotation.z = Math.PI / 2;
+    } else if (this.charData.weapon === 'nunchaku') {
+      // Nunchaku: two sticks + chain
+      const stick1 = createPart(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 10), weaponHandleMat, -0.18, 0, 0);
+      const stick2 = createPart(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 10), weaponHandleMat, 0.18, 0, 0);
+      const cap1 = createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), primaryMat, -0.18, 0.33, 0);
+      const cap2 = createPart(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), primaryMat, 0.18, -0.33, 0);
+      // Chain (multiple small links)
+      for (let i = 0; i < 4; i++) {
+        const link = createPart(new THREE.TorusGeometry(0.025, 0.012, 6, 10), weaponMat, 0, (i - 1.5) * 0.05, 0);
+        link.rotation.y = i % 2 === 0 ? 0 : Math.PI / 2;
+        weaponGroup.add(link);
+      }
+      weaponGroup.add(stick1, stick2, cap1, cap2);
+    } else if (this.charData.weapon === 'chakram') {
+      // Chakram: ring with inner core
+      const ring = createPart(new THREE.TorusGeometry(0.32, 0.05, 10, 28), weaponMat, 0, 0, 0);
+      const innerRing = createPart(new THREE.TorusGeometry(0.2, 0.02, 8, 20), accentGlowMat, 0, 0, 0);
+      const core = createPart(new THREE.SphereGeometry(0.09, 12, 12), weaponGlow, 0, 0, 0);
+      weaponGroup.add(ring, innerRing, core);
+    } else if (this.charData.weapon === 'tonfa') {
+      // Tonfa: side-handle baton
+      const baton = createPart(new THREE.BoxGeometry(0.1, 0.75, 0.1), weaponMat, 0, 0, 0);
+      const batonTip = createPart(new THREE.BoxGeometry(0.12, 0.06, 0.12), primaryMat, 0, 0.4, 0);
+      const handle = createPart(new THREE.BoxGeometry(0.08, 0.28, 0.08), weaponHandleMat, 0.16, 0, 0);
+      handle.rotation.z = Math.PI / 2;
+      const grip = createPart(new THREE.BoxGeometry(0.06, 0.06, 0.14), accentGlowMat, 0.16, 0.14, 0);
+      weaponGroup.add(baton, batonTip, handle, grip);
+    } else if (this.charData.weapon === 'gauntlet') {
+      // Arc gauntlet: heavy armored fist with energy ring
+      const glove = createPart(new THREE.BoxGeometry(0.32, 0.4, 0.32), secMat, 0, 0, 0);
+      const knuckle = createPart(new THREE.BoxGeometry(0.34, 0.1, 0.34), primaryMat, 0, 0.16, 0);
+      const energyRing = createPart(new THREE.TorusGeometry(0.17, 0.035, 8, 20), weaponGlow, 0, -0.05, 0.14);
+      energyRing.rotation.x = Math.PI / 2;
+      const energyRing2 = createPart(new THREE.TorusGeometry(0.17, 0.035, 8, 20), weaponGlow, 0, -0.05, -0.14);
+      energyRing2.rotation.x = Math.PI / 2;
+      weaponGroup.add(glove, knuckle, energyRing, energyRing2);
+    } else if (this.charData.weapon === 'bow') {
+      // Energy bow: curved limbs + string
+      const upperLimb = createPart(new THREE.TorusGeometry(0.45, 0.04, 8, 20, Math.PI / 2), primaryMat, 0, 0.42, 0);
+      upperLimb.rotation.z = Math.PI;
+      const lowerLimb = createPart(new THREE.TorusGeometry(0.45, 0.04, 8, 20, Math.PI / 2), primaryMat, 0, -0.42, 0);
+      const grip = createPart(new THREE.CylinderGeometry(0.045, 0.045, 0.3, 10), weaponHandleMat, 0, 0, 0);
+      const string = createPart(new THREE.CylinderGeometry(0.008, 0.008, 1.85, 6), weaponGlow, 0, 0, -0.05);
+      weaponGroup.add(upperLimb, lowerLimb, grip, string);
     }
-    weaponGroup.position.set(-0.7,1.55,0.18);
+
+    // Position weapon in right hand / near right arm
+    weaponGroup.position.set(-0.75, 1.35, 0.15);
     this.mesh.add(weaponGroup);
-    this.weaponVisual=weaponGroup;
+    this.weaponVisual = weaponGroup;
 
-    const ringGeo = new THREE.TorusGeometry(0.7, 0.02, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: primaryColor, wireframe: true });
+    // ============================================================
+    // AURA RING
+    // ============================================================
+    const ringGeo = new THREE.TorusGeometry(0.75, 0.025, 8, 28);
+    const ringMat = new THREE.MeshBasicMaterial({ color: primaryColor, wireframe: true, transparent: true, opacity: 0.7 });
     this.auraRing = new THREE.Mesh(ringGeo, ringMat);
     this.auraRing.rotation.x = Math.PI / 2;
     this.auraRing.position.y = 0.05;
@@ -384,9 +890,10 @@ class ArcadeFighter {
       }
     }
 
-    const idleBreath = Math.sin(time * 4) * 0.03;
-    this.torso.position.y = 1.6 + idleBreath;
-    this.head.position.y = 2.5 + idleBreath;
+    const idleBreath = Math.sin(time * 4) * 0.02;
+    this.torso.position.y = 1.85 + idleBreath;
+    this.head.position.y = 2.72 + idleBreath;
+    this.neck.position.y = 2.46 + idleBreath;
     this.auraRing.rotation.z += delta * 2;
 
     let targetLArm = { x: -0.3, z: 0.2 };
@@ -577,9 +1084,15 @@ class ArcadeEngine {
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.35);
     this.scene.add(ambient);
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    keyLight.position.set(0, 8, 6);
+    keyLight.castShadow = true;
+    this.scene.add(keyLight);
 
     const light1 = new THREE.PointLight(0x00f0ff, 1.5, 20);
     light1.position.set(-6, 6, 3);
@@ -1564,6 +2077,10 @@ const styles = {
     letterSpacing: '0.1em',
     marginBottom: '1rem'
   },
+  dialogueHeaderButtons: {
+    display: 'flex',
+    gap: '0.5rem'
+  },
   readButton: {
     pointerEvents: 'auto',
     padding: '0.5rem 0.75rem',
@@ -1574,6 +2091,19 @@ const styles = {
     gap: '0.5rem',
     background: 'none',
     color: '#22d3ee',
+    cursor: 'pointer',
+    fontFamily: 'monospace'
+  },
+  skipButton: {
+    pointerEvents: 'auto',
+    padding: '0.5rem 0.75rem',
+    border: '1px solid #7f1d1d',
+    borderRadius: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    background: 'rgba(127,29,29,0.3)',
+    color: '#fca5a5',
     cursor: 'pointer',
     fontFamily: 'monospace'
   },
@@ -1903,7 +2433,7 @@ const speakDialogue = (text, gender = 'N') => {
   window.speechSynthesis.speak(utterance);
 };
 
-const DialogueOverlay = ({ p1, p2, winner, speechEnabled, onContinue }) => {
+const DialogueOverlay = ({ p1, p2, winner, speechEnabled, onContinue, onSkip }) => {
   const isIntro = !winner;
   const lines = isIntro
     ? [{ name: p1.name, text: p1.quote, gender: p1.gender, color: p1.color }, { name: p2.name, text: p2.quote, gender: p2.gender, color: p2.color }]
@@ -1913,17 +2443,28 @@ const DialogueOverlay = ({ p1, p2, winner, speechEnabled, onContinue }) => {
     ];
   const [index, setIndex] = useState(0);
   useEffect(() => { if (speechEnabled) speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender); }, [index, speechEnabled]);
+
+  const handleSkip = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    onSkip();
+  };
+
   return (
     <div style={styles.dialogueOverlay}>
       <div style={styles.dialogueBox}>
         <div style={styles.dialogueHeader}>
           <span>{isIntro ? 'BEFORE THE FIGHT' : 'AFTERMATH'}</span>
-          <button
-            onClick={() => speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender)}
-            style={styles.readButton}
-          >
-            <Volume2 size={14} /> READ DIALOGUE
-          </button>
+          <div style={styles.dialogueHeaderButtons}>
+            <button
+              onClick={() => speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender)}
+              style={styles.readButton}
+            >
+              <Volume2 size={14} /> READ
+            </button>
+            <button onClick={handleSkip} style={styles.skipButton}>
+              <SkipForward size={14} /> SKIP
+            </button>
+          </div>
         </div>
         <div style={styles.dialogueGrid}>
           <div style={styles.dialogueAvatar}>
@@ -2011,6 +2552,18 @@ export default function Game() {
     }, 2000);
   }, [p1Char, p2Char]);
 
+  // Helper to advance past dialogue (used by both onContinue and onSkip)
+  const advanceDialogue = useCallback((dialogueType) => {
+    setDialogue(null);
+    if (dialogueType === 'intro') {
+      if (engineRef.current) engineRef.current.paused = false;
+      setAnnouncerText('ROUND 1... FIGHT!');
+      setTimeout(() => setAnnouncerText(''), 1200);
+    } else {
+      setGameState('MATCH_OVER');
+    }
+  }, []);
+
   useEffect(() => {
     if (gameState === 'FIGHTING' && threeLoaded && canvasRef.current && !engineRef.current) {
       engineRef.current = new ArcadeEngine(
@@ -2081,16 +2634,8 @@ export default function Game() {
           p2={p2Char}
           winner={dialogue.type === 'post' ? dialogue.winner : null}
           speechEnabled={speechEnabled}
-          onContinue={() => {
-            setDialogue(null);
-            if (dialogue.type === 'intro') {
-              if (engineRef.current) engineRef.current.paused = false;
-              setAnnouncerText('ROUND 1... FIGHT!');
-              setTimeout(() => setAnnouncerText(''), 1200);
-            } else {
-              setGameState('MATCH_OVER');
-            }
-          }}
+          onContinue={() => advanceDialogue(dialogue.type)}
+          onSkip={() => advanceDialogue(dialogue.type)}
         />
       )}
 
