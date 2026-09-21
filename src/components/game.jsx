@@ -131,6 +131,23 @@ class SoundFxEngine {
       osc.stop(this.ctx.currentTime + 0.3);
     } catch (e) {}
   }
+
+  playWeapon() {
+    if (this.muted || !this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.1);
+    } catch (e) {}
+  }
 }
 
 const sfx = new SoundFxEngine();
@@ -163,20 +180,17 @@ class ArcadeFighter {
     this.charData = charData;
     this.weapon = WEAPONS[charData.weapon] || WEAPONS.sword;
     this.isAI = isAI;
-    
-    // Core Gameplay Stats
+
     this.maxHealth = 100;
     this.health = 100;
-    this.superMeter = 0; // 0 to 100
+    this.superMeter = 0;
     this.roundsWon = 0;
-    
-    // Position & Physics
+
     this.position = new THREE.Vector3(startPos.x, 0, startPos.z);
     this.velocity = new THREE.Vector3();
     this.isGrounded = true;
 
-    // States
-    this.state = 'IDLE'; // IDLE, WALKING, JUMPING, PUNCHING, KICKING, SPECIAL, BLOCKING, HIT, KO
+    this.state = 'IDLE';
     this.stateTimer = 0;
     this.actionDuration = 0;
     this.hasHitThisAttack = false;
@@ -185,7 +199,6 @@ class ArcadeFighter {
     this.comboBoost = 0;
     this.facingRight = startPos.x < 0;
 
-    // Build unique 3D visual geometry
     this.mesh = new THREE.Group();
     this.mesh.position.copy(this.position);
     this.buildGeometry();
@@ -215,7 +228,6 @@ class ArcadeFighter {
       roughness: 0.8
     });
 
-    // Helper
     const createPart = (geo, mat, x=0, y=0, z=0) => {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
@@ -224,11 +236,9 @@ class ArcadeFighter {
       return m;
     };
 
-    // Torso
     this.torso = createPart(new THREE.BoxGeometry(0.8, 1.2, 0.5), mainMat, 0, 1.6, 0);
     this.mesh.add(this.torso);
 
-    // Character Accent Detail (e.g. Titan has chest armor, Shadow has shoulder pads, Blaze has horns)
     if (this.charData.id === 'titan') {
       const armor = createPart(new THREE.BoxGeometry(1.1, 0.8, 0.7), secMat, 0, 1.7, 0);
       this.mesh.add(armor);
@@ -239,16 +249,13 @@ class ArcadeFighter {
       this.mesh.add(padR);
     }
 
-    // Head
     this.head = createPart(new THREE.SphereGeometry(0.32, 16, 16), secMat, 0, 2.5, 0);
     this.mesh.add(this.head);
 
-    // Visor/Eyes Glow
     const visorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const visor = createPart(new THREE.BoxGeometry(0.4, 0.1, 0.2), visorMat, 0, 2.55, 0.2);
     this.mesh.add(visor);
 
-    // Limbs with Pivot Joint Hierarchy
     const createJointLimb = (w, h, d, px, py, pz) => {
       const pivot = new THREE.Group();
       pivot.position.set(px, py, pz);
@@ -266,11 +273,9 @@ class ArcadeFighter {
     this.leftLeg = createJointLimb(0.26, 1.1, 0.26, 0.25, 1.0, 0);
     this.rightLeg = createJointLimb(0.26, 1.1, 0.26, -0.25, 1.0, 0);
 
-    // Character-specific visual identity: hair, coats, armor plates and weapon props.
     const hairMat = new THREE.MeshStandardMaterial({ color: 0x090b13, roughness: 0.55, metalness: 0.05 });
     const accentMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.25, metalness: 0.65, emissive: primaryColor, emissiveIntensity: 0.2 });
 
-    // Hair silhouettes
     const hairGeo = new THREE.SphereGeometry(0.38, 12, 8);
     const hair = createPart(hairGeo, hairMat, 0, 2.68, -0.02);
     hair.scale.y = this.charData.gender === 'F' ? 0.72 : 0.58;
@@ -289,7 +294,6 @@ class ArcadeFighter {
       });
     }
 
-    // Clothing / armor silhouettes
     if (this.charData.look === 'armor') {
       const chest=createPart(new THREE.BoxGeometry(1.12,0.68,0.68),secMat,0,1.68,0);
       const plate=createPart(new THREE.BoxGeometry(0.72,0.08,0.06),accentMat,0,1.82,0.37);
@@ -312,7 +316,6 @@ class ArcadeFighter {
       this.mesh.add(chestGlow);
     }
 
-    // Weapon models
     const weaponMat=new THREE.MeshStandardMaterial({color:0xcbd5e1,roughness:0.22,metalness:0.9});
     const weaponGlow=new THREE.MeshBasicMaterial({color:primaryColor});
     const weaponGroup=new THREE.Group();
@@ -354,7 +357,6 @@ class ArcadeFighter {
     this.mesh.add(weaponGroup);
     this.weaponVisual=weaponGroup;
 
-    // Glowing Aura Aura Rings
     const ringGeo = new THREE.TorusGeometry(0.7, 0.02, 8, 24);
     const ringMat = new THREE.MeshBasicMaterial({ color: primaryColor, wireframe: true });
     this.auraRing = new THREE.Mesh(ringGeo, ringMat);
@@ -366,13 +368,11 @@ class ArcadeFighter {
   animate(delta, time, opponentPos) {
     const THREE = this.THREE;
 
-    // Face Opponent along X-axis
     if (opponentPos && this.state !== 'KO') {
       this.facingRight = opponentPos.x > this.mesh.position.x;
       this.mesh.rotation.y = this.facingRight ? Math.PI / 2 : -Math.PI / 2;
     }
 
-    // Apply Physics (Jumping / Gravity)
     if (!this.isGrounded) {
       this.velocity.y -= 25 * delta;
       this.mesh.position.y += this.velocity.y * delta;
@@ -384,27 +384,26 @@ class ArcadeFighter {
       }
     }
 
-    // Breathing / Idle movement
     const idleBreath = Math.sin(time * 4) * 0.03;
     this.torso.position.y = 1.6 + idleBreath;
     this.head.position.y = 2.5 + idleBreath;
     this.auraRing.rotation.z += delta * 2;
 
-    // Default target rotations
     let targetLArm = { x: -0.3, z: 0.2 };
     let targetRArm = { x: -0.3, z: -0.2 };
     let targetLLeg = { x: 0, z: 0 };
     let targetRLeg = { x: 0, z: 0 };
 
-    // Action timer progression
     if (this.stateTimer > 0) {
       this.stateTimer -= delta;
       const progress = 1 - (this.stateTimer / this.actionDuration);
 
       if (this.state === 'LIGHT') {
+        const swing = Math.sin(progress * Math.PI);
         targetLArm.x = -1.2 - swing * (this.charData.weapon === 'sword' ? 1.35 : 0.8);
         targetRArm.x = -0.5 - swing * 0.35;
       } else if (this.state === 'HEAVY') {
+        const swing = Math.sin(progress * Math.PI);
         targetLArm.x = -1.0 - swing * 1.75;
         targetRArm.x = -0.9 - swing * 1.1;
         targetRLeg.x = -swing * 0.5;
@@ -441,7 +440,6 @@ class ArcadeFighter {
       this.mesh.rotation.z = this.facingRight ? -Math.PI / 2 : Math.PI / 2;
       this.mesh.position.y = 0.3;
     } else {
-      // Smooth joint interpolation
       const lerpSpd = 18 * delta;
       this.leftArm.rotation.x += (targetLArm.x - this.leftArm.rotation.x) * lerpSpd;
       this.leftArm.rotation.z += (targetLArm.z - this.leftArm.rotation.z) * lerpSpd;
@@ -502,14 +500,13 @@ class ArcadeFighter {
     if (this.charData.ability === 'Fortify' && this.state === 'BLOCKING') amount *= 0.10;
 
     if (this.state === 'BLOCKING') {
-      amount *= 0.15; // 85% block mitigation
+      amount *= 0.15;
     } else {
       this.state = 'HIT';
       this.stateTimer = 0.35;
       this.actionDuration = 0.35;
     }
 
-    // Gain Super Meter when receiving damage
     this.superMeter = Math.min(100, this.superMeter + amount * 1.2);
     this.health = Math.max(0, this.health - amount);
 
@@ -555,6 +552,7 @@ class ArcadeEngine {
 
     this.projectiles = [];
     this.hitParticles = [];
+    this.cameraShake = 0;
 
     this.keys = {};
 
@@ -580,7 +578,6 @@ class ArcadeEngine {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
 
-    // Cyber Arena Lighting
     const ambient = new THREE.AmbientLight(0xffffff, 0.3);
     this.scene.add(ambient);
 
@@ -592,7 +589,6 @@ class ArcadeEngine {
     light2.position.set(6, 6, 3);
     this.scene.add(light2);
 
-    // Neon Floor Grid
     const grid = new THREE.GridHelper(24, 24, 0x00f0ff, 0x221144);
     grid.position.y = 0.01;
     this.scene.add(grid);
@@ -604,7 +600,6 @@ class ArcadeEngine {
     floor.receiveShadow = true;
     this.scene.add(floor);
 
-    // Background Cyber Pillars
     for (let i = -10; i <= 10; i += 4) {
       const pGeo = new THREE.BoxGeometry(0.6, 8, 0.6);
       const pMat = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.8 });
@@ -709,14 +704,11 @@ class ArcadeEngine {
 
     const dist = Math.abs(this.p1.mesh.position.x - this.p2.mesh.position.x);
 
-    // Adaptive AI behavior based on difficulty/rounds
     if (dist > 2.2) {
-      // Approach
       const dir = this.p1.mesh.position.x > this.p2.mesh.position.x ? 1 : -1;
       this.p2.mesh.position.x += dir * 3.5 * delta;
       this.p2.state = 'WALKING';
     } else {
-      // Combat range
       const roll = Math.random();
 
       if (this.p2.superMeter >= 100 && roll < 0.05) {
@@ -724,7 +716,6 @@ class ArcadeEngine {
           this.spawnProjectile(this.p2, this.p1);
         }
       } else if (this.p1.stateTimer > 0 && roll < 0.3) {
-        // AI Blocks player attacks
         this.p2.state = 'BLOCKING';
         this.p2.stateTimer = 0.2;
         this.p2.actionDuration = 0.2;
@@ -748,7 +739,6 @@ class ArcadeEngine {
       const dist = Math.abs(attacker.mesh.position.x - defender.mesh.position.x);
       const range = w.range + (attacker.charData.ability === 'Reach' ? 0.45 : 0);
       if (dist > range) {
-        // Ranged weapon attacks become actual projectiles.
         if (['bow','chakram'].includes(attacker.charData.weapon)) {
           this.spawnWeaponProjectile(attacker, defender, attacker.state === 'HEAVY');
         }
@@ -770,12 +760,11 @@ class ArcadeEngine {
       else { this.comboCountP2++; this.comboTimerP2 = 1.45; }
 
       this.spawnHitParticles(
-        defender.mesh.position.clone().add({x:0,y:1.7,z:0}),
+        defender.mesh.position.clone().add(new THREE.Vector3(0, 1.7, 0)),
         attacker.charData.hexColor
       );
       this.cameraShake = attacker.state === 'HEAVY' ? 0.3 : 0.18;
 
-      // Distinct weapon behavior.
       if (attacker.charData.weapon === 'spear' && attacker.state === 'HEAVY') {
         defender.velocity.x += attacker.facingRight ? 2.4 : -2.4;
       }
@@ -786,7 +775,7 @@ class ArcadeEngine {
         setTimeout(() => {
           if (this.active && defender.state !== 'KO') {
             defender.takeDamage(7 * (attacker.charData.power / 80));
-            this.spawnHitParticles(defender.mesh.position.clone().add({x:0,y:1.6,z:0}), attacker.charData.hexColor);
+            this.spawnHitParticles(defender.mesh.position.clone().add(new THREE.Vector3(0, 1.6, 0)), attacker.charData.hexColor);
           }
         }, 180);
       }
@@ -822,8 +811,7 @@ class ArcadeEngine {
       const proj = this.projectiles[i];
       proj.mesh.position.x += proj.dir * proj.speed * delta;
 
-      // Check hit
-      const dist = proj.mesh.position.distanceTo(proj.target.mesh.position.clone().add({x:0, y:1.8, z:0}));
+      const dist = proj.mesh.position.distanceTo(proj.target.mesh.position.clone().add(new THREE.Vector3(0, 1.8, 0)));
       if (dist < 1.2) {
         proj.target.takeDamage(25);
         this.spawnHitParticles(proj.mesh.position, proj.owner.charData.hexColor);
@@ -831,13 +819,11 @@ class ArcadeEngine {
         this.projectiles.splice(i, 1);
         this.cameraShake = 0.35;
       } else if (Math.abs(proj.mesh.position.x) > 12) {
-        // Out of bounds cleanup
         this.scene.remove(proj.mesh);
         this.projectiles.splice(i, 1);
       }
     }
 
-    // Update Particles
     for (let i = this.hitParticles.length - 1; i >= 0; i--) {
       const p = this.hitParticles[i];
       p.life -= delta;
@@ -862,7 +848,6 @@ class ArcadeEngine {
         this.roundTimerAcc = 0;
       }
 
-      // Combo timers
       if (this.comboTimerP1 > 0) {
         this.comboTimerP1 -= delta;
         if (this.comboTimerP1 <= 0) this.comboCountP1 = 0;
@@ -877,21 +862,17 @@ class ArcadeEngine {
       this.checkHitboxes();
       this.updateProjectiles(delta);
 
-      // Arena boundaries constraint
       this.p1.mesh.position.x = Math.max(-8, Math.min(8, this.p1.mesh.position.x));
       this.p2.mesh.position.x = Math.max(-8, Math.min(8, this.p2.mesh.position.x));
 
-      // Fighter animations
       this.p1.animate(delta, timestamp / 1000, this.p2.mesh.position);
       this.p2.animate(delta, timestamp / 1000, this.p1.mesh.position);
 
-      // Check Round Over condition
       if (this.p1.health <= 0 || this.p2.health <= 0 || this.roundTime <= 0) {
         this.handleRoundEnd();
       }
     }
 
-    // Camera follow & shake effect
     const midX = (this.p1.mesh.position.x + this.p2.mesh.position.x) / 2;
     this.camera.position.x += (midX - this.camera.position.x) * delta * 3;
 
@@ -905,7 +886,6 @@ class ArcadeEngine {
 
     this.renderer.render(this.scene, this.camera);
 
-    // Sync state with React HUD
     this.updateUI({
       p1Health: this.p1.health,
       p2Health: this.p2.health,
@@ -955,26 +935,713 @@ class ArcadeEngine {
   }
 }
 
+// ============================================================================
+// STYLES OBJECT
+// ============================================================================
+const styles = {
+  container: {
+    position: 'relative',
+    height: '100vh',
+    width: '100%',
+    background: '#000',
+    overflow: 'hidden',
+    userSelect: 'none',
+    fontFamily: 'monospace'
+  },
+  canvas: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    display: 'block'
+  },
+  scanlineOverlay: {
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
+    opacity: 0.04,
+    background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+    backgroundSize: '100% 3px, 3px 100%'
+  },
+  errorScreen: {
+    display: 'flex',
+    height: '100vh',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#000',
+    color: '#ef4444',
+    fontFamily: 'monospace'
+  },
+
+  // Splash
+  splash: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 40,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(0,0,0,0.9)',
+    color: '#fff',
+    fontFamily: 'monospace',
+    userSelect: 'none',
+    padding: '1.5rem'
+  },
+  splashRadial: {
+    position: 'absolute',
+    inset: 0,
+    background: 'radial-gradient(circle at center, rgba(0,240,255,0.15) 0, transparent 70%)',
+    pointerEvents: 'none'
+  },
+  splashSubtitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    marginBottom: '0.5rem',
+    color: '#22d3ee',
+    letterSpacing: '0.1em',
+    fontSize: '0.875rem',
+    textTransform: 'uppercase',
+    animation: 'pulse 2s infinite'
+  },
+  splashTitle: {
+    fontSize: 'clamp(3rem, 10vw, 6rem)',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    letterSpacing: '-0.05em',
+    background: 'linear-gradient(to right, #22d3ee, #d946ef, #facc15)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    marginBottom: '1.5rem',
+    filter: 'drop-shadow(0 0 35px rgba(0,240,255,0.6))'
+  },
+  splashDesc: {
+    color: '#9ca3af',
+    fontSize: '0.875rem',
+    maxWidth: '28rem',
+    textAlign: 'center',
+    marginBottom: '2.5rem',
+    lineHeight: 1.6
+  },
+  splashButton: {
+    padding: '1.25rem 2.5rem',
+    background: 'linear-gradient(to right, #06b6d4, #2563eb)',
+    borderRadius: '0.75rem',
+    fontWeight: 700,
+    fontSize: '1.25rem',
+    letterSpacing: '0.1em',
+    color: '#000',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    transition: 'all 0.2s',
+    border: 'none'
+  },
+
+  // Character select
+  charSelect: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 40,
+    background: '#030712',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: '1.5rem',
+    fontFamily: 'monospace',
+    color: '#fff',
+    userSelect: 'none'
+  },
+  charSelectHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid rgba(21,94,117,0.5)',
+    paddingBottom: '1rem'
+  },
+  backButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    color: '#22d3ee',
+    fontSize: '0.875rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer'
+  },
+  charSelectTitle: {
+    fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+    fontWeight: 800,
+    fontStyle: 'italic',
+    background: 'linear-gradient(to right, #22d3ee, #d946ef)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent'
+  },
+  rosterCount: {
+    fontSize: '0.75rem',
+    color: '#6b7280'
+  },
+  rosterGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '1rem',
+    margin: '1.5rem 0'
+  },
+  rosterCard: {
+    position: 'relative',
+    borderRadius: '0.75rem',
+    padding: '1rem',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    border: '2px solid #1f2937',
+    overflow: 'hidden',
+    background: 'rgba(17,24,39,0.8)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '12rem'
+  },
+  rosterCardP1: {
+    borderColor: '#22d3ee',
+    boxShadow: '0 0 20px rgba(0,240,255,0.5)',
+    transform: 'scale(1.05)'
+  },
+  rosterCardP2: {
+    borderColor: '#ef4444',
+    boxShadow: '0 0 20px rgba(255,0,85,0.5)'
+  },
+  rosterCardTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  rosterCardTitle: {
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    padding: '0.125rem 0.5rem',
+    borderRadius: '0.25rem',
+    background: 'rgba(0,0,0,0.6)'
+  },
+  rosterBadge: {
+    fontSize: '0.625rem',
+    fontWeight: 800,
+    padding: '0.125rem 0.375rem',
+    borderRadius: '0.25rem',
+    color: '#000'
+  },
+  rosterCardName: {
+    fontSize: '1.5rem',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    margin: '0.5rem 0'
+  },
+  statRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.625rem',
+    color: '#9ca3af'
+  },
+  statBarBg: {
+    width: '4rem',
+    height: '0.375rem',
+    background: '#1f2937',
+    borderRadius: '0.25rem',
+    overflow: 'hidden'
+  },
+  statBarFill: {
+    height: '100%'
+  },
+  weaponLoadout: {
+    background: 'rgba(17,24,39,0.8)',
+    border: '1px solid rgba(112,26,117,0.5)',
+    borderRadius: '0.75rem',
+    padding: '1rem',
+    marginBottom: '0.75rem'
+  },
+  weaponLoadoutTitle: {
+    fontSize: '0.625rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    color: '#e879f9',
+    fontWeight: 700,
+    marginBottom: '0.5rem'
+  },
+  weaponButtons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '0.5rem'
+  },
+  weaponButton: {
+    padding: '0.5rem 0.75rem',
+    borderRadius: '0.5rem',
+    border: '1px solid #374151',
+    background: '#030712',
+    color: '#9ca3af',
+    fontSize: '0.625rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  weaponButtonActive: {
+    borderColor: '#22d3ee',
+    background: 'rgba(34,211,238,0.15)',
+    color: '#67e8f9'
+  },
+  weaponStats: {
+    fontSize: '0.5625rem',
+    color: '#6b7280',
+    marginTop: '0.5rem'
+  },
+  selectedPreview: {
+    background: 'rgba(17,24,39,0.9)',
+    border: '1px solid rgba(21,94,117,0.6)',
+    borderRadius: '0.75rem',
+    padding: '1.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '1.5rem'
+  },
+  selectedPreviewInner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1rem',
+    width: '100%'
+  },
+  selectedAvatar: {
+    width: '4rem',
+    height: '4rem',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '1.5rem',
+    fontWeight: 900,
+    border: '2px solid'
+  },
+  selectedName: {
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    color: '#fff'
+  },
+  selectedQuote: {
+    fontSize: '0.75rem',
+    color: '#9ca3af',
+    fontStyle: 'italic'
+  },
+  selectedWeaponInfo: {
+    fontSize: '0.75rem',
+    color: '#22d3ee',
+    marginTop: '0.25rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem'
+  },
+  confirmButton: {
+    width: '100%',
+    padding: '1rem 2rem',
+    background: 'linear-gradient(to right, #22d3ee, #d946ef)',
+    borderRadius: '0.5rem',
+    fontWeight: 800,
+    color: '#000',
+    letterSpacing: '0.1em',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    border: 'none',
+    boxShadow: '0 0 25px rgba(0,240,255,0.4)'
+  },
+
+  // HUD
+  hud: {
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
+    padding: '1rem 2rem',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    fontFamily: 'monospace',
+    userSelect: 'none'
+  },
+  hudTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '1rem'
+  },
+  healthSection: {
+    flex: 1,
+    maxWidth: '28rem'
+  },
+  healthSectionRight: {
+    flex: 1,
+    maxWidth: '28rem',
+    textAlign: 'right'
+  },
+  healthHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    marginBottom: '0.25rem'
+  },
+  winDots: {
+    display: 'flex',
+    gap: '0.25rem'
+  },
+  winDot: {
+    width: '0.75rem',
+    height: '0.75rem',
+    borderRadius: '50%',
+    border: '1px solid'
+  },
+  healthBarBg: {
+    width: '100%',
+    height: '1.5rem',
+    background: '#030712',
+    border: '2px solid',
+    borderRadius: '0.125rem',
+    overflow: 'hidden'
+  },
+  healthBarFill: {
+    height: '100%',
+    transition: 'width 0.1s'
+  },
+  superBarBg: {
+    width: '100%',
+    height: '0.5rem',
+    background: '#111827',
+    border: '1px solid',
+    borderRadius: '0.125rem',
+    marginTop: '0.25rem',
+    overflow: 'hidden'
+  },
+  superBarFill: {
+    height: '100%',
+    transition: 'all 0.3s'
+  },
+  timerBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    background: 'rgba(3,7,18,0.9)',
+    border: '1px solid rgba(34,211,238,0.6)',
+    padding: '0.5rem 1.25rem',
+    borderRadius: '0.75rem',
+    boxShadow: '0 0 20px rgba(0,240,255,0.2)'
+  },
+  timerRound: {
+    fontSize: '0.625rem',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em'
+  },
+  timerValue: {
+    fontSize: 'clamp(1.875rem, 4vw, 2.25rem)',
+    fontWeight: 900,
+    color: '#facc15'
+  },
+  comboRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    margin: 'auto 0'
+  },
+  comboP1: {
+    fontSize: '1.875rem',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    color: '#22d3ee'
+  },
+  comboP2: {
+    fontSize: '1.875rem',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    color: '#ef4444'
+  },
+  hudBottom: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end'
+  },
+  controlsBox: {
+    background: 'rgba(0,0,0,0.8)',
+    border: '1px solid rgba(21,94,117,0.6)',
+    padding: '0.75rem',
+    borderRadius: '0.5rem',
+    fontSize: '0.6875rem',
+    color: '#d1d5db',
+    lineHeight: 1.6
+  },
+  controlsTitle: {
+    color: '#22d3ee',
+    fontWeight: 700,
+    marginBottom: '0.25rem'
+  },
+  kbd: {
+    background: '#1f2937',
+    padding: '0.125rem 0.25rem',
+    borderRadius: '0.125rem'
+  },
+  pauseButton: {
+    padding: '0.75rem',
+    background: 'rgba(17,24,39,0.9)',
+    border: '1px solid rgba(34,211,238,0.5)',
+    borderRadius: '50%',
+    color: '#22d3ee',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
+    transition: 'all 0.2s',
+    boxShadow: '0 0 15px rgba(0,240,255,0.3)'
+  },
+
+  // Announcer
+  announcerOverlay: {
+    position: 'absolute',
+    inset: 0,
+    pointerEvents: 'none',
+    zIndex: 30,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  announcerText: {
+    fontSize: 'clamp(3rem, 8vw, 6rem)',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    letterSpacing: '-0.05em',
+    color: '#facc15',
+    filter: 'drop-shadow(0 0 40px rgba(255,200,0,0.8))',
+    animation: 'pulse 1s infinite'
+  },
+
+  // Pause
+  pauseMenu: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 50,
+    background: 'rgba(0,0,0,0.8)',
+    backdropFilter: 'blur(12px)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'monospace',
+    color: '#fff',
+    padding: '1.5rem'
+  },
+  pauseTitle: {
+    fontSize: '2.25rem',
+    fontWeight: 800,
+    fontStyle: 'italic',
+    color: '#22d3ee',
+    marginBottom: '2rem'
+  },
+  pauseButtons: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+    width: '16rem'
+  },
+  pauseButtonPrimary: {
+    padding: '0.75rem',
+    background: '#22d3ee',
+    color: '#000',
+    fontWeight: 700,
+    borderRadius: '0.5rem',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    border: 'none',
+    transition: 'all 0.2s'
+  },
+  pauseButtonSecondary: {
+    padding: '0.75rem',
+    background: '#1f2937',
+    color: '#22d3ee',
+    border: '1px solid #155e75',
+    fontWeight: 700,
+    borderRadius: '0.5rem',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    transition: 'all 0.2s'
+  },
+
+  // Match Over
+  matchOver: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 50,
+    background: 'rgba(0,0,0,0.9)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: 'monospace',
+    color: '#fff',
+    padding: '1.5rem'
+  },
+  matchOverTitle: {
+    fontSize: 'clamp(3rem, 8vw, 4.5rem)',
+    fontWeight: 900,
+    fontStyle: 'italic',
+    background: 'linear-gradient(to right, #facc15, #ef4444, #d946ef)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    marginBottom: '0.5rem'
+  },
+  matchOverSubtitle: {
+    color: '#9ca3af',
+    marginBottom: '2rem',
+    fontSize: '0.875rem'
+  },
+  matchOverButton: {
+    padding: '1rem 2rem',
+    background: 'linear-gradient(to right, #22d3ee, #2563eb)',
+    color: '#000',
+    fontWeight: 800,
+    borderRadius: '0.75rem',
+    cursor: 'pointer',
+    border: 'none',
+    boxShadow: '0 0 25px rgba(0,240,255,0.5)',
+    transition: 'all 0.2s'
+  },
+
+  // Dialogue
+  dialogueOverlay: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 50,
+    background: 'rgba(0,0,0,0.85)',
+    backdropFilter: 'blur(12px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem'
+  },
+  dialogueBox: {
+    width: '100%',
+    maxWidth: '56rem',
+    background: '#030712',
+    border: '1px solid #155e75',
+    borderRadius: '1rem',
+    padding: '1.25rem',
+    boxShadow: '0 0 50px rgba(0,240,255,0.15)'
+  },
+  dialogueHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    color: '#22d3ee',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    marginBottom: '1rem'
+  },
+  readButton: {
+    pointerEvents: 'auto',
+    padding: '0.5rem 0.75rem',
+    border: '1px solid #155e75',
+    borderRadius: '0.5rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    background: 'none',
+    color: '#22d3ee',
+    cursor: 'pointer'
+  },
+  dialogueGrid: {
+    display: 'grid',
+    gridTemplateColumns: '90px 1fr 90px',
+    alignItems: 'center',
+    gap: '1rem'
+  },
+  dialogueAvatar: {
+    textAlign: 'center'
+  },
+  dialogueAvatarBox: {
+    width: '4rem',
+    height: '5rem',
+    margin: '0 auto',
+    borderRadius: '0.75rem',
+    border: '1px solid',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '2.25rem',
+    fontWeight: 900
+  },
+  dialogueAvatarName: {
+    fontSize: '0.5625rem',
+    marginTop: '0.5rem',
+    color: '#6b7280'
+  },
+  dialogueContent: {
+    borderLeft: '2px solid',
+    paddingLeft: '1.25rem',
+    minHeight: '120px'
+  },
+  dialogueSpeaker: {
+    fontSize: '0.75rem',
+    fontWeight: 900,
+    textTransform: 'uppercase'
+  },
+  dialogueText: {
+    fontSize: 'clamp(1.25rem, 3vw, 1.875rem)',
+    fontWeight: 700,
+    lineHeight: 1.3,
+    marginTop: '0.5rem'
+  },
+  dialogueFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTop: '1px solid #1f2937',
+    marginTop: '1rem',
+    paddingTop: '1rem'
+  },
+  dialogueIndex: {
+    fontSize: '0.625rem',
+    color: '#6b7280'
+  },
+  dialogueNextButton: {
+    padding: '0.75rem 1.5rem',
+    background: 'linear-gradient(to right, #22d3ee, #d946ef)',
+    color: '#000',
+    fontWeight: 900,
+    borderRadius: '0.5rem',
+    border: 'none',
+    cursor: 'pointer'
+  }
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
 
 const ArcadeSplash = ({ onStart }) => (
-  <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 text-white font-mono select-none p-6">
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.15)_0,transparent_70%)] pointer-events-none" />
-    
-    <div className="flex items-center gap-3 mb-2 text-cyan-400 tracking-widest text-sm uppercase animate-pulse">
+  <div style={styles.splash}>
+    <div style={styles.splashRadial} />
+    <div style={styles.splashSubtitle}>
       <Swords size={20} /> Virtual Arcade Championship
     </div>
-    
-    <h1 className="text-6xl md:text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-yellow-400 drop-shadow-[0_0_35px_rgba(0,240,255,0.6)] mb-6">
-      NEON STRIKER
-    </h1>
-
-    <p className="text-gray-400 text-sm max-w-md text-center mb-10 leading-relaxed">
+    <h1 style={styles.splashTitle}>NEON STRIKER</h1>
+    <p style={styles.splashDesc}>
       Engage in hyper-speed neural combat. Master signature moves, combo counters, and AI adaptive algorithms.
     </p>
-
     <button
       onClick={() => { sfx.init(); sfx.playAnnounce(); onStart(); }}
-      className="px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl font-bold text-xl tracking-widest text-black hover:scale-105 hover:shadow-[0_0_30px_rgba(0,240,255,0.8)] transition-all flex items-center gap-3 cursor-pointer"
+      style={styles.splashButton}
     >
       <Play fill="black" size={24} /> INSERT COIN / PRESS START
     </button>
@@ -986,23 +1653,16 @@ const CharacterSelect = ({ onSelect, onBack }) => {
   const [selectedP2, setSelectedP2] = useState(CHARACTERS[1]);
 
   return (
-    <div className="absolute inset-0 z-40 bg-gray-950 flex flex-col justify-between p-6 md:p-10 font-mono text-white select-none">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-cyan-800/50 pb-4">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-cyan-400 hover:text-cyan-200 text-sm uppercase tracking-wider"
-        >
+    <div style={styles.charSelect}>
+      <div style={styles.charSelectHeader}>
+        <button onClick={onBack} style={styles.backButton}>
           <ArrowLeft size={16} /> Main Menu
         </button>
-        <h2 className="text-2xl md:text-4xl font-extrabold italic text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-400">
-          SELECT YOUR FIGHTER
-        </h2>
-        <div className="text-xs text-gray-500">ROSTER: 08/08</div>
+        <h2 style={styles.charSelectTitle}>SELECT YOUR FIGHTER</h2>
+        <div style={styles.rosterCount}>ROSTER: 08/08</div>
       </div>
 
-      {/* Grid Roster */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 my-6">
+      <div style={styles.rosterGrid}>
         {CHARACTERS.map((char) => {
           const isP1 = selectedP1.id === char.id;
           const isP2 = selectedP2.id === char.id;
@@ -1014,42 +1674,37 @@ const CharacterSelect = ({ onSelect, onBack }) => {
                 sfx.init();
                 sfx.playPunch();
                 setSelectedP1(char);
-                // Randomize opponent if same chosen
                 const availableP2 = CHARACTERS.filter(c => c.id !== char.id);
                 setSelectedP2(availableP2[Math.floor(Math.random() * availableP2.length)]);
               }}
-              className={`relative rounded-xl p-4 cursor-pointer transition-all border-2 overflow-hidden bg-gray-900/80 flex flex-col justify-between h-48 ${
-                isP1 
-                  ? 'border-cyan-400 shadow-[0_0_20px_rgba(0,240,255,0.5)] scale-105' 
-                  : isP2
-                  ? 'border-red-500 shadow-[0_0_20px_rgba(255,0,85,0.5)]'
-                  : 'border-gray-800 hover:border-gray-600'
-              }`}
+              style={{
+                ...styles.rosterCard,
+                ...(isP1 ? styles.rosterCardP1 : isP2 ? styles.rosterCardP2 : {})
+              }}
             >
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-bold px-2 py-0.5 rounded bg-black/60" style={{ color: char.color }}>
+              <div style={styles.rosterCardTop}>
+                <span style={{ ...styles.rosterCardTitle, color: char.color }}>
                   {char.title} · {WEAPONS[char.weapon].name}
                 </span>
-                {isP1 && <span className="bg-cyan-500 text-black text-[10px] font-extrabold px-1.5 py-0.5 rounded">P1</span>}
-                {isP2 && <span className="bg-red-500 text-black text-[10px] font-extrabold px-1.5 py-0.5 rounded">CPU</span>}
+                {isP1 && <span style={{ ...styles.rosterBadge, background: '#22d3ee' }}>P1</span>}
+                {isP2 && <span style={{ ...styles.rosterBadge, background: '#ef4444' }}>CPU</span>}
               </div>
 
-              <div className="text-2xl font-black italic my-2" style={{ color: char.color }}>
+              <div style={{ ...styles.rosterCardName, color: char.color }}>
                 {char.name}
               </div>
 
-              {/* Stat Bars */}
-              <div className="space-y-1 text-[10px] text-gray-400">
-                <div className="flex justify-between">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <div style={styles.statRow}>
                   <span>SPD</span>
-                  <div className="w-16 bg-gray-800 h-1.5 rounded overflow-hidden">
-                    <div className="bg-cyan-400 h-full" style={{ width: `${char.speed}%` }} />
+                  <div style={styles.statBarBg}>
+                    <div style={{ ...styles.statBarFill, background: '#22d3ee', width: `${char.speed}%` }} />
                   </div>
                 </div>
-                <div className="flex justify-between">
+                <div style={styles.statRow}>
                   <span>PWR</span>
-                  <div className="w-16 bg-gray-800 h-1.5 rounded overflow-hidden">
-                    <div className="bg-fuchsia-500 h-full" style={{ width: `${char.power}%` }} />
+                  <div style={styles.statBarBg}>
+                    <div style={{ ...styles.statBarFill, background: '#d946ef', width: `${char.power}%` }} />
                   </div>
                 </div>
               </div>
@@ -1058,41 +1713,38 @@ const CharacterSelect = ({ onSelect, onBack }) => {
         })}
       </div>
 
-      {/* Weapon loadout */}
-      <div className="bg-gray-900/80 border border-fuchsia-900/50 rounded-xl p-4 mb-3">
-        <div className="text-[10px] uppercase tracking-widest text-fuchsia-300 font-bold mb-2">WEAPON LOADOUT — {selectedP1.name}</div>
-        <div className="flex flex-wrap gap-2">
+      <div style={styles.weaponLoadout}>
+        <div style={styles.weaponLoadoutTitle}>WEAPON LOADOUT — {selectedP1.name}</div>
+        <div style={styles.weaponButtons}>
           {Object.entries(WEAPONS).map(([weaponId, weapon]) => (
             <button
               key={weaponId}
-              onClick={() => setSelectedP1({...selectedP1, weapon: weaponId})}
-              className={`px-3 py-2 rounded-lg border text-[10px] font-bold transition-all ${
-                selectedP1.weapon === weaponId
-                  ? 'border-cyan-400 bg-cyan-400/15 text-cyan-300'
-                  : 'border-gray-700 bg-gray-950 text-gray-400 hover:border-gray-500'
-              }`}
+              onClick={() => setSelectedP1({ ...selectedP1, weapon: weaponId })}
+              style={{
+                ...styles.weaponButton,
+                ...(selectedP1.weapon === weaponId ? styles.weaponButtonActive : {})
+              }}
             >
-              <span style={{color: weapon.color || selectedP1.color}}>{weapon.icon}</span> {weapon.name}
+              <span style={{ color: selectedP1.color }}>{weapon.icon}</span> {weapon.name}
             </button>
           ))}
         </div>
-        <div className="text-[9px] text-gray-500 mt-2">
+        <div style={styles.weaponStats}>
           {WEAPONS[selectedP1.weapon].light}: {WEAPONS[selectedP1.weapon].lightDamage} dmg ·
           {WEAPONS[selectedP1.weapon].heavy}: {WEAPONS[selectedP1.weapon].heavyDamage} dmg ·
           Range: {WEAPONS[selectedP1.weapon].range}
         </div>
       </div>
 
-      {/* Selected Character Preview Box */}
-      <div className="bg-gray-900/90 border border-cyan-800/60 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black border-2" style={{ borderColor: selectedP1.color, color: selectedP1.color }}>
+      <div style={styles.selectedPreview}>
+        <div style={styles.selectedPreviewInner}>
+          <div style={{ ...styles.selectedAvatar, borderColor: selectedP1.color, color: selectedP1.color }}>
             {selectedP1.name[0]}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white">{selectedP1.name} - {selectedP1.title}</h3>
-            <p className="text-xs text-gray-400 italic">"{selectedP1.quote}"</p>
-            <div className="text-xs text-cyan-400 mt-1 flex items-center gap-1">
+            <h3 style={styles.selectedName}>{selectedP1.name} - {selectedP1.title}</h3>
+            <p style={styles.selectedQuote}>"{selectedP1.quote}"</p>
+            <div style={styles.selectedWeaponInfo}>
               <Zap size={12} /> WEAPON: {WEAPONS[selectedP1.weapon].name} · SPECIAL: {selectedP1.specialName} ({selectedP1.specialDesc})
             </div>
           </div>
@@ -1103,7 +1755,7 @@ const CharacterSelect = ({ onSelect, onBack }) => {
             sfx.playAnnounce();
             onSelect(selectedP1, selectedP2);
           }}
-          className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-cyan-400 to-fuchsia-500 rounded-lg font-extrabold text-black tracking-widest hover:scale-105 transition-all cursor-pointer shadow-[0_0_25px_rgba(0,240,255,0.4)]"
+          style={styles.confirmButton}
         >
           CONFIRM & BATTLE
         </button>
@@ -1114,105 +1766,109 @@ const CharacterSelect = ({ onSelect, onBack }) => {
 
 const HUD = ({ hudState, p1Char, p2Char, onPause }) => {
   return (
-    <div className="absolute inset-0 pointer-events-none p-4 md:p-8 flex flex-col justify-between font-mono select-none">
-      {/* Top Header: Healthbars & Timer */}
-      <div className="flex justify-between items-start gap-4">
+    <div style={styles.hud}>
+      <div style={styles.hudTop}>
         {/* P1 Health & Super */}
-        <div className="flex-1 max-w-md">
-          <div className="flex justify-between text-xs text-cyan-400 font-bold mb-1">
-            <span className="flex items-center gap-1"><User size={14}/> {p1Char.name} (YOU)</span>
-            <div className="flex gap-1">
+        <div style={styles.healthSection}>
+          <div style={{ ...styles.healthHeader, color: '#22d3ee' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <User size={14} /> {p1Char.name} (YOU)
+            </span>
+            <div style={styles.winDots}>
               {[...Array(2)].map((_, i) => (
-                <div key={i} className={`w-3 h-3 rounded-full border border-cyan-400 ${i < hudState.p1Wins ? 'bg-cyan-400' : 'bg-transparent'}`} />
+                <div key={i} style={{
+                  ...styles.winDot,
+                  borderColor: '#22d3ee',
+                  background: i < hudState.p1Wins ? '#22d3ee' : 'transparent'
+                }} />
               ))}
             </div>
           </div>
-          <div className="w-full h-6 bg-gray-950 border-2 border-cyan-500 rounded-sm overflow-hidden shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-            <div 
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-100"
-              style={{ width: `${hudState.p1Health}%` }}
-            />
+          <div style={{ ...styles.healthBarBg, borderColor: '#22d3ee', boxShadow: '0 0 15px rgba(0,240,255,0.3)' }}>
+            <div style={{
+              ...styles.healthBarFill,
+              background: 'linear-gradient(to right, #22d3ee, #60a5fa)',
+              width: `${hudState.p1Health}%`
+            }} />
           </div>
-          {/* P1 Super Meter */}
-          <div className="w-full h-2 bg-gray-900 border border-cyan-800 rounded-sm mt-1 overflow-hidden">
-            <div 
-              className={`h-full transition-all ${hudState.p1Super >= 100 ? 'bg-yellow-400 animate-pulse' : 'bg-purple-500'}`}
-              style={{ width: `${hudState.p1Super}%` }}
-            />
+          <div style={{ ...styles.superBarBg, borderColor: '#155e75' }}>
+            <div style={{
+              ...styles.superBarFill,
+              background: hudState.p1Super >= 100 ? '#facc15' : '#8b5cf6',
+              width: `${hudState.p1Super}%`
+            }} />
           </div>
         </div>
 
         {/* Center Round Timer */}
-        <div className="flex flex-col items-center bg-gray-950/90 border border-cyan-500/60 px-5 py-2 rounded-xl shadow-[0_0_20px_rgba(0,240,255,0.2)]">
-          <span className="text-[10px] text-gray-400 uppercase tracking-widest">ROUND {hudState.round}</span>
-          <span className="text-3xl md:text-4xl font-black text-yellow-400">{hudState.roundTime}</span>
+        <div style={styles.timerBox}>
+          <span style={styles.timerRound}>ROUND {hudState.round}</span>
+          <span style={styles.timerValue}>{hudState.roundTime}</span>
         </div>
 
         {/* P2 Health & Super */}
-        <div className="flex-1 max-w-md text-right">
-          <div className="flex justify-between text-xs text-red-400 font-bold mb-1">
-            <div className="flex gap-1">
+        <div style={styles.healthSectionRight}>
+          <div style={{ ...styles.healthHeader, color: '#ef4444', flexDirection: 'row-reverse' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Cpu size={14} /> {p2Char.name} (AI)
+            </span>
+            <div style={styles.winDots}>
               {[...Array(2)].map((_, i) => (
-                <div key={i} className={`w-3 h-3 rounded-full border border-red-500 ${i < hudState.p2Wins ? 'bg-red-500' : 'bg-transparent'}`} />
+                <div key={i} style={{
+                  ...styles.winDot,
+                  borderColor: '#ef4444',
+                  background: i < hudState.p2Wins ? '#ef4444' : 'transparent'
+                }} />
               ))}
             </div>
-            <span className="flex items-center gap-1"><Cpu size={14}/> {p2Char.name} (AI)</span>
           </div>
-          <div className="w-full h-6 bg-gray-950 border-2 border-red-500 rounded-sm overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.3)]">
-            <div 
-              className="h-full bg-gradient-to-l from-red-500 to-orange-400 transition-all duration-100"
-              style={{ width: `${hudState.p2Health}%` }}
-            />
+          <div style={{ ...styles.healthBarBg, borderColor: '#ef4444', boxShadow: '0 0 15px rgba(255,0,85,0.3)' }}>
+            <div style={{
+              ...styles.healthBarFill,
+              background: 'linear-gradient(to left, #ef4444, #fb923c)',
+              width: `${hudState.p2Health}%`,
+              marginLeft: 'auto'
+            }} />
           </div>
-          {/* P2 Super Meter */}
-          <div className="w-full h-2 bg-gray-900 border border-red-900 rounded-sm mt-1 overflow-hidden">
-            <div 
-              className={`h-full transition-all ${hudState.p2Super >= 100 ? 'bg-yellow-400 animate-pulse' : 'bg-orange-500'}`}
-              style={{ width: `${hudState.p2Super}%` }}
-            />
+          <div style={{ ...styles.superBarBg, borderColor: '#7f1d1d' }}>
+            <div style={{
+              ...styles.superBarFill,
+              background: hudState.p2Super >= 100 ? '#facc15' : '#f97316',
+              width: `${hudState.p2Super}%`,
+              marginLeft: 'auto'
+            }} />
           </div>
         </div>
       </div>
 
-      {/* Combo Counter Display */}
-      <div className="flex justify-between items-center my-auto">
+      {/* Combo Counter */}
+      <div style={styles.comboRow}>
         {hudState.comboP1 > 1 ? (
-          <div className="text-3xl font-black italic text-cyan-400 animate-bounce">
-            {hudState.comboP1} HITS!
-          </div>
+          <div style={styles.comboP1}>{hudState.comboP1} HITS!</div>
         ) : <div />}
-
         {hudState.comboP2 > 1 ? (
-          <div className="text-3xl font-black italic text-red-500 animate-bounce">
-            {hudState.comboP2} HITS!
-          </div>
+          <div style={styles.comboP2}>{hudState.comboP2} HITS!</div>
         ) : <div />}
       </div>
 
-      {/* Bottom Controls Legend & Pause Button */}
-      <div className="flex justify-between items-end">
-        <div className="bg-black/80 border border-cyan-900/60 p-3 rounded-lg text-[11px] text-gray-300 space-y-1">
-          <div className="text-cyan-400 font-bold mb-1">CONTROLS</div>
-          <div><kbd className="bg-gray-800 px-1 rounded">A</kbd>/<kbd className="bg-gray-800 px-1 rounded">D</kbd> Move | <kbd className="bg-gray-800 px-1 rounded">W</kbd> Jump</div>
-          <div><kbd className="bg-gray-800 px-1 rounded text-yellow-300">J</kbd> Punch | <kbd className="bg-gray-800 px-1 rounded text-green-300">K</kbd> Kick</div>
-          <div><kbd className="bg-gray-800 px-1 rounded text-fuchsia-300">I</kbd> Special (Needs Super Meter)</div>
+      {/* Bottom Controls */}
+      <div style={styles.hudBottom}>
+        <div style={styles.controlsBox}>
+          <div style={styles.controlsTitle}>CONTROLS</div>
+          <div><kbd style={styles.kbd}>A</kbd>/<kbd style={styles.kbd}>D</kbd> Move | <kbd style={styles.kbd}>W</kbd> Jump</div>
+          <div><kbd style={{ ...styles.kbd, color: '#fde047' }}>J</kbd> Punch | <kbd style={{ ...styles.kbd, color: '#86efac' }}>K</kbd> Kick</div>
+          <div><kbd style={{ ...styles.kbd, color: '#f0abfc' }}>I</kbd> Special (Needs Super Meter)</div>
         </div>
 
-        <div className="pointer-events-auto">
-          <button
-            onClick={onPause}
-            className="p-3 bg-gray-900/90 border border-cyan-500/50 rounded-full text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.3)]"
-          >
-            <Pause size={20} />
-          </button>
-        </div>
+        <button onClick={onPause} style={styles.pauseButton}>
+          <Pause size={20} />
+        </button>
       </div>
     </div>
   );
 };
 
-
-const speakDialogue = (text, gender='N') => {
+const speakDialogue = (text, gender = 'N') => {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -1221,7 +1877,7 @@ const speakDialogue = (text, gender='N') => {
   const voices = window.speechSynthesis.getVoices();
   const voice = voices.find(v => /en-US|en-GB/i.test(v.lang) && (
     gender === 'F' ? /female|samantha|zira|ava|karen/i.test(v.name) :
-    gender === 'M' ? /male|daniel|alex|guy|david/i.test(v.name) : true
+      gender === 'M' ? /male|daniel|alex|guy|david/i.test(v.name) : true
   ));
   if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
@@ -1230,44 +1886,49 @@ const speakDialogue = (text, gender='N') => {
 const DialogueOverlay = ({ p1, p2, winner, speechEnabled, onContinue }) => {
   const isIntro = !winner;
   const lines = isIntro
-    ? [{name:p1.name,text:p1.quote,gender:p1.gender,color:p1.color},{name:p2.name,text:p2.quote,gender:p2.gender,color:p2.color}]
+    ? [{ name: p1.name, text: p1.quote, gender: p1.gender, color: p1.color }, { name: p2.name, text: p2.quote, gender: p2.gender, color: p2.color }]
     : [
-        {name:winner.name,text:winner.id===p1.id?p1.winLine:p2.winLine,gender:winner.gender,color:winner.color},
-        {name:winner.id===p1.id?p2.name:p1.name,text:winner.id===p1.id?p2.loseLine:p1.loseLine,gender:winner.id===p1.id?p2.gender:p1.gender,color:winner.id===p1.id?p2.color:p1.color}
-      ];
-  const [index,setIndex]=useState(0);
-  useEffect(()=>{ if(speechEnabled) speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender); },[index,speechEnabled]);
+      { name: winner.name, text: winner.id === p1.id ? p1.winLine : p2.winLine, gender: winner.gender, color: winner.color },
+      { name: winner.id === p1.id ? p2.name : p1.name, text: winner.id === p1.id ? p2.loseLine : p1.loseLine, gender: winner.id === p1.id ? p2.gender : p1.gender, color: winner.id === p1.id ? p2.color : p1.color }
+    ];
+  const [index, setIndex] = useState(0);
+  useEffect(() => { if (speechEnabled) speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender); }, [index, speechEnabled]);
   return (
-    <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-gray-950 border border-cyan-800 rounded-2xl p-5 shadow-[0_0_50px_rgba(0,240,255,.15)]">
-        <div className="flex items-center justify-between text-cyan-400 text-xs font-bold tracking-widest mb-4">
+    <div style={styles.dialogueOverlay}>
+      <div style={styles.dialogueBox}>
+        <div style={styles.dialogueHeader}>
           <span>{isIntro ? 'BEFORE THE FIGHT' : 'AFTERMATH'}</span>
-          <button onClick={()=>speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender)}
-            className="pointer-events-auto px-3 py-2 border border-cyan-800 rounded-lg flex items-center gap-2 hover:border-cyan-400">
-            <Volume2 size={14}/> READ DIALOGUE
+          <button
+            onClick={() => speakDialogue(lines[index].name + '. ' + lines[index].text, lines[index].gender)}
+            style={styles.readButton}
+          >
+            <Volume2 size={14} /> READ DIALOGUE
           </button>
         </div>
-        <div className="grid grid-cols-[90px_1fr_90px] md:grid-cols-[140px_1fr_140px] items-center gap-4">
-          <div className="text-center">
-            <div className="w-16 h-20 md:w-24 md:h-28 mx-auto rounded-xl border flex items-center justify-center text-4xl font-black" style={{borderColor:p1.color,color:p1.color}}>{p1.name[0]}</div>
-            <div className="text-[9px] mt-2 text-gray-500">{p1.name}</div>
+        <div style={styles.dialogueGrid}>
+          <div style={styles.dialogueAvatar}>
+            <div style={{ ...styles.dialogueAvatarBox, borderColor: p1.color, color: p1.color }}>{p1.name[0]}</div>
+            <div style={styles.dialogueAvatarName}>{p1.name}</div>
           </div>
-          <div className="border-l-2 pl-5 min-h-[120px]" style={{borderColor:lines[index].color}}>
-            <div className="text-xs font-black uppercase" style={{color:lines[index].color}}>{lines[index].name}</div>
-            <p className="text-xl md:text-3xl font-bold leading-tight mt-2">"{lines[index].text}"</p>
+          <div style={{ ...styles.dialogueContent, borderColor: lines[index].color }}>
+            <div style={{ ...styles.dialogueSpeaker, color: lines[index].color }}>{lines[index].name}</div>
+            <p style={styles.dialogueText}>"{lines[index].text}"</p>
           </div>
-          <div className="text-center">
-            <div className="w-16 h-20 md:w-24 md:h-28 mx-auto rounded-xl border flex items-center justify-center text-4xl font-black" style={{borderColor:p2.color,color:p2.color}}>{p2.name[0]}</div>
-            <div className="text-[9px] mt-2 text-gray-500">{p2.name}</div>
+          <div style={styles.dialogueAvatar}>
+            <div style={{ ...styles.dialogueAvatarBox, borderColor: p2.color, color: p2.color }}>{p2.name[0]}</div>
+            <div style={styles.dialogueAvatarName}>{p2.name}</div>
           </div>
         </div>
-        <div className="flex justify-between items-center border-t border-gray-800 mt-4 pt-4">
-          <span className="text-[10px] text-gray-500">{index+1} / {lines.length}</span>
-          <button onClick={()=>{
-            if(index < lines.length-1) setIndex(index+1);
-            else { window.speechSynthesis?.cancel(); onContinue(); }
-          }} className="px-6 py-3 bg-gradient-to-r from-cyan-400 to-fuchsia-500 text-black font-black rounded-lg">
-            {index < lines.length-1 ? 'NEXT' : isIntro ? 'ENTER ARENA' : 'VIEW RESULTS'}
+        <div style={styles.dialogueFooter}>
+          <span style={styles.dialogueIndex}>{index + 1} / {lines.length}</span>
+          <button
+            onClick={() => {
+              if (index < lines.length - 1) setIndex(index + 1);
+              else { window.speechSynthesis?.cancel(); onContinue(); }
+            }}
+            style={styles.dialogueNextButton}
+          >
+            {index < lines.length - 1 ? 'NEXT' : isIntro ? 'ENTER ARENA' : 'VIEW RESULTS'}
           </button>
         </div>
       </div>
@@ -1275,13 +1936,12 @@ const DialogueOverlay = ({ p1, p2, winner, speechEnabled, onContinue }) => {
   );
 };
 
-
 export default function Game() {
   const canvasRef = useRef(null);
   const engineRef = useRef(null);
   const { loaded: threeLoaded, error: threeError } = useThreeJS();
 
-  const [gameState, setGameState] = useState('SPLASH'); // SPLASH, CHAR_SELECT, FIGHTING, PAUSED, MATCH_OVER
+  const [gameState, setGameState] = useState('SPLASH');
   const [p1Char, setP1Char] = useState(CHARACTERS[0]);
   const [p2Char, setP2Char] = useState(CHARACTERS[1]);
   const [matchWinner, setMatchWinner] = useState('');
@@ -1321,7 +1981,7 @@ export default function Game() {
 
   const handleMatchEnd = useCallback((winnerName) => {
     setMatchWinner(winnerName);
-    setDialogue({type:'post', winner: winnerName === 'PLAYER 1' ? p1Char : p2Char});
+    setDialogue({ type: 'post', winner: winnerName === 'PLAYER 1' ? p1Char : p2Char });
     setAnnouncerText('K.O.!');
     sfx.playKO();
 
@@ -1329,9 +1989,8 @@ export default function Game() {
       setGameState('MATCH_OVER');
       setAnnouncerText('');
     }, 2000);
-  }, []);
+  }, [p1Char, p2Char]);
 
-  // Initialize Fight Engine when transition into FIGHTING state
   useEffect(() => {
     if (gameState === 'FIGHTING' && threeLoaded && canvasRef.current && !engineRef.current) {
       engineRef.current = new ArcadeEngine(
@@ -1358,18 +2017,16 @@ export default function Game() {
 
   if (threeError) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-black text-red-500 font-mono">
+      <div style={styles.errorScreen}>
         Error: Could not initialize 3D WebGL Arcade Engine.
       </div>
     );
   }
 
   return (
-    <div className="relative h-screen w-full bg-black overflow-hidden select-none font-sans">
-      {/* 3D Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
+    <div style={styles.container}>
+      <canvas ref={canvasRef} style={styles.canvas} />
 
-      {/* Screens / UI Overlays */}
       {gameState === 'SPLASH' && (
         <ArcadeSplash onStart={() => setGameState('CHAR_SELECT')} />
       )}
@@ -1380,7 +2037,7 @@ export default function Game() {
           onSelect={(p1, p2) => {
             setP1Char(p1);
             setP2Char(p2);
-            setDialogue({type:'intro', winner:null});
+            setDialogue({ type: 'intro', winner: null });
             setGameState('FIGHTING');
           }}
         />
@@ -1417,26 +2074,22 @@ export default function Game() {
         />
       )}
 
-      {/* Announcer Overlay Banner */}
       {announcerText && (
-        <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center">
-          <div className="text-5xl md:text-8xl font-black italic tracking-tighter text-yellow-400 drop-shadow-[0_0_40px_rgba(255,200,0,0.8)] animate-pulse">
-            {announcerText}
-          </div>
+        <div style={styles.announcerOverlay}>
+          <div style={styles.announcerText}>{announcerText}</div>
         </div>
       )}
 
-      {/* Pause Menu Overlay */}
       {gameState === 'PAUSED' && (
-        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center font-mono text-white p-6">
-          <h2 className="text-4xl font-extrabold italic text-cyan-400 mb-8">GAME PAUSED</h2>
-          <div className="flex flex-col gap-4 w-64">
+        <div style={styles.pauseMenu}>
+          <h2 style={styles.pauseTitle}>GAME PAUSED</h2>
+          <div style={styles.pauseButtons}>
             <button
               onClick={() => {
                 if (engineRef.current) engineRef.current.paused = false;
                 setGameState('FIGHTING');
               }}
-              className="py-3 bg-cyan-500 text-black font-bold rounded-lg hover:scale-105 transition-all cursor-pointer flex items-center justify-center gap-2"
+              style={styles.pauseButtonPrimary}
             >
               <Play size={18} /> RESUME MATCH
             </button>
@@ -1446,7 +2099,7 @@ export default function Game() {
                 engineRef.current = null;
                 setGameState('CHAR_SELECT');
               }}
-              className="py-3 bg-gray-800 text-cyan-400 border border-cyan-800 font-bold rounded-lg hover:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2"
+              style={styles.pauseButtonSecondary}
             >
               <RotateCcw size={18} /> CHANGE CHARACTERS
             </button>
@@ -1454,35 +2107,25 @@ export default function Game() {
         </div>
       )}
 
-      {/* Victory / Game Over Overlay */}
       {gameState === 'MATCH_OVER' && (
-        <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center font-mono text-white p-6">
-          <Trophy size={64} className="text-yellow-400 mb-4 animate-bounce" />
-          <h2 className="text-5xl md:text-7xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-fuchsia-500 mb-2">
-            {matchWinner} WINS!
-          </h2>
-          <p className="text-gray-400 mb-8 text-sm">CHAMPION OF THE VIRTUAL DOJO</p>
+        <div style={styles.matchOver}>
+          <Trophy size={64} color="#facc15" style={{ marginBottom: '1rem' }} />
+          <h2 style={styles.matchOverTitle}>{matchWinner} WINS!</h2>
+          <p style={styles.matchOverSubtitle}>CHAMPION OF THE VIRTUAL DOJO</p>
           <button
             onClick={() => {
               if (engineRef.current) engineRef.current.destroy();
               engineRef.current = null;
               setGameState('CHAR_SELECT');
             }}
-            className="px-8 py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-black font-extrabold rounded-xl hover:scale-105 transition-all cursor-pointer shadow-[0_0_25px_rgba(0,240,255,0.5)]"
+            style={styles.matchOverButton}
           >
             PLAY AGAIN
           </button>
         </div>
       )}
 
-      {/* Scanline CRT overlay effect */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.04]" 
-        style={{ 
-          background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', 
-          backgroundSize: '100% 3px, 3px 100%' 
-        }} 
-      />
+      <div style={styles.scanlineOverlay} />
     </div>
   );
 }
