@@ -644,9 +644,7 @@ function App() {
             } />
 
             <Route path='/game' element={
-              <ProtectedRoute>
                 <Game />
-              </ProtectedRoute>
             } />
 
 
