@@ -3,7 +3,7 @@ import SideNavs from "./side_navs";
 import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import Globe from 'react-globe.gl';
 import * as d3 from 'd3';
-import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw, Timer, ChevronLeft, ExternalLink } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Star, BarChart3, Search, Clock, Layers, Maximize2, Minimize2, RefreshCw, Timer, ChevronLeft, ExternalLink, ShieldCheck } from 'lucide-react';
 import { createChart, CandlestickSeries, LineSeries, LineStyle } from 'lightweight-charts';
 
 const geoUrl = "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
@@ -62,6 +62,15 @@ const getRecStyle = (rec) => {
     if (r.includes('BUY')) return { background: COLORS.accentSoft, color: COLORS.accent, border: `1px solid ${COLORS.accentBorder}` };
     if (r.includes('WATCH') || r.includes('NEUTRAL')) return { background: COLORS.cautionSoft, color: COLORS.caution, border: `1px solid ${COLORS.cautionBorder}` };
     if (r.includes('SELL') || r.includes('AVOID') || r.includes('BEARISH')) return { background: COLORS.negativeSoft, color: COLORS.negative, border: `1px solid ${COLORS.negativeBorder}` };
+    return { background: COLORS.neutralSoft, color: COLORS.inkMuted, border: `1px solid ${COLORS.neutralBorder}` };
+};
+
+const getStabilityStyle = (label) => {
+    const l = (label || '').toUpperCase();
+    if (l === 'VERY STABLE') return { background: COLORS.positiveSoft, color: COLORS.positive, border: `1px solid ${COLORS.positiveBorder}` };
+    if (l === 'STABLE') return { background: COLORS.accentSoft, color: COLORS.accent, border: `1px solid ${COLORS.accentBorder}` };
+    if (l === 'MODERATE') return { background: COLORS.cautionSoft, color: COLORS.caution, border: `1px solid ${COLORS.cautionBorder}` };
+    if (l === 'VOLATILE' || l === 'HIGHLY VOLATILE') return { background: COLORS.negativeSoft, color: COLORS.negative, border: `1px solid ${COLORS.negativeBorder}` };
     return { background: COLORS.neutralSoft, color: COLORS.inkMuted, border: `1px solid ${COLORS.neutralBorder}` };
 };
 
@@ -1364,6 +1373,12 @@ export default function SnowAIEarth() {
     const [showMediaCenter, setShowMediaCenter] = useState(false);
     const [showAssetExplorer, setShowAssetExplorer] = useState(false);
     const [assetExplorerInitialTicker, setAssetExplorerInitialTicker] = useState(null);
+    const [showStabilityModal, setShowStabilityModal] = useState(false);
+    const [stabilityView, setStabilityView] = useState('leaderboard'); // 'leaderboard' | 'country'
+    const [stabilityCountries, setStabilityCountries] = useState([]);
+    const [stabilityCountryDetail, setStabilityCountryDetail] = useState(null);
+    const [stabilityLoading, setStabilityLoading] = useState(false);
+    const [stabilityError, setStabilityError] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [showLaura, setShowLaura] = useState(false);
@@ -1583,6 +1598,44 @@ export default function SnowAIEarth() {
             }
         } catch (error) {
             console.error('Error fetching countries summary:', error);
+        }
+    };
+
+    const fetchStabilityLeaderboard = async () => {
+        setStabilityLoading(true);
+        setStabilityError('');
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-stability/all-countries/`);
+            const data = await response.json();
+            if (data.success) setStabilityCountries(data.countries || []);
+            else setStabilityError(data.error || "Couldn't load the stability leaderboard.");
+        } catch (error) {
+            setStabilityError("Couldn't reach the server.");
+        } finally {
+            setStabilityLoading(false);
+        }
+    };
+
+    const fetchCountryStability = async (country) => {
+        setStabilityLoading(true);
+        setStabilityError('');
+        try {
+            const response = await fetch(`${baseUrl}/api/snow-stability/by-country/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                setStabilityCountryDetail(data);
+                setStabilityView('country');
+            } else {
+                setStabilityError(data.error || "Couldn't load stability for this country.");
+            }
+        } catch (error) {
+            setStabilityError("Couldn't reach the server.");
+        } finally {
+            setStabilityLoading(false);
         }
     };
 
@@ -3121,6 +3174,94 @@ export default function SnowAIEarth() {
             </div>
         );
     };
+    
+    const StabilityModal = () => (
+        <div style={styles.stabilityModal} onClick={(e) => { if (e.target === e.currentTarget) setShowStabilityModal(false); }}>
+            <div style={styles.stabilityContent}>
+                <div style={styles.stabilityHeader}>
+                    <div style={styles.stabilityHeaderLeft}>
+                        {stabilityView === 'country' && (
+                            <button style={styles.stabilityBackButton} onClick={() => setStabilityView('leaderboard')}>
+                                <ChevronLeft size={15} /> Back
+                            </button>
+                        )}
+                        <h3 style={styles.stockModalTitle}>
+                            {stabilityView === 'leaderboard' ? 'Stability leaderboard' : `${stabilityCountryDetail?.flag || ''} ${stabilityCountryDetail?.country || ''}`}
+                        </h3>
+                    </div>
+                    <button style={styles.stockModalClose} onClick={() => setShowStabilityModal(false)}>×</button>
+                </div>
+
+                <div style={styles.stabilityBody}>
+                    {stabilityLoading && <div style={styles.loadingWrap}><div style={styles.spinner}></div></div>}
+
+                    {!stabilityLoading && stabilityError && (
+                        <div style={styles.emptyStateWrap}>
+                            <AlertTriangle size={28} color={COLORS.caution} />
+                            <div style={styles.emptyStateTitle}>Couldn't load stability data</div>
+                            <p style={styles.emptyStateText}>{stabilityError}</p>
+                        </div>
+                    )}
+
+                    {!stabilityLoading && !stabilityError && stabilityView === 'leaderboard' && (
+                        <>
+                            {stabilityCountries.map((c, idx) => (
+                                <div key={c.country} style={styles.stabilityRankRow} onClick={() => fetchCountryStability(c.country)}>
+                                    <span style={styles.stabilityRankNum}>{idx + 1}</span>
+                                    <span>{c.flag}</span>
+                                    <div>
+                                        <div style={{ fontWeight: '700', fontSize: '13px', color: COLORS.ink }}>{c.country}</div>
+                                        <div style={{ fontSize: '11px', color: COLORS.inkFaint }}>{c.total_symbols} symbols scored</div>
+                                    </div>
+                                    <span style={styles.stabilityScoreBadge(getStabilityStyle(c.label))}>
+                                        {c.national_stability_score != null ? `${c.national_stability_score}/100` : 'Unrated'} · {c.label}
+                                    </span>
+                                </div>
+                            ))}
+                            {stabilityCountries.length === 0 && (
+                                <div style={styles.emptyStateWrap}>
+                                    <div style={styles.emptyStateTitle}>No picks saved yet</div>
+                                    <p style={styles.emptyStateText}>Save some Country-Sector Drill picks first, then check back here.</p>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {!stabilityLoading && !stabilityError && stabilityView === 'country' && stabilityCountryDetail && (
+                        <>
+                            <div style={styles.stabilitySummaryBox}>
+                                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
+                                    {stabilityCountryDetail.national_stability_score != null ? `${stabilityCountryDetail.national_stability_score}/100` : 'Unrated'}
+                                </div>
+                                {stabilityCountryDetail.summary}
+                            </div>
+
+                            {stabilityCountryDetail.symbols.map((s) => (
+                                <div key={s.symbol} style={styles.stabilitySymbolCard}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                        <div>
+                                            <span style={styles.stockSymbol}>{s.symbol}</span>
+                                            <span style={styles.stockName}>{s.name}</span>
+                                        </div>
+                                        <span style={{ ...styles.recBadge, ...getStabilityStyle(s.label) }}>
+                                            {s.stability_score != null ? `${s.stability_score}/100` : 'Unrated'} · {s.label}
+                                        </span>
+                                    </div>
+                                    <div style={styles.stabilityMetricRow}>
+                                        {s.volatility_pct != null && <span>Volatility: {s.volatility_pct}%</span>}
+                                        {s.max_drawdown_pct != null && <span>Max drawdown: {s.max_drawdown_pct}%</span>}
+                                        {s.rec_consistency_pct != null && <span>Rec consistency: {s.rec_consistency_pct}%</span>}
+                                        <span>Latest: {s.latest_rec}</span>
+                                        {!s.has_price_data && <span style={{ color: COLORS.caution }}>No price history yet</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 
     const styles = useMemo(() => ({
         container: {
@@ -3637,7 +3778,45 @@ export default function SnowAIEarth() {
             background: COLORS.neutralSoft, border: `1px solid ${COLORS.border}`, borderRadius: '8px',
             padding: isMobile ? '10px' : '12px', marginBottom: '14px', fontSize: isMobile ? '12px' : '13px',
             color: COLORS.inkMuted
-        }
+        },
+        stabilityButton: {
+            position: 'fixed', bottom: '30px', right: isMobile ? '225px' : '270px',
+            width: isMobile ? '50px' : '58px', height: isMobile ? '50px' : '58px', borderRadius: '50%',
+            background: '#0f766e', border: '3px solid #fff', color: '#fff', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)', display: 'flex', justifyContent: 'center',
+            alignItems: 'center', zIndex: 9998, transition: 'transform 0.2s ease',
+        },
+        stabilityModal: {
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(15, 23, 42, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 10007, backdropFilter: 'blur(4px)', padding: isMobile ? '10px' : '20px',
+        },
+        stabilityContent: {
+            background: COLORS.surface, borderRadius: '14px', border: `1px solid ${COLORS.border}`,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', width: isMobile ? '100%' : '760px', maxWidth: '95vw',
+            maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        },
+        stabilityHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}` },
+        stabilityHeaderLeft: { display: 'flex', alignItems: 'center', gap: '8px' },
+        stabilityBackButton: {
+            display: 'flex', alignItems: 'center', gap: '2px', padding: '5px 9px 5px 5px', borderRadius: '999px',
+            border: `1px solid ${COLORS.border}`, background: COLORS.surface, color: COLORS.inkMuted,
+            fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+        },
+        stabilityBody: { flex: 1, overflowY: 'auto', padding: isMobile ? '14px' : '20px', background: COLORS.bg },
+        stabilityRankRow: {
+            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '10px',
+            border: `1px solid ${COLORS.border}`, background: COLORS.surface, marginBottom: '8px', cursor: 'pointer',
+        },
+        stabilityRankNum: { fontSize: '12px', color: COLORS.inkFaint, fontFamily: COLORS.mono, width: '20px' },
+        stabilityScoreBadge: (style) => ({ marginLeft: 'auto', padding: '5px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: '700', ...style }),
+        stabilitySummaryBox: {
+            background: COLORS.accentSoft, border: `1px solid ${COLORS.accentBorder}`, borderRadius: '10px',
+            padding: '14px 16px', marginBottom: '18px', fontSize: '13px', color: COLORS.ink, lineHeight: '1.6',
+        },
+        stabilitySymbolCard: { background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: '10px', padding: '14px', marginBottom: '8px' },
+        stabilityMetricRow: { display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '8px', fontSize: '11px', color: COLORS.inkMuted, fontFamily: COLORS.mono },
+
     }), [isMobile, view3D, chartFullscreen]);
 
     const getGlobeSize = () => {
@@ -3858,6 +4037,20 @@ export default function SnowAIEarth() {
             </button>
 
             <button
+                style={styles.stabilityButton}
+                onClick={() => {
+                    setShowStabilityModal(true);
+                    setStabilityView('leaderboard');
+                    if (stabilityCountries.length === 0) fetchStabilityLeaderboard();
+                }}
+                title="Stability checker"
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+                <ShieldCheck size={22} />
+            </button>
+
+            <button
                 style={styles.lauraButton}
                 onClick={() => {
                     setShowLaura(true);
@@ -3884,6 +4077,7 @@ export default function SnowAIEarth() {
                     initialTicker={assetExplorerInitialTicker}
                 />
             )}
+            {showStabilityModal && <StabilityModal />}
             {showLaura && <LauraModalContent
                 isMobile={isMobile}
                 searchQuery={searchQuery}
