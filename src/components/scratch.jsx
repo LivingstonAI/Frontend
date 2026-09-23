@@ -1315,6 +1315,41 @@ return [`is_high_r_squared(data=dataset)`, Order.NONE];
 
 };
 
+pythonGenerator['forBlock']['trend_scanner_block'] = function(block, generator) {
+
+  const regime = block.getFieldValue('REGIME');
+  const aiReturns = block.getFieldValue('AI_RETURNS');
+
+  let stabilityChildLen = block['childBlocks_'].length;
+  let minStability;
+
+  if (stabilityChildLen > 0) {
+    minStability = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+  } else {
+    minStability = 'None';
+  }
+
+  return [`trend_scanner(ticker=asset, market_regime='${regime}', ai_returns='${aiReturns}', min_stability=${minStability})`, Order.NONE];
+
+};
+
+javascriptGenerator['forBlock']['trend_scanner_block'] = function(block, generator) {
+
+  const regime = block.getFieldValue('REGIME');
+  const aiReturns = block.getFieldValue('AI_RETURNS');
+
+  let stabilityChildLen = block['childBlocks_'].length;
+  let minStability;
+
+  if (stabilityChildLen > 0) {
+    minStability = block['childBlocks_'][0]['inputList'][0].fieldRow[0].getValue();
+  } else {
+    minStability = 'null';
+  }
+
+  return [`trend_scanner(asset=asset, regime=${regime}, aiReturns=${aiReturns}, minStability=${minStability})`, Order.NONE];
+
+};
 
 
    // Blockly block definition for "Moving Average" block
@@ -2386,7 +2421,7 @@ Blockly.Blocks['average_retracement'] = {
     }
   };
   
-  Blockly.Blocks['is_high_r_squared'] = {
+    Blockly.Blocks['is_high_r_squared'] = {
     init: function() {
       this.appendDummyInput()
           .appendField("is high r squared")
@@ -2395,6 +2430,35 @@ Blockly.Blocks['average_retracement'] = {
       this.setColour(160);
       this.setTooltip("Checks for strength of the trend");
       this.setHelpUrl("");
+    }
+  };
+
+  Blockly.Blocks['trend_scanner_block'] = {
+    init: function() {
+      this.appendDummyInput()
+          .appendField('trend scanner');
+      this.appendDummyInput()
+          .appendField('regime')
+          .appendField(new Blockly.FieldDropdown([
+            ['Bullish', 'BULLISH'],
+            ['Bearish', 'BEARISH']
+          ]), 'REGIME');
+      this.appendDummyInput()
+          .appendField('min AI verdict')
+          .appendField(new Blockly.FieldDropdown([
+            ['Strong Opportunity', 'STRONG_OPPORTUNITY'],
+            ['Opportunity', 'OPPORTUNITY'],
+            ['Neutral', 'NEUTRAL'],
+            ['Caution', 'CAUTION'],
+            ['Avoid', 'AVOID']
+          ]), 'AI_RETURNS');
+      this.appendValueInput('MIN_STABILITY')
+          .setCheck('Number')
+          .appendField('min stability %');
+      this.setOutput(true, 'Boolean');
+      this.setColour(210);
+      this.setTooltip('Trend Scanner gate — checks market regime + min AI opportunity verdict (plus optional stability %) against the most recent saved scanner analysis for this asset. Plug a number into "min stability %" to require it; leave empty to skip that check.');
+      this.setHelpUrl('');
     }
   };
 
@@ -2765,9 +2829,13 @@ Blockly.Blocks['average_retracement'] = {
               "kind": "block",
               "type": "average_retracement"
             },
-            {
+                        {
               "kind": "block",
               "type": "is_high_r_squared"
+            },
+            {
+              "kind": "block",
+              "type": "trend_scanner_block"
             },
           ]
         },
