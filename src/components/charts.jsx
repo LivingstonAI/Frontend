@@ -4,7 +4,7 @@ import AIModelBuilder from "./ai_model_builder";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 
 
-// Light theme (default)
+// Light theme (default) — lean, blue/white palette
 const lightTheme = {
   bg: {
     primary: '#ffffff',
@@ -25,13 +25,17 @@ const lightTheme = {
     800: '#1e40af',
     900: '#1e3a8a'
   },
+  // Every "feature" accent lives in the blue family now (purple/pink collapsed
+  // into two blue shades) so the UI reads as one palette instead of a rainbow.
+  // green/red/orange stay — they carry real trading meaning (P&L, buy/sell,
+  // market-stability warnings) and shouldn't be reinterpreted as decoration.
   accent: {
-    cyan: '#06b6d4',
-    purple: '#8b5cf6',
+    cyan: '#0284c7',
+    purple: '#1d4ed8',
     green: '#10b981',
-    red: '#ef4444',
+    red: '#e11d48',
     orange: '#f59e0b',
-    pink: '#ec4899'
+    pink: '#3b82f6'
   },
   text: {
     primary: '#0f172a',
@@ -46,7 +50,7 @@ const lightTheme = {
   }
 };
 
-// Dark theme
+// Dark theme — same lean, blue/white palette
 const darkTheme = {
   bg: {
     primary: '#0a0e1a',
@@ -68,12 +72,12 @@ const darkTheme = {
     900: '#000f1a'
   },
   accent: {
-    cyan: '#00d4ff',
-    purple: '#a78bfa',
+    cyan: '#38bdf8',
+    purple: '#60a5fa',
     green: '#10b981',
-    red: '#ef4444',
+    red: '#f87171',
     orange: '#f59e0b',
-    pink: '#ec4899'
+    pink: '#93c5fd'
   },
   text: {
     primary: '#e5e7eb',
@@ -103,13 +107,13 @@ const getStyles = (theme) => ({
   header: {
     background: theme.bg.elevated,
     color: theme.text.primary,
-    padding: '20px 25px',
-    borderRadius: '12px',
-    marginBottom: '20px',
+    padding: '16px 22px',
+    borderRadius: '10px',
+    marginBottom: '16px',
     textAlign: 'center',
-    fontSize: '1.8rem',
-    fontWeight: '700',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
     border: `1px solid ${theme.border.light}`,
     display: 'flex',
     justifyContent: 'space-between',
@@ -118,91 +122,88 @@ const getStyles = (theme) => ({
     gap: '15px'
   },
   themeToggle: {
-    padding: '10px 20px',
+    padding: '9px 16px',
     background: theme.bg.tertiary,
-    border: `2px solid ${theme.border.medium}`,
+    border: `1px solid ${theme.border.medium}`,
     borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     fontWeight: '600',
     color: theme.text.primary,
-    transition: 'all 0.3s ease',
+    transition: 'all 0.15s ease',
     display: 'flex',
     alignItems: 'center',
     gap: '8px'
   },
   tradingModeSelector: {
     display: 'flex',
-    gap: '15px',
-    marginBottom: '20px',
+    gap: '12px',
+    marginBottom: '16px',
     flexWrap: 'wrap',
     alignItems: 'center',
     background: theme.bg.elevated,
-    padding: '15px',
-    borderRadius: '12px',
+    padding: '12px 15px',
+    borderRadius: '10px',
     border: `1px solid ${theme.border.light}`,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
   },
   modeButton: {
-    padding: '12px 24px',
+    padding: '10px 20px',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '0.95rem',
-    fontWeight: '700',
-    transition: 'all 0.3s ease',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    fontSize: '0.88rem',
+    fontWeight: '600',
+    transition: 'all 0.15s ease',
+    letterSpacing: '0.2px'
   },
   modeButtonActive: {
-    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+    background: theme.blue[600],
     color: 'white',
-    transform: 'translateY(-2px)',
-    boxShadow: '0 6px 16px rgba(59, 130, 246, 0.4)'
+    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)'
   },
   modeButtonInactive: {
     background: theme.bg.tertiary,
     color: theme.text.secondary,
-    border: `2px solid ${theme.border.medium}`
+    border: `1px solid ${theme.border.medium}`
   },
   controlPanel: {
     background: theme.bg.elevated,
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '20px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+    padding: '18px',
+    borderRadius: '10px',
+    marginBottom: '16px',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
     border: `1px solid ${theme.border.light}`
   },
   sectionTitle: {
-    fontSize: '1.1rem',
-    fontWeight: '700',
+    fontSize: '0.95rem',
+    fontWeight: '600',
     color: theme.blue[700],
-    marginBottom: '12px',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
+    marginBottom: '10px',
+    letterSpacing: '0.2px',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '8px'
   },
   chartContainer: {
     background: theme.bg.elevated,
-    borderRadius: '15px',
-    padding: '25px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+    borderRadius: '12px',
+    padding: '22px',
+    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.06)',
     border: `1px solid ${theme.border.light}`,
-    marginBottom: '25px',
+    marginBottom: '22px',
     position: 'relative'
   },
   chartTitle: {
-    fontSize: '1.4rem',
-    fontWeight: '700',
+    fontSize: '1.2rem',
+    fontWeight: '600',
     color: theme.text.primary,
-    marginBottom: '15px',
+    marginBottom: '14px',
     textAlign: 'center'
   },
   chartControls: {
     display: 'flex',
-    gap: '10px',
+    gap: '8px',
     marginBottom: '15px',
     flexWrap: 'wrap',
     justifyContent: 'center',
@@ -213,17 +214,17 @@ const getStyles = (theme) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     background: theme.bg.tertiary,
-    padding: '15px 20px',
+    padding: '14px 18px',
     borderRadius: '10px',
-    marginBottom: '15px',
+    marginBottom: '14px',
     border: `1px solid ${theme.border.light}`,
     flexWrap: 'wrap',
     gap: '15px'
   },
   currentPrice: {
-    fontSize: '1.8rem',
-    fontWeight: '800',
-    color: theme.blue[600]
+    fontSize: '1.6rem',
+    fontWeight: '700',
+    color: theme.blue[700]
   },
   modal: {
     position: 'fixed',
@@ -231,24 +232,24 @@ const getStyles = (theme) => ({
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
+    background: 'rgba(15, 23, 42, 0.45)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
     padding: '20px',
-    backdropFilter: 'blur(4px)'
+    backdropFilter: 'blur(3px)'
   },
   modalContent: {
     background: theme.bg.modal,
-    borderRadius: '20px',
-    padding: '30px',
+    borderRadius: '14px',
+    padding: '28px',
     maxWidth: '800px',
     width: '100%',
     maxHeight: '90vh',
     overflow: 'auto',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-    border: `2px solid ${theme.border.medium}`
+    boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18)',
+    border: `1px solid ${theme.border.medium}`
   },
   tradeModalOverlay: {
     position: 'absolute',
@@ -257,10 +258,10 @@ const getStyles = (theme) => ({
     width: '350px',
     maxWidth: 'calc(100% - 50px)',
     background: theme.bg.elevated,
-    borderRadius: '15px',
-    padding: '20px',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
-    border: `2px solid ${theme.blue[400]}`,
+    borderRadius: '12px',
+    padding: '18px',
+    boxShadow: '0 4px 16px rgba(15, 23, 42, 0.12)',
+    border: `1px solid ${theme.blue[300]}`,
     zIndex: 10
   },
   formGroup: {
@@ -269,139 +270,130 @@ const getStyles = (theme) => ({
   label: {
     display: 'block',
     marginBottom: '6px',
-    fontSize: '0.85rem',
+    fontSize: '0.8rem',
     fontWeight: '600',
     color: theme.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.2px'
   },
   input: {
     width: '100%',
-    padding: '10px',
+    padding: '9px 10px',
     background: theme.bg.tertiary,
-    border: `2px solid ${theme.border.medium}`,
+    border: `1px solid ${theme.border.medium}`,
     borderRadius: '8px',
     color: theme.text.primary,
-    fontSize: '0.95rem',
-    transition: 'all 0.3s ease',
+    fontSize: '0.92rem',
+    transition: 'all 0.15s ease',
     outline: 'none',
     boxSizing: 'border-box'
   },
   select: {
     width: '100%',
-    padding: '10px',
+    padding: '9px 10px',
     background: theme.bg.tertiary,
-    border: `2px solid ${theme.border.medium}`,
+    border: `1px solid ${theme.border.medium}`,
     borderRadius: '8px',
     color: theme.text.primary,
-    fontSize: '0.95rem',
+    fontSize: '0.92rem',
     cursor: 'pointer',
     outline: 'none',
     boxSizing: 'border-box'
   },
   buttonPrimary: {
     width: '100%',
-    padding: '12px',
-    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+    padding: '11px',
+    background: theme.blue[600],
     color: 'white',
     border: 'none',
-    borderRadius: '10px',
-    fontSize: '0.95rem',
-    fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    textTransform: 'uppercase',
-    letterSpacing: '1px',
-    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-  },
-  buttonSecondary: {
-    padding: '10px 20px',
-    background: theme.bg.tertiary,
-    color: theme.text.primary,
-    border: `2px solid ${theme.border.medium}`,
     borderRadius: '8px',
     fontSize: '0.9rem',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.15s ease',
+    boxShadow: '0 1px 2px rgba(37, 99, 235, 0.2)'
+  },
+  buttonSecondary: {
+    padding: '9px 18px',
+    background: theme.bg.tertiary,
+    color: theme.text.primary,
+    border: `1px solid ${theme.border.medium}`,
+    borderRadius: '8px',
+    fontSize: '0.87rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
   },
   searchBar: {
     width: '100%',
-    padding: '14px',
+    padding: '12px 14px',
     background: theme.bg.tertiary,
-    border: `2px solid ${theme.border.medium}`,
-    borderRadius: '12px',
+    border: `1px solid ${theme.border.medium}`,
+    borderRadius: '10px',
     color: theme.text.primary,
-    fontSize: '1rem',
-    marginBottom: '20px',
+    fontSize: '0.95rem',
+    marginBottom: '18px',
     outline: 'none',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.15s ease',
     boxSizing: 'border-box'
   },
   assetButton: {
-    margin: '5px',
-    padding: '10px 18px',
+    margin: '4px',
+    padding: '9px 16px',
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: '0.87rem',
     fontWeight: '600',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.3px'
+    transition: 'all 0.15s ease'
   },
   assetButtonActive: {
-    background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
+    background: theme.blue[600],
     color: 'white',
-    transform: 'translateY(-2px) scale(1.05)',
-    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)'
+    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)'
   },
   assetButtonInactive: {
     background: theme.bg.tertiary,
     color: theme.text.secondary,
-    border: `2px solid ${theme.border.light}`
+    border: `1px solid ${theme.border.light}`
   },
   badge: {
     display: 'inline-block',
-    padding: '6px 14px',
+    padding: '4px 11px',
     borderRadius: '20px',
-    fontSize: '0.85rem',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    fontSize: '0.78rem',
+    fontWeight: '600',
+    letterSpacing: '0.2px'
   },
   statCard: {
     background: theme.bg.tertiary,
-    padding: '20px',
-    borderRadius: '12px',
+    padding: '18px',
+    borderRadius: '10px',
     textAlign: 'center',
-    border: `1px solid ${theme.border.light}`,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+    border: `1px solid ${theme.border.light}`
   },
   statValue: {
-    fontSize: '2rem',
-    fontWeight: '800',
-    marginBottom: '8px'
+    fontSize: '1.7rem',
+    fontWeight: '700',
+    marginBottom: '6px'
   },
   statLabel: {
-    fontSize: '0.9rem',
+    fontSize: '0.85rem',
     color: theme.text.secondary,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
+    letterSpacing: '0.2px'
   },
   tradeCard: {
     background: theme.bg.tertiary,
-    padding: '20px',
-    borderRadius: '12px',
-    marginBottom: '15px',
+    padding: '18px',
+    borderRadius: '10px',
+    marginBottom: '14px',
     border: `1px solid ${theme.border.light}`,
-    transition: 'all 0.3s ease'
+    transition: 'all 0.15s ease'
   },
   loadingSpinner: {
-    width: '50px',
-    height: '50px',
-    border: `4px solid ${theme.border.light}`,
-    borderTop: `4px solid ${theme.blue[500]}`,
+    width: '42px',
+    height: '42px',
+    border: `3px solid ${theme.border.light}`,
+    borderTop: `3px solid ${theme.blue[500]}`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
     margin: '20px auto'
@@ -2255,8 +2247,7 @@ export default function Charts() {
                     }
                     
                     button:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                        filter: brightness(0.97);
                     }
                     
                     @media (max-width: 768px) {
@@ -2299,7 +2290,7 @@ export default function Charts() {
                                 onClick={() => setShowModelCreator(true)}
                                 style={{
                                     ...styles.themeToggle,
-                                    background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
+                                    background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #1e3a8a 100%)`,
                                     color: 'white',
                                     border: 'none'
                                 }}
@@ -2368,7 +2359,7 @@ export default function Charts() {
                                     animation: 'spin 1s linear infinite',
                                     boxShadow: `0 0 10px ${theme.accent.purple}` }} />
                                 <div>
-                                    <div style={{ fontWeight: '800', color: theme.accent.purple, fontSize: '1rem', letterSpacing: '-0.01em' }}>
+                                    <div style={{ fontWeight: '700', color: theme.accent.purple, fontSize: '1rem', letterSpacing: '-0.01em' }}>
                                         🚀 Batch test running — {batchTestCurrent?.symbol || '…'}
                                     </div>
                                     <div style={{ fontSize: '0.8rem', color: theme.text.secondary, marginTop: '3px' }}>
@@ -2381,7 +2372,7 @@ export default function Charts() {
                                 padding: '10px 22px',
                                 background: theme.accent.red,
                                 color: 'white', border: 'none', borderRadius: '10px',
-                                fontWeight: '800', fontSize: '1rem', cursor: 'pointer',
+                                fontWeight: '700', fontSize: '1rem', cursor: 'pointer',
                                 boxShadow: `0 4px 14px ${theme.accent.red}50`,
                                 letterSpacing: '0.02em',
                                 flexShrink: 0,
@@ -2430,7 +2421,7 @@ export default function Charts() {
                                         style={{
                                             ...styles.buttonSecondary,
                                             borderRadius: 0, border: 'none',
-                                            background: loadingMss ? theme.bg.tertiary : showMssPanel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : `linear-gradient(135deg,${theme.accent.orange},#b45309)`,
+                                            background: loadingMss ? theme.bg.tertiary : showMssPanel ? `linear-gradient(135deg,${theme.blue[700]},${theme.blue[800]})` : `linear-gradient(135deg,${theme.blue[400]},${theme.blue[500]})`,
                                             color: loadingMss ? theme.text.secondary : 'white',
                                             cursor: loadingMss ? 'not-allowed' : 'pointer',
                                             whiteSpace: 'nowrap',
@@ -2443,7 +2434,7 @@ export default function Charts() {
                                     onClick={() => { setShowWatchlistModal(true); fetchWatchlist(); }}
                                     style={{
                                         ...styles.buttonSecondary,
-                                        background: `linear-gradient(135deg, #d97706 0%, #b45309 100%)`,
+                                        background: `linear-gradient(135deg, ${theme.blue[500]} 0%, ${theme.blue[600]} 100%)`,
                                         color: 'white',
                                         border: 'none'
                                     }}
@@ -2490,7 +2481,7 @@ export default function Charts() {
                                                     {d}d
                                                 </button>
                                             ))}
-                                            <span style={{ fontSize: '1.4rem', fontWeight: '800', color: catColor, marginLeft: '4px' }}>{mss.toFixed(1)}</span>
+                                            <span style={{ fontSize: '1.4rem', fontWeight: '700', color: catColor, marginLeft: '4px' }}>{mss.toFixed(1)}</span>
                                             <span style={{ fontSize: '0.8rem', fontWeight: '700', color: catColor, background: `${catColor}18`, padding: '3px 10px', borderRadius: '10px' }}>{catIcon} {mssData.status}</span>
                                             <button onClick={() => setShowMssPanel(false)} style={{ background: 'transparent', border: 'none', color: theme.text.tertiary, cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
                                         </div>
@@ -2545,9 +2536,9 @@ export default function Charts() {
                                         fontWeight: '600',
                                         transition: 'all 0.3s ease',
                                         ...(timeframe === key ? {
-                                            background: `linear-gradient(135deg, ${theme.accent.orange} 0%, #d97706 100%)`,
+                                            background: theme.blue[600],
                                             color: 'white',
-                                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
+                                            boxShadow: '0 1px 3px rgba(37, 99, 235, 0.25)'
                                         } : {
                                             background: theme.bg.tertiary,
                                             color: theme.text.secondary,
@@ -2586,7 +2577,7 @@ export default function Charts() {
                                 </div>
                                 <div style={{
                                     fontSize: '1.5rem',
-                                    fontWeight: '800',
+                                    fontWeight: '700',
                                     color: priceChange >= 0 ? theme.accent.green : theme.accent.red
                                 }}>
                                     {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
@@ -2660,7 +2651,7 @@ export default function Charts() {
                                         }}
                                         style={{
                                             ...styles.buttonSecondary,
-                                            background: `linear-gradient(135deg, ${theme.accent.orange} 0%, #b45309 100%)`,
+                                            background: `linear-gradient(135deg, ${theme.blue[600]} 0%, ${theme.blue[700]} 100%)`,
                                             color: 'white',
                                             border: 'none',
                                             padding: '10px 20px'
@@ -2676,7 +2667,7 @@ export default function Charts() {
                                         }}
                                         style={{
                                             ...styles.buttonSecondary,
-                                            background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`,
+                                            background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #1e3a8a 100%)`,
                                             color: 'white',
                                             border: 'none',
                                             padding: '10px 20px'
@@ -2689,7 +2680,7 @@ export default function Charts() {
                                         onClick={() => setShowModelCreator(true)}
                                         style={{
                                             ...styles.buttonSecondary,
-                                            background: `linear-gradient(135deg, ${theme.accent.pink} 0%, #db2777 100%)`,
+                                            background: `linear-gradient(135deg, ${theme.accent.pink} 0%, #1d4ed8 100%)`,
                                             color: 'white',
                                             border: 'none',
                                             padding: '10px 20px'
@@ -2828,7 +2819,7 @@ export default function Charts() {
                                                                         style={{
                                                                             padding: '6px 14px', fontSize: '0.8rem', borderRadius: '7px', fontWeight: '700',
                                                                             cursor: 'pointer',
-                                                                            background: isSelected ? 'transparent' : `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`,
+                                                                            background: isSelected ? 'transparent' : `linear-gradient(135deg,${theme.accent.purple},#1e3a8a)`,
                                                                             color: isSelected ? theme.accent.red : 'white',
                                                                             border: isSelected ? `1.5px solid ${theme.accent.red}` : 'none',
                                                                         }}>
@@ -3072,7 +3063,7 @@ export default function Charts() {
                                 background: theme.bg.secondary, borderRadius: '16px',
                                 padding: '32px 36px', maxWidth: '420px', width: '90%',
                                 border: `1px solid ${theme.border.medium}`,
-                                boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+                                boxShadow: '0 14px 34px rgba(15,23,42,0.16)',
                                 textAlign: 'center',
                             }}>
                                 <div style={{ fontSize: '2.4rem', marginBottom: '14px' }}>👁</div>
@@ -3094,7 +3085,7 @@ export default function Charts() {
                                         onClick={() => { setCodePreviewModel(codePreviewPrompt); setCodePreviewPrompt(null); }}
                                         style={{
                                             padding: '10px 28px', borderRadius: '9px', fontWeight: '700', fontSize: '0.9rem',
-                                            background: `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`,
+                                            background: `linear-gradient(135deg,${theme.accent.purple},#1e3a8a)`,
                                             color: 'white', border: 'none', cursor: 'pointer',
                                         }}>
                                         Yes, show me
@@ -3120,7 +3111,7 @@ export default function Charts() {
                                 background: theme.bg.secondary, borderRadius: '14px',
                                 width: '92%', maxWidth: '780px',
                                 border: `1px solid ${theme.border.medium}`,
-                                boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+                                boxShadow: '0 14px 34px rgba(15,23,42,0.18)',
                                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
                                 maxHeight: '85vh',
                             }}>
@@ -3131,7 +3122,7 @@ export default function Charts() {
                                     background: theme.bg.tertiary, flexShrink: 0,
                                 }}>
                                     <div>
-                                        <div style={{ fontWeight: '800', fontSize: '1rem', color: theme.accent.purple, fontFamily: 'monospace' }}>
+                                        <div style={{ fontWeight: '700', fontSize: '1rem', color: theme.accent.purple, fontFamily: 'monospace' }}>
                                             👁 {codePreviewModel.modelId}
                                         </div>
                                         {codePreviewModel.modelNotes && (
@@ -3178,11 +3169,11 @@ export default function Charts() {
                                 background: theme.bg.secondary, borderRadius: '18px',
                                 padding: '28px 32px', width: '90%', maxWidth: '580px',
                                 border: `1px solid ${theme.border.medium}`,
-                                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+                                boxShadow: '0 14px 34px rgba(15,23,42,0.22)',
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                     <div>
-                                        <div style={{ fontWeight: '800', fontSize: '1.15rem', color: theme.text.primary }}>⏱ Timeframe Sensitivity</div>
+                                        <div style={{ fontWeight: '700', fontSize: '1.15rem', color: theme.text.primary }}>⏱ Timeframe Sensitivity</div>
                                         <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, marginTop: '4px' }}>
                                             {selectedAsset} · {batchTestModel?.model_id} · {batchTestTp}% TP / {batchTestSl}% SL
                                         </div>
@@ -3198,7 +3189,7 @@ export default function Charts() {
                                         <div style={{ padding: '14px 18px', borderRadius: '12px', marginBottom: '20px',
                                             background: `${theme.accent.green}15`, border: `1px solid ${theme.accent.green}40` }}>
                                             <div style={{ fontSize: '0.78rem', color: theme.accent.green, fontWeight: '700', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🏆 Best Timeframe</div>
-                                            <div style={{ fontWeight: '800', fontSize: '1.4rem', color: theme.accent.green }}>{best.timeframe}</div>
+                                            <div style={{ fontWeight: '700', fontSize: '1.4rem', color: theme.accent.green }}>{best.timeframe}</div>
                                             <div style={{ fontSize: '0.83rem', color: theme.text.secondary, marginTop: '2px' }}>
                                                 {best.trades} trades · {best.winRate}% win rate · +${parseFloat(best.pl).toFixed(2)} P&L
                                             </div>
@@ -3220,7 +3211,7 @@ export default function Charts() {
                                                 padding: '12px 14px', alignItems: 'center',
                                                 borderTop: `1px solid ${theme.border.light}`,
                                                 background: isTop ? `${theme.accent.green}08` : 'transparent' }}>
-                                                <div style={{ fontWeight: '800', fontSize: '0.95rem', color: isTop ? theme.accent.green : theme.text.primary }}>
+                                                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: isTop ? theme.accent.green : theme.text.primary }}>
                                                     {r.timeframe} {isTop ? '🏆' : ''}
                                                 </div>
                                                 <div style={{ color: theme.text.secondary, fontSize: '0.88rem' }}>{r.trades}</div>
@@ -3255,12 +3246,12 @@ export default function Charts() {
                                 padding: '28px 32px', width: '90%', maxWidth: '520px',
                                 maxHeight: '90vh', overflowY: 'auto',
                                 border: `1px solid ${theme.border.medium}`,
-                                boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
+                                boxShadow: '0 14px 34px rgba(15,23,42,0.18)',
                             }}>
                                 {/* Header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                                     <div>
-                                        <div style={{ fontWeight: '800', fontSize: '1.1rem', color: theme.text.primary }}>🚀 Test All Assets</div>
+                                        <div style={{ fontWeight: '700', fontSize: '1.1rem', color: theme.text.primary }}>🚀 Test All Assets</div>
                                         <div style={{ fontSize: '0.82rem', color: theme.text.tertiary, marginTop: '4px' }}>
                                             {watchlistAssets.length} assets · {batchTestTp}% TP / {batchTestSl}% SL · 1Y daily data
                                         </div>
@@ -3313,7 +3304,7 @@ export default function Charts() {
                                                     background: isPicked ? theme.accent.purple : 'transparent',
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 }}>
-                                                    {isPicked && <span style={{ color: 'white', fontSize: '0.65rem', fontWeight: '900' }}>✓</span>}
+                                                    {isPicked && <span style={{ color: 'white', fontSize: '0.65rem', fontWeight: '700' }}>✓</span>}
                                                 </div>
                                             </div>
                                         );
@@ -3379,9 +3370,9 @@ export default function Charts() {
                                         addToast(`Batch test started with model ${batchTestModel.model_id} · ${queue.length} assets · ${batchTestTp}% TP / ${batchTestSl}% SL`, 'info', 4500);
                                     }}
                                     style={{
-                                        width: '100%', padding: '13px', borderRadius: '10px', fontWeight: '800',
+                                        width: '100%', padding: '13px', borderRadius: '10px', fontWeight: '700',
                                         fontSize: '0.95rem', cursor: batchTestModel ? 'pointer' : 'not-allowed',
-                                        background: batchTestModel ? `linear-gradient(135deg,${theme.accent.purple},#6d28d9)` : theme.bg.tertiary,
+                                        background: batchTestModel ? `linear-gradient(135deg,${theme.accent.purple},#1e3a8a)` : theme.bg.tertiary,
                                         color: batchTestModel ? 'white' : theme.text.tertiary,
                                         border: 'none', transition: 'opacity 0.15s',
                                         opacity: batchTestModel ? 1 : 0.5,
@@ -3444,7 +3435,7 @@ export default function Charts() {
                                                 if (watchlistAssets.length === 0) return;
                                                 fetchForwardTestModels();
                                                 setShowBatchModelPicker(true);
-                                            }} style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.purple},#6d28d9)`, color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
+                                            }} style={{ ...styles.buttonSecondary, background: `linear-gradient(135deg,${theme.accent.purple},#1e3a8a)`, color: 'white', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>
                                                 🚀 Test All
                                             </button>
                                         ) : (
@@ -3589,7 +3580,7 @@ export default function Charts() {
                                                     {/* Group header */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px',
                                                         paddingBottom: '6px', borderBottom: `2px solid ${classColours[cls] || theme.border.medium}40` }}>
-                                                        <span style={{ fontWeight: '800', fontSize: '0.88rem', color: classColours[cls] || theme.text.primary }}>{cls}</span>
+                                                        <span style={{ fontWeight: '700', fontSize: '0.88rem', color: classColours[cls] || theme.text.primary }}>{cls}</span>
                                                         <span style={{ fontSize: '0.75rem', color: theme.text.tertiary }}>{assets.length} asset{assets.length !== 1 ? 's' : ''}</span>
                                                     </div>
                                                     {/* Asset cards */}
@@ -3605,7 +3596,7 @@ export default function Charts() {
                                                                 {/* Main content — click to navigate */}
                                                                 <div onClick={() => selectWatchlistAsset(asset)} style={{ paddingRight: '28px' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                                                                        <span style={{ fontWeight: '800', fontSize: '1rem', color: theme.text.primary }}>{asset.symbol}</span>
+                                                                        <span style={{ fontWeight: '700', fontSize: '1rem', color: theme.text.primary }}>{asset.symbol}</span>
                                                                         <span style={{ fontSize: '0.72rem', color: classColours[cls] || theme.text.tertiary,
                                                                             background: `${classColours[cls]}18`, padding: '1px 7px', borderRadius: '8px' }}>
                                                                             {asset.asset_class}
@@ -3830,7 +3821,7 @@ export default function Charts() {
                                             </div>
                                             <div>
                                                 <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, textTransform: 'uppercase', marginBottom: '4px' }}>Total P&L</div>
-                                                <div style={{ fontSize: '1.2rem', fontWeight: '800', color: totalPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                                <div style={{ fontSize: '1.2rem', fontWeight: '700', color: totalPnL >= 0 ? theme.accent.green : theme.accent.red }}>
                                                     {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(2)}
                                                 </div>
                                             </div>
@@ -3878,7 +3869,7 @@ export default function Charts() {
                                                             <span style={{ ...styles.badge, background: trade.order_type === 'BUY' ? theme.accent.green : theme.accent.red, color: 'white' }}>{trade.order_type}</span>
                                                             <span style={{ ...styles.badge, background: isOpen ? theme.blue[500] : theme.bg.tertiary, color: isOpen ? 'white' : theme.text.secondary }}>{trade.status}</span>
                                                             {trade.exit_reason && (
-                                                                <span style={{ fontSize: '0.75rem', fontWeight: '800', letterSpacing: '0.04em',
+                                                                <span style={{ fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.04em',
                                                                     color: trade.exit_reason === 'TP' ? theme.accent.green : trade.exit_reason === 'SL' ? theme.accent.red : theme.text.secondary }}>
                                                                     {trade.exit_reason}
                                                                 </span>
@@ -3957,7 +3948,7 @@ export default function Charts() {
                                                 {/* ── Model trades section ── */}
                                                 <div style={{ marginBottom: '20px' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '8px', borderBottom: `2px solid ${theme.accent.purple}40` }}>
-                                                        <span style={{ fontSize: '0.95rem', fontWeight: '800', color: theme.accent.purple }}>🤖 Model Trades</span>
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: '700', color: theme.accent.purple }}>🤖 Model Trades</span>
                                                         <span style={{ fontSize: '0.78rem', color: theme.text.tertiary }}>
                                                             {modelTrades.length} trades · {modelTrades.filter(t => t.status === 'CLOSED').length} closed · {' '}
                                                             P&L: <span style={{ fontWeight: '700', color: (() => { const s = modelTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return s >= 0 ? theme.accent.green : theme.accent.red; })() }}>
@@ -3974,7 +3965,7 @@ export default function Charts() {
                                                 {/* ── Manual trades section ── */}
                                                 <div>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '8px', borderBottom: `2px solid ${theme.blue[400]}40` }}>
-                                                        <span style={{ fontSize: '0.95rem', fontWeight: '800', color: theme.blue[500] }}>✍️ Manual Trades</span>
+                                                        <span style={{ fontSize: '0.95rem', fontWeight: '700', color: theme.blue[500] }}>✍️ Manual Trades</span>
                                                         <span style={{ fontSize: '0.78rem', color: theme.text.tertiary }}>
                                                             {manualTrades.length} trades · {manualTrades.filter(t => t.status === 'CLOSED').length} closed · {' '}
                                                             P&L: <span style={{ fontWeight: '700', color: (() => { const s = manualTrades.reduce((a,t) => a + parseFloat(t.profit_loss||0), 0); return s >= 0 ? theme.accent.green : theme.accent.red; })() }}>
@@ -4072,7 +4063,7 @@ export default function Charts() {
                                                     <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, marginBottom: '2px' }}>Realised P&L</div>
                                                     <div style={{ 
                                                         fontSize: '1.3rem', 
-                                                        fontWeight: '800',
+                                                        fontWeight: '700',
                                                         color: trade.profit_loss >= 0 ? theme.accent.green : theme.accent.red 
                                                     }}>
                                                         {trade.profit_loss >= 0 ? '+' : ''}${parseFloat(trade.profit_loss).toFixed(2)}&nbsp;
@@ -4095,7 +4086,7 @@ export default function Charts() {
                                                     <div style={{ fontSize: '0.75rem', color: theme.text.tertiary, marginBottom: '2px' }}>Unrealised P&L (Live)</div>
                                                     <div style={{ 
                                                         fontSize: '1.3rem', 
-                                                        fontWeight: '800',
+                                                        fontWeight: '700',
                                                         color: uPnL >= 0 ? theme.accent.green : theme.accent.red
                                                     }}>
                                                         {uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)}&nbsp;
@@ -4250,7 +4241,7 @@ export default function Charts() {
                                                     </div>
                                                     <div style={{
                                                         fontSize: '1.5rem',
-                                                        fontWeight: '800',
+                                                        fontWeight: '700',
                                                         color: asset.net_profit >= 0 ? theme.accent.green : theme.accent.red
                                                     }}>
                                                         ${asset.net_profit.toFixed(2)}
@@ -4454,7 +4445,7 @@ export default function Charts() {
                                     }}>
                                         <div style={{ fontSize: '0.8rem', color: theme.text.tertiary, marginBottom: '4px', textTransform: 'uppercase' }}>Unrealised P&L</div>
                                         {uPnL !== null ? (
-                                            <div style={{ fontSize: '1.4rem', fontWeight: '800', color: uPnL >= 0 ? theme.accent.green : theme.accent.red }}>
+                                            <div style={{ fontSize: '1.4rem', fontWeight: '700', color: uPnL >= 0 ? theme.accent.green : theme.accent.red }}>
                                                 {uPnL >= 0 ? '+' : ''}${uPnL.toFixed(2)}&nbsp;
                                                 <span style={{ fontSize: '1rem' }}>({uPct >= 0 ? '+' : ''}{uPct.toFixed(2)}%)</span>
                                             </div>
@@ -4661,7 +4652,7 @@ export default function Charts() {
                                     style={{
                                         ...styles.buttonPrimary,
                                         opacity: isGeneratingCode ? 0.6 : 1,
-                                        background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #6d28d9 100%)`
+                                        background: `linear-gradient(135deg, ${theme.accent.purple} 0%, #1e3a8a 100%)`
                                     }}
                                 >
                                     {isGeneratingCode ? '🔄 Generating Code...' : '✨ Generate Model Code'}
@@ -4879,14 +4870,14 @@ export default function Charts() {
                     width: '380px', maxHeight: '60vh',
                     background: theme.bg.elevated, borderRadius: '14px',
                     border: `1px solid ${theme.border.medium}`,
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                    boxShadow: '0 12px 40px rgba(15,23,42,0.22)',
                     display: 'flex', flexDirection: 'column',
                     animation: 'toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
                 }}>
                     {/* Header */}
                     <div style={{ padding: '14px 16px', borderBottom: `1px solid ${theme.border.light}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                            <div style={{ fontWeight: '800', fontSize: '0.95rem', color: theme.text.primary }}>📝 Generated Code</div>
+                            <div style={{ fontWeight: '700', fontSize: '0.95rem', color: theme.text.primary }}>📝 Generated Code</div>
                             <div style={{ fontSize: '0.72rem', color: theme.text.tertiary, marginTop: '2px' }}>{generatedCodeData.modelName}</div>
                         </div>
                         <button onClick={() => setShowGeneratedCode(false)}
@@ -4927,9 +4918,9 @@ export default function Charts() {
                         padding: '14px 28px',
                         background: `linear-gradient(135deg, #dc2626, #991b1b)`,
                         color: 'white', border: '2px solid #ef4444',
-                        borderRadius: '14px', fontWeight: '900', fontSize: '1.1rem',
+                        borderRadius: '14px', fontWeight: '700', fontSize: '1.1rem',
                         cursor: 'pointer', letterSpacing: '0.04em',
-                        boxShadow: '0 8px 32px rgba(220,38,38,0.55), 0 0 0 4px rgba(220,38,38,0.15)',
+                        boxShadow: '0 4px 16px rgba(220,38,38,0.32), 0 0 0 3px rgba(220,38,38,0.10)',
                         display: 'flex', alignItems: 'center', gap: '10px',
                         transition: 'transform 0.1s',
                     }}
@@ -4973,7 +4964,7 @@ export default function Charts() {
                             border: `1px solid ${cfg.border}40`,
                             borderLeft: `4px solid ${cfg.border}`,
                             borderRadius: '10px',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                            boxShadow: '0 8px 32px rgba(15,23,42,0.18)',
                             overflow: 'hidden',
                             animation: 'toastIn 0.25s cubic-bezier(0.34,1.56,0.64,1)',
                         }}>
@@ -4982,7 +4973,7 @@ export default function Charts() {
                                     width: '20px', height: '20px', borderRadius: '50%',
                                     background: `${cfg.border}25`, border: `1.5px solid ${cfg.border}`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '0.7rem', fontWeight: '900', color: cfg.border,
+                                    fontSize: '0.7rem', fontWeight: '700', color: cfg.border,
                                     flexShrink: 0, marginTop: '1px',
                                 }}>{cfg.icon}</span>
                                 <span style={{
