@@ -3561,6 +3561,21 @@ Do not include anything outside the JSON array. The response must be parseable b
         setAiPromptScope({ mode: 'bulk', tickerObjs: allTickerObjs });
         setShowAiPromptModal(true);
     };
+        const openBulkAIPrompt = () => {
+        if (!data?.countries) return;
+        const allTickerObjs = Object.entries(data.countries).flatMap(([country, cData]) =>
+            cData.tickers.map(t => ({ ...t, country, flag: cData.flag }))
+        );
+        setAiPromptScope({ mode: 'bulk', tickerObjs: allTickerObjs });
+        setShowAiPromptModal(true);
+    };
+    const openCountryAIPrompt = (country) => {
+        const cData = data?.countries?.[country];
+        if (!cData?.tickers?.length) return;
+        const tickerObjs = cData.tickers.map(t => ({ ...t, country, flag: cData.flag }));
+        setAiPromptScope({ mode: 'country', country, tickerObjs });
+        setShowAiPromptModal(true);
+    };
     const openIndividualAIPrompt = (tObj) => { setAiPromptScope({ mode: 'individual', tickerObjs: [tObj], ticker: tObj.ticker }); setShowAiPromptModal(true); };
     const openSynthesisPrompt = (ticker) => { setAiPromptScope({ mode: 'synthesis', ticker }); setShowAiPromptModal(true); };
     const bulkSynthesisEligibleTickers = data?.countries
@@ -3843,8 +3858,18 @@ Do not include anything outside the JSON array. The response must be parseable b
                                     {cData.sessionDate && (
                                         <span style={{ fontSize:'10px', color:'#94a3b8' }}>· picked {cData.sessionDate}</span>
                                     )}
+                                                                        <button
+                                        onClick={(e) => { e.stopPropagation(); openCountryAIPrompt(country); }}
+                                        style={{
+                                            marginLeft: s.avgScore != null ? '10px' : 'auto',
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
+                                            border:'1px solid rgba(124,58,237,0.4)',
+                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
+                                            whiteSpace:'nowrap',
+                                        }}
+                                    >🧠 Scan {country}</button>
                                     {s.avgScore != null && (
-                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
+                                        <span style={{ marginLeft: s.avgScore != null ? '0' : 'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
                                     )}
                                 </div>
 
@@ -4065,13 +4090,14 @@ Do not include anything outside the JSON array. The response must be parseable b
 
         {showAiPromptModal && (() => {
             const mode = aiPromptScope?.mode;
-            const promptText = mode === 'synthesis'
+                        const promptText = mode === 'synthesis'
                 ? buildGpSynthesisPrompt(aiPromptScope.ticker)
                 : mode === 'bulkSynthesis'
                     ? buildGpBulkSynthesisPrompt(aiPromptScope.tickers || [])
                     : buildGpAIPrompt(aiPromptScope?.tickerObjs || []);
             const scopeLabel = mode === 'synthesis' ? `Synthesis for ${aiPromptScope.ticker}`
                 : mode === 'bulkSynthesis' ? `Bulk synthesis — ${aiPromptScope.tickers?.length || 0} tickers`
+                : mode === 'country' ? `${aiPromptScope.country} — ${(aiPromptScope?.tickerObjs || []).length} tickers`
                 : mode === 'bulk' ? `${(aiPromptScope?.tickerObjs || []).length} tickers (all countries)`
                 : aiPromptScope?.ticker;
             return (
