@@ -3323,6 +3323,34 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
     const [expandedTicker, setExpandedTicker] = React.useState(null);
     const pollRef = React.useRef(null);
 
+        // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
+    const [aiRuns, setAiRuns] = React.useState({});
+    const [aiSynthesis, setAiSynthesis] = React.useState({});
+    const [aiPromptScope, setAiPromptScope] = React.useState(null);
+    const [showAiPromptModal, setShowAiPromptModal] = React.useState(false);
+    const [showAiPasteModal, setShowAiPasteModal] = React.useState(false);
+    const [aiPasteText, setAiPasteText] = React.useState('');
+    const [aiPasteSource, setAiPasteSource] = React.useState('');
+    const [aiPasteError, setAiPasteError] = React.useState(null);
+    const [aiCopied, setAiCopied] = React.useState(false);
+    const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
+
+    // -- Stability check (reuses shared helpers built for the Trend Scanner) --
+    const GP_STABILITY_HORIZONS = [1, 3, 5, 10, 20];
+    const [gpStabilityLoading, setGpStabilityLoading] = React.useState(false);
+    const [gpStabilityError, setGpStabilityError] = React.useState(null);
+    const [gpStabilityRows, setGpStabilityRows] = React.useState([]);
+    const [gpStabilityData, setGpStabilityData] = React.useState(null);
+    const [perfModalTicker, setPerfModalTicker] = React.useState(null);
+
+    const GP_AI_VERDICT_CONFIG = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'⛔' },
+    };
+
     const GP_SIG = {
         RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
         RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
@@ -3419,9 +3447,233 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
         return `$${(v/1e6).toFixed(0)}M`;
     };
 
+        const buildGpCohortContext = () => {
+        if (!data?.countries) return '';
+        return Object.entries(data.countries).map(([country, cData]) => {
+            const s = cData.summary || {};
+            return `- ${cData.flag} ${country}: ${s.bullish} bullish / ${s.bearish} bearish / ${s.neutral} neutral of ${s.total} picks · avg score ${s.avgScore ?? 'n/a'}`;
+        }).join('\n');
+    };
+
+    const buildGpAIPrompt = (tickerObjs) => {
+        const cohortCtx = buildGpCohortContext();
+        const lines = tickerObjs.map(t => {
+            const catalystsStr = Array.isArray(t.catalysts) && t.catalysts.length ? t.catalysts.join('; ') : 'none listed';
+            return `### ${t.ticker} — ${t.name || ''} (${t.flag || ''} ${t.country}, sector: ${t.pickSector || t.sector || 'Unknown'})
+Original Pick: ${t.pickRec}${t.conviction != null ? ` · conviction ${t.conviction}/10` : ''}${t.topPick ? ' · ⭐ Top Pick' : ''}
+Original Thesis: ${t.thesis || 'none recorded'}
+Original Risk Note: ${t.risk || 'none recorded'}
+Catalysts Noted: ${catalystsStr}
+Analyst Target: ${t.analystTarget || 'N/A'}
+
+Fresh Technical Scan: Signal ${t.signal} · Direction ${t.direction} · Score ${t.score}/100
+Price: $${t.currentPrice ?? 'N/A'} · Market Cap: ${t.marketCap ? '$' + (t.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}
+ADX: ${t.adxNow ?? 'N/A'} · ROC20: ${t.roc20 ?? 'N/A'}% · Volume Ratio: ${t.volRatio ?? 'N/A'}× · From 52W High: ${t.pctFromHigh ?? 'N/A'}%`;
+        }).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst. Below are stocks originally recommended by an AI (with a written thesis) via a Country-Sector Drill feature, now ALSO re-checked with a fresh technical trend scan. Assess how genuinely LUCRATIVE each is right now — weighing whether the fresh technical signal supports or contradicts the original thesis, and whether the move looks country/sector-wide or stock-specific.
+
+Search the web for current country/sector-wide context and recent company-specific news for each ticker below before answering — don't rely on memorized data.
+
+PEER COHORT ACROSS ALL COUNTRIES CURRENTLY TRACKED:
+${cohortCtx || 'No cohort data available.'}
+
+STOCK(S) TO ANALYSE:
+${lines}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble), one object per stock, in this exact shape:
+[
+  {
+    "ticker": "<ticker>",
+    "opportunityScore": <integer 0-100>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "badge": "<max 4 words, punchy, for a small inline UI badge>",
+    "cohortRelation": "<1-2 sentences: does the fresh technical signal support or contradict the original AI thesis? Country/sector-wide or stock-specific?>",
+    "thesis": "<2-3 sentences: your updated synthesis>",
+    "risks": "<1-2 sentences: the main thing that would invalidate this>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+    };
+
+    const buildGpSynthesisPrompt = (ticker) => {
+        const runs = aiRuns[ticker] || [];
+        const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Cohort Relation: ${run.cohortRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. ${runs.length} different AI models have each independently analysed the same stock, ${ticker}. Synthesise these ${runs.length} analyses into one final, most defensible verdict — explicitly flag where they agree, where they disagree, and why.
+
+${runLines}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble):
+{
+  "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+  "finalOpportunityScore": <integer 0-100>,
+  "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+  "consensusSummary": "<2-3 sentences>",
+  "disagreements": "<1-2 sentences — empty string if none>",
+  "synthesizedThesis": "<3-4 sentences: your final take>"
+}
+
+Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+    };
+
+    const buildGpBulkSynthesisPrompt = (tickers) => {
+        const sections = tickers.map(ticker => {
+            const runs = aiRuns[ticker] || [];
+            const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Cohort Relation: ${run.cohortRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+            return `## ${ticker}\n${runLines}`;
+        }).join('\n\n---\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. For EACH stock below, multiple AI models have each independently analysed it. Synthesise the analyses for EACH stock into one final, most defensible verdict per stock.
+
+${sections}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble):
+[
+  {
+    "ticker": "<ticker>",
+    "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "finalOpportunityScore": <integer 0-100>,
+    "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+    "consensusSummary": "<2-3 sentences per stock>",
+    "disagreements": "<1-2 sentences per stock — empty string if none>",
+    "synthesizedThesis": "<3-4 sentences per stock>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+    };
+
+    const openBulkAIPrompt = () => {
+        if (!data?.countries) return;
+        const allTickerObjs = Object.entries(data.countries).flatMap(([country, cData]) =>
+            cData.tickers.map(t => ({ ...t, country, flag: cData.flag }))
+        );
+        setAiPromptScope({ mode: 'bulk', tickerObjs: allTickerObjs });
+        setShowAiPromptModal(true);
+    };
+    const openIndividualAIPrompt = (tObj) => { setAiPromptScope({ mode: 'individual', tickerObjs: [tObj], ticker: tObj.ticker }); setShowAiPromptModal(true); };
+    const openSynthesisPrompt = (ticker) => { setAiPromptScope({ mode: 'synthesis', ticker }); setShowAiPromptModal(true); };
+    const bulkSynthesisEligibleTickers = data?.countries
+        ? [...new Set(Object.values(data.countries).flatMap(c => c.tickers.map(t => t.ticker)))].filter(t => (aiRuns[t] || []).length >= 2)
+        : [];
+    const openBulkSynthesisPrompt = () => {
+        if (bulkSynthesisEligibleTickers.length === 0) return;
+        setAiPromptScope({ mode: 'bulkSynthesis', tickers: bulkSynthesisEligibleTickers });
+        setShowAiPromptModal(true);
+    };
+
+    const handleGpPasteAIResponse = () => {
+        setAiPasteError(null);
+        if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
+        const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        if (aiPromptScope?.mode === 'synthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (Array.isArray(parsed) || parsed.finalVerdict == null || parsed.synthesizedThesis == null) {
+                setAiPasteError('Expected a single JSON object with finalVerdict + synthesizedThesis.');
+                return;
+            }
+            const ticker  = aiPromptScope.ticker;
+            const updated = { ...aiSynthesis };
+            updated[ticker] = { ...parsed, runCountAtSynthesis: (aiRuns[ticker] || []).length, savedAt: new Date().toLocaleString() };
+            setAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
+            return;
+        }
+
+        if (aiPromptScope?.mode === 'bulkSynthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one synthesis object per stock).'); return; }
+            const updated = { ...aiSynthesis };
+            let added = 0;
+            parsed.forEach(item => {
+                const t = String(item?.ticker || '').toUpperCase().trim();
+                if (!t || item.finalVerdict == null || item.synthesizedThesis == null) return;
+                updated[t] = { ...item, runCountAtSynthesis: (aiRuns[t] || []).length, savedAt: new Date().toLocaleString() };
+                added += 1;
+            });
+            if (added === 0) { setAiPasteError('No valid synthesis entries found.'); return; }
+            setAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
+            return;
+        }
+
+        let parsed;
+        try { parsed = JSON.parse(clean); }
+        catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+        if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one object per stock).'); return; }
+        const source  = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const updated = { ...aiRuns };
+        let added = 0;
+        parsed.forEach(item => {
+            const t = String(item?.ticker || '').toUpperCase().trim();
+            if (!t || item.verdict == null || item.thesis == null) return;
+            if (!updated[t]) updated[t] = [];
+            updated[t] = [...updated[t], { ...item, ticker: t, source, savedAt: new Date().toLocaleString() }];
+            added += 1;
+        });
+        if (added === 0) { setAiPasteError('No valid stock entries found.'); return; }
+        setAiRuns(updated);
+        setShowAiPasteModal(false);
+        setAiPasteText('');
+        setAiPasteSource('');
+    };
+
+    const getGpConsensus = (ticker) => {
+        const runs = aiRuns[ticker];
+        if (!runs || runs.length === 0) return null;
+        const scores = runs.map(r => r.opportunityScore).filter(v => typeof v === 'number');
+        const meanScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+        const counts = {};
+        runs.forEach(r => { if (r.verdict) counts[r.verdict] = (counts[r.verdict]||0) + 1; });
+        const modeVerdict = Object.keys(counts).length ? Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0] : null;
+        const agreement = (modeVerdict && runs.length) ? Math.round((counts[modeVerdict]/runs.length) * 100) : null;
+        return { meanScore, modeVerdict, agreement, runCount: runs.length };
+    };
+
+    const runGpStabilityCheck = async () => {
+        if (!data?.countries) return;
+        const allTickers = [...new Set(Object.values(data.countries).flatMap(c => c.tickers.map(t => t.ticker)))];
+        if (allTickers.length === 0) return;
+        setGpStabilityLoading(true);
+        setGpStabilityError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_global_picks_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ symbols: allTickers, limit: 5000, horizons: GP_STABILITY_HORIZONS }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpStabilityRows(json.rows || []);
+            setGpStabilityData(computeStabilityByAsset(json.rows || [], GP_STABILITY_HORIZONS, 'symbol'));
+        } catch (e) {
+            setGpStabilityError(e.message);
+        } finally {
+            setGpStabilityLoading(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
+        <>
         <div style={{
             position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10060,
             display:'flex', alignItems:'flex-start', justifyContent:'center',
@@ -3461,6 +3713,47 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
                                 : isBackgroundRunning ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span> Scanning...</>
                                 : <><span>🔭</span> Run Fresh Scan</>}
                         </button>
+
+                                                <button
+                            onClick={openBulkAIPrompt}
+                            disabled={!data || data.totalTickers === 0}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: (!data || data.totalTickers === 0) ? 'rgba(219,39,119,0.2)' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                                cursor: (!data || data.totalTickers === 0) ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >🧠 AI Opportunity Scan</button>
+
+                        <button
+                            onClick={openBulkSynthesisPrompt}
+                            disabled={bulkSynthesisEligibleTickers.length === 0}
+                            title={bulkSynthesisEligibleTickers.length === 0 ? 'Needs 2+ AI runs on at least one ticker' : `Synthesize ${bulkSynthesisEligibleTickers.length} tickers`}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: bulkSynthesisEligibleTickers.length === 0 ? 'rgba(99,102,241,0.15)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                border:'none', color: bulkSynthesisEligibleTickers.length === 0 ? 'rgba(255,255,255,0.4)' : '#fff',
+                                fontWeight:'800', fontSize:'12px',
+                                cursor: bulkSynthesisEligibleTickers.length === 0 ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >✨ Synthesize All ({bulkSynthesisEligibleTickers.length})</button>
+
+                        <button
+                            onClick={runGpStabilityCheck}
+                            disabled={gpStabilityLoading || !data || data.totalTickers === 0}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: (gpStabilityLoading || !data || data.totalTickers === 0) ? 'rgba(8,145,178,0.2)' : '#0891b2',
+                                border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                                cursor: (gpStabilityLoading || !data || data.totalTickers === 0) ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >
+                            {gpStabilityLoading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>🛡️</span> Checking...</> : <>🛡️ Check Stability</>}
+                        </button>
+
                         {data && (
                             <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
                                 {data.totalTickers} tickers · {data.totalCountries} countries
@@ -3575,6 +3868,45 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
                                                         <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: dirColor+'15', color:dirColor }}>
                                                             {t.direction}
                                                         </span>
+                                                                                                                {(() => {
+                                                            const synth = aiSynthesis[t.ticker];
+                                                            const runs  = aiRuns[t.ticker];
+                                                            if (synth) {
+                                                                const av = GP_AI_VERDICT_CONFIG[synth.finalVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={synth.synthesizedThesis} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        ✨ {av.icon} Synth ({synth.runCountAtSynthesis})
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (runs?.length >= 2) {
+                                                                const c  = getGpConsensus(t.ticker);
+                                                                const av = GP_AI_VERDICT_CONFIG[c?.modeVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={`${c.runCount} AI runs · ${c.agreement}% agreement`} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        🧠 ×{c.runCount} · {c.meanScore}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (runs?.length === 1) {
+                                                                const av = GP_AI_VERDICT_CONFIG[runs[0].verdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={runs[0].thesis} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        {av.icon} 🧠 {runs[0].badge}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                        {gpStabilityData?.[t.ticker] && (() => {
+                                                            const s = gpStabilityData[t.ticker];
+                                                            const info = stabilityLabel(s.combined.winRate);
+                                                            return (
+                                                                <span title={`${s.combined.winRate}% win rate across ${s.occurrenceCount} occurrences (combined horizons)`} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: `${info.color}18`, color: info.color, border:`1px solid ${info.color}40`, whiteSpace:'nowrap' }}>
+                                                                    🛡️ {s.combined.stabilityScore}%
+                                                                </span>
+                                                            );
+                                                        })()}
                                                         {t.topPick && <span title="Top Pick">⭐</span>}
                                                         {t.pickRec && (
                                                             <span style={{ fontSize:'10px', color:'#64748b' }}>{t.pickRec}{t.conviction != null ? ` · conv ${t.conviction}` : ''}</span>
@@ -3601,6 +3933,101 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
                                                                     </div>
                                                                 ))}
                                                             </div>
+                                                                                                                        {(() => {
+                                                                const runs  = aiRuns[t.ticker] || [];
+                                                                const synth = aiSynthesis[t.ticker];
+                                                                const c     = getGpConsensus(t.ticker);
+                                                                return (
+                                                                    <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                                        {synth && (() => {
+                                                                            const av = GP_AI_VERDICT_CONFIG[synth.finalVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                            return (
+                                                                                <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`2px solid ${av.color}` }}>
+                                                                                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                                        <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>✨🧠 AI SYNTHESIS ({synth.runCountAtSynthesis} sources)</span>
+                                                                                        <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
+                                                                                            {av.icon} {synth.finalVerdict?.replace('_',' ')} · {synth.finalOpportunityScore}/100
+                                                                                        </span>
+                                                                                        <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>{synth.agreementLevel} agreement</span>
+                                                                                    </div>
+                                                                                    <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>{synth.synthesizedThesis}</div>
+                                                                                    {synth.consensusSummary && <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, marginBottom:'6px' }}><strong>Agree on:</strong> {synth.consensusSummary}</div>}
+                                                                                    {synth.disagreements && <div style={{ fontSize:'12px', color:'#b45309', lineHeight:1.5 }}><strong>Diverge on:</strong> {synth.disagreements}</div>}
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+
+                                                                        {c && c.runCount >= 2 && (
+                                                                            <div style={{ display:'flex', gap:'14px', alignItems:'center', padding:'8px 12px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}><strong style={{ color:'#1a1a1a' }}>{c.runCount}</strong> AI runs</span>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}>Mean score <strong style={{ color:'#1a1a1a' }}>{c.meanScore}</strong></span>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}>Agreement <strong style={{ color: c.agreement >= 70 ? '#10b981' : c.agreement >= 40 ? '#f59e0b' : '#ef4444' }}>{c.agreement}%</strong></span>
+                                                                                {!synth && (
+                                                                                    <button onClick={() => openSynthesisPrompt(t.ticker)} style={{ marginLeft:'auto', padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer', border:'1px solid rgba(124,58,237,0.4)', background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff' }}>✨ Synthesize with AI</button>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {runs.length > 0 && (
+                                                                            <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                                {runs.map((run, idx) => {
+                                                                                    const av = GP_AI_VERDICT_CONFIG[run.verdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                                    return (
+                                                                                        <div key={idx} style={{ padding:'9px 11px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
+                                                                                            <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                                                                                <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', backgroundColor:'#fff', padding:'1px 7px', borderRadius:'10px', border:'1px solid #e2e8f0' }}>{run.source || 'AI'}</span>
+                                                                                                <span style={{ fontSize:'11px', fontWeight:'800', color:av.color }}>{av.icon} {run.verdict?.replace('_',' ')} · {run.opportunityScore}/100</span>
+                                                                                            </div>
+                                                                                            <div style={{ fontSize:'12px', color:'#333', lineHeight:1.5 }}>{run.thesis}</div>
+                                                                                            {run.cohortRelation && <div style={{ fontSize:'11px', color:'#475569', lineHeight:1.5, marginTop:'4px' }}><strong>Cohort:</strong> {run.cohortRelation}</div>}
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        )}
+
+                                                                        <button
+                                                                            onClick={() => openIndividualAIPrompt({ ...t, country, flag: cData.flag })}
+                                                                            style={{
+                                                                                padding:'10px', borderRadius:'9px',
+                                                                                background: runs.length > 0 ? '#fff' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                                color: runs.length > 0 ? '#7c3aed' : '#fff',
+                                                                                border: runs.length > 0 ? '1.5px solid #7c3aed' : 'none',
+                                                                                fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                                                display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
+                                                                            }}
+                                                                        >{runs.length > 0 ? `🧠 Add Another AI's Take (${runs.length} so far)` : '🧠 Ask External AI for Opportunity Analysis'}</button>
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {gpStabilityData?.[t.ticker] && (() => {
+                                                                const s = gpStabilityData[t.ticker];
+                                                                const info = stabilityLabel(s.combined.winRate);
+                                                                return (
+                                                                    <div style={{ padding:'12px 14px', backgroundColor: `${info.color}10`, borderRadius:'8px', border:`1px solid ${info.color}30` }}>
+                                                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                            <Shield size={13} color={info.color} />
+                                                                            <span style={{ fontSize:'11px', fontWeight:'700', color: info.color, letterSpacing:'0.07em' }}>HISTORICAL STABILITY</span>
+                                                                            <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor: info.color, color:'#fff' }}>{s.combined.stabilityScore}% · {info.label}</span>
+                                                                            <span style={{ fontSize:'10px', color:'#94a3b8' }}>{s.occurrenceCount} past occurrences</span>
+                                                                            <button onClick={() => setPerfModalTicker(t.ticker)} style={{ marginLeft:'auto', fontSize:'10px', color: info.color, background:'none', border:`1px solid ${info.color}40`, borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>View Details</button>
+                                                                        </div>
+                                                                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                                                                            {GP_STABILITY_HORIZONS.map(h => {
+                                                                                const cell = s.byHorizon[String(h)];
+                                                                                const hinfo = stabilityLabel(cell?.winRate);
+                                                                                return (
+                                                                                    <div key={h} style={{ padding:'5px 9px', borderRadius:'8px', backgroundColor:'#fff', border:`1px solid ${hinfo.color}30`, textAlign:'center', minWidth:'50px' }}>
+                                                                                        <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'700' }}>{h}D</div>
+                                                                                        <div style={{ fontSize:'12px', fontWeight:'800', color: hinfo.color }}>{cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}</div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                             {onSelectTicker && (
                                                                 <button onClick={() => { onSelectTicker(t.ticker); onClose(); }} style={{
                                                                     padding:'8px', borderRadius:'8px',
@@ -3618,13 +4045,170 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
                             </div>
                         );
                     })}
+                                        {gpStabilityError && (
+                        <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ Stability check error: {gpStabilityError}</div>
+                    )}
+
+                    {gpStabilityRows.length > 0 && (
+                        <div style={{ padding:'20px' }}>
+                            <StabilityRankingTable rows={gpStabilityRows} horizons={GP_STABILITY_HORIZONS} keyField="symbol"
+                                onSelectAsset={(sym) => setPerfModalTicker(sym)} title="Global Picks Stability Ranking (All Countries)" />
+                        </div>
+                    )}
                 </div>
             </div>
 
-            <style>{`
+                        <style>{`
                 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
             `}</style>
         </div>
+
+        {showAiPromptModal && (() => {
+            const mode = aiPromptScope?.mode;
+            const promptText = mode === 'synthesis'
+                ? buildGpSynthesisPrompt(aiPromptScope.ticker)
+                : mode === 'bulkSynthesis'
+                    ? buildGpBulkSynthesisPrompt(aiPromptScope.tickers || [])
+                    : buildGpAIPrompt(aiPromptScope?.tickerObjs || []);
+            const scopeLabel = mode === 'synthesis' ? `Synthesis for ${aiPromptScope.ticker}`
+                : mode === 'bulkSynthesis' ? `Bulk synthesis — ${aiPromptScope.tickers?.length || 0} tickers`
+                : mode === 'bulk' ? `${(aiPromptScope?.tickerObjs || []).length} tickers (all countries)`
+                : aiPromptScope?.ticker;
+            return (
+                <div onClick={() => setShowAiPromptModal(false)} style={{
+                    position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    zIndex:10070, padding:'20px', backdropFilter:'blur(3px)',
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        width:'min(680px,100%)', maxHeight:'85vh', borderRadius:'16px', overflow:'hidden',
+                        display:'flex', flexDirection:'column', backgroundColor:'#fff',
+                        boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                    }}>
+                        <div style={{ padding:'20px 24px 16px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                                <div>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                        <span style={{ fontSize:'18px' }}>🧠</span>
+                                        <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>AI Opportunity Prompt — {scopeLabel}</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', lineHeight:1.5 }}>Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"</div>
+                                </div>
+                                <button onClick={() => setShowAiPromptModal(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                            </div>
+                        </div>
+                        <div style={{ flex:1, overflowY:'auto', padding:'20px 24px' }}>
+                            <div style={{ backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'16px', fontSize:'13px', lineHeight:1.7, color:'#333', fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
+                                {promptText}
+                            </div>
+                            <div style={{ marginTop:'14px', padding:'10px 14px', backgroundColor:'rgba(32,178,170,0.07)', border:'1px solid rgba(32,178,170,0.25)', borderRadius:'9px', display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                                <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                <div style={{ fontSize:'12px', color:'#0f766e', lineHeight:1.55 }}>
+                                    <strong>Tip:</strong> Perplexity and Qwen both search the web in real time — Qwen's search tends to be the most comprehensive. ChatGPT, Gemini, and Claude need web browsing enabled to do the same; DeepSeek has a toggleable search mode.
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ padding:'14px 24px', borderTop:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:'12px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                            <div>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', marginBottom:'8px' }}>OPEN DIRECTLY IN (prompt auto-filled)</div>
+                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                    {[
+                                        { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl:p=>`https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                                        { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl:p=>`https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                                        { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl:p=>`https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                                        { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl:p=>`https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                                        { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
+                                        { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+                                    ].map(({ name, icon, color, bg, border, getUrl }) => (
+                                        <button key={name} onClick={() => { setAiLastOpenedSource(name); window.open(getUrl(promptText), '_blank'); }} style={{
+                                            padding:'8px 14px', borderRadius:'9px', border:`1.5px solid ${border}`, backgroundColor:bg, color, fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap',
+                                        }}><span style={{ fontSize:'15px' }}>{icon}</span>{name}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ height:'1px', backgroundColor:'#e2e8f0' }} />
+                            <div style={{ display:'flex', gap:'10px' }}>
+                                <button onClick={() => { navigator.clipboard.writeText(promptText); setAiCopied(true); setTimeout(() => setAiCopied(false), 2000); }} style={{
+                                    flex:1, padding:'10px', background: aiCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#4c1d95,#7c3aed)',
+                                    border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                }}>{aiCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}</button>
+                                <button onClick={() => { setShowAiPromptModal(false); setShowAiPasteModal(true); }} style={{
+                                    flex:1, padding:'10px', backgroundColor:'#fff', border:'2px solid #7c3aed', borderRadius:'9px', color:'#7c3aed', fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                    display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                }}><span>📥</span> Paste Response</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        })()}
+
+        {showAiPasteModal && (
+            <div onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center',
+                zIndex:10070, padding:'20px', backdropFilter:'blur(3px)',
+            }}>
+                <div onClick={e => e.stopPropagation()} style={{
+                    width:'min(640px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff',
+                    boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif", display:'flex', flexDirection:'column',
+                }}>
+                    <div style={{ padding:'18px 22px 14px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>📥 Paste AI Response</div>
+                                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>Paste the raw JSON the AI returned.</div>
+                            </div>
+                            <button onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer' }}>×</button>
+                        </div>
+                    </div>
+                    <div style={{ padding:'20px 22px 0' }}>
+                        {aiPromptScope?.mode !== 'synthesis' && aiPromptScope?.mode !== 'bulkSynthesis' && (
+                            <div style={{ marginBottom:'10px' }}>
+                                <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>Which AI is this from?</label>
+                                <input type="text" list="gp-ai-source-options" value={aiPasteSource || aiLastOpenedSource} onChange={e => setAiPasteSource(e.target.value)}
+                                    placeholder="Perplexity, ChatGPT, Gemini, Claude, DeepSeek, Qwen..."
+                                    style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }} />
+                                <datalist id="gp-ai-source-options">
+                                    <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" /><option value="DeepSeek" /><option value="Qwen" />
+                                </datalist>
+                            </div>
+                        )}
+                        <textarea autoFocus value={aiPasteText} onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
+                            placeholder={aiPromptScope?.mode === 'synthesis' ? `Paste the JSON object here.` : `Paste the JSON array here.`}
+                            style={{
+                                width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
+                                border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`, fontSize:'13px', fontFamily:'monospace', lineHeight:1.6,
+                                resize:'vertical', outline:'none', boxSizing:'border-box', color:'#1a1a1a', backgroundColor: aiPasteError ? '#fef2f2' : '#f8fafc',
+                            }} />
+                        {aiPasteError && (
+                            <div style={{ marginTop:'10px', padding:'10px 14px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', fontSize:'13px', color:'#b91c1c', lineHeight:1.5 }}>⚠️ {aiPasteError}</div>
+                        )}
+                    </div>
+                    <div style={{ padding:'16px 22px', display:'flex', gap:'10px' }}>
+                        <button onClick={handleGpPasteAIResponse} disabled={!aiPasteText.trim()} style={{
+                            flex:1, padding:'11px', background: !aiPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)',
+                            border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px', cursor: !aiPasteText.trim() ? 'not-allowed' : 'pointer',
+                        }}>✓ Parse & Save</button>
+                        <button onClick={() => { setShowAiPasteModal(false); setShowAiPromptModal(true); setAiPasteError(null); }} style={{
+                            padding:'11px 16px', backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'9px', color:'#64748b', fontWeight:'600', fontSize:'14px', cursor:'pointer',
+                        }}>← Back to prompt</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {perfModalTicker && (
+            <TickerPerformanceModal
+                symbol={perfModalTicker}
+                rows={normalizeRowsForPerfModal((gpStabilityRows || []).filter(r => r.symbol === perfModalTicker), 'globalPicks')}
+                horizons={GP_STABILITY_HORIZONS}
+                sourceLabel="Global Stock Picks"
+                onClose={() => setPerfModalTicker(null)}
+                onOpenInScreener={onSelectTicker ? () => { onSelectTicker(perfModalTicker); setPerfModalTicker(null); onClose && onClose(); } : null}
+            />
+        )}
+        </>
     );
 }
 
