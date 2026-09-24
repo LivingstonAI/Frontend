@@ -3553,15 +3553,8 @@ For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks,
 Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
     };
 
+    
     const openBulkAIPrompt = () => {
-        if (!data?.countries) return;
-        const allTickerObjs = Object.entries(data.countries).flatMap(([country, cData]) =>
-            cData.tickers.map(t => ({ ...t, country, flag: cData.flag }))
-        );
-        setAiPromptScope({ mode: 'bulk', tickerObjs: allTickerObjs });
-        setShowAiPromptModal(true);
-    };
-        const openBulkAIPrompt = () => {
         if (!data?.countries) return;
         const allTickerObjs = Object.entries(data.countries).flatMap(([country, cData]) =>
             cData.tickers.map(t => ({ ...t, country, flag: cData.flag }))
