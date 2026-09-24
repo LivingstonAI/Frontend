@@ -3309,6 +3309,322 @@ function TickerPerformanceModal({ symbol, rows, horizons, sourceLabel, onClose, 
     );
 }
 
+function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const [loading, setLoading] = React.useState(false);
+    const [isBackgroundRunning, setIsBackgroundRunning] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const [data, setData] = React.useState(null);
+    const [search, setSearch] = React.useState('');
+    const [countryFilter, setCountryFilter] = React.useState('ALL');
+    const [dirFilter, setDirFilter] = React.useState('ALL');
+    const [collapsedCountries, setCollapsedCountries] = React.useState({});
+    const [expandedTicker, setExpandedTicker] = React.useState(null);
+    const pollRef = React.useRef(null);
+
+    const GP_SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', icon:'👁', label:'Watch'             },
+    };
+
+    const run = async (forceRefresh = false) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ forceRefresh }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+            setIsBackgroundRunning(!!json.isRunning);
+
+            if (json.isRunning && !pollRef.current) {
+                pollRef.current = setInterval(async () => {
+                    try {
+                        const pRes  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ forceRefresh: false }),
+                        });
+                        const pJson = await pRes.json();
+                        setData(pJson);
+                        setIsBackgroundRunning(!!pJson.isRunning);
+                        if (!pJson.isRunning) { clearInterval(pollRef.current); pollRef.current = null; }
+                    } catch (e) { console.error('[GlobalPicksTrendScan poll]', e); }
+                }, 5000);
+            }
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const forceReset = async () => {
+        setLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ resetLock: true }),
+            });
+            const json = await res.json();
+            setData(json);
+            setIsBackgroundRunning(!!json.isRunning);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (isOpen && !data) run(false);
+        return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+    }, [isOpen]);
+
+    const toggleCountryCollapse = (country) => setCollapsedCountries(prev => ({ ...prev, [country]: !prev[country] }));
+
+    const countryEntries = React.useMemo(() => {
+        if (!data?.countries) return [];
+        return Object.entries(data.countries)
+            .filter(([country]) => countryFilter === 'ALL' || country === countryFilter)
+            .map(([country, cData]) => {
+                const tickers = cData.tickers.filter(t => {
+                    if (search.trim() && !t.ticker.toUpperCase().includes(search.trim().toUpperCase())) return false;
+                    if (dirFilter !== 'ALL' && t.direction !== dirFilter) return false;
+                    return true;
+                });
+                return [country, { ...cData, tickers }];
+            })
+            .filter(([, cData]) => cData.tickers.length > 0)
+            .sort((a, b) => (b[1].summary?.avgScore || 0) - (a[1].summary?.avgScore || 0));
+    }, [data, search, dirFilter, countryFilter]);
+
+    const allCountryNames = data?.countries ? Object.keys(data.countries).sort() : [];
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10060,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'920px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #7c3aed 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>🌍</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Global Picks Trend Scan</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Same trend-scanner signals (ADX, ROC, breakouts) run across every saved Country-Sector Drill pick — grouped by country
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%',
+                            width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0,
+                        }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                        <button onClick={() => run(true)} disabled={loading || isBackgroundRunning} style={{
+                            padding:'8px 20px', borderRadius:'9px',
+                            background: (loading || isBackgroundRunning) ? 'rgba(124,58,237,0.4)' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                            border:'none', color:'#fff', fontWeight:'800', fontSize:'13px',
+                            cursor: (loading || isBackgroundRunning) ? 'wait' : 'pointer',
+                            display:'flex', alignItems:'center', gap:'7px',
+                        }}>
+                            {loading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span> Loading...</>
+                                : isBackgroundRunning ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span> Scanning...</>
+                                : <><span>🔭</span> Run Fresh Scan</>}
+                        </button>
+                        {data && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
+                                {data.totalTickers} tickers · {data.totalCountries} countries
+                                {data.scannedAt ? ` · as of ${data.scannedAt}` : ''}
+                            </span>
+                        )}
+                    </div>
+
+                    {data && (
+                        <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="Search ticker..."
+                                style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'130px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                            <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+                                style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                <option value="ALL">All Countries</option>
+                                {allCountryNames.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                            {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
+                                <button key={d} onClick={() => setDirFilter(d)} style={{
+                                    padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                    border:`1px solid ${dirFilter === d ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                    backgroundColor: dirFilter === d ? 'rgba(255,255,255,0.15)' : 'transparent',
+                                    color:'#fff',
+                                }}>{d === 'ALL' ? 'All Dirs' : d}</button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
+                    {!loading && !data && !error && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'48px', marginBottom:'14px' }}>🌍</div>
+                            <div style={{ fontSize:'16px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>Ready to scan</div>
+                            <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'380px', margin:'0 auto', lineHeight:1.6 }}>
+                                Hit <strong>Run Fresh Scan</strong> to check every saved Global Stock Pick for the same trend signals the Trend Scanner looks for.
+                            </div>
+                        </div>
+                    )}
+                    {loading && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⚡</div>
+                            <div style={{ fontSize:'13px', color:'#94a3b8' }}>Loading...</div>
+                        </div>
+                    )}
+                    {error && !loading && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>
+                    )}
+                    {isBackgroundRunning && (
+                        <div style={{ padding:'10px 20px', backgroundColor:'#faf5ff', borderBottom:'1px solid #ddd6fe', fontSize:'12px', color:'#6b21a8', fontWeight:'600', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                            <span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span>
+                            Fresh scan running in the background — showing cached results below (auto-updates every 5s).
+                            <button onClick={forceReset} style={{ marginLeft:'auto', padding:'3px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', border:'1px solid #ef4444', backgroundColor:'#fff', color:'#ef4444', cursor:'pointer' }}>
+                                ⚠️ Stuck? Force Reset
+                            </button>
+                        </div>
+                    )}
+
+                    {!loading && data && countryEntries.length === 0 && data.totalTickers > 0 && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No picks match your filters.</div>
+                    )}
+                    {!loading && data && data.totalTickers === 0 && !isBackgroundRunning && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No Global Stock Picks saved yet</div>
+                            <div style={{ fontSize:'13px', color:'#64748b' }}>Save some via the Country-Sector Drill feature first.</div>
+                        </div>
+                    )}
+
+                    {countryEntries.map(([country, cData]) => {
+                        const collapsed = !!collapsedCountries[country];
+                        const s = cData.summary || {};
+                        return (
+                            <div key={country} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                <div onClick={() => toggleCountryCollapse(country)} style={{
+                                    padding:'12px 20px', display:'flex', alignItems:'center', gap:'10px',
+                                    cursor:'pointer', backgroundColor:'#f8fafc', position:'sticky', top:0, zIndex:1, flexWrap:'wrap',
+                                }}>
+                                    <span style={{ fontSize:'13px', transition:'transform 0.15s', transform: collapsed ? 'rotate(-90deg)' : 'none', display:'inline-block' }}>▾</span>
+                                    <span style={{ fontSize:'18px' }}>{cData.flag}</span>
+                                    <span style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{country}</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8' }}>{s.total} picks</span>
+                                    <span style={{ fontSize:'11px', color:'#10b981', fontWeight:'700' }}>{s.bullish}▲</span>
+                                    <span style={{ fontSize:'11px', color:'#ef4444', fontWeight:'700' }}>{s.bearish}▼</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'700' }}>{s.neutral}→</span>
+                                    {s.avgScore != null && (
+                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
+                                    )}
+                                </div>
+
+                                {!collapsed && (
+                                    <div style={{ padding:'8px 20px 16px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                                        {cData.tickers.map(t => {
+                                            const sc = GP_SIG[t.signal] || GP_SIG.WATCH;
+                                            const dirColor = t.direction === 'BULLISH' ? '#10b981' : t.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+                                            const key = `${country}_${t.ticker}`;
+                                            const isExpanded = expandedTicker === key;
+                                            return (
+                                                <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
+                                                    <div onClick={() => setExpandedTicker(isExpanded ? null : key)} style={{
+                                                        padding:'9px 12px', display:'flex', alignItems:'center', gap:'10px',
+                                                        cursor:'pointer', backgroundColor: isExpanded ? sc.bg : '#fff', flexWrap:'wrap',
+                                                    }}>
+                                                        <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a', minWidth:'55px' }}>{t.ticker}</span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, color:sc.color, whiteSpace:'nowrap' }}>
+                                                            {sc.icon} {sc.label}
+                                                        </span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: dirColor+'15', color:dirColor }}>
+                                                            {t.direction}
+                                                        </span>
+                                                        {t.topPick && <span title="Top Pick">⭐</span>}
+                                                        {t.pickRec && (
+                                                            <span style={{ fontSize:'10px', color:'#64748b' }}>{t.pickRec}{t.conviction != null ? ` · conv ${t.conviction}` : ''}</span>
+                                                        )}
+                                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Score {Math.round(t.score)}</span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'55px', textAlign:'right' }}>
+                                                            {t.currentPrice != null ? `$${t.currentPrice}` : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'45px', textAlign:'right' }}>{fmtCap(t.marketCap)}</span>
+                                                    </div>
+                                                    {isExpanded && (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:'#fafafa', borderTop:`1px solid ${sc.color}`, display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:'8px' }}>
+                                                                {[
+                                                                    { label:'ADX', value: t.adxNow ?? '—' },
+                                                                    { label:'ROC20', value: t.roc20 != null ? `${t.roc20}%` : '—' },
+                                                                    { label:'Vol Ratio', value: t.volRatio != null ? `${t.volRatio}×` : '—' },
+                                                                    { label:'From 52W High', value: t.pctFromHigh != null ? `${t.pctFromHigh}%` : '—' },
+                                                                    { label:'Sector', value: t.pickSector || t.sector || '—' },
+                                                                ].map((item, ii) => (
+                                                                    <div key={ii} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{item.label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>{item.value}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            {onSelectTicker && (
+                                                                <button onClick={() => { onSelectTicker(t.ticker); onClose(); }} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>→ Open {t.ticker} in Screener</button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+    );
+}
+
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -11009,6 +11325,7 @@ export default function SnowAIStockScreener() {
     const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
     const [showScanner, setShowScanner] = React.useState(false);
     const [showScannerHistory, setShowScannerHistory] = React.useState(false);
+    const [showGlobalPicksTrendScan, setShowGlobalPicksTrendScan] = React.useState(false);
 
     useEffect(() => {
         const loadVoices = () => {
@@ -11367,7 +11684,7 @@ export default function SnowAIStockScreener() {
                                     🔭 Trend Scanner
                                 </button>
 
-                                <button
+                                                                <button
                                     onClick={() => setShowScannerHistory(true)}
                                     style={{
                                         ...styles.browseButton,
@@ -11376,6 +11693,16 @@ export default function SnowAIStockScreener() {
                                     }}
                                 >
                                     📜 Scan History
+                                </button>
+                                <button
+                                    onClick={() => setShowGlobalPicksTrendScan(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#7c3aed',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🌍 Global Picks Trend Scan
                                 </button>
 
                             </div>
@@ -11719,9 +12046,14 @@ export default function SnowAIStockScreener() {
                 onSelectTicker={handleStockClick}
                 openaiKey={OPENAI_API_KEY}
             />
-            <ScannerHistoryModal
+                        <ScannerHistoryModal
                 isOpen={showScannerHistory}
                 onClose={() => setShowScannerHistory(false)}
+                onSelectTicker={handleStockClick}
+            />
+            <GlobalPicksTrendScanModal
+                isOpen={showGlobalPicksTrendScan}
+                onClose={() => setShowGlobalPicksTrendScan(false)}
                 onSelectTicker={handleStockClick}
             />
 
