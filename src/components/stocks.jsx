@@ -3546,7 +3546,10 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
                                     <span style={{ fontSize:'11px', color:'#94a3b8' }}>{s.total} picks</span>
                                     <span style={{ fontSize:'11px', color:'#10b981', fontWeight:'700' }}>{s.bullish}▲</span>
                                     <span style={{ fontSize:'11px', color:'#ef4444', fontWeight:'700' }}>{s.bearish}▼</span>
-                                    <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'700' }}>{s.neutral}→</span>
+                                                                        <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'700' }}>{s.neutral}→</span>
+                                    {cData.sessionDate && (
+                                        <span style={{ fontSize:'10px', color:'#94a3b8' }}>· picked {cData.sessionDate}</span>
+                                    )}
                                     {s.avgScore != null && (
                                         <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
                                     )}
