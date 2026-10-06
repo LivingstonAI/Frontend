@@ -324,7 +324,7 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
         if (!entry || !qty) { setError('Entry price and quantity are required.'); return; }
         setSubmitting(true); setError(null);
         try {
-            const res = await fetch(`${BACKEND}/api/positions/`, {
+            const res = await fetch(`${BACKEND}/api/snowvault_positions/`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     asset: ticker, direction, quantity: qty, entryPrice: entry,
@@ -420,7 +420,7 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated }) {
     const submit = async () => {
         setSubmitting(true); setError(null);
         try {
-            const res = await fetch(`${BACKEND}/api/positions/${position.id}/`, {
+            const res = await fetch(`${BACKEND}/api/snowvault_positions/${position.id}/`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     tpPrice: tpPrice || null, tpPercent: tpPercent || null, tpDollars: tpDollars || null,
@@ -468,6 +468,14 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [chartError,   setChartError]   = React.useState(null);
     const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
     const [isFullscreen, setIsFullscreen] = React.useState(false);
+    React.useEffect(() => {
+        if (isFullscreen) {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            const prevOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = prevOverflow; };
+        }
+    }, [isFullscreen]);
     const [metaExpanded, setMetaExpanded] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
 
@@ -522,7 +530,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const fetchPositions = async () => {
         if (!ticker) return;
         try {
-            const res = await fetch(`${BACKEND}/api/positions/?asset=${ticker}`);
+            const res = await fetch(`${BACKEND}/api/snowvault_positions/?asset=${ticker}`);
             const json = await res.json();
             const list = json.positions || [];
             setPositions(list);
@@ -888,7 +896,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                             <button onClick={() => setEditingPosition(pos)} style={{ marginLeft:'auto', fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)', color:'#94a3b8', cursor:'pointer' }}>Edit</button>
                             <button onClick={async () => {
                                 try {
-                                    await fetch(`${BACKEND}/api/positions/${pos.id}/close/`, {
+                                    await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
                                         method:'POST', headers:{'Content-Type':'application/json'},
                                         body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
                                     });
