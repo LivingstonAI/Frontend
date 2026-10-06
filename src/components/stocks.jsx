@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import ReactDOM from 'react-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Target, Brain, Telescope, ArrowUpDown, Gauge, BarChart3, AlertTriangle, Calendar, Globe, Award, Repeat, Shield } from 'lucide-react';
 import Header from "./header";
@@ -281,7 +282,7 @@ function PositionLegFields({ label, color, priceVal, percentVal, dollarsVal, onS
     );
 }
 
-function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened }) {
+function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened, onDraftTp, onDraftSl }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [direction, setDirection] = React.useState('long');
     const [quantity, setQuantity] = React.useState('10');
@@ -305,19 +306,21 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
     const entry = parseFloat(entryPrice) || 0;
     const qty = parseFloat(quantity) || 0;
 
-    const syncTp = (field, value) => {
+        const syncTp = (field, value) => {
         if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
         if (!entry || !qty) return;
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
-        if (r.price == null) return;
+        if (r.price == null) { onDraftTp && onDraftTp(null); return; }
         if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+        onDraftTp && onDraftTp(r.price);
     };
     const syncSl = (field, value) => {
         if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
         if (!entry || !qty) return;
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
-        if (r.price == null) return;
+        if (r.price == null) { onDraftSl && onDraftSl(null); return; }
         if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+        onDraftSl && onDraftSl(r.price);
     };
 
     const submit = async () => {
@@ -381,7 +384,7 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
     );
 }
 
-function EditPositionModal({ isOpen, onClose, position, onUpdated }) {
+function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, onDraftSl }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [tpPrice, setTpPrice] = React.useState(''); const [tpPercent, setTpPercent] = React.useState(''); const [tpDollars, setTpDollars] = React.useState('');
     const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
@@ -389,7 +392,7 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated }) {
     const [submitting, setSubmitting] = React.useState(false);
     const [error, setError] = React.useState(null);
 
-    React.useEffect(() => {
+        React.useEffect(() => {
         if (isOpen && position) {
             setTpPrice(position.tp_price != null ? String(position.tp_price) : '');
             setTpPercent(position.tp_percent != null ? String(position.tp_percent) : '');
@@ -398,23 +401,27 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated }) {
             setSlPercent(position.sl_percent != null ? String(position.sl_percent) : '');
             setSlDollars(position.sl_dollars != null ? String(position.sl_dollars) : '');
             setNotes(position.notes || ''); setError(null);
+            onDraftTp && onDraftTp(position.tp_price != null ? position.tp_price : null);
+            onDraftSl && onDraftSl(position.sl_price != null ? position.sl_price : null);
         }
     }, [isOpen, position]);
 
     if (!isOpen || !position) return null;
     const { entry_price: entry, quantity: qty, direction } = position;
 
-    const syncTp = (field, value) => {
+        const syncTp = (field, value) => {
         if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
-        if (r.price == null) return;
+        if (r.price == null) { onDraftTp && onDraftTp(null); return; }
         if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+        onDraftTp && onDraftTp(r.price);
     };
     const syncSl = (field, value) => {
         if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
-        if (r.price == null) return;
+        if (r.price == null) { onDraftSl && onDraftSl(null); return; }
         if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+        onDraftSl && onDraftSl(r.price);
     };
 
     const submit = async () => {
@@ -467,7 +474,8 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [chartLoading, setChartLoading] = React.useState(true);
     const [chartError,   setChartError]   = React.useState(null);
     const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
-    const [isFullscreen, setIsFullscreen] = React.useState(false);
+        const [isFullscreen, setIsFullscreen] = React.useState(false);
+
     React.useEffect(() => {
         if (isFullscreen) {
             window.scrollTo({ top: 0, behavior: 'instant' });
@@ -476,6 +484,92 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             return () => { document.body.style.overflow = prevOverflow; };
         }
     }, [isFullscreen]);
+
+    // -- Draft TP/SL preview lines (drawn live as you type in the ticket) --
+    const draftLinesRef = React.useRef({});
+    const setDraftLevel = (key, price, color, label) => {
+        if (!seriesRef.current) return;
+        if (draftLinesRef.current[key]) {
+            try { seriesRef.current.removePriceLine(draftLinesRef.current[key]); } catch (_) {}
+            delete draftLinesRef.current[key];
+        }
+        if (price != null && !isNaN(price)) {
+            draftLinesRef.current[key] = seriesRef.current.createPriceLine({
+                price, color, lineWidth: 1, lineStyle: 3, axisLabelVisible: true, title: label,
+            });
+        }
+    };
+    const clearDraftLines = () => {
+        Object.keys(draftLinesRef.current).forEach(k => {
+            try { seriesRef.current.removePriceLine(draftLinesRef.current[k]); } catch (_) {}
+        });
+        draftLinesRef.current = {};
+    };
+    const handlePositionOpened = () => { clearDraftLines(); fetchPositions(); };
+    const handlePositionUpdated = () => { clearDraftLines(); fetchPositions(); };
+    const closeTicket = () => { clearDraftLines(); setShowTicket(false); };
+    const closeEditModal = () => { clearDraftLines(); setEditingPosition(null); };
+
+    // -- Latest SAVED AI analysis for this ticker (from scanner history), shown when fullscreen --
+    const [latestSavedAnalysis, setLatestSavedAnalysis] = React.useState(null);
+    const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
+    const SAVED_AI_VERDICT_COLORS = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'rgba(16,185,129,0.12)', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'rgba(59,130,246,0.12)', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'rgba(148,163,184,0.12)', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'rgba(245,158,11,0.12)', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'rgba(239,68,68,0.12)', icon:'⛔' },
+    };
+
+    React.useEffect(() => {
+        if (!isFullscreen || !ticker) return;
+        (async () => {
+            try {
+                const res = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker, limit: 1 }),
+                });
+                const json = await res.json();
+                setLatestSavedAnalysis((json.results || [])[0] || null);
+            } catch (e) { console.error('[ScannerChart saved analysis]', e); }
+        })();
+    }, [isFullscreen, ticker]);
+
+    // -- Live price poll: keeps open positions' P&L current + triggers backend TP/SL auto-close --
+    React.useEffect(() => {
+        const openCount = positions.filter(p => p.status === 'OPEN').length;
+        if (!ticker || openCount === 0) return;
+        const pollId = setInterval(async () => {
+            try {
+                const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker, interval: '1D', indicators: [] }),
+                });
+                const json = await res.json();
+                const latestClose = json.candles?.[json.candles.length - 1]?.close;
+                if (latestClose == null) return;
+                for (const pos of positions.filter(p => p.status === 'OPEN')) {
+                    await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/price/`, {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ current_price: latestClose }),
+                    });
+                }
+                fetchPositions();
+            } catch (e) { console.error('[ScannerChart position poll]', e); }
+        }, 20000);
+        return () => clearInterval(pollId);
+    }, [ticker, positions.length]);
+
+    const computeLivePnl = (pos) => {
+        if (pos.status !== 'OPEN' || pos.current_price == null) return null;
+        const isLong = pos.direction === 'long';
+        const pnlDollars = isLong
+            ? (pos.current_price - pos.entry_price) * pos.quantity
+            : (pos.entry_price - pos.current_price) * pos.quantity;
+        const pnlPercent = (pos.entry_price && pos.quantity) ? (pnlDollars / (pos.entry_price * pos.quantity)) * 100 : null;
+        return { pnlDollars, pnlPercent };
+    };
+
     const [metaExpanded, setMetaExpanded] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
 
@@ -655,14 +749,14 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         };
     }, [chartReady, ticker, interval]);
 
-        return (
+            const chartContent = (
         <div style={{
             backgroundColor: '#0f172a',
             borderRadius: isFullscreen ? '0px' : '12px',
             overflow: 'hidden',
             border: isFullscreen ? 'none' : '1px solid #1e293b',
             marginTop: isFullscreen ? 0 : '10px',
-            ...(isFullscreen ? { position: 'fixed', inset: 0, zIndex: 10050, display: 'flex', flexDirection: 'column' } : {}),
+            ...(isFullscreen ? { position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', flexDirection: 'column' } : {}),
         }}>
             {/* Toolbar */}
             <div style={{
@@ -794,8 +888,40 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                                 )}
                             </div>
                         )}
-                    </div>
+                                        </div>
                 )}
+                {isFullscreen && latestSavedAnalysis && (() => {
+                    const av = SAVED_AI_VERDICT_COLORS[latestSavedAnalysis.aiVerdict] || SAVED_AI_VERDICT_COLORS.NEUTRAL;
+                    return (
+                        <div
+                            onClick={() => setSavedAnalysisExpanded(e => !e)}
+                            style={{
+                                position:'absolute', top:'8px', right:'8px', zIndex:3,
+                                backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
+                                border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px',
+                                cursor:'pointer', maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
+                            }}
+                        >
+                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>📅 LAST SAVED ANALYSIS</div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                                <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: av.color }}>{av.icon} {latestSavedAnalysis.aiVerdict?.replace('_',' ') || 'No AI data'}</span>
+                                <span style={{ fontSize:'9px', color:'#64748b' }}>{savedAnalysisExpanded ? '▾' : '▸'}</span>
+                            </div>
+                            <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'2px' }}>{latestSavedAnalysis.date}</div>
+                            {savedAnalysisExpanded && (
+                                <div style={{ marginTop:'6px', paddingTop:'6px', borderTop:'1px solid rgba(255,255,255,0.08)' }}>
+                                    {latestSavedAnalysis.aiSynthesis?.synthesizedThesis && (
+                                        <div style={{ fontSize:'10px', color:'#e2e8f0', lineHeight:1.5 }}>{latestSavedAnalysis.aiSynthesis.synthesizedThesis}</div>
+                                    )}
+                                    {!latestSavedAnalysis.aiSynthesis && latestSavedAnalysis.aiRuns?.length > 0 && (
+                                        <div style={{ fontSize:'10px', color:'#e2e8f0', lineHeight:1.5 }}>{latestSavedAnalysis.aiRuns[0].thesis}</div>
+                                    )}
+                                    <div style={{ fontSize:'9px', color:'#64748b', marginTop:'4px' }}>Score {latestSavedAnalysis.score != null ? Math.round(latestSavedAnalysis.score) : '—'} · {latestSavedAnalysis.signal?.replace(/_/g,' ')}</div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
                 {(chartLoading || !chartReady) && (
                     <div style={{
                         position: 'absolute',
@@ -887,12 +1013,20 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             {positions.length > 0 && (
                 <div style={{ padding:'8px 14px', backgroundColor:'#0a1628', borderTop:'1px solid #1e293b', display:'flex', flexDirection:'column', gap:'6px' }}>
                     <div style={{ fontSize:'10px', fontWeight:'700', color:'#f59e0b', letterSpacing:'0.07em' }}>📌 OPEN POSITIONS</div>
-                    {positions.map(pos => (
+                                        {positions.map(pos => {
+                        const live = computeLivePnl(pos);
+                        return (
                         <div key={pos.id} style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', fontSize:'11px', color:'#cbd5e1' }}>
                             <span style={{ fontWeight:'800', color: pos.direction==='long' ? '#10b981' : '#ef4444' }}>{pos.direction==='long'?'▲':'▼'} {pos.quantity}sh</span>
                             <span>@ ${pos.entry_price}</span>
                             {pos.sl_price && <span style={{ color:'#ef4444' }}>SL ${pos.sl_price}</span>}
                             {pos.tp_price && <span style={{ color:'#10b981' }}>TP ${pos.tp_price}</span>}
+                            {live && (
+                                <span style={{ fontWeight:'800', color: live.pnlDollars >= 0 ? '#10b981' : '#ef4444' }}>
+                                    <span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', backgroundColor:'#f59e0b', marginRight:'4px', animation:'pulse 2s ease-in-out infinite' }} />
+                                    {live.pnlDollars >= 0 ? '+' : ''}${live.pnlDollars.toFixed(2)} ({live.pnlPercent >= 0 ? '+' : ''}{live.pnlPercent.toFixed(2)}%)
+                                </span>
+                            )}
                             <button onClick={() => setEditingPosition(pos)} style={{ marginLeft:'auto', fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)', color:'#94a3b8', cursor:'pointer' }}>Edit</button>
                             <button onClick={async () => {
                                 try {
@@ -902,14 +1036,26 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                                     });
                                     fetchPositions();
                                 } catch (e) { console.error(e); }
-                            }} style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(239,68,68,0.3)', backgroundColor:'rgba(239,68,68,0.1)', color:'#ef4444', cursor:'pointer' }}>Close</button>
+                                                        }} style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(239,68,68,0.3)', backgroundColor:'rgba(239,68,68,0.1)', color:'#ef4444', cursor:'pointer' }}>Close</button>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            <PositionTicket isOpen={showTicket} onClose={() => setShowTicket(false)} ticker={ticker} currentPrice={scannerMeta?.currentPrice ?? null} source="trend_scanner" onOpened={fetchPositions} />
-            <EditPositionModal isOpen={!!editingPosition} onClose={() => setEditingPosition(null)} position={editingPosition} onUpdated={fetchPositions} />
+                        <PositionTicket
+                isOpen={showTicket} onClose={closeTicket} ticker={ticker}
+                currentPrice={scannerMeta?.currentPrice ?? null} source="trend_scanner"
+                onOpened={handlePositionOpened}
+                onDraftTp={(price) => setDraftLevel('tp', price, '#10b981', 'TP (draft)')}
+                onDraftSl={(price) => setDraftLevel('sl', price, '#ef4444', 'SL (draft)')}
+            />
+            <EditPositionModal
+                isOpen={!!editingPosition} onClose={closeEditModal} position={editingPosition}
+                onUpdated={handlePositionUpdated}
+                onDraftTp={(price) => setDraftLevel('tp', price, '#10b981', 'TP (draft)')}
+                onDraftSl={(price) => setDraftLevel('sl', price, '#ef4444', 'SL (draft)')}
+            />
         </div>
     );
 }
@@ -1127,7 +1273,64 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [aiPasteSource, setAiPasteSource] = React.useState('');
     const [aiPasteError, setAiPasteError] = React.useState(null);
     const [aiCopied, setAiCopied] = React.useState(false);
-    const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
+        const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
+
+    const TS_AI_CACHE_KEY = 'snowvault_trend_scanner_ai_cache';
+    React.useEffect(() => {
+        try {
+            const raw = localStorage.getItem(TS_AI_CACHE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const today = new Date().toISOString().slice(0, 10);
+                if (parsed.date === today) {
+                    if (parsed.aiRuns) setAiRuns(parsed.aiRuns);
+                    if (parsed.aiSynthesis) setAiSynthesis(parsed.aiSynthesis);
+                }
+            }
+        } catch (e) { console.error('[TS AI cache load]', e); }
+    }, []);
+    React.useEffect(() => {
+        try {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(TS_AI_CACHE_KEY, JSON.stringify({ date: today, aiRuns, aiSynthesis }));
+        } catch (e) { console.error('[TS AI cache save]', e); }
+    }, [aiRuns, aiSynthesis]);
+
+    const [loadTodayLoading, setLoadTodayLoading] = React.useState(false);
+    const [loadTodayStatus, setLoadTodayStatus] = React.useState(null);
+
+    const checkAndLoadTodaySnapshot = async () => {
+        setLoadTodayLoading(true);
+        setLoadTodayStatus(null);
+        try {
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const res = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ startDate: todayStr, endDate: todayStr, limit: 1000 }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            const rows = json.results || [];
+            if (rows.length === 0) {
+                setLoadTodayStatus({ ok: false, msg: 'No snapshot saved for today yet.' });
+                return;
+            }
+            const newRuns = { ...aiRuns };
+            const newSynth = { ...aiSynthesis };
+            let loadedCount = 0;
+            rows.forEach(r => {
+                if (r.aiRuns?.length) { newRuns[r.ticker] = r.aiRuns; loadedCount++; }
+                if (r.aiSynthesis) newSynth[r.ticker] = r.aiSynthesis;
+            });
+            setAiRuns(newRuns);
+            setAiSynthesis(newSynth);
+            setLoadTodayStatus({ ok: true, msg: `Loaded saved AI data for ${loadedCount} ticker${loadedCount !== 1 ? 's' : ''}.` });
+        } catch (e) {
+            setLoadTodayStatus({ ok: false, msg: e.message });
+        } finally {
+            setLoadTodayLoading(false);
+        }
+    };
 
     // -- Daily snapshot save (for backtesting) --
     const [snapshotSaving, setSnapshotSaving] = React.useState(false);
@@ -1836,7 +2039,24 @@ Do not include anything outside the JSON array. The response must be parseable b
                             ✨ Synthesize All ({bulkSynthesisEligibleTickers.length})
                         </button>
 
+                        
+
                                                 <button
+                            onClick={checkAndLoadTodaySnapshot}
+                            disabled={loadTodayLoading}
+                            title="Pull today's AI analysis back from the backend — useful after a reload, switching tabs, or a different browser"
+                            style={{
+                                padding:'5px 12px', borderRadius:'20px',
+                                fontSize:'11px', fontWeight:'800', cursor: loadTodayLoading ? 'wait' : 'pointer',
+                                border:'1px solid rgba(14,165,233,0.4)',
+                                backgroundColor: loadTodayLoading ? 'rgba(14,165,233,0.1)' : '#0ea5e9',
+                                color: loadTodayLoading ? '#0ea5e9' : '#fff',
+                                whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:'5px',
+                            }}
+                        >
+                            {loadTodayLoading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>📥</span> Checking...</> : <>📥 Load Today's Saved Data</>}
+                        </button>
+                        <button
                             onClick={saveTodaySnapshot}
                             disabled={snapshotSaving || filtered.length === 0}
                             title="Save today's snapshot of shown stocks + any AI analysis for backtesting later"
@@ -1920,9 +2140,19 @@ Do not include anything outside the JSON array. The response must be parseable b
                         ⚠️ Snapshot save error: {snapshotError}
                     </div>
                 )}
-                {stabilityError && (
+                                {stabilityError && (
                     <div style={{ padding:'8px 20px', backgroundColor:'#fef2f2', borderBottom:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c' }}>
                         ⚠️ Stability check error: {stabilityError}
+                    </div>
+                )}
+                {loadTodayStatus && (
+                    <div style={{
+                        padding:'8px 20px', fontSize:'12px',
+                        backgroundColor: loadTodayStatus.ok ? '#f0fdf4' : '#fffbeb',
+                        borderBottom: `1px solid ${loadTodayStatus.ok ? '#bbf7d0' : '#fde68a'}`,
+                        color: loadTodayStatus.ok ? '#065f46' : '#92400e',
+                    }}>
+                        {loadTodayStatus.ok ? '✓' : 'ℹ️'} {loadTodayStatus.msg}
                     </div>
                 )}
 
@@ -3647,9 +3877,34 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
     const [expandedTicker, setExpandedTicker] = React.useState(null);
     const pollRef = React.useRef(null);
 
-    const [gpChartTicker, setGpChartTicker] = React.useState(null);
+        const [gpChartTicker, setGpChartTicker] = React.useState(null);
     const [gpChartInterval, setGpChartInterval] = React.useState('1D');
     const [gpShowAllCharts, setGpShowAllCharts] = React.useState(false);
+    const [gpShowAllChartsByCountry, setGpShowAllChartsByCountry] = React.useState({});
+    const toggleCountryCharts = (country) => setGpShowAllChartsByCountry(prev => ({ ...prev, [country]: !prev[country] }));
+
+    // -- Local (same-browser, same-day) AI data persistence — survives reload/tab-switch
+    // but is NOT shared across devices and is separate from Trend Scanner's backend save --
+    const GP_AI_CACHE_KEY = 'snowvault_global_picks_ai_cache';
+    React.useEffect(() => {
+        try {
+            const raw = localStorage.getItem(GP_AI_CACHE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const today = new Date().toISOString().slice(0, 10);
+                if (parsed.date === today) {
+                    if (parsed.aiRuns) setAiRuns(parsed.aiRuns);
+                    if (parsed.aiSynthesis) setAiSynthesis(parsed.aiSynthesis);
+                }
+            }
+        } catch (e) { console.error('[GP AI cache load]', e); }
+    }, []);
+    React.useEffect(() => {
+        try {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(GP_AI_CACHE_KEY, JSON.stringify({ date: today, aiRuns, aiSynthesis }));
+        } catch (e) { console.error('[GP AI cache save]', e); }
+    }, [aiRuns, aiSynthesis]);
 
         // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
     const [aiRuns, setAiRuns] = React.useState({});
@@ -4194,6 +4449,25 @@ Do not include anything outside the JSON array. The response must be parseable b
                                             whiteSpace:'nowrap',
                                         }}
                                     >🧠 Scan {country}</button>
+                                                                        <button
+                                        onClick={(e) => { e.stopPropagation(); openCountryAIPrompt(country); }}
+                                        style={{
+                                            marginLeft: s.avgScore != null ? '10px' : 'auto',
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
+                                            border:'1px solid rgba(124,58,237,0.4)',
+                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
+                                            whiteSpace:'nowrap',
+                                        }}
+                                    >🧠 Scan {country}</button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); toggleCountryCharts(country); }}
+                                        style={{
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
+                                            border:`1px solid ${gpShowAllChartsByCountry[country] ? 'rgba(15,23,42,0.6)' : 'rgba(15,23,42,0.3)'}`,
+                                            background: gpShowAllChartsByCountry[country] ? '#0f172a' : 'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                            color:'#fff', whiteSpace:'nowrap',
+                                        }}
+                                    >{gpShowAllChartsByCountry[country] ? '📊 Hide Charts' : '📊 Show All Charts'}</button>
                                     {s.avgScore != null && (
                                         <span style={{ marginLeft: s.avgScore != null ? '0' : 'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
                                     )}
@@ -4205,7 +4479,8 @@ Do not include anything outside the JSON array. The response must be parseable b
                                             const sc = GP_SIG[t.signal] || GP_SIG.WATCH;
                                             const dirColor = t.direction === 'BULLISH' ? '#10b981' : t.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
                                             const key = `${country}_${t.ticker}`;
-                                            const isExpanded = gpShowAllCharts || expandedTicker === key;
+                                            const countryChartsOn = gpShowAllCharts || !!gpShowAllChartsByCountry[country];
+                                            const isExpanded = countryChartsOn || expandedTicker === key;
                                             return (
                                                 <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
                                                     <div onClick={() => setExpandedTicker(isExpanded ? null : key)} style={{
@@ -4379,14 +4654,14 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                                     </div>
                                                                 );
                                                             })()}
-                                                                                                                        {gpShowAllCharts || gpChartTicker === t.ticker ? (
+                                                                                                                        {countryChartsOn || gpChartTicker === t.ticker ? (
                                                                 <ScannerChart
                                                                     ticker={t.ticker}
                                                                     interval={gpChartInterval}
                                                                     onIntervalChange={setGpChartInterval}
                                                                     onClose={() => setGpChartTicker(null)}
-                                                                    hideClose={gpShowAllCharts}
-                                                                    mountDelay={gpShowAllCharts ? tIdx * 400 : 0}
+                                                                    hideClose={countryChartsOn}
+                                                                    mountDelay={countryChartsOn ? tIdx * 400 : 0}
                                                                     scannerMeta={t}
                                                                 />
                                                             ) : (
@@ -4579,6 +4854,158 @@ Do not include anything outside the JSON array. The response must be parseable b
             />
         )}
         </>
+    );
+}
+
+function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const [positions, setPositions] = React.useState([]);
+    const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
+    const [search, setSearch] = React.useState('');
+
+    const fetchAll = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setPositions(json.positions || []);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    React.useEffect(() => { if (isOpen) fetchAll(); }, [isOpen]);
+
+    const closePosition = async (pos) => {
+        try {
+            await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
+            });
+            fetchAll();
+        } catch (e) { console.error(e); }
+    };
+
+    const filtered = positions
+        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
+        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+
+    const openCount = positions.filter(p => p.status === 'OPEN').length;
+    const closedCount = positions.length - openCount;
+    const totalUnrealized = positions.filter(p => p.status === 'OPEN' && p.current_price != null).reduce((sum, p) => {
+        const isLong = p.direction === 'long';
+        const pnl = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
+        return sum + pnl;
+    }, 0);
+    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null)
+        .reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'960px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>📒</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Paper Trading Positions</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                                {openCount} open · {closedCount} closed
+                                {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
+                                {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                        {[['OPEN','Open'],['CLOSED','Closed'],['ALL','All']].map(([v,l]) => (
+                            <button key={v} onClick={() => setFilterStatus(v)} style={{
+                                padding:'5px 14px', borderRadius:'20px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${filterStatus===v ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: filterStatus===v ? 'rgba(255,255,255,0.15)' : 'transparent', color:'#fff',
+                            }}>{l}</button>
+                        ))}
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'130px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                        <button onClick={fetchAll} disabled={loading} style={{ padding:'6px 14px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
+                            {loading ? '⏳' : '↻'} Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
+                    {error && <div style={{ padding:'16px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
+                    {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
+                    {!loading && filtered.length === 0 && (
+                        <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.</div>
+                    )}
+                    {!loading && filtered.length > 0 && (
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
+                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                        <th style={{ padding:'8px 10px', borderBottom:'2px solid #e2e8f0' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(p => {
+                                        const isOpen = p.status === 'OPEN';
+                                        const isLong = p.direction === 'long';
+                                        let pnlDollars = null, pnlPercent = null;
+                                        if (isOpen && p.current_price != null) {
+                                            pnlDollars = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
+                                            pnlPercent = (pnlDollars / (p.entry_price * p.quantity)) * 100;
+                                        } else if (!isOpen) {
+                                            pnlDollars = p.realized_pnl_dollars; pnlPercent = p.realized_pnl_percent;
+                                        }
+                                        const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+                                        return (
+                                            <tr key={p.id} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
+                                                    {onSelectTicker ? <span onClick={() => { onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span> : p.asset}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>${p.entry_price}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpen ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
+                                                <td style={{ padding:'8px 10px', color:'#10b981' }}>{p.tp_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_',' ')}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    {isOpen && <button onClick={() => closePosition(p)} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -5721,11 +6148,14 @@ function MomentumVelocityPanel({ ticker, openaiKey }) {
                 </>
             )}
 
-            <style>{`
+                        <style>{`
                 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
             `}</style>
         </div>
     );
+
+    return isFullscreen ? ReactDOM.createPortal(chartContent, document.body) : chartContent;
 }
 
 // --- Sabrina AI Chatbot Component --------------------------------------------
@@ -12283,6 +12713,8 @@ export default function SnowAIStockScreener() {
     const [showScanner, setShowScanner] = React.useState(false);
     const [showScannerHistory, setShowScannerHistory] = React.useState(false);
     const [showGlobalPicksTrendScan, setShowGlobalPicksTrendScan] = React.useState(false);
+    const [showCompositeBacktest, setShowCompositeBacktest] = React.useState(false);
+    const [showPositionsPanel, setShowPositionsPanel] = React.useState(false);
 
     useEffect(() => {
         const loadVoices = () => {
