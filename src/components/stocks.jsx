@@ -3883,28 +3883,7 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
     const [gpShowAllChartsByCountry, setGpShowAllChartsByCountry] = React.useState({});
     const toggleCountryCharts = (country) => setGpShowAllChartsByCountry(prev => ({ ...prev, [country]: !prev[country] }));
 
-    // -- Local (same-browser, same-day) AI data persistence — survives reload/tab-switch
-    // but is NOT shared across devices and is separate from Trend Scanner's backend save --
-    const GP_AI_CACHE_KEY = 'snowvault_global_picks_ai_cache';
-    React.useEffect(() => {
-        try {
-            const raw = localStorage.getItem(GP_AI_CACHE_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                const today = new Date().toISOString().slice(0, 10);
-                if (parsed.date === today) {
-                    if (parsed.aiRuns) setAiRuns(parsed.aiRuns);
-                    if (parsed.aiSynthesis) setAiSynthesis(parsed.aiSynthesis);
-                }
-            }
-        } catch (e) { console.error('[GP AI cache load]', e); }
-    }, []);
-    React.useEffect(() => {
-        try {
-            const today = new Date().toISOString().slice(0, 10);
-            localStorage.setItem(GP_AI_CACHE_KEY, JSON.stringify({ date: today, aiRuns, aiSynthesis }));
-        } catch (e) { console.error('[GP AI cache save]', e); }
-    }, [aiRuns, aiSynthesis]);
+    
 
         // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
     const [aiRuns, setAiRuns] = React.useState({});
@@ -3944,6 +3923,28 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
         WATCH:               { color:'#94a3b8', bg:'#f8fafc', icon:'👁', label:'Watch'             },
     };
 
+        // -- Local (same-browser, same-day) AI data persistence — survives reload/tab-switch
+    // but is NOT shared across devices and is separate from Trend Scanner's backend save --
+    const GP_AI_CACHE_KEY = 'snowvault_global_picks_ai_cache';
+    React.useEffect(() => {
+        try {
+            const raw = localStorage.getItem(GP_AI_CACHE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const today = new Date().toISOString().slice(0, 10);
+                if (parsed.date === today) {
+                    if (parsed.aiRuns) setAiRuns(parsed.aiRuns);
+                    if (parsed.aiSynthesis) setAiSynthesis(parsed.aiSynthesis);
+                }
+            }
+        } catch (e) { console.error('[GP AI cache load]', e); }
+    }, []);
+    React.useEffect(() => {
+        try {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(GP_AI_CACHE_KEY, JSON.stringify({ date: today, aiRuns, aiSynthesis }));
+        } catch (e) { console.error('[GP AI cache save]', e); }
+    }, [aiRuns, aiSynthesis]);
     const run = async (forceRefresh = false) => {
         setLoading(true);
         setError(null);
