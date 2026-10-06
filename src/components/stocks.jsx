@@ -474,7 +474,12 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [chartLoading, setChartLoading] = React.useState(true);
     const [chartError,   setChartError]   = React.useState(null);
     const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
-        const [isFullscreen, setIsFullscreen] = React.useState(false);
+    const [isFullscreen, setIsFullscreen] = React.useState(false);
+    const seriesRef = React.useRef(null);
+    const positionLinesRef = React.useRef({});
+    const [positions, setPositions] = React.useState([]);
+    const [showTicket, setShowTicket] = React.useState(false);
+    const [editingPosition, setEditingPosition] = React.useState(null);
 
     React.useEffect(() => {
         if (isFullscreen) {
@@ -578,12 +583,6 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
-
-    const seriesRef = React.useRef(null);
-    const positionLinesRef = React.useRef({});
-    const [positions, setPositions] = React.useState([]);
-    const [showTicket, setShowTicket] = React.useState(false);
-    const [editingPosition, setEditingPosition] = React.useState(null);
 
     const clearPositionLines = () => {
         if (!seriesRef.current) return;
