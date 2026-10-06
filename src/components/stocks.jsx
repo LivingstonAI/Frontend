@@ -4440,16 +4440,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                     {cData.sessionDate && (
                                         <span style={{ fontSize:'10px', color:'#94a3b8' }}>· picked {cData.sessionDate}</span>
                                     )}
-                                                                        <button
-                                        onClick={(e) => { e.stopPropagation(); openCountryAIPrompt(country); }}
-                                        style={{
-                                            marginLeft: s.avgScore != null ? '10px' : 'auto',
-                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
-                                            border:'1px solid rgba(124,58,237,0.4)',
-                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
-                                            whiteSpace:'nowrap',
-                                        }}
-                                    >🧠 Scan {country}</button>
+                                        
                                                                         <button
                                         onClick={(e) => { e.stopPropagation(); openCountryAIPrompt(country); }}
                                         style={{
