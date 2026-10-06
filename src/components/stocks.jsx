@@ -239,6 +239,227 @@ const SECTOR_COLORS = {
 
 const ALL_CALENDAR_TICKERS = Object.keys(SECTOR_MAP);
 
+const SnowPositionMath = {
+    resolveLeg(direction, entryPrice, quantity, { price, percent, dollars }, isTp) {
+        const isLong = direction === 'long';
+        const priceToPercent = (p) => {
+            if (isTp) return isLong ? (p - entryPrice)/entryPrice*100 : (entryPrice - p)/entryPrice*100;
+            return isLong ? (entryPrice - p)/entryPrice*100 : (p - entryPrice)/entryPrice*100;
+        };
+        const percentToPrice = (pct) => {
+            if (isTp) return isLong ? entryPrice*(1+pct/100) : entryPrice*(1-pct/100);
+            return isLong ? entryPrice*(1-pct/100) : entryPrice*(1+pct/100);
+        };
+        let resolvedPercent = null;
+        if (price != null && price !== '') resolvedPercent = priceToPercent(parseFloat(price));
+        else if (percent != null && percent !== '') resolvedPercent = parseFloat(percent);
+        else if (dollars != null && dollars !== '' && quantity && entryPrice) resolvedPercent = (parseFloat(dollars) / (quantity * entryPrice)) * 100;
+        if (resolvedPercent == null || isNaN(resolvedPercent)) return { price: null, percent: null, dollars: null };
+        return {
+            price: Math.round(percentToPrice(resolvedPercent) * 10000) / 10000,
+            percent: Math.round(resolvedPercent * 10000) / 10000,
+            dollars: Math.round(quantity * entryPrice * (resolvedPercent/100) * 100) / 100,
+        };
+    },
+};
+
+function PositionLegFields({ label, color, priceVal, percentVal, dollarsVal, onSync }) {
+    return (
+        <div style={{ padding:'10px 12px', backgroundColor:'#f8fafc', borderRadius:'9px', border:`1px solid ${color}30` }}>
+            <div style={{ fontSize:'11px', fontWeight:'800', color, marginBottom:'6px' }}>{label}</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'6px' }}>
+                {[['price','Price ($)'],['percent','Percent (%)'],['dollars','Dollars ($)']].map(([field, lbl]) => (
+                    <div key={field}>
+                        <div style={{ fontSize:'9px', color:'#94a3b8', marginBottom:'2px' }}>{lbl}</div>
+                        <input type="number" value={field==='price'?priceVal:field==='percent'?percentVal:dollarsVal}
+                            onChange={e => onSync(field, e.target.value)}
+                            style={{ width:'100%', padding:'5px 7px', borderRadius:'6px', border:'1px solid #e2e8f0', fontSize:'12px', boxSizing:'border-box' }} />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [direction, setDirection] = React.useState('long');
+    const [quantity, setQuantity] = React.useState('10');
+    const [entryPrice, setEntryPrice] = React.useState(currentPrice != null ? String(currentPrice) : '');
+    const [notes, setNotes] = React.useState('');
+    const [tpPrice, setTpPrice] = React.useState(''); const [tpPercent, setTpPercent] = React.useState(''); const [tpDollars, setTpDollars] = React.useState('');
+    const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
+    const [submitting, setSubmitting] = React.useState(false);
+    const [error, setError] = React.useState(null);
+
+    React.useEffect(() => {
+        if (isOpen) {
+            setEntryPrice(currentPrice != null ? String(currentPrice) : '');
+            setDirection('long'); setQuantity('10'); setNotes('');
+            setTpPrice(''); setTpPercent(''); setTpDollars('');
+            setSlPrice(''); setSlPercent(''); setSlDollars('');
+            setError(null);
+        }
+    }, [isOpen, ticker]);
+
+    const entry = parseFloat(entryPrice) || 0;
+    const qty = parseFloat(quantity) || 0;
+
+    const syncTp = (field, value) => {
+        if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
+        if (!entry || !qty) return;
+        const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
+        if (r.price == null) return;
+        if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+    };
+    const syncSl = (field, value) => {
+        if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
+        if (!entry || !qty) return;
+        const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
+        if (r.price == null) return;
+        if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+    };
+
+    const submit = async () => {
+        if (!entry || !qty) { setError('Entry price and quantity are required.'); return; }
+        setSubmitting(true); setError(null);
+        try {
+            const res = await fetch(`${BACKEND}/api/positions/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    asset: ticker, direction, quantity: qty, entryPrice: entry,
+                    tpPrice: tpPrice || null, tpPercent: tpPercent || null, tpDollars: tpDollars || null,
+                    slPrice: slPrice || null, slPercent: slPercent || null, slDollars: slDollars || null,
+                    notes, source,
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            onOpened && onOpened(json.position);
+            onClose();
+        } catch (e) { setError(e.message); }
+        finally { setSubmitting(false); }
+    };
+
+    if (!isOpen) return null;
+    return (
+        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10090, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(460px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>📝 Open Position — {ticker}</span>
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'28px', height:'28px', color:'#fff', fontSize:'15px', cursor:'pointer' }}>×</button>
+                </div>
+                <div style={{ padding:'18px 20px', display:'flex', flexDirection:'column', gap:'12px', maxHeight:'70vh', overflowY:'auto' }}>
+                    <div style={{ display:'flex', gap:'8px' }}>
+                        {['long','short'].map(d => (
+                            <button key={d} onClick={() => setDirection(d)} style={{
+                                flex:1, padding:'10px', borderRadius:'9px', fontWeight:'800', fontSize:'13px', cursor:'pointer',
+                                border:`2px solid ${direction===d ? (d==='long'?'#10b981':'#ef4444') : '#e2e8f0'}`,
+                                backgroundColor: direction===d ? (d==='long'?'#f0fdf4':'#fef2f2') : '#fff',
+                                color: direction===d ? (d==='long'?'#10b981':'#ef4444') : '#94a3b8',
+                            }}>{d === 'long' ? '▲ LONG' : '▼ SHORT'}</button>
+                        ))}
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                        <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Quantity (shares)</label>
+                            <input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
+                        <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Entry Price ($)</label>
+                            <input type="number" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
+                    </div>
+                    <PositionLegFields label="🎯 TAKE PROFIT" color="#10b981" priceVal={tpPrice} percentVal={tpPercent} dollarsVal={tpDollars} onSync={syncTp} />
+                    <PositionLegFields label="🛑 STOP LOSS" color="#ef4444" priceVal={slPrice} percentVal={slPercent} dollarsVal={slDollars} onSync={syncSl} />
+                    <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Notes (optional)</label>
+                        <input type="text" value={notes} onChange={e => setNotes(e.target.value)} style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
+                    {error && <div style={{ padding:'8px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px' }}>⚠️ {error}</div>}
+                    <button onClick={submit} disabled={submitting} style={{
+                        padding:'12px', borderRadius:'10px', background: submitting ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                        border:'none', color:'#fff', fontWeight:'800', fontSize:'14px', cursor: submitting ? 'wait' : 'pointer',
+                    }}>{submitting ? '⏳ Opening...' : `${direction === 'long' ? '▲' : '▼'} Open ${direction.toUpperCase()} Position`}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function EditPositionModal({ isOpen, onClose, position, onUpdated }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [tpPrice, setTpPrice] = React.useState(''); const [tpPercent, setTpPercent] = React.useState(''); const [tpDollars, setTpDollars] = React.useState('');
+    const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
+    const [notes, setNotes] = React.useState('');
+    const [submitting, setSubmitting] = React.useState(false);
+    const [error, setError] = React.useState(null);
+
+    React.useEffect(() => {
+        if (isOpen && position) {
+            setTpPrice(position.tp_price != null ? String(position.tp_price) : '');
+            setTpPercent(position.tp_percent != null ? String(position.tp_percent) : '');
+            setTpDollars(position.tp_dollars != null ? String(position.tp_dollars) : '');
+            setSlPrice(position.sl_price != null ? String(position.sl_price) : '');
+            setSlPercent(position.sl_percent != null ? String(position.sl_percent) : '');
+            setSlDollars(position.sl_dollars != null ? String(position.sl_dollars) : '');
+            setNotes(position.notes || ''); setError(null);
+        }
+    }, [isOpen, position]);
+
+    if (!isOpen || !position) return null;
+    const { entry_price: entry, quantity: qty, direction } = position;
+
+    const syncTp = (field, value) => {
+        if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
+        const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
+        if (r.price == null) return;
+        if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+    };
+    const syncSl = (field, value) => {
+        if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
+        const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
+        if (r.price == null) return;
+        if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+    };
+
+    const submit = async () => {
+        setSubmitting(true); setError(null);
+        try {
+            const res = await fetch(`${BACKEND}/api/positions/${position.id}/`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tpPrice: tpPrice || null, tpPercent: tpPercent || null, tpDollars: tpDollars || null,
+                    slPrice: slPrice || null, slPercent: slPercent || null, slDollars: slDollars || null,
+                    notes,
+                }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            onUpdated && onUpdated(json.position);
+            onClose();
+        } catch (e) { setError(e.message); }
+        finally { setSubmitting(false); }
+    };
+
+    return (
+        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10090, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(460px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>✏️ Edit Position — {position.asset}</span>
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'28px', height:'28px', color:'#fff', fontSize:'15px', cursor:'pointer' }}>×</button>
+                </div>
+                <div style={{ padding:'18px 20px', display:'flex', flexDirection:'column', gap:'12px', maxHeight:'70vh', overflowY:'auto' }}>
+                    <div style={{ fontSize:'12px', color:'#64748b' }}>{position.direction === 'long' ? '▲ LONG' : '▼ SHORT'} · {position.quantity} shares @ ${position.entry_price}</div>
+                    <PositionLegFields label="🎯 TAKE PROFIT" color="#10b981" priceVal={tpPrice} percentVal={tpPercent} dollarsVal={tpDollars} onSync={syncTp} />
+                    <PositionLegFields label="🛑 STOP LOSS" color="#ef4444" priceVal={slPrice} percentVal={slPercent} dollarsVal={slDollars} onSync={syncSl} />
+                    <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Notes</label>
+                        <input type="text" value={notes} onChange={e => setNotes(e.target.value)} style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
+                    {error && <div style={{ padding:'8px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px' }}>⚠️ {error}</div>}
+                    <button onClick={submit} disabled={submitting} style={{
+                        padding:'12px', borderRadius:'10px', background: submitting ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                        border:'none', color:'#fff', fontWeight:'800', fontSize:'14px', cursor: submitting ? 'wait' : 'pointer',
+                    }}>{submitting ? '⏳ Saving...' : '💾 Save Changes'}</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null }) {
     const BACKEND      = 'https://backend-production-c0ab.up.railway.app';
     const containerRef = React.useRef(null);
@@ -250,11 +471,66 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [metaExpanded, setMetaExpanded] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
 
-    React.useEffect(() => {
+        React.useEffect(() => {
         const onResize = () => setIsMobile(window.innerWidth < 640);
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
+
+    const seriesRef = React.useRef(null);
+    const positionLinesRef = React.useRef({});
+    const [positions, setPositions] = React.useState([]);
+    const [showTicket, setShowTicket] = React.useState(false);
+    const [editingPosition, setEditingPosition] = React.useState(null);
+
+    const clearPositionLines = () => {
+        if (!seriesRef.current) return;
+        Object.values(positionLinesRef.current).forEach(group => {
+            Object.values(group).forEach(pl => { try { seriesRef.current.removePriceLine(pl); } catch (_) {} });
+        });
+        positionLinesRef.current = {};
+    };
+
+    const drawPositionLines = (positionList) => {
+        if (!seriesRef.current) return;
+        clearPositionLines();
+        positionList.forEach(pos => {
+            const isLong = pos.direction === 'long';
+            const lines = {};
+            if (pos.entry_price) {
+                lines.entry = seriesRef.current.createPriceLine({
+                    price: pos.entry_price, color: '#3b82f6', lineWidth: 2, lineStyle: 0, axisLabelVisible: true,
+                    title: `Entry${isLong ? ' (L)' : ' (S)'} $${pos.entry_price}`,
+                });
+            }
+            if (pos.sl_price) {
+                lines.sl = seriesRef.current.createPriceLine({
+                    price: pos.sl_price, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    title: pos.sl_dollars ? `SL $${pos.sl_price} (-$${Math.abs(pos.sl_dollars).toFixed(2)})` : `SL $${pos.sl_price}`,
+                });
+            }
+            if (pos.tp_price) {
+                lines.tp = seriesRef.current.createPriceLine({
+                    price: pos.tp_price, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    title: pos.tp_dollars ? `TP $${pos.tp_price} (+$${Math.abs(pos.tp_dollars).toFixed(2)})` : `TP $${pos.tp_price}`,
+                });
+            }
+            positionLinesRef.current[pos.id] = lines;
+        });
+    };
+
+    const fetchPositions = async () => {
+        if (!ticker) return;
+        try {
+            const res = await fetch(`${BACKEND}/api/positions/?asset=${ticker}`);
+            const json = await res.json();
+            const list = json.positions || [];
+            setPositions(list);
+            drawPositionLines(list);
+        } catch (e) { console.error('[ScannerChart positions]', e); }
+    };
+
+    React.useEffect(() => { fetchPositions(); }, [ticker]);
 
 
     const INTERVALS = ['15m','1h','1D','1W','1M','3M','1Y'];
@@ -325,6 +601,8 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     wickDownColor:   '#ef4444',
                 });
                 series.setData(json.candles);
+                seriesRef.current = series;
+                drawPositionLines(positions);
 
                 if (json.ema20 && json.ema20.length > 0) {
                     const e20 = chart.addLineSeries({
@@ -432,7 +710,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     TV ↗
                 </a>
 
-                <button
+                                <button
                     onClick={() => setIsFullscreen(f => !f)}
                     title={isFullscreen ? 'Exit full view' : 'Full view'}
                     style={{
@@ -441,6 +719,17 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     }}
                 >
                     {isFullscreen ? '⛶ Exit' : '⛶'}
+                </button>
+
+                <button
+                    onClick={() => setShowTicket(true)}
+                    title="Open paper position"
+                    style={{
+                        padding: '3px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: '700',
+                        cursor: 'pointer', border: 'none', backgroundColor: 'rgba(16,185,129,0.15)', color: '#10b981',
+                    }}
+                >
+                    📝 Trade
                 </button>
                 
             </div>
@@ -582,10 +871,37 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                         {item.label}
                     </span>
                 ))}
-                <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#334155' }}>
+                                <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#334155' }}>
                     Candles · EMAs · {interval}
                 </span>
             </div>
+
+            {positions.length > 0 && (
+                <div style={{ padding:'8px 14px', backgroundColor:'#0a1628', borderTop:'1px solid #1e293b', display:'flex', flexDirection:'column', gap:'6px' }}>
+                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#f59e0b', letterSpacing:'0.07em' }}>📌 OPEN POSITIONS</div>
+                    {positions.map(pos => (
+                        <div key={pos.id} style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', fontSize:'11px', color:'#cbd5e1' }}>
+                            <span style={{ fontWeight:'800', color: pos.direction==='long' ? '#10b981' : '#ef4444' }}>{pos.direction==='long'?'▲':'▼'} {pos.quantity}sh</span>
+                            <span>@ ${pos.entry_price}</span>
+                            {pos.sl_price && <span style={{ color:'#ef4444' }}>SL ${pos.sl_price}</span>}
+                            {pos.tp_price && <span style={{ color:'#10b981' }}>TP ${pos.tp_price}</span>}
+                            <button onClick={() => setEditingPosition(pos)} style={{ marginLeft:'auto', fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)', color:'#94a3b8', cursor:'pointer' }}>Edit</button>
+                            <button onClick={async () => {
+                                try {
+                                    await fetch(`${BACKEND}/api/positions/${pos.id}/close/`, {
+                                        method:'POST', headers:{'Content-Type':'application/json'},
+                                        body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
+                                    });
+                                    fetchPositions();
+                                } catch (e) { console.error(e); }
+                            }} style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(239,68,68,0.3)', backgroundColor:'rgba(239,68,68,0.1)', color:'#ef4444', cursor:'pointer' }}>Close</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <PositionTicket isOpen={showTicket} onClose={() => setShowTicket(false)} ticker={ticker} currentPrice={scannerMeta?.currentPrice ?? null} source="trend_scanner" onOpened={fetchPositions} />
+            <EditPositionModal isOpen={!!editingPosition} onClose={() => setEditingPosition(null)} position={editingPosition} onUpdated={fetchPositions} />
         </div>
     );
 }
@@ -3323,6 +3639,10 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
     const [expandedTicker, setExpandedTicker] = React.useState(null);
     const pollRef = React.useRef(null);
 
+    const [gpChartTicker, setGpChartTicker] = React.useState(null);
+    const [gpChartInterval, setGpChartInterval] = React.useState('1D');
+    const [gpShowAllCharts, setGpShowAllCharts] = React.useState(false);
+
         // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
     const [aiRuns, setAiRuns] = React.useState({});
     const [aiSynthesis, setAiSynthesis] = React.useState({});
@@ -3780,7 +4100,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                 <option value="ALL">All Countries</option>
                                 {allCountryNames.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
-                            {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
+                                                        {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
                                 <button key={d} onClick={() => setDirFilter(d)} style={{
                                     padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
                                     border:`1px solid ${dirFilter === d ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'}`,
@@ -3788,6 +4108,11 @@ Do not include anything outside the JSON array. The response must be parseable b
                                     color:'#fff',
                                 }}>{d === 'ALL' ? 'All Dirs' : d}</button>
                             ))}
+                            <button onClick={() => setGpShowAllCharts(s => !s)} style={{
+                                padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${gpShowAllCharts ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: gpShowAllCharts ? 'rgba(124,58,237,0.2)' : 'transparent', color:'#fff',
+                            }}>{gpShowAllCharts ? '📊 Hide All Charts' : '📊 Show All Charts'}</button>
                         </div>
                     )}
                 </div>
@@ -3868,11 +4193,11 @@ Do not include anything outside the JSON array. The response must be parseable b
 
                                 {!collapsed && (
                                     <div style={{ padding:'8px 20px 16px', display:'flex', flexDirection:'column', gap:'6px' }}>
-                                        {cData.tickers.map(t => {
+                                                                                {cData.tickers.map((t, tIdx) => {
                                             const sc = GP_SIG[t.signal] || GP_SIG.WATCH;
                                             const dirColor = t.direction === 'BULLISH' ? '#10b981' : t.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
                                             const key = `${country}_${t.ticker}`;
-                                            const isExpanded = expandedTicker === key;
+                                            const isExpanded = gpShowAllCharts || expandedTicker === key;
                                             return (
                                                 <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
                                                     <div onClick={() => setExpandedTicker(isExpanded ? null : key)} style={{
@@ -4046,6 +4371,24 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                                     </div>
                                                                 );
                                                             })()}
+                                                                                                                        {gpShowAllCharts || gpChartTicker === t.ticker ? (
+                                                                <ScannerChart
+                                                                    ticker={t.ticker}
+                                                                    interval={gpChartInterval}
+                                                                    onIntervalChange={setGpChartInterval}
+                                                                    onClose={() => setGpChartTicker(null)}
+                                                                    hideClose={gpShowAllCharts}
+                                                                    mountDelay={gpShowAllCharts ? tIdx * 400 : 0}
+                                                                    scannerMeta={t}
+                                                                />
+                                                            ) : (
+                                                                <button onClick={() => setGpChartTicker(t.ticker)} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>📊 Show Chart</button>
+                                                            )}
+
                                                             {onSelectTicker && (
                                                                 <button onClick={() => { onSelectTicker(t.ticker); onClose(); }} style={{
                                                                     padding:'8px', borderRadius:'8px',
