@@ -5001,6 +5001,340 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     );
 }
 
+function CompositeBacktestModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const HORIZONS = [1, 3, 5, 10, 20];
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const [tab, setTab] = React.useState('scanner');
+
+    const [scMinScore, setScMinScore] = React.useState('');
+    const [scSignal, setScSignal] = React.useState('');
+    const [scDirection, setScDirection] = React.useState('');
+    const [scAiVerdictMin, setScAiVerdictMin] = React.useState('');
+    const [scStartDate, setScStartDate] = React.useState('');
+    const [scEndDate, setScEndDate] = React.useState('');
+    const [scLoading, setScLoading] = React.useState(false);
+    const [scError, setScError] = React.useState(null);
+    const [scData, setScData] = React.useState(null);
+    const [scHasRun, setScHasRun] = React.useState(false);
+    const [scHorizonFocus, setScHorizonFocus] = React.useState('5');
+
+    const [gpMinConviction, setGpMinConviction] = React.useState('');
+    const [gpRecMin, setGpRecMin] = React.useState('');
+    const [gpTopPickOnly, setGpTopPickOnly] = React.useState(false);
+    const [gpSector, setGpSector] = React.useState('');
+    const [gpCountry, setGpCountry] = React.useState('');
+    const [gpStartDate, setGpStartDate] = React.useState('');
+    const [gpEndDate, setGpEndDate] = React.useState('');
+    const [gpLoading, setGpLoading] = React.useState(false);
+    const [gpError, setGpError] = React.useState(null);
+    const [gpData, setGpData] = React.useState(null);
+    const [gpHasRun, setGpHasRun] = React.useState(false);
+    const [gpHorizonFocus, setGpHorizonFocus] = React.useState('5');
+
+    const runScannerComposite = async () => {
+        setScLoading(true); setScError(null); setScHasRun(true);
+        try {
+            const body = { horizons: HORIZONS, limit: 3000 };
+            if (scMinScore.trim()) body.minScore = parseFloat(scMinScore);
+            if (scSignal) body.signal = scSignal;
+            if (scDirection) body.direction = scDirection;
+            if (scAiVerdictMin) body.aiVerdictMin = scAiVerdictMin;
+            if (scStartDate) body.startDate = scStartDate;
+            if (scEndDate) body.endDate = scEndDate;
+            const res = await fetch(`${BACKEND}/api/snowvault_scanner_composite_backtest_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setScData(json);
+        } catch (e) { setScError(e.message); }
+        finally { setScLoading(false); }
+    };
+
+    const runGlobalPicksComposite = async () => {
+        setGpLoading(true); setGpError(null); setGpHasRun(true);
+        try {
+            const body = { horizons: HORIZONS, limit: 3000 };
+            if (gpMinConviction.trim()) body.minConviction = parseInt(gpMinConviction, 10);
+            if (gpRecMin) body.recMin = gpRecMin;
+            if (gpTopPickOnly) body.topPickOnly = true;
+            if (gpSector.trim()) body.sector = gpSector.trim();
+            if (gpCountry.trim()) body.country = gpCountry.trim();
+            if (gpStartDate) body.startDate = gpStartDate;
+            if (gpEndDate) body.endDate = gpEndDate;
+            const res = await fetch(`${BACKEND}/api/snowvault_global_picks_composite_backtest_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpData(json);
+        } catch (e) { setGpError(e.message); }
+        finally { setGpLoading(false); }
+    };
+
+    const renderRankingTable = (title, groupedData, horizonFocus, setHorizonFocus, labelKey, showFlag) => {
+        if (!groupedData || Object.keys(groupedData).length === 0) return null;
+        const entries = Object.entries(groupedData);
+        return (
+            <div style={{ marginBottom:'20px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>🛡️ {title}</span>
+                    <div style={{ display:'flex', gap:'4px' }}>
+                        {HORIZONS.map(h => (
+                            <button key={h} onClick={() => setHorizonFocus(String(h))} style={{
+                                padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                                border:`1px solid ${String(horizonFocus) === String(h) ? '#0891b2' : '#e2e8f0'}`,
+                                backgroundColor: String(horizonFocus) === String(h) ? '#ecfeff' : '#fff',
+                                color: String(horizonFocus) === String(h) ? '#0891b2' : '#94a3b8',
+                            }}>{HORIZON_LABELS[h]}</button>
+                        ))}
+                    </div>
+                </div>
+                <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor:'#f8fafc' }}>
+                                <th style={{ padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>{labelKey}</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Occ.</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Avg Return</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Win Rate</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Stability (combined)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {entries.map(([label, g], i) => {
+                                const cell = g.byHorizon[String(horizonFocus)];
+                                const info = stabilityLabel(g.combined.winRate);
+                                return (
+                                    <tr key={label} style={{ borderBottom:'1px solid #f1f5f9', backgroundColor: i === 0 ? `${info.color}08` : 'transparent' }}>
+                                        <td style={{ padding:'7px 10px', fontWeight:'800', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                            {i === 0 && '🏆 '}{showFlag ? `${g.flag || ''} ` : ''}{label}
+                                        </td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', color:'#64748b' }}>{g.occurrenceCount} ({g.tickerCount} tickers)</td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: (cell?.avgReturn ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {cell?.avgReturn != null ? `${cell.avgReturn >= 0 ? '+' : ''}${cell.avgReturn}%` : '—'}
+                                        </td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{cell?.winRate != null ? `${cell.winRate}%` : '—'}</td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                            <span style={{ fontWeight:'900', color: info.color }}>{g.combined.stabilityScore != null ? `${g.combined.stabilityScore}%` : '—'}</span>
+                                            <span style={{ fontSize:'9px', color: info.color, display:'block' }}>{info.label}</span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10080,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'920px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0891b2 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>🧬</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Composite Backtest</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Combine criteria (e.g. Strong Opportunity + score ≥ 70 + Bullish) and see how that EXACT combination performed historically
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'6px', marginTop:'14px' }}>
+                        {[{ t:'scanner', label:'🔭 Trend Scanner' }, { t:'globalPicks', label:'🌍 Global Picks by Country' }].map(({ t, label }) => (
+                            <button key={t} onClick={() => setTab(t)} style={{
+                                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${tab === t ? 'rgba(8,145,178,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: tab === t ? '#0891b2' : 'rgba(255,255,255,0.08)',
+                                color: tab === t ? '#fff' : 'rgba(255,255,255,0.6)',
+                            }}>{label}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ maxHeight:'72vh', overflowY:'auto', padding:'20px' }}>
+                    {tab === 'scanner' && (
+                        <>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'16px', padding:'14px', backgroundColor:'#f8fafc', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN SCORE</label>
+                                    <input type="number" value={scMinScore} onChange={e => setScMinScore(e.target.value)} placeholder="e.g. 70"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'80px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>SIGNAL</label>
+                                    <select value={scSignal} onChange={e => setScSignal(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        {['RANGE_BREAKOUT_BULL','RANGE_BREAKOUT_BEAR','ACCELERATING_BULL','ACCELERATING_BEAR','BREAKOUT','TREND_BUILDING','WATCH'].map(s => (
+                                            <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>DIRECTION</label>
+                                    <select value={scDirection} onChange={e => setScDirection(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        <option value="BULLISH">Bullish</option>
+                                        <option value="BEARISH">Bearish</option>
+                                        <option value="NEUTRAL">Neutral</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN AI VERDICT</label>
+                                    <select value={scAiVerdictMin} onChange={e => setScAiVerdictMin(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        {['STRONG_OPPORTUNITY','OPPORTUNITY','NEUTRAL','CAUTION','AVOID'].map(v => (
+                                            <option key={v} value={v}>{v.replace('_',' ')}+</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>FROM</label>
+                                    <input type="date" value={scStartDate} onChange={e => setScStartDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>TO</label>
+                                    <input type="date" value={scEndDate} onChange={e => setScEndDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <button onClick={runScannerComposite} disabled={scLoading} style={{
+                                    alignSelf:'flex-end', padding:'8px 18px', borderRadius:'8px',
+                                    background: scLoading ? 'rgba(8,145,178,0.4)' : '#0891b2', border:'none', color:'#fff',
+                                    fontWeight:'800', fontSize:'12px', cursor: scLoading ? 'wait' : 'pointer',
+                                }}>{scLoading ? '⏳ Running...' : '🔍 Run Composite Backtest'}</button>
+                            </div>
+
+                            {scError && <div style={{ padding:'12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px', marginBottom:'16px' }}>⚠️ {scError}</div>}
+
+                            {!scHasRun && !scLoading && (
+                                <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                                    Set your criteria above and hit Run — e.g. "STRONG_OPPORTUNITY+ · score ≥ 70 · Bullish" — to see exactly how that combination has performed.
+                                </div>
+                            )}
+
+                            {scData && scHasRun && !scLoading && (
+                                scData.matchedCount === 0 ? (
+                                    <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No saved snapshots matched every criterion together. Try loosening one.</div>
+                                ) : (
+                                    <>
+                                        <div style={{ padding:'12px 16px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', marginBottom:'18px' }}>
+                                            <div style={{ fontSize:'13px', color:'#065f46', lineHeight:1.6 }}>
+                                                <strong>{scData.matchedCount}</strong> snapshots matched this exact combination. Overall,{' '}
+                                                {(() => {
+                                                    const cell = scData.aggregate?.byHorizon?.[scHorizonFocus];
+                                                    if (!cell || cell.count === 0) return 'not enough resolved data yet to say.';
+                                                    return <>the call was right <strong>{cell.winRate}%</strong> of the time over {scHorizonFocus} days, averaging <strong style={{ color: cell.avgReturn >= 0 ? '#10b981' : '#ef4444' }}>{cell.avgReturn >= 0 ? '+' : ''}{cell.avgReturn}%</strong> per trade.</>;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        {renderRankingTable('Sector Stability Ranking (Trend Scanner has no country field — sector is the closest analog)', scData.bySector, scHorizonFocus, setScHorizonFocus, 'Sector', false)}
+                                    </>
+                                )
+                            )}
+                        </>
+                    )}
+
+                    {tab === 'globalPicks' && (
+                        <>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'16px', padding:'14px', backgroundColor:'#f8fafc', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN CONVICTION</label>
+                                    <input type="number" min="1" max="10" value={gpMinConviction} onChange={e => setGpMinConviction(e.target.value)} placeholder="e.g. 7"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'80px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN RECOMMENDATION</label>
+                                    <select value={gpRecMin} onChange={e => setGpRecMin(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        <option value="STRONG BUY">Strong Buy+</option>
+                                        <option value="BUY">Buy+</option>
+                                        <option value="WATCH">Watch+</option>
+                                        <option value="HOLD">Hold+</option>
+                                    </select>
+                                </div>
+                                <label style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'12px', color:'#475569', alignSelf:'flex-end', paddingBottom:'6px' }}>
+                                    <input type="checkbox" checked={gpTopPickOnly} onChange={e => setGpTopPickOnly(e.target.checked)} /> Top Picks only
+                                </label>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>SECTOR</label>
+                                    <input type="text" value={gpSector} onChange={e => setGpSector(e.target.value)} placeholder="e.g. Semiconductors"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'140px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>COUNTRY (blank = rank ALL)</label>
+                                    <input type="text" value={gpCountry} onChange={e => setGpCountry(e.target.value)} placeholder="e.g. Singapore"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'150px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>FROM</label>
+                                    <input type="date" value={gpStartDate} onChange={e => setGpStartDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>TO</label>
+                                    <input type="date" value={gpEndDate} onChange={e => setGpEndDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <button onClick={runGlobalPicksComposite} disabled={gpLoading} style={{
+                                    alignSelf:'flex-end', padding:'8px 18px', borderRadius:'8px',
+                                    background: gpLoading ? 'rgba(8,145,178,0.4)' : '#0891b2', border:'none', color:'#fff',
+                                    fontWeight:'800', fontSize:'12px', cursor: gpLoading ? 'wait' : 'pointer',
+                                }}>{gpLoading ? '⏳ Running...' : '🔍 Run Composite Backtest'}</button>
+                            </div>
+
+                            {gpError && <div style={{ padding:'12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px', marginBottom:'16px' }}>⚠️ {gpError}</div>}
+
+                            {!gpHasRun && !gpLoading && (
+                                <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                                    Leave everything blank and hit Run to rank every country at once — this is the "which nations tend to be most stable" view.
+                                </div>
+                            )}
+
+                            {gpData && gpHasRun && !gpLoading && (
+                                gpData.matchedCount === 0 ? (
+                                    <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No saved picks matched every criterion together. Try loosening one.</div>
+                                ) : (
+                                    <>
+                                        <div style={{ padding:'12px 16px', backgroundColor:'#faf5ff', border:'1px solid #ddd6fe', borderRadius:'10px', marginBottom:'18px' }}>
+                                            <div style={{ fontSize:'13px', color:'#5b21b6', lineHeight:1.6 }}>
+                                                <strong>{gpData.matchedCount}</strong> picks matched this combination across <strong>{Object.keys(gpData.byCountry || {}).length}</strong> countries.
+                                                {Object.keys(gpData.byCountry || {}).length > 0 && (() => {
+                                                    const top = Object.entries(gpData.byCountry)[0];
+                                                    return <> Most stable so far: <strong>{top[1].flag} {top[0]}</strong> at <strong>{top[1].combined.stabilityScore}%</strong> combined stability.</>;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        {renderRankingTable('Country Stability Ranking', gpData.byCountry, gpHorizonFocus, setGpHorizonFocus, 'Country', true)}
+                                    </>
+                                )
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+    );
+}
+
+
 function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -13075,7 +13409,7 @@ export default function SnowAIStockScreener() {
                                 >
                                     📜 Scan History
                                 </button>
-                                <button
+                                                                <button
                                     onClick={() => setShowGlobalPicksTrendScan(true)}
                                     style={{
                                         ...styles.browseButton,
@@ -13084,6 +13418,26 @@ export default function SnowAIStockScreener() {
                                     }}
                                 >
                                     🌍 Global Picks Trend Scan
+                                </button>
+                                <button
+                                    onClick={() => setShowCompositeBacktest(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#0891b2',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🧬 Composite Backtest
+                                </button>
+                                <button
+                                    onClick={() => setShowPositionsPanel(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#1e3a5f',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    📒 Positions
                                 </button>
 
                             </div>
@@ -13432,9 +13786,19 @@ export default function SnowAIStockScreener() {
                 onClose={() => setShowScannerHistory(false)}
                 onSelectTicker={handleStockClick}
             />
-            <GlobalPicksTrendScanModal
+                        <GlobalPicksTrendScanModal
                 isOpen={showGlobalPicksTrendScan}
                 onClose={() => setShowGlobalPicksTrendScan(false)}
+                onSelectTicker={handleStockClick}
+            />
+            <CompositeBacktestModal
+                isOpen={showCompositeBacktest}
+                onClose={() => setShowCompositeBacktest(false)}
+                onSelectTicker={handleStockClick}
+            />
+            <PositionsPanelModal
+                isOpen={showPositionsPanel}
+                onClose={() => setShowPositionsPanel(false)}
                 onSelectTicker={handleStockClick}
             />
 
