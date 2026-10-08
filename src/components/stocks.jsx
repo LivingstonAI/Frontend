@@ -282,16 +282,19 @@ function PositionLegFields({ label, color, priceVal, percentVal, dollarsVal, onS
     );
 }
 
+
 function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened, onDraftTp, onDraftSl }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
-    const [direction, setDirection] = React.useState('long');
-    const [quantity, setQuantity] = React.useState('10');
+    const [direction, setDirection]   = React.useState('long');
+    const [quantity, setQuantity]     = React.useState('10');
     const [entryPrice, setEntryPrice] = React.useState(currentPrice != null ? String(currentPrice) : '');
-    const [notes, setNotes] = React.useState('');
+    const [notes, setNotes]           = React.useState('');
     const [tpPrice, setTpPrice] = React.useState(''); const [tpPercent, setTpPercent] = React.useState(''); const [tpDollars, setTpDollars] = React.useState('');
     const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
     const [submitting, setSubmitting] = React.useState(false);
-    const [error, setError] = React.useState(null);
+    const [error, setError]           = React.useState(null);
+    const tpAnchor = React.useRef(null);
+    const slAnchor = React.useRef(null);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -299,29 +302,49 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
             setDirection('long'); setQuantity('10'); setNotes('');
             setTpPrice(''); setTpPercent(''); setTpDollars('');
             setSlPrice(''); setSlPercent(''); setSlDollars('');
+            tpAnchor.current = null; slAnchor.current = null;
             setError(null);
         }
     }, [isOpen, ticker]);
 
     const entry = parseFloat(entryPrice) || 0;
-    const qty = parseFloat(quantity) || 0;
+    const qty   = parseFloat(quantity) || 0;
 
-        const syncTp = (field, value) => {
-        if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
+    const syncTp = (field, value) => {
+        tpAnchor.current = field;
+        if (field === 'price')   setTpPrice(value);
+        if (field === 'percent') setTpPercent(value);
+        if (field === 'dollars') setTpDollars(value);
         if (!entry || !qty) return;
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
         if (r.price == null) { onDraftTp && onDraftTp(null); return; }
-        if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+        if (field !== 'price')   setTpPrice(String(r.price));
+        if (field !== 'percent') setTpPercent(String(r.percent));
+        if (field !== 'dollars') setTpDollars(String(r.dollars));
         onDraftTp && onDraftTp(r.price);
     };
     const syncSl = (field, value) => {
-        if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
+        slAnchor.current = field;
+        if (field === 'price')   setSlPrice(value);
+        if (field === 'percent') setSlPercent(value);
+        if (field === 'dollars') setSlDollars(value);
         if (!entry || !qty) return;
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
         if (r.price == null) { onDraftSl && onDraftSl(null); return; }
-        if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+        if (field !== 'price')   setSlPrice(String(r.price));
+        if (field !== 'percent') setSlPercent(String(r.percent));
+        if (field !== 'dollars') setSlDollars(String(r.dollars));
         onDraftSl && onDraftSl(r.price);
     };
+
+    // Direction / entry / quantity changed -> re-resolve from whichever field was edited last
+    React.useEffect(() => {
+        if (!isOpen || !entry || !qty) return;
+        const tpVals = { price: tpPrice, percent: tpPercent, dollars: tpDollars };
+        const slVals = { price: slPrice, percent: slPercent, dollars: slDollars };
+        if (tpAnchor.current && tpVals[tpAnchor.current] !== '') syncTp(tpAnchor.current, tpVals[tpAnchor.current]);
+        if (slAnchor.current && slVals[slAnchor.current] !== '') syncSl(slAnchor.current, slVals[slAnchor.current]);
+    }, [direction, entryPrice, quantity]);
 
     const submit = async () => {
         if (!entry || !qty) { setError('Entry price and quantity are required.'); return; }
@@ -345,14 +368,14 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
     };
 
     if (!isOpen) return null;
-    return (
-        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10090, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }} onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} style={{ width:'min(460px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
-                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+    return ReactDOM.createPortal(
+        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(2,6,23,0.22)', zIndex:1000001, display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'12px', pointerEvents:'none' }}>
+            <div style={{ pointerEvents:'auto', width:'min(430px,100%)', maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.35)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'14px 18px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
                     <span style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>📝 Open Position — {ticker}</span>
                     <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'28px', height:'28px', color:'#fff', fontSize:'15px', cursor:'pointer' }}>×</button>
                 </div>
-                <div style={{ padding:'18px 20px', display:'flex', flexDirection:'column', gap:'12px', maxHeight:'70vh', overflowY:'auto' }}>
+                <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:'12px', overflowY:'auto' }}>
                     <div style={{ display:'flex', gap:'8px' }}>
                         {['long','short'].map(d => (
                             <button key={d} onClick={() => setDirection(d)} style={{
@@ -380,7 +403,8 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
                     }}>{submitting ? '⏳ Opening...' : `${direction === 'long' ? '▲' : '▼'} Open ${direction.toUpperCase()} Position`}</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
@@ -388,11 +412,11 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [tpPrice, setTpPrice] = React.useState(''); const [tpPercent, setTpPercent] = React.useState(''); const [tpDollars, setTpDollars] = React.useState('');
     const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
-    const [notes, setNotes] = React.useState('');
+    const [notes, setNotes]           = React.useState('');
     const [submitting, setSubmitting] = React.useState(false);
-    const [error, setError] = React.useState(null);
+    const [error, setError]           = React.useState(null);
 
-        React.useEffect(() => {
+    React.useEffect(() => {
         if (isOpen && position) {
             setTpPrice(position.tp_price != null ? String(position.tp_price) : '');
             setTpPercent(position.tp_percent != null ? String(position.tp_percent) : '');
@@ -409,18 +433,26 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
     if (!isOpen || !position) return null;
     const { entry_price: entry, quantity: qty, direction } = position;
 
-        const syncTp = (field, value) => {
-        if (field === 'price') setTpPrice(value); if (field === 'percent') setTpPercent(value); if (field === 'dollars') setTpDollars(value);
+    const syncTp = (field, value) => {
+        if (field === 'price')   setTpPrice(value);
+        if (field === 'percent') setTpPercent(value);
+        if (field === 'dollars') setTpDollars(value);
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, true);
         if (r.price == null) { onDraftTp && onDraftTp(null); return; }
-        if (field !== 'price') setTpPrice(String(r.price)); if (field !== 'percent') setTpPercent(String(r.percent)); if (field !== 'dollars') setTpDollars(String(r.dollars));
+        if (field !== 'price')   setTpPrice(String(r.price));
+        if (field !== 'percent') setTpPercent(String(r.percent));
+        if (field !== 'dollars') setTpDollars(String(r.dollars));
         onDraftTp && onDraftTp(r.price);
     };
     const syncSl = (field, value) => {
-        if (field === 'price') setSlPrice(value); if (field === 'percent') setSlPercent(value); if (field === 'dollars') setSlDollars(value);
+        if (field === 'price')   setSlPrice(value);
+        if (field === 'percent') setSlPercent(value);
+        if (field === 'dollars') setSlDollars(value);
         const r = SnowPositionMath.resolveLeg(direction, entry, qty, { [field]: value }, false);
         if (r.price == null) { onDraftSl && onDraftSl(null); return; }
-        if (field !== 'price') setSlPrice(String(r.price)); if (field !== 'percent') setSlPercent(String(r.percent)); if (field !== 'dollars') setSlDollars(String(r.dollars));
+        if (field !== 'price')   setSlPrice(String(r.price));
+        if (field !== 'percent') setSlPercent(String(r.percent));
+        if (field !== 'dollars') setSlDollars(String(r.dollars));
         onDraftSl && onDraftSl(r.price);
     };
 
@@ -443,14 +475,14 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
         finally { setSubmitting(false); }
     };
 
-    return (
-        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10090, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }} onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} style={{ width:'min(460px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
-                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+    return ReactDOM.createPortal(
+        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(2,6,23,0.22)', zIndex:1000001, display:'flex', alignItems:'center', justifyContent:'flex-end', padding:'12px', pointerEvents:'none' }}>
+            <div style={{ pointerEvents:'auto', width:'min(430px,100%)', maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.35)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'14px 18px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
                     <span style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>✏️ Edit Position — {position.asset}</span>
                     <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'28px', height:'28px', color:'#fff', fontSize:'15px', cursor:'pointer' }}>×</button>
                 </div>
-                <div style={{ padding:'18px 20px', display:'flex', flexDirection:'column', gap:'12px', maxHeight:'70vh', overflowY:'auto' }}>
+                <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:'12px', overflowY:'auto' }}>
                     <div style={{ fontSize:'12px', color:'#64748b' }}>{position.direction === 'long' ? '▲ LONG' : '▼ SHORT'} · {position.quantity} shares @ ${position.entry_price}</div>
                     <PositionLegFields label="🎯 TAKE PROFIT" color="#10b981" priceVal={tpPrice} percentVal={tpPercent} dollarsVal={tpDollars} onSync={syncTp} />
                     <PositionLegFields label="🛑 STOP LOSS" color="#ef4444" priceVal={slPrice} percentVal={slPercent} dollarsVal={slDollars} onSync={syncSl} />
@@ -463,35 +495,150 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
                     }}>{submitting ? '⏳ Saving...' : '💾 Save Changes'}</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
+
 function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null }) {
-    const BACKEND      = 'https://backend-production-c0ab.up.railway.app';
-    const containerRef = React.useRef(null);
-    const chartRef     = React.useRef(null);
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const containerRef     = React.useRef(null);
+    const chartRef         = React.useRef(null);
+    const seriesRef        = React.useRef(null);
+    const emaRefs          = React.useRef({ e20: null, e50: null, e200: null });
+    const firstLoadRef     = React.useRef(true);
+    const refreshingRef    = React.useRef(false);
+    const positionLinesRef = React.useRef({});
+    const draftLinesRef    = React.useRef({});
+    const positionsRef     = React.useRef([]);
+
     const [chartLoading, setChartLoading] = React.useState(true);
     const [chartError,   setChartError]   = React.useState(null);
     const [chartReady,   setChartReady]   = React.useState(!!window.LightweightCharts);
     const [isFullscreen, setIsFullscreen] = React.useState(false);
-    const seriesRef = React.useRef(null);
-    const positionLinesRef = React.useRef({});
-    const [positions, setPositions] = React.useState([]);
-    const [showTicket, setShowTicket] = React.useState(false);
+    const [metaExpanded, setMetaExpanded] = React.useState(false);
+    const [isMobile,     setIsMobile]     = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
+
+    const [showExtended,  setShowExtended]  = React.useState(false);
+    const [refreshTick,   setRefreshTick]   = React.useState(0);
+    const [refreshing,    setRefreshing]    = React.useState(false);
+    const [refreshError,  setRefreshError]  = React.useState(null);
+    const [autoRefresh,   setAutoRefresh]   = React.useState(false);
+    const [autoSecs,      setAutoSecs]      = React.useState(30);
+    const [lastRefreshed, setLastRefreshed] = React.useState(null);
+    const [lastPrice,     setLastPrice]     = React.useState(null);
+    const [marketSession, setMarketSession] = React.useState(null);
+    const [autoCloseNotice, setAutoCloseNotice] = React.useState(null);
+
+    const [positions,       setPositions]       = React.useState([]);
+    const [showTicket,      setShowTicket]      = React.useState(false);
     const [editingPosition, setEditingPosition] = React.useState(null);
 
+    const [latestSavedAnalysis,   setLatestSavedAnalysis]   = React.useState(null);
+    const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
+
+    const INTERVALS      = ['15m','1h','1D','1W','1M','3M','1Y'];
+    const INTRADAY       = ['15m','1h'];
+    const isIntraday     = INTRADAY.includes(interval);
+    const extendedActive = showExtended && isIntraday;
+
+    const SAVED_AI_VERDICT_COLORS = {
+        STRONG_OPPORTUNITY: { color:'#10b981', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', icon:'⛔' },
+    };
+
+    const tbBtn = (active) => ({
+        padding: '3px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+        border: `1px solid ${active ? '#3b82f6' : 'transparent'}`,
+        backgroundColor: active ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.07)',
+        color: active ? '#93c5fd' : '#64748b', whiteSpace: 'nowrap', transition: 'all 0.15s',
+    });
+
+    // ── library, resize, fullscreen lock ──────────────────────────────────────
     React.useEffect(() => {
-        if (isFullscreen) {
-            window.scrollTo({ top: 0, behavior: 'instant' });
-            const prevOverflow = document.body.style.overflow;
-            document.body.style.overflow = 'hidden';
-            return () => { document.body.style.overflow = prevOverflow; };
-        }
+        if (window.LightweightCharts) { setChartReady(true); return; }
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        s.onload = () => setChartReady(true);
+        s.onerror = () => setChartError('Failed to load chart library');
+        document.head.appendChild(s);
+    }, []);
+
+    React.useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    React.useEffect(() => {
+        if (!isFullscreen) return;
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const onKey = (e) => { if (e.key === 'Escape') setIsFullscreen(false); };
+        window.addEventListener('keydown', onKey);
+        return () => { document.body.style.overflow = prevOverflow; window.removeEventListener('keydown', onKey); };
     }, [isFullscreen]);
 
-    // -- Draft TP/SL preview lines (drawn live as you type in the ticket) --
-    const draftLinesRef = React.useRef({});
+    // ── data helpers ──────────────────────────────────────────────────────────
+    const fetchChartJson = async () => {
+        const res  = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker, interval, indicators: ['ema'], prePost: extendedActive }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Failed to load data');
+        return json;
+    };
+
+    const applyJson = (json) => {
+        if (!seriesRef.current) return;
+        seriesRef.current.setData(json.candles || []);
+        if (emaRefs.current.e20)  emaRefs.current.e20.setData(json.ema20   || []);
+        if (emaRefs.current.e50)  emaRefs.current.e50.setData(json.ema50   || []);
+        if (emaRefs.current.e200) emaRefs.current.e200.setData(json.ema200 || []);
+        const last = json.candles && json.candles.length ? json.candles[json.candles.length - 1].close : null;
+        if (last != null) setLastPrice(last);
+    };
+
+    // ── position + draft lines ────────────────────────────────────────────────
+    const clearPositionLines = () => {
+        if (!seriesRef.current) return;
+        Object.values(positionLinesRef.current).forEach(group => {
+            Object.values(group).forEach(pl => { try { seriesRef.current.removePriceLine(pl); } catch (_) {} });
+        });
+        positionLinesRef.current = {};
+    };
+
+    const drawPositionLines = (list) => {
+        if (!seriesRef.current) return;
+        clearPositionLines();
+        (list || []).forEach(pos => {
+            if (pos.status && pos.status !== 'OPEN') return;
+            const isLong = pos.direction === 'long';
+            const lines = {};
+            try {
+                if (pos.entry_price) lines.entry = seriesRef.current.createPriceLine({
+                    price: pos.entry_price, color: '#3b82f6', lineWidth: 2, lineStyle: 0, axisLabelVisible: true,
+                    title: `Entry ${isLong ? '(L)' : '(S)'} $${pos.entry_price}`,
+                });
+                if (pos.sl_price) lines.sl = seriesRef.current.createPriceLine({
+                    price: pos.sl_price, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    title: pos.sl_dollars ? `SL $${pos.sl_price} (-$${Math.abs(pos.sl_dollars).toFixed(2)})` : `SL $${pos.sl_price}`,
+                });
+                if (pos.tp_price) lines.tp = seriesRef.current.createPriceLine({
+                    price: pos.tp_price, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    title: pos.tp_dollars ? `TP $${pos.tp_price} (+$${Math.abs(pos.tp_dollars).toFixed(2)})` : `TP $${pos.tp_price}`,
+                });
+            } catch (e) { console.error('[ScannerChart lines]', e); }
+            positionLinesRef.current[pos.id] = lines;
+        });
+    };
+
     const setDraftLevel = (key, price, color, label) => {
         if (!seriesRef.current) return;
         if (draftLinesRef.current[key]) {
@@ -504,33 +651,108 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             });
         }
     };
+
     const clearDraftLines = () => {
         Object.keys(draftLinesRef.current).forEach(k => {
             try { seriesRef.current.removePriceLine(draftLinesRef.current[k]); } catch (_) {}
         });
         draftLinesRef.current = {};
     };
-    const handlePositionOpened = () => { clearDraftLines(); fetchPositions(); };
-    const handlePositionUpdated = () => { clearDraftLines(); fetchPositions(); };
-    const closeTicket = () => { clearDraftLines(); setShowTicket(false); };
-    const closeEditModal = () => { clearDraftLines(); setEditingPosition(null); };
 
-    // -- Latest SAVED AI analysis for this ticker (from scanner history), shown when fullscreen --
-    const [latestSavedAnalysis, setLatestSavedAnalysis] = React.useState(null);
-    const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
-    const SAVED_AI_VERDICT_COLORS = {
-        STRONG_OPPORTUNITY: { color:'#10b981', bg:'rgba(16,185,129,0.12)', icon:'🔥' },
-        OPPORTUNITY:         { color:'#3b82f6', bg:'rgba(59,130,246,0.12)', icon:'📈' },
-        NEUTRAL:             { color:'#94a3b8', bg:'rgba(148,163,184,0.12)', icon:'➡️' },
-        CAUTION:             { color:'#f59e0b', bg:'rgba(245,158,11,0.12)', icon:'⚠️' },
-        AVOID:               { color:'#ef4444', bg:'rgba(239,68,68,0.12)', icon:'⛔' },
+    const fetchPositions = async () => {
+        if (!ticker) return [];
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions/?asset=${ticker}`);
+            const json = await res.json();
+            const list = json.positions || [];
+            positionsRef.current = list;
+            setPositions(list);
+            drawPositionLines(list);
+            return list;
+        } catch (e) { console.error('[ScannerChart positions]', e); return []; }
     };
 
+    const refreshPositionPrices = async () => {
+        if (!positionsRef.current.some(p => p.status === 'OPEN')) return;
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_refresh_prices/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assets: [ticker], includeExtended: extendedActive }),
+            });
+            const json = await res.json();
+            if (!res.ok) return;
+            setMarketSession(json.marketSession || null);
+            const returned = json.positions || [];
+            const justClosed = returned.filter(p => p.status !== 'OPEN');
+            if (justClosed.length) {
+                setAutoCloseNotice(justClosed.map(p =>
+                    `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`
+                ).join(' · '));
+            }
+            const returnedIds = new Set(returned.map(p => p.id));
+            const merged = [...positionsRef.current.filter(p => !returnedIds.has(p.id)), ...returned.filter(p => p.status === 'OPEN')];
+            positionsRef.current = merged;
+            setPositions(merged);
+            drawPositionLines(merged);
+        } catch (e) { console.error('[ScannerChart refresh positions]', e); }
+    };
+
+    const handlePositionOpened  = () => { clearDraftLines(); fetchPositions(); };
+    const handlePositionUpdated = () => { clearDraftLines(); fetchPositions(); };
+    const closeTicket           = () => { clearDraftLines(); setShowTicket(false); };
+    const closeEditModal        = () => { clearDraftLines(); setEditingPosition(null); };
+
+    const computeLivePnl = (pos) => {
+        if (pos.status !== 'OPEN' || pos.current_price == null) return null;
+        const isLong = pos.direction === 'long';
+        const pnlDollars = isLong ? (pos.current_price - pos.entry_price) * pos.quantity : (pos.entry_price - pos.current_price) * pos.quantity;
+        const pnlPercent = (pos.entry_price && pos.quantity) ? (pnlDollars / (pos.entry_price * pos.quantity)) * 100 : null;
+        return { pnlDollars, pnlPercent };
+    };
+
+    // ── refresh (manual + auto). Auto stops automatically when this chart unmounts ──
+    const refreshInPlace = async () => {
+        if (refreshingRef.current || !chartRef.current || !seriesRef.current) return;
+        refreshingRef.current = true;
+        setRefreshing(true); setRefreshError(null);
+        try {
+            const json = await fetchChartJson();
+            if (!chartRef.current || !seriesRef.current) return;
+            const logical = chartRef.current.timeScale().getVisibleLogicalRange();
+            applyJson(json);
+            if (logical && logical.from != null && logical.to != null) {
+                chartRef.current.timeScale().setVisibleLogicalRange(logical);
+            }
+            await refreshPositionPrices();
+            setLastRefreshed(new Date());
+        } catch (e) { setRefreshError(e.message || 'Refresh failed'); }
+        finally { refreshingRef.current = false; setRefreshing(false); }
+    };
+
+    React.useEffect(() => { if (refreshTick > 0) refreshInPlace(); }, [refreshTick]);
+
+    React.useEffect(() => {
+        if (!autoRefresh) return;
+        const id = setInterval(() => setRefreshTick(t => t + 1), Math.max(5, Number(autoSecs) || 30) * 1000);
+        return () => clearInterval(id);
+    }, [autoRefresh, autoSecs]);
+
+    // ── positions on mount / ticker change ────────────────────────────────────
+    React.useEffect(() => {
+        let alive = true;
+        (async () => {
+            const list = await fetchPositions();
+            if (alive && list.some(p => p.status === 'OPEN')) refreshPositionPrices();
+        })();
+        return () => { alive = false; };
+    }, [ticker]);
+
+    // ── latest saved AI analysis (fullscreen overlay) ─────────────────────────
     React.useEffect(() => {
         if (!isFullscreen || !ticker) return;
         (async () => {
             try {
-                const res = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ticker, limit: 1 }),
                 });
@@ -540,215 +762,77 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         })();
     }, [isFullscreen, ticker]);
 
-    // -- Live price poll: keeps open positions' P&L current + triggers backend TP/SL auto-close --
+    // ── chart creation: rebuilt on ticker / interval / fullscreen / pre-post change ──
     React.useEffect(() => {
-        const openCount = positions.filter(p => p.status === 'OPEN').length;
-        if (!ticker || openCount === 0) return;
-        const pollId = setInterval(async () => {
-            try {
-                const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticker, interval: '1D', indicators: [] }),
-                });
-                const json = await res.json();
-                const latestClose = json.candles?.[json.candles.length - 1]?.close;
-                if (latestClose == null) return;
-                for (const pos of positions.filter(p => p.status === 'OPEN')) {
-                    await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/price/`, {
-                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ current_price: latestClose }),
-                    });
-                }
-                fetchPositions();
-            } catch (e) { console.error('[ScannerChart position poll]', e); }
-        }, 20000);
-        return () => clearInterval(pollId);
-    }, [ticker, positions.length]);
-
-    const computeLivePnl = (pos) => {
-        if (pos.status !== 'OPEN' || pos.current_price == null) return null;
-        const isLong = pos.direction === 'long';
-        const pnlDollars = isLong
-            ? (pos.current_price - pos.entry_price) * pos.quantity
-            : (pos.entry_price - pos.current_price) * pos.quantity;
-        const pnlPercent = (pos.entry_price && pos.quantity) ? (pnlDollars / (pos.entry_price * pos.quantity)) * 100 : null;
-        return { pnlDollars, pnlPercent };
-    };
-
-    const [metaExpanded, setMetaExpanded] = React.useState(false);
-    const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
-
-        React.useEffect(() => {
-        const onResize = () => setIsMobile(window.innerWidth < 640);
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, []);
-
-    const clearPositionLines = () => {
-        if (!seriesRef.current) return;
-        Object.values(positionLinesRef.current).forEach(group => {
-            Object.values(group).forEach(pl => { try { seriesRef.current.removePriceLine(pl); } catch (_) {} });
-        });
-        positionLinesRef.current = {};
-    };
-
-    const drawPositionLines = (positionList) => {
-        if (!seriesRef.current) return;
-        clearPositionLines();
-        positionList.forEach(pos => {
-            const isLong = pos.direction === 'long';
-            const lines = {};
-            if (pos.entry_price) {
-                lines.entry = seriesRef.current.createPriceLine({
-                    price: pos.entry_price, color: '#3b82f6', lineWidth: 2, lineStyle: 0, axisLabelVisible: true,
-                    title: `Entry${isLong ? ' (L)' : ' (S)'} $${pos.entry_price}`,
-                });
-            }
-            if (pos.sl_price) {
-                lines.sl = seriesRef.current.createPriceLine({
-                    price: pos.sl_price, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
-                    title: pos.sl_dollars ? `SL $${pos.sl_price} (-$${Math.abs(pos.sl_dollars).toFixed(2)})` : `SL $${pos.sl_price}`,
-                });
-            }
-            if (pos.tp_price) {
-                lines.tp = seriesRef.current.createPriceLine({
-                    price: pos.tp_price, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
-                    title: pos.tp_dollars ? `TP $${pos.tp_price} (+$${Math.abs(pos.tp_dollars).toFixed(2)})` : `TP $${pos.tp_price}`,
-                });
-            }
-            positionLinesRef.current[pos.id] = lines;
-        });
-    };
-
-    const fetchPositions = async () => {
-        if (!ticker) return;
-        try {
-            const res = await fetch(`${BACKEND}/api/snowvault_positions/?asset=${ticker}`);
-            const json = await res.json();
-            const list = json.positions || [];
-            setPositions(list);
-            drawPositionLines(list);
-        } catch (e) { console.error('[ScannerChart positions]', e); }
-    };
-
-    React.useEffect(() => { fetchPositions(); }, [ticker]);
-
-
-    const INTERVALS = ['15m','1h','1D','1W','1M','3M','1Y'];
-
-    React.useEffect(() => {
-        if (window.LightweightCharts) { setChartReady(true); return; }
-        const s  = document.createElement('script');
-        s.src    = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
-        s.onload = () => setChartReady(true);
-        s.onerror= () => setChartError('Failed to load chart library');
-        document.head.appendChild(s);
-    }, []);
-
-    React.useEffect(() => {
-        if (!chartReady || !containerRef.current) return;
+        if (!chartReady || !containerRef.current || !ticker) return;
         const LC = window.LightweightCharts;
 
-        if (chartRef.current) {
-            try { chartRef.current.remove(); } catch {}
-            chartRef.current = null;
-        }
+        if (chartRef.current) { try { chartRef.current.remove(); } catch {} }
+        chartRef.current = null; seriesRef.current = null;
+        emaRefs.current = { e20: null, e50: null, e200: null };
+        positionLinesRef.current = {}; draftLinesRef.current = {};
 
         const container = containerRef.current;
         const chart = LC.createChart(container, {
-            width:           container.clientWidth,
-            height:          300,
-            layout:          { background: { color: '#0f172a' }, textColor: '#94a3b8' },
-            grid:            { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
-            crosshair:       { mode: LC.CrosshairMode.Normal },
+            width:  container.clientWidth,
+            height: container.clientHeight || 300,
+            layout: { background: { color: '#0f172a' }, textColor: '#94a3b8' },
+            grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
+            crosshair: { mode: LC.CrosshairMode.Normal },
             rightPriceScale: { borderColor: '#1e293b' },
-            timeScale:       { borderColor: '#1e293b', timeVisible: true, secondsVisible: false },
+            timeScale: { borderColor: '#1e293b', timeVisible: true, secondsVisible: false },
         });
         chartRef.current = chart;
+        seriesRef.current = chart.addCandlestickSeries({
+            upColor: '#10b981', downColor: '#ef4444', borderUpColor: '#10b981', borderDownColor: '#ef4444',
+            wickUpColor: '#10b981', wickDownColor: '#ef4444',
+        });
+        const lineOpts = (color, title) => ({ color, lineWidth: 1, title, lastValueVisible: false, priceLineVisible: false });
+        emaRefs.current = {
+            e20:  chart.addLineSeries(lineOpts('#10b981', 'EMA20')),
+            e50:  chart.addLineSeries(lineOpts('#3b82f6', 'EMA50')),
+            e200: chart.addLineSeries(lineOpts('#ef4444', 'EMA200')),
+        };
 
-                const ro = new ResizeObserver(() => {
+        const ro = new ResizeObserver(() => {
             if (chartRef.current && container.clientWidth > 0) {
-                chartRef.current.applyOptions({
-                    width:  container.clientWidth,
-                    height: container.clientHeight || 300,
-                });
+                chartRef.current.applyOptions({ width: container.clientWidth, height: container.clientHeight || 300 });
             }
         });
         ro.observe(container);
 
+        let cancelled = false;
         const loadData = async () => {
-            if (mountDelay > 0) {
-                await new Promise(r => setTimeout(r, mountDelay));
-                if (!chartRef.current) return; // chart got unmounted during the wait
-            }
-            setChartLoading(true);
-            setChartError(null);
+            if (firstLoadRef.current && mountDelay > 0) await new Promise(r => setTimeout(r, mountDelay));
+            firstLoadRef.current = false;
+            if (cancelled || chartRef.current !== chart) return;
+            setChartLoading(true); setChartError(null);
             try {
-                const res  = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ ticker, interval, indicators: ['ema'] }),
-                });
-                const json = await res.json();
-                if (!res.ok) throw new Error(json.error || 'Failed to load data');
-                if (!chartRef.current) return;
-
-                const series = chart.addCandlestickSeries({
-                    upColor:         '#10b981',
-                    downColor:       '#ef4444',
-                    borderUpColor:   '#10b981',
-                    borderDownColor: '#ef4444',
-                    wickUpColor:     '#10b981',
-                    wickDownColor:   '#ef4444',
-                });
-                series.setData(json.candles);
-                seriesRef.current = series;
-                drawPositionLines(positions);
-
-                if (json.ema20 && json.ema20.length > 0) {
-                    const e20 = chart.addLineSeries({
-                        color: '#10b981', lineWidth: 1,
-                        title: 'EMA20', lastValueVisible: false, priceLineVisible: false,
-                    });
-                    e20.setData(json.ema20);
-                }
-                if (json.ema50 && json.ema50.length > 0) {
-                    const e50 = chart.addLineSeries({
-                        color: '#3b82f6', lineWidth: 1,
-                        title: 'EMA50', lastValueVisible: false, priceLineVisible: false,
-                    });
-                    e50.setData(json.ema50);
-                }
-                if (json.ema200 && json.ema200.length > 0) {
-                    const e200 = chart.addLineSeries({
-                        color: '#ef4444', lineWidth: 1,
-                        title: 'EMA200', lastValueVisible: false, priceLineVisible: false,
-                    });
-                    e200.setData(json.ema200);
-                }
-
+                const json = await fetchChartJson();
+                if (cancelled || chartRef.current !== chart) return;
+                applyJson(json);
                 chart.timeScale().fitContent();
-                // At the end of loadData() in Effect A, after fitContent():
-                if (positions.length > 0) {
-                    // small timeout so the series is fully settled before drawing
-                    setTimeout(() => drawPositionLines(positions), 50);
-                }
+                drawPositionLines(positionsRef.current);
+                setLastRefreshed(new Date());
+                refreshPositionPrices();
             } catch (e) {
-                setChartError(e.message);
+                if (!cancelled) setChartError(e.message);
             } finally {
-                setChartLoading(false);
+                if (!cancelled) setChartLoading(false);
             }
         };
-
         loadData();
 
         return () => {
+            cancelled = true;
             ro.disconnect();
             try { chart.remove(); } catch {}
+            if (chartRef.current === chart) { chartRef.current = null; seriesRef.current = null; }
         };
-    }, [chartReady, ticker, interval]);
+    }, [chartReady, ticker, interval, isFullscreen, showExtended]);
 
-            const chartContent = (
+    // ── render ────────────────────────────────────────────────────────────────
+    const chartContent = (
         <div style={{
             backgroundColor: '#0f172a',
             borderRadius: isFullscreen ? '0px' : '12px',
@@ -758,111 +842,79 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             ...(isFullscreen ? { position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', flexDirection: 'column' } : {}),
         }}>
             {/* Toolbar */}
-            <div style={{
-                padding: '10px 14px',
-                borderBottom: '1px solid #1e293b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                flexWrap: 'wrap',
-                backgroundColor: '#0a1628',
-            }}>
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#fff', flex: 1, minWidth: 0 }}>
-                    📊 {ticker}
-                </span>
+            <div style={{ padding:'10px 14px', borderBottom:'1px solid #1e293b', display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap', backgroundColor:'#0a1628', flexShrink:0 }}>
+                <span style={{ fontSize:'13px', fontWeight:'800', color:'#fff', flex:1, minWidth:'70px' }}>📊 {ticker}</span>
 
                 {INTERVALS.map(iv => (
-                    <button
-                        key={iv}
-                        onClick={() => onIntervalChange && onIntervalChange(iv)}
-                        style={{
-                            padding: '3px 9px',
-                            borderRadius: '5px',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            border: 'none',
-                            backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.07)',
-                            color: interval === iv ? '#fff' : '#64748b',
-                            transition: 'all 0.15s',
-                        }}
-                    >
-                        {iv}
-                    </button>
+                    <button key={iv} onClick={() => onIntervalChange && onIntervalChange(iv)} style={{
+                        padding:'3px 9px', borderRadius:'5px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'none',
+                        backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.07)',
+                        color: interval === iv ? '#fff' : '#64748b', transition:'all 0.15s',
+                    }}>{iv}</button>
                 ))}
 
-                <a
-                                    
-                    href={'https://www.tradingview.com/chart/?symbol=' + ticker}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                        padding: '3px 9px',
-                        borderRadius: '5px',
-                        fontSize: '11px',
-                        fontWeight: '700',
-                        textDecoration: 'none',
-                        backgroundColor: 'rgba(41,98,255,0.15)',
-                        color: '#2962ff',
-                        border: '1px solid rgba(41,98,255,0.3)',
-                        whiteSpace: 'nowrap',
-                    }}
-                >
-                    TV ↗
-                </a>
+                <button
+                    onClick={() => isIntraday && setShowExtended(s => !s)}
+                    disabled={!isIntraday}
+                    title={isIntraday ? 'Include pre-market & after-hours bars (positions re-price to match)' : 'Pre/post data only exists on intraday intervals (15m, 1h)'}
+                    style={{ ...tbBtn(extendedActive), opacity: isIntraday ? 1 : 0.4, cursor: isIntraday ? 'pointer' : 'not-allowed' }}
+                >🌅 Pre/Post</button>
 
-                                <button
-                    onClick={() => setIsFullscreen(f => !f)}
-                    title={isFullscreen ? 'Exit full view' : 'Full view'}
-                    style={{
-                        padding: '3px 9px', borderRadius: '5px', fontSize: '13px', fontWeight: '700',
-                        cursor: 'pointer', border: 'none', backgroundColor: 'rgba(255,255,255,0.07)', color: '#94a3b8',
-                    }}
-                >
+                <button onClick={() => setRefreshTick(t => t + 1)} disabled={refreshing} title="Refresh chart + position P&L" style={tbBtn(false)}>
+                    <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                </button>
+
+                <button onClick={() => setAutoRefresh(a => !a)} title="Auto-refresh — stops as soon as you close this chart" style={tbBtn(autoRefresh)}>
+                    {autoRefresh ? '⏱ Auto ON' : '⏱ Auto'}
+                </button>
+                {autoRefresh && (
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:'3px' }}>
+                        <input type="number" min="5" value={autoSecs} onChange={e => setAutoSecs(e.target.value)}
+                            style={{ width:'46px', padding:'2px 5px', borderRadius:'5px', border:'1px solid #1e3a5f', backgroundColor:'#0f172a', color:'#93c5fd', fontSize:'11px' }} />
+                        <span style={{ fontSize:'10px', color:'#64748b' }}>sec</span>
+                    </span>
+                )}
+
+                <a href={'https://www.tradingview.com/chart/?symbol=' + ticker} target="_blank" rel="noopener noreferrer" style={{
+                    padding:'3px 9px', borderRadius:'5px', fontSize:'11px', fontWeight:'700', textDecoration:'none',
+                    backgroundColor:'rgba(41,98,255,0.15)', color:'#2962ff', border:'1px solid rgba(41,98,255,0.3)', whiteSpace:'nowrap',
+                }}>TV ↗</a>
+
+                <button onClick={() => setIsFullscreen(f => !f)} title={isFullscreen ? 'Exit full view (Esc)' : 'Full view'} style={tbBtn(false)}>
                     {isFullscreen ? '⛶ Exit' : '⛶'}
                 </button>
 
-                <button
-                    onClick={() => setShowTicket(true)}
-                    title="Open paper position"
-                    style={{
-                        padding: '3px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: '700',
-                        cursor: 'pointer', border: 'none', backgroundColor: 'rgba(16,185,129,0.15)', color: '#10b981',
-                    }}
-                >
-                    📝 Trade
-                </button>
-                
+                <button onClick={() => setShowTicket(true)} title="Open paper position" style={tbBtn(true)}>📝 Trade</button>
+
+                {!hideClose && (
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.07)', border:'none', borderRadius:'5px', padding:'3px 10px', color:'#64748b', fontSize:'16px', cursor:'pointer', lineHeight:1 }}>×</button>
+                )}
             </div>
 
-                        {/* Chart area */}
-            <div style={{ position: 'relative', height: isFullscreen ? 'calc(100vh - 230px)' : '300px', minHeight: isFullscreen ? '320px' : '300px' }}>
+            {/* Chart area */}
+            <div style={{ position:'relative', ...(isFullscreen ? { flex:1, minHeight:'320px' } : { height:'300px' }) }}>
                 {scannerMeta && (
-                    <div
-                        onClick={() => setMetaExpanded(e => !e)}
-                        style={{
-                            position: 'absolute', top: '8px', left: '8px', zIndex: 3,
-                            backgroundColor: 'rgba(10,22,40,0.92)', borderRadius: '10px',
-                            border: '1px solid rgba(255,255,255,0.1)', padding: isMobile ? '6px 8px' : '8px 12px',
-                            cursor: 'pointer', maxWidth: isMobile ? '150px' : '220px', backdropFilter: 'blur(4px)',
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: isMobile ? '10px' : '11px', fontWeight: '800', color: scannerMeta.direction === 'BULLISH' ? '#10b981' : scannerMeta.direction === 'BEARISH' ? '#ef4444' : '#94a3b8' }}>
+                    <div onClick={() => setMetaExpanded(e => !e)} style={{
+                        position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
+                        border:'1px solid rgba(255,255,255,0.1)', padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
+                        maxWidth: isMobile ? '150px' : '220px', backdropFilter:'blur(4px)',
+                    }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                            <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: scannerMeta.direction === 'BULLISH' ? '#10b981' : scannerMeta.direction === 'BEARISH' ? '#ef4444' : '#94a3b8' }}>
                                 {scannerMeta.direction === 'BULLISH' ? '▲' : scannerMeta.direction === 'BEARISH' ? '▼' : '→'} {scannerMeta.signal ? scannerMeta.signal.replace(/_/g,' ') : scannerMeta.direction}
                             </span>
-                            <span style={{ fontSize: isMobile ? '9px' : '10px', color: '#64748b' }}>{metaExpanded ? '▾' : '▸'}</span>
+                            <span style={{ fontSize:'9px', color:'#64748b' }}>{metaExpanded ? '▾' : '▸'}</span>
                         </div>
                         {scannerMeta.score != null && (
-                            <div style={{ fontSize: isMobile ? '9px' : '10px', color: '#94a3b8', marginTop: '2px' }}>
-                                Score <strong style={{ color: '#fff' }}>{Math.round(scannerMeta.score)}</strong>
+                            <div style={{ fontSize: isMobile ? '9px':'10px', color:'#94a3b8', marginTop:'2px' }}>
+                                Score <strong style={{ color:'#fff' }}>{Math.round(scannerMeta.score)}</strong>
                                 {scannerMeta.stability && (
                                     <> · 🛡️ <strong style={{ color: stabilityLabel(scannerMeta.stability.combined.winRate).color }}>{scannerMeta.stability.combined.stabilityScore}%</strong></>
                                 )}
                             </div>
                         )}
                         {metaExpanded && (
-                            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <div style={{ marginTop:'6px', paddingTop:'6px', borderTop:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', gap:'3px' }}>
                                 {[
                                     ['ADX', scannerMeta.adxNow],
                                     ['ROC 20d', scannerMeta.roc20 != null ? `${scannerMeta.roc20}%` : null],
@@ -870,37 +922,33 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                                     ['From 52W High', scannerMeta.pctFromHigh != null ? `${scannerMeta.pctFromHigh}%` : null],
                                     ['Price', scannerMeta.currentPrice != null ? `$${scannerMeta.currentPrice}` : null],
                                 ].filter(([, v]) => v != null).map(([label, val]) => (
-                                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: isMobile ? '9px' : '10px' }}>
-                                        <span style={{ color: '#64748b' }}>{label}</span>
-                                        <span style={{ color: '#fff', fontWeight: '700' }}>{val}</span>
+                                    <div key={label} style={{ display:'flex', justifyContent:'space-between', gap:'10px', fontSize: isMobile ? '9px':'10px' }}>
+                                        <span style={{ color:'#64748b' }}>{label}</span>
+                                        <span style={{ color:'#fff', fontWeight:'700' }}>{val}</span>
                                     </div>
                                 ))}
                                 {scannerMeta.stability && (
-                                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                    <div style={{ display:'flex', gap:'4px', marginTop:'4px', flexWrap:'wrap' }}>
                                         {Object.entries(scannerMeta.stability.byHorizon).map(([h, cell]) => (
-                                            <span key={h} title={`${h}D stability`} style={{
-                                                fontSize: '9px', padding: '1px 6px', borderRadius: '8px',
-                                                backgroundColor: 'rgba(255,255,255,0.06)', color: stabilityLabel(cell?.winRate).color, fontWeight: '700',
-                                            }}>{h}D {cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}</span>
+                                            <span key={h} style={{ fontSize:'9px', padding:'1px 6px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.06)', color: stabilityLabel(cell?.winRate).color, fontWeight:'700' }}>
+                                                {h}D {cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}
+                                            </span>
                                         ))}
                                     </div>
                                 )}
                             </div>
                         )}
-                                        </div>
+                    </div>
                 )}
+
                 {isFullscreen && latestSavedAnalysis && (() => {
                     const av = SAVED_AI_VERDICT_COLORS[latestSavedAnalysis.aiVerdict] || SAVED_AI_VERDICT_COLORS.NEUTRAL;
                     return (
-                        <div
-                            onClick={() => setSavedAnalysisExpanded(e => !e)}
-                            style={{
-                                position:'absolute', top:'8px', right:'8px', zIndex:3,
-                                backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
-                                border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px',
-                                cursor:'pointer', maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
-                            }}
-                        >
+                        <div onClick={() => setSavedAnalysisExpanded(e => !e)} style={{
+                            position:'absolute', top:'8px', right:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
+                            border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
+                            maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
+                        }}>
                             <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>📅 LAST SAVED ANALYSIS</div>
                             <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
                                 <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: av.color }}>{av.icon} {latestSavedAnalysis.aiVerdict?.replace('_',' ') || 'No AI data'}</span>
@@ -921,130 +969,89 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                         </div>
                     );
                 })()}
+
                 {(chartLoading || !chartReady) && (
-                    <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        zIndex: 2,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#0f172a',
-                        gap: '8px',
-                    }}>
-                        <div style={{
-                            fontSize: '22px',
-                            display: 'inline-block',
-                            animation: 'spin 1s linear infinite',
-                        }}>
-                            ⏳
-                        </div>
-                        <span style={{ fontSize: '12px', color: '#475569' }}>
-                            Loading {ticker}...
-                        </span>
+                    <div style={{ position:'absolute', inset:0, zIndex:2, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', backgroundColor:'#0f172a', gap:'8px' }}>
+                        <div style={{ fontSize:'22px', display:'inline-block', animation:'spin 1s linear infinite' }}>⏳</div>
+                        <span style={{ fontSize:'12px', color:'#475569' }}>Loading {ticker}...</span>
                     </div>
                 )}
-
                 {chartError && !chartLoading && (
-                    <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#0f172a',
-                        gap: '8px',
-                    }}>
-                        <span style={{ fontSize: '20px' }}>⚠️</span>
-                        <span style={{ fontSize: '12px', color: '#ef4444', textAlign: 'center', padding: '0 20px' }}>
-                            {chartError}
-                        </span>
+                    <div style={{ position:'absolute', inset:0, zIndex:2, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', backgroundColor:'#0f172a', gap:'8px' }}>
+                        <span style={{ fontSize:'20px' }}>⚠️</span>
+                        <span style={{ fontSize:'12px', color:'#ef4444', textAlign:'center', padding:'0 20px' }}>{chartError}</span>
                     </div>
                 )}
-
-                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
-
+                <div ref={containerRef} style={{ position:'absolute', inset:0 }} />
             </div>
 
-            {/* EMA legend */}
-            <div style={{
-                padding: '7px 14px',
-                backgroundColor: '#0a1628',
-                borderTop: '1px solid #1e293b',
-                display: 'flex',
-                gap: '16px',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-            }}>
-                {[
-                    { color: '#10b981', label: 'EMA20'  },
-                    { color: '#3b82f6', label: 'EMA50'  },
-                    { color: '#ef4444', label: 'EMA200' },
-                ].map(item => (
-                    <span
-                        key={item.label}
-                        style={{
-                            fontSize: '10px',
-                            fontWeight: '700',
-                            color: item.color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                        }}
-                    >
-                        <span style={{
-                            width: '16px',
-                            height: '2px',
-                            backgroundColor: item.color,
-                            display: 'inline-block',
-                            borderRadius: '1px',
-                        }} />
-                        {item.label}
+            {/* Legend / status */}
+            <div style={{ padding:'7px 14px', backgroundColor:'#0a1628', borderTop:'1px solid #1e293b', display:'flex', gap:'16px', flexWrap:'wrap', alignItems:'center', flexShrink:0 }}>
+                {[{ color:'#10b981', label:'EMA20' }, { color:'#3b82f6', label:'EMA50' }, { color:'#ef4444', label:'EMA200' }].map(item => (
+                    <span key={item.label} style={{ fontSize:'10px', fontWeight:'700', color:item.color, display:'flex', alignItems:'center', gap:'5px' }}>
+                        <span style={{ width:'16px', height:'2px', backgroundColor:item.color, display:'inline-block', borderRadius:'1px' }} />{item.label}
                     </span>
                 ))}
-                                <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#334155' }}>
-                    Candles · EMAs · {interval}
+                <span style={{ marginLeft:'auto', fontSize:'10px', color:'#475569' }}>
+                    Candles · EMAs · {interval}{extendedActive ? ' · +Pre/Post' : ''}
+                    {lastRefreshed ? ` · ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
                 </span>
+                {refreshError && <span style={{ fontSize:'10px', color:'#ef4444' }}>⚠️ {refreshError}</span>}
             </div>
 
-            {positions.length > 0 && (
-                <div style={{ padding:'8px 14px', backgroundColor:'#0a1628', borderTop:'1px solid #1e293b', display:'flex', flexDirection:'column', gap:'6px' }}>
-                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#f59e0b', letterSpacing:'0.07em' }}>📌 OPEN POSITIONS</div>
-                                        {positions.map(pos => {
-                        const live = computeLivePnl(pos);
-                        return (
-                        <div key={pos.id} style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', fontSize:'11px', color:'#cbd5e1' }}>
-                            <span style={{ fontWeight:'800', color: pos.direction==='long' ? '#10b981' : '#ef4444' }}>{pos.direction==='long'?'▲':'▼'} {pos.quantity}sh</span>
-                            <span>@ ${pos.entry_price}</span>
-                            {pos.sl_price && <span style={{ color:'#ef4444' }}>SL ${pos.sl_price}</span>}
-                            {pos.tp_price && <span style={{ color:'#10b981' }}>TP ${pos.tp_price}</span>}
-                            {live && (
-                                <span style={{ fontWeight:'800', color: live.pnlDollars >= 0 ? '#10b981' : '#ef4444' }}>
-                                    <span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', backgroundColor:'#f59e0b', marginRight:'4px', animation:'pulse 2s ease-in-out infinite' }} />
-                                    {live.pnlDollars >= 0 ? '+' : ''}${live.pnlDollars.toFixed(2)} ({live.pnlPercent >= 0 ? '+' : ''}{live.pnlPercent.toFixed(2)}%)
+            {/* Open positions */}
+            {(positions.length > 0 || autoCloseNotice) && (
+                <div style={{ padding:'8px 14px', backgroundColor:'#0a1628', borderTop:'1px solid #1e293b', display:'flex', flexDirection:'column', gap:'6px', flexShrink:0, maxHeight: isFullscreen ? '26vh' : 'none', overflowY:'auto' }}>
+                    {autoCloseNotice && (
+                        <div style={{ fontSize:'11px', color:'#93c5fd', display:'flex', gap:'8px', alignItems:'center' }}>
+                            <span>🔔 {autoCloseNotice}</span>
+                            <button onClick={() => setAutoCloseNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:'14px' }}>×</button>
+                        </div>
+                    )}
+                    {positions.length > 0 && (
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:'10px', fontWeight:'700', color:'#93c5fd', letterSpacing:'0.07em' }}>📌 OPEN POSITIONS</span>
+                            {marketSession && (
+                                <span style={{ fontSize:'9px', color:'#64748b' }}>
+                                    {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : '○ NYC closed — TP/SL auto-close paused'}
                                 </span>
                             )}
-                            <button onClick={() => setEditingPosition(pos)} style={{ marginLeft:'auto', fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)', color:'#94a3b8', cursor:'pointer' }}>Edit</button>
-                            <button onClick={async () => {
-                                try {
-                                    await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
-                                        method:'POST', headers:{'Content-Type':'application/json'},
-                                        body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
-                                    });
-                                    fetchPositions();
-                                } catch (e) { console.error(e); }
-                                                        }} style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(239,68,68,0.3)', backgroundColor:'rgba(239,68,68,0.1)', color:'#ef4444', cursor:'pointer' }}>Close</button>
                         </div>
+                    )}
+                    {positions.map(pos => {
+                        const live = computeLivePnl(pos);
+                        return (
+                            <div key={pos.id} style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', fontSize:'11px', color:'#cbd5e1' }}>
+                                <span style={{ fontWeight:'800', color: pos.direction === 'long' ? '#10b981' : '#ef4444' }}>{pos.direction === 'long' ? '▲' : '▼'} {pos.quantity}sh</span>
+                                <span>@ ${pos.entry_price}</span>
+                                {pos.sl_price && <span style={{ color:'#ef4444' }}>SL ${pos.sl_price}</span>}
+                                {pos.tp_price && <span style={{ color:'#10b981' }}>TP ${pos.tp_price}</span>}
+                                {live && (
+                                    <span style={{ fontWeight:'800', color: live.pnlDollars >= 0 ? '#10b981' : '#ef4444' }}>
+                                        <span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', backgroundColor:'#3b82f6', marginRight:'4px', animation:'pulse 2s ease-in-out infinite' }} />
+                                        {live.pnlDollars >= 0 ? '+' : ''}${live.pnlDollars.toFixed(2)} ({live.pnlPercent >= 0 ? '+' : ''}{live.pnlPercent.toFixed(2)}%)
+                                        {extendedActive && <span style={{ fontSize:'9px', color:'#93c5fd', marginLeft:'4px' }}>EXT</span>}
+                                    </span>
+                                )}
+                                <button onClick={() => setEditingPosition(pos)} style={{ marginLeft:'auto', fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)', color:'#94a3b8', cursor:'pointer' }}>Edit</button>
+                                <button onClick={async () => {
+                                    try {
+                                        await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
+                                            method:'POST', headers:{'Content-Type':'application/json'},
+                                            body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
+                                        });
+                                        fetchPositions();
+                                    } catch (e) { console.error(e); }
+                                }} style={{ fontSize:'10px', padding:'2px 8px', borderRadius:'6px', border:'1px solid rgba(239,68,68,0.3)', backgroundColor:'rgba(239,68,68,0.1)', color:'#ef4444', cursor:'pointer' }}>Close</button>
+                            </div>
                         );
                     })}
                 </div>
             )}
 
-                        <PositionTicket
+            <PositionTicket
                 isOpen={showTicket} onClose={closeTicket} ticker={ticker}
-                currentPrice={scannerMeta?.currentPrice ?? null} source="trend_scanner"
+                currentPrice={lastPrice ?? scannerMeta?.currentPrice ?? null} source="trend_scanner"
                 onOpened={handlePositionOpened}
                 onDraftTp={(price) => setDraftLevel('tp', price, '#10b981', 'TP (draft)')}
                 onDraftSl={(price) => setDraftLevel('sl', price, '#ef4444', 'SL (draft)')}
@@ -1055,8 +1062,14 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                 onDraftTp={(price) => setDraftLevel('tp', price, '#10b981', 'TP (draft)')}
                 onDraftSl={(price) => setDraftLevel('sl', price, '#ef4444', 'SL (draft)')}
             />
+
+            <style>{`
+                @keyframes spin  { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+            `}</style>
         </div>
     );
+
     return isFullscreen ? ReactDOM.createPortal(chartContent, document.body) : chartContent;
 }
 
@@ -4851,16 +4864,25 @@ Do not include anything outside the JSON array. The response must be parseable b
 
 function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState(null);
-    const [positions, setPositions] = React.useState([]);
+    const [loading, setLoading]       = React.useState(false);
+    const [refreshing, setRefreshing] = React.useState(false);
+    const [error, setError]           = React.useState(null);
+    const [positions, setPositions]   = React.useState([]);
     const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
-    const [search, setSearch] = React.useState('');
+    const [search, setSearch]         = React.useState('');
+    const [includeExtended, setIncludeExtended] = React.useState(false);
+    const [autoRefresh, setAutoRefresh] = React.useState(false);
+    const [autoSecs, setAutoSecs]     = React.useState(30);
+    const [marketSession, setMarketSession] = React.useState(null);
+    const [lastRefreshed, setLastRefreshed] = React.useState(null);
+    const [notice, setNotice]         = React.useState(null);
+    const refreshingRef   = React.useRef(false);
+    const refreshVisibleRef = React.useRef(null);
 
     const fetchAll = async () => {
         setLoading(true); setError(null);
         try {
-            const res = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
             const json = await res.json();
             if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
             setPositions(json.positions || []);
@@ -4868,7 +4890,46 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         finally { setLoading(false); }
     };
 
-    React.useEffect(() => { if (isOpen) fetchAll(); }, [isOpen]);
+    React.useEffect(() => {
+        if (isOpen) fetchAll();
+        else setAutoRefresh(false);
+    }, [isOpen]);
+
+    const filtered = positions
+        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
+        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+
+    const refreshVisible = async () => {
+        const assets = [...new Set(filtered.filter(p => p.status === 'OPEN').map(p => p.asset))];
+        if (assets.length === 0 || refreshingRef.current) return;
+        refreshingRef.current = true; setRefreshing(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_refresh_prices/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assets, includeExtended }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setMarketSession(json.marketSession || null);
+            const returned = json.positions || [];
+            const byId = {};
+            returned.forEach(p => { byId[p.id] = p; });
+            setPositions(prev => prev.map(p => byId[p.id] || p));
+            const justClosed = returned.filter(p => p.status !== 'OPEN');
+            if (justClosed.length) {
+                setNotice(justClosed.map(p => `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`).join(' · '));
+            }
+            setLastRefreshed(new Date());
+        } catch (e) { setError(e.message); }
+        finally { refreshingRef.current = false; setRefreshing(false); }
+    };
+    refreshVisibleRef.current = refreshVisible;
+
+    React.useEffect(() => {
+        if (!isOpen || !autoRefresh) return;
+        const id = setInterval(() => refreshVisibleRef.current && refreshVisibleRef.current(), Math.max(10, Number(autoSecs) || 30) * 1000);
+        return () => clearInterval(id);
+    }, [isOpen, autoRefresh, autoSecs]);
 
     const closePosition = async (pos) => {
         try {
@@ -4880,33 +4941,25 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         } catch (e) { console.error(e); }
     };
 
-    const filtered = positions
-        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
-        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
-
-    const openCount = positions.filter(p => p.status === 'OPEN').length;
+    const openCount   = positions.filter(p => p.status === 'OPEN').length;
     const closedCount = positions.length - openCount;
     const totalUnrealized = positions.filter(p => p.status === 'OPEN' && p.current_price != null).reduce((sum, p) => {
         const isLong = p.direction === 'long';
-        const pnl = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
-        return sum + pnl;
+        return sum + (isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity);
     }, 0);
-    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null)
-        .reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null).reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+
+    const pill = (active) => ({
+        padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+        border:`1px solid ${active ? 'rgba(147,197,253,0.7)' : 'rgba(255,255,255,0.2)'}`,
+        backgroundColor: active ? 'rgba(59,130,246,0.35)' : 'transparent', color:'#fff', whiteSpace:'nowrap',
+    });
 
     if (!isOpen) return null;
 
     return (
-        <div style={{
-            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085,
-            display:'flex', alignItems:'flex-start', justifyContent:'center',
-            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
-        }} onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} style={{
-                width:'100%', maxWidth:'960px', borderRadius:'18px', overflow:'hidden',
-                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
-                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
-            }}>
+        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto' }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:'980px', borderRadius:'18px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)', fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px' }}>
                 <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
                     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
                         <div>
@@ -4919,27 +4972,48 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
                                 {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
                             </div>
+                            {marketSession && (
+                                <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)', marginTop:'3px' }}>
+                                    {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : `○ NYC ${marketSession === 'closed' ? 'closed' : marketSession + '-market'} — TP/SL auto-close paused`}
+                                    {lastRefreshed ? ` · refreshed ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
+                                </div>
+                            )}
                         </div>
                         <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
                     </div>
+
                     <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
                         {[['OPEN','Open'],['CLOSED','Closed'],['ALL','All']].map(([v,l]) => (
-                            <button key={v} onClick={() => setFilterStatus(v)} style={{
-                                padding:'5px 14px', borderRadius:'20px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
-                                border:`1px solid ${filterStatus===v ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'}`,
-                                backgroundColor: filterStatus===v ? 'rgba(255,255,255,0.15)' : 'transparent', color:'#fff',
-                            }}>{l}</button>
+                            <button key={v} onClick={() => setFilterStatus(v)} style={pill(filterStatus === v)}>{l}</button>
                         ))}
                         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
-                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'130px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-                        <button onClick={fetchAll} disabled={loading} style={{ padding:'6px 14px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
-                            {loading ? '⏳' : '↻'} Refresh
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+
+                        <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
+                        <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
+                            <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
                         </button>
+                        <button onClick={() => setIncludeExtended(x => !x)} title="Use pre-market / after-hours prices when the NYC session is closed" style={pill(includeExtended)}>🌅 Ext. hours</button>
+                        <button onClick={() => setAutoRefresh(a => !a)} title="Auto-refresh visible open positions — stops when you close this panel" style={pill(autoRefresh)}>{autoRefresh ? '⏱ Auto ON' : '⏱ Auto'}</button>
+                        {autoRefresh && (
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:'4px' }}>
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>every</span>
+                                <input type="number" min="10" value={autoSecs} onChange={e => setAutoSecs(e.target.value)}
+                                    style={{ width:'54px', padding:'4px 6px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.25)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>sec</span>
+                            </span>
+                        )}
                     </div>
                 </div>
 
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
-                    {error && <div style={{ padding:'16px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
+                    {notice && (
+                        <div style={{ padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe', fontSize:'12px', color:'#1d4ed8', display:'flex', gap:'8px' }}>
+                            <span>🔔 {notice}</span>
+                            <button onClick={() => setNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#1d4ed8', cursor:'pointer', fontSize:'15px' }}>×</button>
+                        </div>
+                    )}
+                    {error && <div style={{ padding:'14px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
                     {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
                     {!loading && filtered.length === 0 && (
                         <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.</div>
@@ -4957,13 +5031,13 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 </thead>
                                 <tbody>
                                     {filtered.map(p => {
-                                        const isOpen = p.status === 'OPEN';
+                                        const isOpenPos = p.status === 'OPEN';
                                         const isLong = p.direction === 'long';
                                         let pnlDollars = null, pnlPercent = null;
-                                        if (isOpen && p.current_price != null) {
+                                        if (isOpenPos && p.current_price != null) {
                                             pnlDollars = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
                                             pnlPercent = (pnlDollars / (p.entry_price * p.quantity)) * 100;
-                                        } else if (!isOpen) {
+                                        } else if (!isOpenPos) {
                                             pnlDollars = p.realized_pnl_dollars; pnlPercent = p.realized_pnl_percent;
                                         }
                                         const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
@@ -4975,18 +5049,18 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                 <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
                                                 <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
                                                 <td style={{ padding:'8px 10px', color:'#475569' }}>${p.entry_price}</td>
-                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpen ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpenPos ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
                                                 <td style={{ padding:'8px 10px', color:'#10b981' }}>{p.tp_price ?? '—'}</td>
                                                 <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
                                                 <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
                                                     {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
                                                 </td>
                                                 <td style={{ padding:'8px 10px' }}>
-                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_',' ')}</span>
+                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
                                                 </td>
                                                 <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
                                                 <td style={{ padding:'8px 10px' }}>
-                                                    {isOpen && <button onClick={() => closePosition(p)} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
+                                                    {isOpenPos && <button onClick={() => closePosition(p)} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
                                                 </td>
                                             </tr>
                                         );
@@ -4997,6 +5071,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     )}
                 </div>
             </div>
+            <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
         </div>
     );
 }
