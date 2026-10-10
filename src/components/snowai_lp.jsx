@@ -661,17 +661,24 @@ export default function SnowAILandingPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const slogans = [
-    "Where cutting edge technology intersects with finance.",
+    "Synthesising Global Financial Intelligence.",
+    "整合全球金融智能。",
+    "글로벌 금융 인텔리전스를 통합하다.",
+    "グローバル金融インテリジェンスを統合する。",
+    "Синтезируя глобальную финансовую аналитику.",
+
+    "Where cutting-edge technology intersects with finance.",
     "尖端技术与金融的交汇之处。",
     "첨단 기술과 금융이 만나는 곳.",
     "最先端技術と金融が交差する場所。",
     "Где передовые технологии пересекаются с финансами.",
+
     "Building what others cannot imagine.",
     "打造他人无法想象之物。",
     "다른 이들이 상상하지 못하는 것을 구축하다.",
     "他人が想像できないものを構築する。",
     "Строим то, что другие не могут себе представить."
-  ];
+];
 
   // Song library
     const songs = {
