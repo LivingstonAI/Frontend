@@ -500,8 +500,7 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
     );
 }
 
-
-function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null }) {
+function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
     const containerRef     = React.useRef(null);
@@ -535,6 +534,10 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [positions,       setPositions]       = React.useState([]);
     const [showTicket,      setShowTicket]      = React.useState(false);
     const [editingPosition, setEditingPosition] = React.useState(null);
+
+    const [showOverlays, setShowOverlays] = React.useState(true);
+    const candlesRef    = React.useRef([]);
+    const extraLinesRef = React.useRef([]);
 
     const [latestSavedAnalysis,   setLatestSavedAnalysis]   = React.useState(null);
     const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
@@ -597,6 +600,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
 
     const applyJson = (json) => {
         if (!seriesRef.current) return;
+        candlesRef.current = json.candles || [];
         seriesRef.current.setData(json.candles || []);
         if (emaRefs.current.e20)  emaRefs.current.e20.setData(json.ema20   || []);
         if (emaRefs.current.e50)  emaRefs.current.e50.setData(json.ema50   || []);
@@ -831,6 +835,43 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         };
     }, [chartReady, ticker, interval, isFullscreen, showExtended]);
 
+        // Extra levels / markers supplied by a parent (e.g. the Positions chart modal)
+    const extraKey = JSON.stringify([extraLines, extraMarkers]);
+    React.useEffect(() => {
+        if (chartLoading || !seriesRef.current) return;
+
+        extraLinesRef.current.forEach(pl => { try { seriesRef.current.removePriceLine(pl); } catch (_) {} });
+        extraLinesRef.current = [];
+        (extraLines || []).forEach(l => {
+            try {
+                extraLinesRef.current.push(seriesRef.current.createPriceLine({
+                    price: l.price, color: l.color, lineWidth: l.lineWidth || 1, lineStyle: l.lineStyle ?? 2,
+                    axisLabelVisible: true, title: l.title,
+                }));
+            } catch (e) { console.error('[ScannerChart extra lines]', e); }
+        });
+
+        // Snap each event time to the latest loaded candle at or before it.
+        // Events older than the loaded range are skipped, not faked.
+        const candles = candlesRef.current;
+        const snap = (ms) => {
+            if (!candles.length || ms == null || isNaN(ms)) return null;
+            const sec = ms / 1000;
+            const numeric = typeof candles[0].time === 'number';
+            let best = null;
+            for (const k of candles) {
+                const t = numeric ? k.time : Date.parse(`${k.time}T00:00:00Z`) / 1000;
+                if (t <= sec) best = k.time; else break;
+            }
+            return best;
+        };
+        const markers = (extraMarkers || [])
+            .map(m => ({ time: snap(m.ms), position: m.position, color: m.color, shape: m.shape, text: m.text, size: 2 }))
+            .filter(m => m.time != null)
+            .sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0));
+        try { seriesRef.current.setMarkers(markers); } catch (e) { console.error('[ScannerChart markers]', e); }
+    }, [chartLoading, extraKey]);
+
     // ── render ────────────────────────────────────────────────────────────────
     const chartContent = (
         <div style={{
@@ -884,7 +925,11 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     {isFullscreen ? '⛶ Exit' : '⛶'}
                 </button>
 
+                <button onClick={() => setShowOverlays(o => !o)} title={showOverlays ? 'Hide the info cards on the chart' : 'Show the info cards'} style={tbBtn(!showOverlays)}>
+                    {showOverlays ? '🗂 Hide info' : '🗂 Show info'}
+                </button>
                 <button onClick={() => setShowTicket(true)} title="Open paper position" style={tbBtn(true)}>📝 Trade</button>
+
 
                 {!hideClose && (
                     <button onClick={onClose} style={{ background:'rgba(255,255,255,0.07)', border:'none', borderRadius:'5px', padding:'3px 10px', color:'#64748b', fontSize:'16px', cursor:'pointer', lineHeight:1 }}>×</button>
@@ -892,8 +937,8 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             </div>
 
             {/* Chart area */}
-            <div style={{ position:'relative', ...(isFullscreen ? { flex:1, minHeight:'320px' } : { height:'300px' }) }}>
-                {scannerMeta && (
+            <div style={{ position:'relative', ...(isFullscreen ? { flex:1, minHeight:'320px' } : { height: `${height}px` }) }}>
+                {showOverlays && scannerMeta && (
                     <div onClick={() => setMetaExpanded(e => !e)} style={{
                         position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
                         border:'1px solid rgba(255,255,255,0.1)', padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
@@ -941,11 +986,12 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     </div>
                 )}
 
-                {isFullscreen && latestSavedAnalysis && (() => {
+            {showOverlays && renderOverlay && renderOverlay({ positions, lastPrice, extendedActive, marketSession })}
+                {showOverlays && isFullscreen && latestSavedAnalysis && (() => {
                     const av = SAVED_AI_VERDICT_COLORS[latestSavedAnalysis.aiVerdict] || SAVED_AI_VERDICT_COLORS.NEUTRAL;
                     return (
                         <div onClick={() => setSavedAnalysisExpanded(e => !e)} style={{
-                            position:'absolute', top:'8px', right:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
+                            position:'absolute', bottom:'34px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
                             border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
                             maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
                         }}>
@@ -4862,6 +4908,164 @@ Do not include anything outside the JSON array. The response must be parseable b
     );
 }
 
+function PositionOverlayCard({ position, livePositions, lastPrice, extendedActive, marketSession }) {
+    const [expanded, setExpanded] = React.useState(true);
+    const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+    const live      = (livePositions || []).find(p => p.id === position.id) || position;
+    const isOpenPos = live.status === 'OPEN';
+    const isLong    = live.direction === 'long';
+    const mark      = isOpenPos ? (live.current_price ?? lastPrice) : live.closed_price;
+
+    let pnlD = null, pnlP = null;
+    if (!isOpenPos && live.realized_pnl_dollars != null) {
+        pnlD = live.realized_pnl_dollars; pnlP = live.realized_pnl_percent;
+    } else if (mark != null) {
+        pnlD = isLong ? (mark - live.entry_price) * live.quantity : (live.entry_price - mark) * live.quantity;
+        pnlP = (live.entry_price && live.quantity) ? (pnlD / (live.entry_price * live.quantity)) * 100 : null;
+    }
+    const pnlColor = (pnlD ?? 0) >= 0 ? '#10b981' : '#ef4444';
+
+    const STATUS = {
+        OPEN: ['OPEN', '#3b82f6'], CLOSED_TP: ['CLOSED · TP hit', '#10b981'],
+        CLOSED_SL: ['CLOSED · SL hit', '#ef4444'], CLOSED_MANUAL: ['CLOSED · manual', '#94a3b8'],
+    };
+    const [statusText, statusColor] = STATUS[live.status] || [live.status, '#94a3b8'];
+
+    const away    = (level) => (isOpenPos && level != null && mark) ? (Math.abs(level - mark) / mark) * 100 : null;
+    const fmtWhen = (d) => d ? new Date(d).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const rr      = (live.tp_dollars && live.sl_dollars) ? (Math.abs(live.tp_dollars) / Math.abs(live.sl_dollars)).toFixed(2) : null;
+    const tpAway  = away(live.tp_price);
+    const slAway  = away(live.sl_price);
+
+    const rows = [
+        ['Size', `${live.quantity} sh @ $${live.entry_price}`, '#e2e8f0'],
+        [isOpenPos ? 'Now' : 'Exit', mark != null ? `$${Number(mark).toFixed(2)}${isOpenPos && extendedActive ? ' (ext)' : ''}` : '—', '#e2e8f0'],
+        ['TP', live.tp_price != null ? `$${live.tp_price} · +$${Math.abs(live.tp_dollars ?? 0).toFixed(2)} · ${Number(live.tp_percent ?? 0).toFixed(2)}%${tpAway != null ? ` · ${tpAway.toFixed(2)}% away` : ''}` : '—', '#10b981'],
+        ['SL', live.sl_price != null ? `$${live.sl_price} · -$${Math.abs(live.sl_dollars ?? 0).toFixed(2)} · ${Number(live.sl_percent ?? 0).toFixed(2)}%${slAway != null ? ` · ${slAway.toFixed(2)}% away` : ''}` : '—', '#ef4444'],
+        ...(rr ? [['R:R', `1 : ${rr}`, '#e2e8f0']] : []),
+        ['Opened', fmtWhen(live.opened_at), '#94a3b8'],
+        ...(!isOpenPos ? [['Closed', fmtWhen(live.closed_at), '#94a3b8']] : []),
+        ...(live.notes ? [['Notes', live.notes, '#94a3b8']] : []),
+        ...(live.source && live.source !== 'manual' ? [['Source', String(live.source).replace(/_/g, ' '), '#94a3b8']] : []),
+    ];
+
+    return (
+        <div onClick={() => setExpanded(e => !e)} style={{
+            position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.94)',
+            borderRadius:'10px', border:`1px solid ${statusColor}60`, padding: mobile ? '6px 9px' : '9px 13px',
+            cursor:'pointer', maxWidth: mobile ? '215px' : '300px', maxHeight:'calc(100% - 16px)', overflowY:'auto',
+            backdropFilter:'blur(4px)',
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                <span style={{ fontSize: mobile ? '11px' : '12px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                <span style={{ fontSize:'9px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>{statusText}</span>
+                <span style={{ fontSize:'9px', color:'#64748b', marginLeft:'auto' }}>{expanded ? '▾' : '▸'}</span>
+            </div>
+
+            {pnlD != null && (
+                <div style={{ fontSize: mobile ? '13px' : '15px', fontWeight:'900', color: pnlColor, marginTop:'3px' }}>
+                    {isOpenPos && <span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', backgroundColor:'#3b82f6', marginRight:'5px', animation:'pulse 2s ease-in-out infinite' }} />}
+                    {pnlD >= 0 ? '+' : '-'}${Math.abs(pnlD).toFixed(2)}
+                    {pnlP != null && <span style={{ fontSize:'11px', fontWeight:'700' }}> ({pnlP >= 0 ? '+' : ''}{pnlP.toFixed(2)}%)</span>}
+                </div>
+            )}
+
+            {expanded && (
+                <div style={{ marginTop:'7px', paddingTop:'7px', borderTop:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', gap:'3px' }}>
+                    {rows.map(([label, value, color]) => (
+                        <div key={label} style={{ display:'flex', justifyContent:'space-between', gap:'10px', fontSize: mobile ? '9px' : '10px' }}>
+                            <span style={{ color:'#64748b', flexShrink:0 }}>{label}</span>
+                            <span style={{ color, fontWeight:'700', textAlign:'right' }}>{value}</span>
+                        </div>
+                    ))}
+                    {isOpenPos && marketSession && (
+                        <div style={{ fontSize:'9px', color:'#64748b', marginTop:'3px' }}>
+                            {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : '○ NYC closed — TP/SL auto-close paused'}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function PositionChartModal({ position, onClose, onSelectTicker, onClosePanel }) {
+    const [chartInterval, setChartInterval] = React.useState('1D');
+    if (!position) return null;
+
+    const isOpenPos = position.status === 'OPEN';
+    const isLong    = position.direction === 'long';
+    const exitLabel = position.status === 'CLOSED_TP' ? 'TP hit' : position.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
+    const statusColor = position.status === 'OPEN' ? '#3b82f6' : position.status === 'CLOSED_TP' ? '#10b981' : position.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+
+    // Open positions: the chart already draws its own live lines. Closed ones are drawn from the saved levels.
+    const extraLines = isOpenPos ? null : [
+        { price: position.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${position.entry_price}` },
+        ...(position.tp_price != null ? [{ price: position.tp_price, color:'#10b981', lineStyle:2, title:`TP $${position.tp_price}` }] : []),
+        ...(position.sl_price != null ? [{ price: position.sl_price, color:'#ef4444', lineStyle:2, title:`SL $${position.sl_price}` }] : []),
+        ...(position.closed_price != null ? [{ price: position.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${position.closed_price}` }] : []),
+    ];
+
+    const exitColor = (position.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
+    const extraMarkers = [
+        { ms: Date.parse(position.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
+        ...(!isOpenPos && position.closed_at ? [{ ms: Date.parse(position.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
+    ];
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10095,
+            display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(4px)',
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'min(1000px,100%)', maxHeight:'calc(100vh - 24px)', overflowY:'auto', borderRadius:'16px',
+                backgroundColor:'#0b1220', boxShadow:'0 24px 80px rgba(0,0,0,0.5)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+            }}>
+                <div style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
+                    <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>📒 {position.asset}</span>
+                    <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
+                        {position.status.replace('CLOSED_', 'CLOSED · ')}
+                    </span>
+                    {onSelectTicker && (
+                        <button onClick={() => { onSelectTicker(position.asset); onClose(); onClosePanel && onClosePanel(); }} style={{
+                            marginLeft:'auto', padding:'5px 12px', borderRadius:'8px', border:'1px solid rgba(59,130,246,0.4)',
+                            backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                        }}>→ Open in Screener</button>
+                    )}
+                    <button onClick={onClose} style={{
+                        marginLeft: onSelectTicker ? 0 : 'auto', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%',
+                        width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer',
+                    }}>×</button>
+                </div>
+
+                <div style={{ padding:'0 14px 14px' }}>
+                    <ScannerChart
+                        ticker={position.asset}
+                        interval={chartInterval}
+                        onIntervalChange={setChartInterval}
+                        hideClose
+                        height={460}
+                        extraLines={extraLines}
+                        extraMarkers={extraMarkers}
+                        renderOverlay={(ctx) => (
+                            <PositionOverlayCard
+                                position={position}
+                                livePositions={ctx.positions}
+                                lastPrice={ctx.lastPrice}
+                                extendedActive={ctx.extendedActive}
+                                marketSession={ctx.marketSession}
+                            />
+                        )}
+                    />
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
 function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [loading, setLoading]       = React.useState(false);
@@ -4878,6 +5082,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [notice, setNotice]         = React.useState(null);
     const refreshingRef   = React.useRef(false);
     const refreshVisibleRef = React.useRef(null);
+    const [chartPosition, setChartPosition] = React.useState(null);
 
     const fetchAll = async () => {
         setLoading(true); setError(null);
@@ -5042,9 +5247,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                         }
                                         const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
                                         return (
-                                            <tr key={p.id} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                            <tr key={p.id} onClick={() => setChartPosition(p)} title="Click to view this position on a chart" style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}>
                                                 <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
-                                                    {onSelectTicker ? <span onClick={() => { onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span> : p.asset}
+                                                    {onSelectTicker ? <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span> : p.asset}
                                                 </td>
                                                 <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
                                                 <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
@@ -5060,7 +5265,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                 </td>
                                                 <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
                                                 <td style={{ padding:'8px 10px' }}>
-                                                    {isOpenPos && <button onClick={() => closePosition(p)} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
+                                                    {isOpenPos && <button onClick={(e) => { e.stopPropagation(); closePosition(p); }} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
                                                 </td>
                                             </tr>
                                         );
@@ -5071,6 +5276,14 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     )}
                 </div>
             </div>
+            {chartPosition && (
+                <PositionChartModal
+                    position={chartPosition}
+                    onClose={() => setChartPosition(null)}
+                    onSelectTicker={onSelectTicker}
+                    onClosePanel={onClose}
+                />
+            )}
             <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
         </div>
     );
