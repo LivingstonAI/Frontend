@@ -5262,82 +5262,6 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     );
 }
 
-function PositionChartModal({ position, onClose, onSelectTicker, onClosePanel }) {
-    const [chartInterval, setChartInterval] = React.useState('1D');
-    if (!position) return null;
-
-    const isOpenPos = position.status === 'OPEN';
-    const isLong    = position.direction === 'long';
-    const exitLabel = position.status === 'CLOSED_TP' ? 'TP hit' : position.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
-    const statusColor = position.status === 'OPEN' ? '#3b82f6' : position.status === 'CLOSED_TP' ? '#10b981' : position.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
-
-    // Open positions: the chart already draws its own live lines. Closed ones are drawn from the saved levels.
-    const extraLines = isOpenPos ? null : [
-        { price: position.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${position.entry_price}` },
-        ...(position.tp_price != null ? [{ price: position.tp_price, color:'#10b981', lineStyle:2, title:`TP $${position.tp_price}` }] : []),
-        ...(position.sl_price != null ? [{ price: position.sl_price, color:'#ef4444', lineStyle:2, title:`SL $${position.sl_price}` }] : []),
-        ...(position.closed_price != null ? [{ price: position.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${position.closed_price}` }] : []),
-    ];
-
-    const exitColor = (position.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
-    const extraMarkers = [
-        { ms: Date.parse(position.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
-        ...(!isOpenPos && position.closed_at ? [{ ms: Date.parse(position.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
-    ];
-
-    return ReactDOM.createPortal(
-        <div onClick={onClose} style={{
-            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10095,
-            display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(4px)',
-        }}>
-            <div onClick={e => e.stopPropagation()} style={{
-                width:'min(1000px,100%)', maxHeight:'calc(100vh - 24px)', overflowY:'auto', borderRadius:'16px',
-                backgroundColor:'#0b1220', boxShadow:'0 24px 80px rgba(0,0,0,0.5)', fontFamily:"'Segoe UI', system-ui, sans-serif",
-            }}>
-                <div style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
-                    <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>📒 {position.asset}</span>
-                    <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
-                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
-                        {position.status.replace('CLOSED_', 'CLOSED · ')}
-                    </span>
-                    {onSelectTicker && (
-                        <button onClick={() => { onSelectTicker(position.asset); onClose(); onClosePanel && onClosePanel(); }} style={{
-                            marginLeft:'auto', padding:'5px 12px', borderRadius:'8px', border:'1px solid rgba(59,130,246,0.4)',
-                            backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd', fontSize:'11px', fontWeight:'700', cursor:'pointer',
-                        }}>→ Open in Screener</button>
-                    )}
-                    <button onClick={onClose} style={{
-                        marginLeft: onSelectTicker ? 0 : 'auto', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%',
-                        width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer',
-                    }}>×</button>
-                </div>
-
-                <div style={{ padding:'0 14px 14px' }}>
-                    <ScannerChart
-                        ticker={position.asset}
-                        interval={chartInterval}
-                        onIntervalChange={setChartInterval}
-                        hideClose
-                        height={460}
-                        extraLines={extraLines}
-                        extraMarkers={extraMarkers}
-                        renderOverlay={(ctx) => (
-                            <PositionOverlayCard
-                                position={position}
-                                livePositions={ctx.positions}
-                                lastPrice={ctx.lastPrice}
-                                extendedActive={ctx.extendedActive}
-                                marketSession={ctx.marketSession}
-                            />
-                        )}
-                    />
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-}
-
 function PositionChartModal({ position, allPositions = [], onClose, onSelectTicker, onClosePanel }) {
     const [chartInterval, setChartInterval] = React.useState('1D');
     const [selectedId, setSelectedId]       = React.useState(position ? position.id : null);
@@ -5491,6 +5415,7 @@ function PositionChartModal({ position, allPositions = [], onClose, onSelectTick
         document.body
     );
 }
+
 
 function CompositeBacktestModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
