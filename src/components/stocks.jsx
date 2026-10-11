@@ -500,7 +500,7 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
     );
 }
 
-function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null }) {
+function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null, focusPositionId = null, analysisAsOf = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
     const containerRef     = React.useRef(null);
@@ -541,6 +541,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
 
     const [latestSavedAnalysis,   setLatestSavedAnalysis]   = React.useState(null);
     const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
+    const [analysisLoaded, setAnalysisLoaded] = React.useState(false);
 
     const INTERVALS      = ['15m','1h','1D','1W','1M','3M','1Y'];
     const INTRADAY       = ['15m','1h'];
@@ -668,7 +669,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         try {
             const res  = await fetch(`${BACKEND}/api/snowvault_positions/?asset=${ticker}`);
             const json = await res.json();
-            const list = json.positions || [];
+            const list = (json.positions || []).filter(p => focusPositionId == null || p.id === focusPositionId);
             positionsRef.current = list;
             setPositions(list);
             drawPositionLines(list);
@@ -687,14 +688,14 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             if (!res.ok) return;
             setMarketSession(json.marketSession || null);
             const returned = json.positions || [];
-            const justClosed = returned.filter(p => p.status !== 'OPEN');
+            const justClosed = returned.filter(p => p.status !== 'OPEN' && (focusPositionId == null || p.id === focusPositionId));
             if (justClosed.length) {
                 setAutoCloseNotice(justClosed.map(p =>
                     `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`
                 ).join(' · '));
             }
             const returnedIds = new Set(returned.map(p => p.id));
-            const merged = [...positionsRef.current.filter(p => !returnedIds.has(p.id)), ...returned.filter(p => p.status === 'OPEN')];
+            const merged = [...positionsRef.current.filter(p => !returnedIds.has(p.id)), ...returned.filter(p => p.status === 'OPEN' && (focusPositionId == null || p.id === focusPositionId))];
             positionsRef.current = merged;
             setPositions(merged);
             drawPositionLines(merged);
@@ -751,20 +752,28 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         return () => { alive = false; };
     }, [ticker]);
 
-    // ── latest saved AI analysis (fullscreen overlay) ─────────────────────────
+        // ── saved AI analysis for the fullscreen overlay ──────────────────────────
+    // analysisAsOf set  -> latest snapshot ON OR BEFORE that date (what you knew when you took the trade)
+    // analysisAsOf null -> latest snapshot overall
     React.useEffect(() => {
         if (!isFullscreen || !ticker) return;
+        let alive = true;
+        setLatestSavedAnalysis(null);
+        setAnalysisLoaded(false);
         (async () => {
             try {
                 const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticker, limit: 1 }),
+                    body: JSON.stringify(analysisAsOf ? { ticker, endDate: analysisAsOf, limit: 1 } : { ticker, limit: 1 }),
                 });
                 const json = await res.json();
+                if (!alive) return;
                 setLatestSavedAnalysis((json.results || [])[0] || null);
             } catch (e) { console.error('[ScannerChart saved analysis]', e); }
+            finally { if (alive) setAnalysisLoaded(true); }
         })();
-    }, [isFullscreen, ticker]);
+        return () => { alive = false; };
+    }, [isFullscreen, ticker, analysisAsOf]);
 
     // ── chart creation: rebuilt on ticker / interval / fullscreen / pre-post change ──
     React.useEffect(() => {
@@ -987,6 +996,16 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                 )}
 
             {showOverlays && renderOverlay && renderOverlay({ positions, lastPrice, extendedActive, marketSession })}
+                                {showOverlays && isFullscreen && analysisAsOf && analysisLoaded && !latestSavedAnalysis && (
+                    <div style={{
+                        position:'absolute', bottom:'34px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)',
+                        borderRadius:'10px', border:'1px solid rgba(148,163,184,0.3)', padding: isMobile ? '6px 8px' : '8px 12px',
+                        maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
+                    }}>
+                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>📅 SAVED ANALYSIS</div>
+                        <div style={{ fontSize:'10px', color:'#94a3b8', lineHeight:1.5 }}>None saved on or before {analysisAsOf} for {ticker}.</div>
+                    </div>
+                )}
                 {showOverlays && isFullscreen && latestSavedAnalysis && (() => {
                     const av = SAVED_AI_VERDICT_COLORS[latestSavedAnalysis.aiVerdict] || SAVED_AI_VERDICT_COLORS.NEUTRAL;
                     return (
@@ -995,7 +1014,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                             border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
                             maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
                         }}>
-                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>📅 LAST SAVED ANALYSIS</div>
+                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>{analysisAsOf ? (latestSavedAnalysis.date === analysisAsOf ? '📅 SAVED ANALYSIS · TRADE DAY' : '📅 SAVED ANALYSIS · LATEST BEFORE TRADE') : '📅 LAST SAVED ANALYSIS'}</div>
                             <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
                                 <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: av.color }}>{av.icon} {latestSavedAnalysis.aiVerdict?.replace('_',' ') || 'No AI data'}</span>
                                 <span style={{ fontSize:'9px', color:'#64748b' }}>{savedAnalysisExpanded ? '▾' : '▸'}</span>
@@ -4990,6 +5009,259 @@ function PositionOverlayCard({ position, livePositions, lastPrice, extendedActiv
     );
 }
 
+function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [loading, setLoading]       = React.useState(false);
+    const [refreshing, setRefreshing] = React.useState(false);
+    const [error, setError]           = React.useState(null);
+    const [positions, setPositions]   = React.useState([]);
+    const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
+    const [search, setSearch]         = React.useState('');
+    const [includeExtended, setIncludeExtended] = React.useState(false);
+    const [autoRefresh, setAutoRefresh] = React.useState(false);
+    const [autoSecs, setAutoSecs]     = React.useState(30);
+    const [marketSession, setMarketSession] = React.useState(null);
+    const [lastRefreshed, setLastRefreshed] = React.useState(null);
+    const [notice, setNotice]         = React.useState(null);
+    const [chartPosition, setChartPosition] = React.useState(null);
+    const refreshingRef     = React.useRef(false);
+    const refreshVisibleRef = React.useRef(null);
+
+    const fetchAll = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setPositions(json.positions || []);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    React.useEffect(() => {
+        if (isOpen) fetchAll();
+        else { setAutoRefresh(false); setChartPosition(null); }
+    }, [isOpen]);
+
+    const filtered = positions
+        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
+        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+
+    // Re-prices every OPEN position currently visible in the table (respects the status filter + search)
+    const refreshVisible = async () => {
+        const assets = [...new Set(filtered.filter(p => p.status === 'OPEN').map(p => p.asset))];
+        if (assets.length === 0 || refreshingRef.current) return;
+        refreshingRef.current = true; setRefreshing(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_refresh_prices/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assets, includeExtended }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setMarketSession(json.marketSession || null);
+            const returned = json.positions || [];
+            const byId = {};
+            returned.forEach(p => { byId[p.id] = p; });
+            setPositions(prev => prev.map(p => byId[p.id] || p));
+            const justClosed = returned.filter(p => p.status !== 'OPEN');
+            if (justClosed.length) {
+                setNotice(justClosed.map(p =>
+                    `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`
+                ).join(' · '));
+            }
+            setLastRefreshed(new Date());
+        } catch (e) { setError(e.message); }
+        finally { refreshingRef.current = false; setRefreshing(false); }
+    };
+    refreshVisibleRef.current = refreshVisible;
+
+    // Auto-refresh: stops when the panel closes (the effect below also resets the toggle)
+    React.useEffect(() => {
+        if (!isOpen || !autoRefresh) return;
+        const id = setInterval(() => refreshVisibleRef.current && refreshVisibleRef.current(), Math.max(10, Number(autoSecs) || 30) * 1000);
+        return () => clearInterval(id);
+    }, [isOpen, autoRefresh, autoSecs]);
+
+    const closePosition = async (pos) => {
+        try {
+            await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
+            });
+            fetchAll();
+        } catch (e) { console.error(e); }
+    };
+
+    const openCount   = positions.filter(p => p.status === 'OPEN').length;
+    const closedCount = positions.length - openCount;
+    const totalUnrealized = positions.filter(p => p.status === 'OPEN' && p.current_price != null).reduce((sum, p) => {
+        const isLong = p.direction === 'long';
+        return sum + (isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity);
+    }, 0);
+    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null)
+        .reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+
+    const pill = (active) => ({
+        padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+        border:`1px solid ${active ? 'rgba(147,197,253,0.7)' : 'rgba(255,255,255,0.2)'}`,
+        backgroundColor: active ? 'rgba(59,130,246,0.35)' : 'transparent', color:'#fff', whiteSpace:'nowrap',
+    });
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'980px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                {/* Header */}
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>📒</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Paper Trading Positions</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                                {openCount} open · {closedCount} closed
+                                {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
+                                {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
+                            </div>
+                            {marketSession && (
+                                <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)', marginTop:'3px' }}>
+                                    {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : `○ NYC ${marketSession === 'closed' ? 'closed' : marketSession + '-market'} — TP/SL auto-close paused`}
+                                    {lastRefreshed ? ` · refreshed ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                        {[['OPEN','Open'],['CLOSED','Closed'],['ALL','All']].map(([v,l]) => (
+                            <button key={v} onClick={() => setFilterStatus(v)} style={pill(filterStatus === v)}>{l}</button>
+                        ))}
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+
+                        <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
+                        <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
+                            <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
+                        </button>
+                        <button onClick={() => setIncludeExtended(x => !x)} title="Use pre-market / after-hours prices when the NYC session is closed" style={pill(includeExtended)}>🌅 Ext. hours</button>
+                        <button onClick={() => setAutoRefresh(a => !a)} title="Auto-refresh visible open positions — stops when you close this panel" style={pill(autoRefresh)}>
+                            {autoRefresh ? '⏱ Auto ON' : '⏱ Auto'}
+                        </button>
+                        {autoRefresh && (
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:'4px' }}>
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>every</span>
+                                <input type="number" min="10" value={autoSecs} onChange={e => setAutoSecs(e.target.value)}
+                                    style={{ width:'54px', padding:'4px 6px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.25)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>sec</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
+                    {notice && (
+                        <div style={{ padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe', fontSize:'12px', color:'#1d4ed8', display:'flex', gap:'8px' }}>
+                            <span>🔔 {notice}</span>
+                            <button onClick={() => setNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#1d4ed8', cursor:'pointer', fontSize:'15px' }}>×</button>
+                        </div>
+                    )}
+                    {error && <div style={{ padding:'14px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
+                    {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
+                    {!loading && filtered.length === 0 && (
+                        <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                            No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.
+                        </div>
+                    )}
+                    {!loading && filtered.length > 0 && (
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
+                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                        <th style={{ padding:'8px 10px', borderBottom:'2px solid #e2e8f0' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(p => {
+                                        const isOpenPos = p.status === 'OPEN';
+                                        const isLong = p.direction === 'long';
+                                        let pnlDollars = null, pnlPercent = null;
+                                        if (isOpenPos && p.current_price != null) {
+                                            pnlDollars = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
+                                            pnlPercent = (pnlDollars / (p.entry_price * p.quantity)) * 100;
+                                        } else if (!isOpenPos) {
+                                            pnlDollars = p.realized_pnl_dollars; pnlPercent = p.realized_pnl_percent;
+                                        }
+                                        const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+                                        return (
+                                            <tr key={p.id} onClick={() => setChartPosition(p)} title="Click to view this position on a chart"
+                                                style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
+                                                    {onSelectTicker ? (
+                                                        <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span>
+                                                    ) : p.asset}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>${p.entry_price}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpenPos ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
+                                                <td style={{ padding:'8px 10px', color:'#10b981' }}>{p.tp_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    {isOpenPos && (
+                                                        <button onClick={(e) => { e.stopPropagation(); closePosition(p); }} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {chartPosition && (
+                <PositionChartModal
+                    position={chartPosition}
+                    allPositions={positions}
+                    onClose={() => setChartPosition(null)}
+                    onSelectTicker={onSelectTicker}
+                    onClosePanel={onClose}
+                />
+            )}
+
+            <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
+        </div>
+    );
+}
+
 function PositionChartModal({ position, onClose, onSelectTicker, onClosePanel }) {
     const [chartInterval, setChartInterval] = React.useState('1D');
     if (!position) return null;
@@ -5066,226 +5338,157 @@ function PositionChartModal({ position, onClose, onSelectTicker, onClosePanel })
     );
 }
 
-function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
-    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
-    const [loading, setLoading]       = React.useState(false);
-    const [refreshing, setRefreshing] = React.useState(false);
-    const [error, setError]           = React.useState(null);
-    const [positions, setPositions]   = React.useState([]);
-    const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
-    const [search, setSearch]         = React.useState('');
-    const [includeExtended, setIncludeExtended] = React.useState(false);
-    const [autoRefresh, setAutoRefresh] = React.useState(false);
-    const [autoSecs, setAutoSecs]     = React.useState(30);
-    const [marketSession, setMarketSession] = React.useState(null);
-    const [lastRefreshed, setLastRefreshed] = React.useState(null);
-    const [notice, setNotice]         = React.useState(null);
-    const refreshingRef   = React.useRef(false);
-    const refreshVisibleRef = React.useRef(null);
-    const [chartPosition, setChartPosition] = React.useState(null);
-
-    const fetchAll = async () => {
-        setLoading(true); setError(null);
-        try {
-            const res  = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
-            setPositions(json.positions || []);
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
-    };
+function PositionChartModal({ position, allPositions = [], onClose, onSelectTicker, onClosePanel }) {
+    const [chartInterval, setChartInterval] = React.useState('1D');
+    const [selectedId, setSelectedId]       = React.useState(position ? position.id : null);
 
     React.useEffect(() => {
-        if (isOpen) fetchAll();
-        else setAutoRefresh(false);
-    }, [isOpen]);
+        const el = document.getElementById(`pos-chip-${selectedId}`);
+        if (el && el.scrollIntoView) el.scrollIntoView({ block:'nearest', inline:'nearest' });
+    }, [selectedId]);
 
-    const filtered = positions
-        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
-        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+    if (!position) return null;
 
-    const refreshVisible = async () => {
-        const assets = [...new Set(filtered.filter(p => p.status === 'OPEN').map(p => p.asset))];
-        if (assets.length === 0 || refreshingRef.current) return;
-        refreshingRef.current = true; setRefreshing(true); setError(null);
-        try {
-            const res  = await fetch(`${BACKEND}/api/snowvault_positions_refresh_prices/`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ assets, includeExtended }),
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
-            setMarketSession(json.marketSession || null);
-            const returned = json.positions || [];
-            const byId = {};
-            returned.forEach(p => { byId[p.id] = p; });
-            setPositions(prev => prev.map(p => byId[p.id] || p));
-            const justClosed = returned.filter(p => p.status !== 'OPEN');
-            if (justClosed.length) {
-                setNotice(justClosed.map(p => `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`).join(' · '));
-            }
-            setLastRefreshed(new Date());
-        } catch (e) { setError(e.message); }
-        finally { refreshingRef.current = false; setRefreshing(false); }
+    // Every trade on this asset, newest first
+    const sameAsset = allPositions.filter(p => p.asset === position.asset)
+        .sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+    const list     = sameAsset.some(t => t.id === position.id) ? sameAsset : [position, ...sameAsset];
+    const selected = list.find(t => t.id === selectedId) || position;
+    const selIdx   = list.findIndex(t => t.id === selected.id);
+    const goNewer  = () => { if (selIdx > 0) setSelectedId(list[selIdx - 1].id); };
+    const goOlder  = () => { if (selIdx < list.length - 1) setSelectedId(list[selIdx + 1].id); };
+
+    const statusColorOf = (s) => s === 'OPEN' ? '#3b82f6' : s === 'CLOSED_TP' ? '#10b981' : s === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+    const statusShort   = (s) => s === 'OPEN' ? 'OPEN' : s === 'CLOSED_TP' ? 'TP' : s === 'CLOSED_SL' ? 'SL' : 'MANUAL';
+    const tradePnl = (t) => {
+        if (t.status !== 'OPEN') return t.realized_pnl_dollars;
+        if (t.current_price == null) return null;
+        return t.direction === 'long' ? (t.current_price - t.entry_price) * t.quantity : (t.entry_price - t.current_price) * t.quantity;
     };
-    refreshVisibleRef.current = refreshVisible;
-
-    React.useEffect(() => {
-        if (!isOpen || !autoRefresh) return;
-        const id = setInterval(() => refreshVisibleRef.current && refreshVisibleRef.current(), Math.max(10, Number(autoSecs) || 30) * 1000);
-        return () => clearInterval(id);
-    }, [isOpen, autoRefresh, autoSecs]);
-
-    const closePosition = async (pos) => {
-        try {
-            await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
-            });
-            fetchAll();
-        } catch (e) { console.error(e); }
+    const fmtChipDate = (iso) => {
+        const d = new Date(iso);
+        const day = d.toLocaleDateString([], { month:'short', day:'numeric', ...(d.getFullYear() !== new Date().getFullYear() ? { year:'2-digit' } : {}) });
+        return `${day} · ${d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}`;
     };
 
-    const openCount   = positions.filter(p => p.status === 'OPEN').length;
-    const closedCount = positions.length - openCount;
-    const totalUnrealized = positions.filter(p => p.status === 'OPEN' && p.current_price != null).reduce((sum, p) => {
-        const isLong = p.direction === 'long';
-        return sum + (isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity);
-    }, 0);
-    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null).reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+    const isOpenPos   = selected.status === 'OPEN';
+    const isLong      = selected.direction === 'long';
+    const exitLabel   = selected.status === 'CLOSED_TP' ? 'TP hit' : selected.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
+    const statusColor = statusColorOf(selected.status);
 
-    const pill = (active) => ({
-        padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
-        border:`1px solid ${active ? 'rgba(147,197,253,0.7)' : 'rgba(255,255,255,0.2)'}`,
-        backgroundColor: active ? 'rgba(59,130,246,0.35)' : 'transparent', color:'#fff', whiteSpace:'nowrap',
+    // Open trade: the chart draws its own live lines. Closed trade: drawn from the saved levels.
+    const extraLines = isOpenPos ? null : [
+        { price: selected.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${selected.entry_price}` },
+        ...(selected.tp_price != null ? [{ price: selected.tp_price, color:'#10b981', lineStyle:2, title:`TP $${selected.tp_price}` }] : []),
+        ...(selected.sl_price != null ? [{ price: selected.sl_price, color:'#ef4444', lineStyle:2, title:`SL $${selected.sl_price}` }] : []),
+        ...(selected.closed_price != null ? [{ price: selected.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${selected.closed_price}` }] : []),
+    ];
+    const exitColor = (selected.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
+    const extraMarkers = [
+        { ms: Date.parse(selected.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
+        ...(!isOpenPos && selected.closed_at ? [{ ms: Date.parse(selected.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
+    ];
+
+    const navBtn = (disabled) => ({
+        padding:'3px 10px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor: disabled ? 'not-allowed' : 'pointer',
+        border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)',
+        color: disabled ? '#334155' : '#93c5fd', opacity: disabled ? 0.5 : 1,
     });
 
-    if (!isOpen) return null;
-
-    return (
-        <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto' }} onClick={onClose}>
-            <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:'980px', borderRadius:'18px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)', fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px' }}>
-                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
-                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
-                        <div>
-                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
-                                <span style={{ fontSize:'20px' }}>📒</span>
-                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Paper Trading Positions</span>
-                            </div>
-                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
-                                {openCount} open · {closedCount} closed
-                                {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
-                                {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
-                            </div>
-                            {marketSession && (
-                                <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)', marginTop:'3px' }}>
-                                    {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : `○ NYC ${marketSession === 'closed' ? 'closed' : marketSession + '-market'} — TP/SL auto-close paused`}
-                                    {lastRefreshed ? ` · refreshed ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
-                                </div>
-                            )}
-                        </div>
-                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
-                    </div>
-
-                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
-                        {[['OPEN','Open'],['CLOSED','Closed'],['ALL','All']].map(([v,l]) => (
-                            <button key={v} onClick={() => setFilterStatus(v)} style={pill(filterStatus === v)}>{l}</button>
-                        ))}
-                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
-                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-
-                        <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
-                        <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
-                            <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
-                        </button>
-                        <button onClick={() => setIncludeExtended(x => !x)} title="Use pre-market / after-hours prices when the NYC session is closed" style={pill(includeExtended)}>🌅 Ext. hours</button>
-                        <button onClick={() => setAutoRefresh(a => !a)} title="Auto-refresh visible open positions — stops when you close this panel" style={pill(autoRefresh)}>{autoRefresh ? '⏱ Auto ON' : '⏱ Auto'}</button>
-                        {autoRefresh && (
-                            <span style={{ display:'inline-flex', alignItems:'center', gap:'4px' }}>
-                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>every</span>
-                                <input type="number" min="10" value={autoSecs} onChange={e => setAutoSecs(e.target.value)}
-                                    style={{ width:'54px', padding:'4px 6px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.25)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>sec</span>
-                            </span>
-                        )}
-                    </div>
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10095,
+            display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(4px)',
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'min(1000px,100%)', maxHeight:'calc(100vh - 24px)', overflowY:'auto', borderRadius:'16px',
+                backgroundColor:'#0b1220', boxShadow:'0 24px 80px rgba(0,0,0,0.5)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+            }}>
+                {/* Header */}
+                <div style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
+                    <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>📒 {selected.asset}</span>
+                    <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
+                        {selected.status.replace('CLOSED_', 'CLOSED · ')}
+                    </span>
+                    {onSelectTicker && (
+                        <button onClick={() => { onSelectTicker(selected.asset); onClose(); onClosePanel && onClosePanel(); }} style={{
+                            marginLeft:'auto', padding:'5px 12px', borderRadius:'8px', border:'1px solid rgba(59,130,246,0.4)',
+                            backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                        }}>→ Open in Screener</button>
+                    )}
+                    <button onClick={onClose} style={{
+                        marginLeft: onSelectTicker ? 0 : 'auto', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%',
+                        width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer',
+                    }}>×</button>
                 </div>
 
-                <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
-                    {notice && (
-                        <div style={{ padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe', fontSize:'12px', color:'#1d4ed8', display:'flex', gap:'8px' }}>
-                            <span>🔔 {notice}</span>
-                            <button onClick={() => setNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#1d4ed8', cursor:'pointer', fontSize:'15px' }}>×</button>
+                {/* Trade picker (only when this asset has more than one trade) */}
+                {list.length > 1 && (
+                    <div style={{ padding:'10px 18px 4px', borderBottom:'1px solid #1e293b' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'7px', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', letterSpacing:'0.07em' }}>
+                                TRADES ON {selected.asset} · {selIdx + 1} of {list.length} · NEWEST FIRST
+                            </span>
+                            <span style={{ marginLeft:'auto', display:'flex', gap:'4px' }}>
+                                <button onClick={goNewer} disabled={selIdx <= 0} style={navBtn(selIdx <= 0)}>‹ Newer</button>
+                                <button onClick={goOlder} disabled={selIdx >= list.length - 1} style={navBtn(selIdx >= list.length - 1)}>Older ›</button>
+                            </span>
                         </div>
-                    )}
-                    {error && <div style={{ padding:'14px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
-                    {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
-                    {!loading && filtered.length === 0 && (
-                        <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.</div>
-                    )}
-                    {!loading && filtered.length > 0 && (
-                        <div style={{ overflowX:'auto' }}>
-                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
-                                <thead>
-                                    <tr style={{ backgroundColor:'#f8fafc' }}>
-                                        {['Asset','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
-                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
-                                        ))}
-                                        <th style={{ padding:'8px 10px', borderBottom:'2px solid #e2e8f0' }}></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map(p => {
-                                        const isOpenPos = p.status === 'OPEN';
-                                        const isLong = p.direction === 'long';
-                                        let pnlDollars = null, pnlPercent = null;
-                                        if (isOpenPos && p.current_price != null) {
-                                            pnlDollars = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
-                                            pnlPercent = (pnlDollars / (p.entry_price * p.quantity)) * 100;
-                                        } else if (!isOpenPos) {
-                                            pnlDollars = p.realized_pnl_dollars; pnlPercent = p.realized_pnl_percent;
-                                        }
-                                        const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
-                                        return (
-                                            <tr key={p.id} onClick={() => setChartPosition(p)} title="Click to view this position on a chart" style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}>
-                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
-                                                    {onSelectTicker ? <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span> : p.asset}
-                                                </td>
-                                                <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
-                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
-                                                <td style={{ padding:'8px 10px', color:'#475569' }}>${p.entry_price}</td>
-                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpenPos ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
-                                                <td style={{ padding:'8px 10px', color:'#10b981' }}>{p.tp_price ?? '—'}</td>
-                                                <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
-                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
-                                                    {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
-                                                </td>
-                                                <td style={{ padding:'8px 10px' }}>
-                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
-                                                </td>
-                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
-                                                <td style={{ padding:'8px 10px' }}>
-                                                    {isOpenPos && <button onClick={(e) => { e.stopPropagation(); closePosition(p); }} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                        <div style={{ display:'flex', gap:'6px', overflowX:'auto', paddingBottom:'8px' }}>
+                            {list.map(t => {
+                                const active = t.id === selected.id;
+                                const sc  = statusColorOf(t.status);
+                                const pnl = tradePnl(t);
+                                const tLong = t.direction === 'long';
+                                return (
+                                    <button key={t.id} id={`pos-chip-${t.id}`} onClick={() => setSelectedId(t.id)} style={{
+                                        flexShrink:0, minWidth:'122px', textAlign:'left', padding:'6px 10px', borderRadius:'9px', cursor:'pointer',
+                                        border:`1px solid ${active ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`, borderLeft:`3px solid ${sc}`,
+                                        backgroundColor: active ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.04)',
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'800', color: tLong ? '#10b981' : '#ef4444' }}>
+                                            {tLong ? '▲' : '▼'} {t.direction.toUpperCase()} · {t.quantity}sh
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'1px' }}>{fmtChipDate(t.opened_at)}</div>
+                                        <div style={{ fontSize:'11px', fontWeight:'800', marginTop:'2px', color: (pnl ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {pnl != null ? `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}` : '—'}
+                                            <span style={{ fontSize:'9px', fontWeight:'800', color: sc, marginLeft:'6px' }}>{statusShort(t.status)}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
                         </div>
-                    )}
+                    </div>
+                )}
+
+                {/* Chart — remounts per trade so lines, card and analysis all follow the selected trade */}
+                <div style={{ padding:'10px 14px 14px' }}>
+                    <ScannerChart
+                        key={selected.id}
+                        ticker={selected.asset}
+                        interval={chartInterval}
+                        onIntervalChange={setChartInterval}
+                        hideClose
+                        height={460}
+                        focusPositionId={selected.id}
+                        analysisAsOf={selected.opened_at ? selected.opened_at.slice(0, 10) : null}
+                        extraLines={extraLines}
+                        extraMarkers={extraMarkers}
+                        renderOverlay={(ctx) => (
+                            <PositionOverlayCard
+                                position={selected}
+                                livePositions={ctx.positions}
+                                lastPrice={ctx.lastPrice}
+                                extendedActive={ctx.extendedActive}
+                                marketSession={ctx.marketSession}
+                            />
+                        )}
+                    />
                 </div>
             </div>
-            {chartPosition && (
-                <PositionChartModal
-                    position={chartPosition}
-                    onClose={() => setChartPosition(null)}
-                    onSelectTicker={onSelectTicker}
-                    onClosePanel={onClose}
-                />
-            )}
-            <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
-        </div>
+        </div>,
+        document.body
     );
 }
 
