@@ -5024,6 +5024,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [lastRefreshed, setLastRefreshed] = React.useState(null);
     const [notice, setNotice]         = React.useState(null);
     const [chartPosition, setChartPosition] = React.useState(null);
+    const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
     const refreshingRef     = React.useRef(false);
     const refreshVisibleRef = React.useRef(null);
 
@@ -5102,6 +5103,36 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null)
         .reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
 
+        // Per-asset trade stats — always built from ALL positions, so counts ignore the status/search filters
+    const assetStatsAll = {};
+    positions.forEach(p => {
+        if (!assetStatsAll[p.asset]) assetStatsAll[p.asset] = { asset: p.asset, total: 0, open: 0, closed: 0, wins: 0, realized: 0, unrealized: 0, pricedOpen: 0, latest: p };
+        const a = assetStatsAll[p.asset];
+        a.total += 1;
+        if (new Date(p.opened_at) > new Date(a.latest.opened_at)) a.latest = p;
+        if (p.status === 'OPEN') {
+            a.open += 1;
+            if (p.current_price != null) {
+                a.pricedOpen += 1;
+                a.unrealized += p.direction === 'long'
+                    ? (p.current_price - p.entry_price) * p.quantity
+                    : (p.entry_price - p.current_price) * p.quantity;
+            }
+        } else {
+            a.closed += 1;
+            if (p.realized_pnl_dollars != null) {
+                a.realized += p.realized_pnl_dollars;
+                if (p.realized_pnl_dollars > 0) a.wins += 1;
+            }
+        }
+    });
+    const assetCount = Object.keys(assetStatsAll).length;
+    // By-asset view: search applies, and the status pills mean "assets with at least one open / closed trade"
+    const assetSummaries = Object.values(assetStatsAll)
+        .filter(a => !search.trim() || a.asset.toUpperCase().includes(search.trim().toUpperCase()))
+        .filter(a => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? a.open > 0 : a.closed > 0))
+        .sort((x, y) => y.total - x.total || x.asset.localeCompare(y.asset));
+
     const pill = (active) => ({
         padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
         border:`1px solid ${active ? 'rgba(147,197,253,0.7)' : 'rgba(255,255,255,0.2)'}`,
@@ -5130,7 +5161,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Paper Trading Positions</span>
                             </div>
                             <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
-                                {openCount} open · {closedCount} closed
+                                {positions.length} trades · {assetCount} assets · {openCount} open · {closedCount} closed
                                 {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
                                 {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
                             </div>
@@ -5150,7 +5181,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                         ))}
                         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
                             style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-
+                                                <button onClick={() => setViewMode('trades')} title="Every individual trade" style={pill(viewMode === 'trades')}>📋 Trades</button>
+                        <button onClick={() => setViewMode('assets')} title="One row per asset with its total trade count" style={pill(viewMode === 'assets')}>🗂 By asset</button>
                         <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
                         <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
                             <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
@@ -5185,12 +5217,58 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                             No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.
                         </div>
                     )}
-                    {!loading && filtered.length > 0 && (
+                                        {!loading && viewMode === 'assets' && assetSummaries.length > 0 && (
                         <div style={{ overflowX:'auto' }}>
                             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                                 <thead>
                                     <tr style={{ backgroundColor:'#f8fafc' }}>
-                                        {['Asset','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
+                                        {['Asset','Trades','Open','Closed','Win rate','Realized P&L','Unrealized P&L','Last trade'].map(h => (
+                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {assetSummaries.map(a => {
+                                        const winRate = a.closed > 0 ? Math.round((a.wins / a.closed) * 100) : null;
+                                        return (
+                                            <tr key={a.asset} onClick={() => setChartPosition(a.latest)} title="Click to view this asset's trades on a chart"
+                                                style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
+                                                    {onSelectTicker ? (
+                                                        <span onClick={(e) => { e.stopPropagation(); onSelectTicker(a.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{a.asset}</span>
+                                                    ) : a.asset}
+                                                </td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span style={{ fontSize:'12px', fontWeight:'800', padding:'2px 10px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#1d4ed8' }}>×{a.total}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color: a.open ? '#3b82f6' : '#cbd5e1', fontWeight:'700' }}>{a.open || '—'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{a.closed || '—'}</td>
+                                                <td style={{ padding:'8px 10px', color: winRate == null ? '#cbd5e1' : winRate >= 50 ? '#10b981' : '#ef4444', fontWeight:'700', whiteSpace:'nowrap' }}>
+                                                    {winRate != null ? `${winRate}% (${a.wins}/${a.closed})` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: a.realized >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {a.closed > 0 ? `${a.realized >= 0 ? '+' : '-'}$${Math.abs(a.realized).toFixed(2)}` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: a.unrealized >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {a.pricedOpen > 0 ? `${a.unrealized >= 0 ? '+' : '-'}$${Math.abs(a.unrealized).toFixed(2)}` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(a.latest.opened_at).toLocaleDateString()}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {!loading && viewMode === 'trades' && filtered.length > 0 && (
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Trades','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
                                             <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
                                         ))}
                                         <th style={{ padding:'8px 10px', borderBottom:'2px solid #e2e8f0' }}></th>
@@ -5218,6 +5296,12 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                     {onSelectTicker ? (
                                                         <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span>
                                                     ) : p.asset}
+                                                </td>
+                                                                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span
+                                                        title={`${assetStatsAll[p.asset]?.total} total · ${assetStatsAll[p.asset]?.open} open · ${assetStatsAll[p.asset]?.closed} closed`}
+                                                        style={{ fontSize:'11px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#1d4ed8', whiteSpace:'nowrap' }}
+                                                    >×{assetStatsAll[p.asset]?.total ?? 1}</span>
                                                 </td>
                                                 <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
                                                 <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
