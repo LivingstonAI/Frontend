@@ -500,6 +500,512 @@ function EditPositionModal({ isOpen, onClose, position, onUpdated, onDraftTp, on
     );
 }
 
+// ═══════════════════════════ Earnings AI toolkit ═══════════════════════════
+const SnowEarningsAIStore = {
+    KEY: 'snowvault_earnings_ai_v1',
+    MONTH_KEY: 'snowvault_earnings_month_ai_v1',
+    _read(key) { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) { return {}; } },
+    _write(key, obj) {
+        try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) { console.error('[EarningsAIStore]', e); }
+        try { window.dispatchEvent(new Event('snowvault-earnings-ai-updated')); } catch (_) {}
+    },
+    get(ticker)  { return this._read(this.KEY)[String(ticker || '').toUpperCase()] || null; },
+    set(ticker, analysis) {
+        const all = this._read(this.KEY);
+        all[String(ticker).toUpperCase()] = { ...analysis, savedAt: new Date().toISOString() };
+        this._write(this.KEY, all);
+    },
+    remove(ticker) { const all = this._read(this.KEY); delete all[String(ticker).toUpperCase()]; this._write(this.KEY, all); },
+    getMonth(key) { return this._read(this.MONTH_KEY)[key] || null; },
+    setMonth(key, data) {
+        const all = this._read(this.MONTH_KEY);
+        all[key] = { ...data, savedAt: new Date().toISOString() };
+        this._write(this.MONTH_KEY, all);
+    },
+};
+
+function useEarningsAIStoreVersion() {
+    const [v, setV] = React.useState(0);
+    React.useEffect(() => {
+        const bump = () => setV(x => x + 1);
+        window.addEventListener('snowvault-earnings-ai-updated', bump);
+        return () => window.removeEventListener('snowvault-earnings-ai-updated', bump);
+    }, []);
+    return v;
+}
+
+const SNOW_BIAS_STYLE = {
+    BULLISH: { color:'#10b981', icon:'📈' }, BEARISH: { color:'#ef4444', icon:'📉' },
+    NEUTRAL: { color:'#94a3b8', icon:'➡️' }, MIXED:   { color:'#8b5cf6', icon:'🔀' },
+};
+const SNOW_VERDICT_STYLE = {
+    STRONG_OPPORTUNITY: { color:'#10b981', icon:'🔥' }, OPPORTUNITY: { color:'#3b82f6', icon:'📈' },
+    NEUTRAL: { color:'#94a3b8', icon:'➡️' }, CAUTION: { color:'#f59e0b', icon:'⚠️' }, AVOID: { color:'#ef4444', icon:'⛔' },
+};
+const snowTimeAgo = (iso) => {
+    if (!iso) return '';
+    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const h = Math.round(mins / 60);
+    return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+};
+
+function saveEarningsAIResponse(ticker, parsed, source) {
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('Expected a single JSON object.');
+    const missing = ['bias', 'verdict', 'tldr'].filter(k => parsed[k] == null || parsed[k] === '');
+    if (missing.length) throw new Error(`Missing required fields: ${missing.join(', ')}`);
+    const bias = String(parsed.bias).toUpperCase();
+    SnowEarningsAIStore.set(ticker, {
+        ...parsed, ticker: String(ticker).toUpperCase(),
+        bias: SNOW_BIAS_STYLE[bias] ? bias : 'MIXED',
+        verdict: String(parsed.verdict).toUpperCase().replace(/ /g, '_'),
+        source: source || 'AI',
+    });
+}
+
+const SNOW_SOURCE_RULES = `SOURCE-QUALITY RULES: weigh hard data (filings, the earnings release, estimate revisions, price and volume reaction, options positioning) above commentary. News and social coverage can be shaped by large players with positions to protect, so explicitly flag coverage that looks promotional, one-sided, coordinated or single-sourced, and discount it. Keep "what the numbers say" separate from "what the narrative says". This is research input, not personalised financial advice.`;
+
+function buildEarningsAIPrompt(ticker, d) {
+    const info = d.stockInfo || {}, stats = d.stats || {};
+    const signed  = (v) => v == null ? 'n/a' : `${v >= 0 ? '+' : ''}${v}%`;
+    const fmtCap  = (v) => !v ? 'n/a' : v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`;
+    const past    = (d.past || []).slice(0, 12);
+    const quarters = past.map(q =>
+        `- ${q.date}: EPS ${q.epsActual ?? 'n/a'} vs est ${q.epsEstimate ?? 'n/a'} (${signed(q.surprisePct)}) → ${q.beat === true ? 'BEAT' : q.beat === false ? 'MISS' : 'n/a'}${q.revenueFmt ? ` · revenue ${q.revenueFmt}` : ''}`
+    ).join('\n') || 'No historical quarters available.';
+    const next = (d.upcoming || [])[0];
+
+    return `You are a senior equity research analyst. Produce a COMPREHENSIVE earnings analysis of ${ticker}${info.name ? ` (${info.name})` : ''}: the most recent quarter(s), how earnings have trended over time, and what that means for an investment decision now. Finish with a clear directional bias.
+
+Today is ${new Date().toISOString().slice(0, 10)}. Search the web for current information before answering instead of relying on memory. Cover: the latest earnings release and call (guidance, margins, segment drivers, management tone), analyst estimate revisions and rating/target changes since, how the stock actually reacted to recent reports (price move, volume), upcoming catalysts, and sector/macro context.
+
+DATA FROM MY OWN SYSTEM (treat these numbers as ground truth; use the web to explain WHY and to fill gaps):
+Company: ${info.name || ticker} · ${info.sector || 'n/a'}${info.industry ? ' / ' + info.industry : ''}
+Price: ${info.currentPrice != null ? '$' + Number(info.currentPrice).toFixed(2) : 'n/a'} · Market cap: ${fmtCap(info.marketCap)} · P/E: ${info.pe != null ? Number(info.pe).toFixed(1) : 'n/a'} · Fwd P/E: ${info.fwdPE != null ? Number(info.fwdPE).toFixed(1) : 'n/a'}
+Next report: ${next ? `${next.date}${next.epsEstimate != null ? ' · EPS estimate ' + next.epsEstimate : ''}` : 'no upcoming date found'}
+Beat record: ${stats.beatRate != null ? `${stats.beatRate}% beat rate over ${stats.totalQuarters} quarters (${stats.beatCount} beats / ${stats.missCount} misses), average surprise ${signed(stats.avgSurprise)}` : 'n/a'}
+Last ${past.length} reported quarters, newest first:
+${quarters}
+
+${SNOW_SOURCE_RULES}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble) in exactly this shape:
+{
+  "ticker": "${ticker}",
+  "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "confidence": <integer 0-100>,
+  "opportunityScore": <integer 0-100>,
+  "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+  "tldr": "<one punchy sentence>",
+  "recentQuarter": "<3-4 sentences: what happened, versus expectations, what drove it>",
+  "trendOverTime": "<3-4 sentences: growth, margins and the beat/miss pattern across the multi-quarter record>",
+  "guidanceAndEstimates": "<2-3 sentences: guidance, estimate revisions, rating and target changes>",
+  "sentimentSummary": "<2-3 sentences: general sentiment and how the stock reacted to past reports>",
+  "narrativeRiskFlags": "<1-3 sentences on coverage that looks promotional, one-sided or coordinated; empty string if none>",
+  "investmentAngle": "<3-4 sentences: how an investor might think about it (pre-earnings, post-earnings or wait) and why>",
+  "catalysts": ["<catalyst>", "<catalyst>"],
+  "risks": ["<risk>", "<risk>"],
+  "sources": ["<publication or source name>", "<publication or source name>"]
+}
+
+Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+}
+
+function buildEarningsMonthPrompt(monthLabel, items, totalCount) {
+    const signed = (v) => v == null ? 'n/a' : `${v >= 0 ? '+' : ''}${v}%`;
+    const fmtCap = (v) => !v ? 'n/a' : v >= 1e12 ? `$${(v / 1e12).toFixed(1)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(0)}B` : `$${(v / 1e6).toFixed(0)}M`;
+    const lines = items.map(e => {
+        const hist = (e.historicalQuarters || []).slice(0, 4)
+            .map(q => `${(q.date || '').slice(0, 7)} ${q.beat === true ? 'beat' : q.beat === false ? 'miss' : '?'} ${signed(q.surprisePct)}`).join(' | ') || 'n/a';
+        const status = e.isUpcoming
+            ? `UPCOMING ${e.earningsDate} · EPS est ${e.epsEstimate ?? 'n/a'}${e.epsVsTrendPct != null ? ` · est vs recent trend ${signed(e.epsVsTrendPct)} (${e.epsSentimentLabel || e.epsSentiment || 'n/a'})` : ''}`
+            : `REPORTED ${e.earningsDate} · EPS ${e.epsActual ?? 'n/a'} vs est ${e.epsEstimate ?? 'n/a'} (${signed(e.surprisePct)}) ${e.beat === true ? 'BEAT' : e.beat === false ? 'MISS' : ''}`;
+        return `- ${e.ticker} — ${e.name} (${SECTOR_MAP[e.ticker] || 'n/a'}, ${fmtCap(e.marketCap)}): ${status} · last quarters: ${hist}`;
+    }).join('\n');
+
+    return `You are a senior equity research analyst scanning the ${monthLabel} earnings calendar for the most attractive opportunities, using general news and market sentiment. Today is ${new Date().toISOString().slice(0, 10)}.
+
+Below are the ${items.length} largest companies by market cap (out of ${totalCount} reporting this month). Search the web for recent articles, analyst commentary and market reaction for EACH of them before answering; do not rely on memory. Rank the most lucrative opportunities. UPCOMING names may be pre-earnings setups; REPORTED names may be post-earnings continuation or fade setups. It is fine to say "avoid" or "wait until it reports".
+
+DATA FROM MY OWN SYSTEM (ground truth for the numbers):
+${lines}
+
+${SNOW_SOURCE_RULES}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble) in exactly this shape:
+{
+  "overallTone": "<2-3 sentences: general sentiment across this earnings month>",
+  "opportunities": [
+    {
+      "ticker": "<ticker>",
+      "rank": <integer, 1 = best>,
+      "stance": "LONG" | "SHORT" | "WATCH" | "AVOID",
+      "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+      "conviction": <integer 1-10>,
+      "timing": "<e.g. pre-earnings run-up | post-earnings continuation | wait until it reports>",
+      "thesis": "<2-3 sentences: why, grounded in the data above plus what you found>",
+      "narrativeRisk": "<1 sentence: any sign the coverage is promotional, one-sided or coordinated; empty string if none>",
+      "mainRisk": "<1 sentence: what would invalidate this>"
+    }
+  ],
+  "sectorTilts": [ { "sector": "<sector>", "tilt": "<one short sentence>" } ],
+  "caveats": "<1-2 sentences>"
+}
+
+Include between 5 and 12 opportunities, best first. Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+}
+
+function ExternalAIModal({ isOpen, onClose, title, subtitle, promptText, onParsed }) {
+    const [step, setStep]         = React.useState('prompt');
+    const [pasteText, setPasteText] = React.useState('');
+    const [source, setSource]     = React.useState('');
+    const [lastOpened, setLastOpened] = React.useState('');
+    const [error, setError]       = React.useState(null);
+    const [copied, setCopied]     = React.useState(false);
+
+    React.useEffect(() => {
+        if (isOpen) { setStep('prompt'); setPasteText(''); setSource(''); setError(null); }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const LAUNCHERS = [
+        { name:'Perplexity', icon:'🔍', color:'#20b2aa', url:'https://www.perplexity.ai/',    prefill: p => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+        { name:'ChatGPT',    icon:'✦',  color:'#10a37f', url:'https://chatgpt.com/',          prefill: p => `https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+        { name:'Gemini',     icon:'✦',  color:'#4285f4', url:'https://gemini.google.com/app', prefill: p => `https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+        { name:'Claude',     icon:'◆',  color:'#cc785c', url:'https://claude.ai/new',         prefill: p => `https://claude.ai/new?q=${encodeURIComponent(p)}` },
+        { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', url:'https://chat.deepseek.com/' },
+        { name:'Qwen',       icon:'✦',  color:'#8b5cf6', url:'https://chat.qwen.ai/' },
+    ];
+    const PREFILL_MAX = 3500;
+
+    const copyPrompt = () => {
+        try { navigator.clipboard.writeText(promptText); } catch (_) {}
+        setCopied(true); setTimeout(() => setCopied(false), 2000);
+    };
+    const launch = (l) => {
+        setLastOpened(l.name);
+        copyPrompt(); // always copied, so a long prompt can just be pasted
+        const canPrefill = l.prefill && encodeURIComponent(promptText).length <= PREFILL_MAX;
+        window.open(canPrefill ? l.prefill(promptText) : l.url, '_blank');
+    };
+    const parse = () => {
+        setError(null);
+        if (!pasteText.trim()) { setError('Paste the AI response first.'); return; }
+        try {
+            const clean = pasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (_) {
+                const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+                if (s === -1 || e <= s) throw new Error('No JSON found in that text.');
+                parsed = JSON.parse(clean.slice(s, e + 1));
+            }
+            onParsed(parsed, source.trim() || lastOpened || 'AI');
+            onClose();
+        } catch (e) { setError(e.message); }
+    };
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000002, backgroundColor:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(3px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(680px,100%)', maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0, display:'flex', justifyContent:'space-between', gap:'12px', alignItems:'flex-start' }}>
+                    <div>
+                        <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>🤖 {title}</div>
+                        <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'3px', lineHeight:1.5 }}>
+                            {subtitle || 'Copy the prompt, ask any AI, then paste its JSON reply back here.'}
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                </div>
+
+                {step === 'prompt' ? (
+                    <>
+                        <div style={{ flex:1, overflowY:'auto', padding:'16px 20px' }}>
+                            <div style={{ backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'14px', fontSize:'12px', lineHeight:1.6, color:'#333', fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-word', maxHeight:'38vh', overflowY:'auto' }}>
+                                {promptText}
+                            </div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>
+                                {promptText.length.toLocaleString()} characters · clicking an AI below copies this automatically. If it's too long to pre-fill, just paste it (Ctrl/Cmd+V).
+                            </div>
+                        </div>
+                        <div style={{ padding:'12px 20px 16px', borderTop:'1px solid #e2e8f0', backgroundColor:'#f8fafc', flexShrink:0 }}>
+                            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'10px' }}>
+                                {LAUNCHERS.map(l => (
+                                    <button key={l.name} onClick={() => launch(l)} style={{ padding:'7px 12px', borderRadius:'9px', border:`1.5px solid ${l.color}55`, backgroundColor:`${l.color}14`, color:l.color, fontWeight:'700', fontSize:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' }}>
+                                        <span>{l.icon}</span>{l.name}
+                                    </button>
+                                ))}
+                            </div>
+                            <div style={{ display:'flex', gap:'8px' }}>
+                                <button onClick={copyPrompt} style={{ flex:1, padding:'10px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'700', fontSize:'13px', cursor:'pointer', background: copied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#4c1d95,#7c3aed)' }}>
+                                    {copied ? '✓ Copied!' : '📋 Copy Prompt'}
+                                </button>
+                                <button onClick={() => setStep('paste')} style={{ flex:1, padding:'10px', borderRadius:'9px', border:'2px solid #7c3aed', backgroundColor:'#fff', color:'#7c3aed', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>
+                                    📥 Paste Response
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div style={{ flex:1, overflowY:'auto', padding:'16px 20px 0' }}>
+                            <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>Which AI is this from?</label>
+                            <input type="text" list="earnings-ai-sources" value={source || lastOpened} onChange={e => setSource(e.target.value)} placeholder="Perplexity, ChatGPT, Gemini, Claude, DeepSeek, Qwen..."
+                                style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box', marginBottom:'10px' }} />
+                            <datalist id="earnings-ai-sources">
+                                {['Perplexity','ChatGPT','Gemini','Claude','DeepSeek','Qwen'].map(n => <option key={n} value={n} />)}
+                            </datalist>
+                            <textarea autoFocus value={pasteText} onChange={e => { setPasteText(e.target.value); setError(null); }} placeholder="Paste the JSON the AI returned..."
+                                style={{ width:'100%', height:'240px', padding:'12px', borderRadius:'10px', border:`2px solid ${error ? '#ef4444' : '#e2e8f0'}`, fontSize:'12px', fontFamily:'monospace', lineHeight:1.6, resize:'vertical', outline:'none', boxSizing:'border-box', backgroundColor: error ? '#fef2f2' : '#f8fafc' }} />
+                            {error && <div style={{ marginTop:'8px', padding:'8px 12px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', fontSize:'12px', color:'#b91c1c' }}>⚠️ {error}</div>}
+                        </div>
+                        <div style={{ padding:'14px 20px 16px', display:'flex', gap:'8px', flexShrink:0 }}>
+                            <button onClick={parse} disabled={!pasteText.trim()} style={{ flex:1, padding:'11px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'700', fontSize:'13px', cursor: pasteText.trim() ? 'pointer' : 'not-allowed', background: pasteText.trim() ? 'linear-gradient(135deg,#7c3aed,#4c1d95)' : 'rgba(124,58,237,0.3)' }}>✓ Parse & Save</button>
+                            <button onClick={() => setStep('prompt')} style={{ padding:'11px 16px', borderRadius:'9px', border:'1px solid #e2e8f0', backgroundColor:'#fff', color:'#64748b', fontWeight:'600', fontSize:'13px', cursor:'pointer' }}>← Back</button>
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+function EarningsAIResultCard({ analysis, theme = 'light', onReask, onRemove }) {
+    if (!analysis) return null;
+    const dark = theme === 'dark';
+    const tk = dark
+        ? { card:'rgba(255,255,255,0.05)', text:'#e2e8f0', sub:'#94a3b8', border:'rgba(255,255,255,0.1)' }
+        : { card:'#f8fafc', text:'#1a1a1a', sub:'#64748b', border:'#e2e8f0' };
+    const bias    = SNOW_BIAS_STYLE[analysis.bias] || SNOW_BIAS_STYLE.MIXED;
+    const verdict = SNOW_VERDICT_STYLE[analysis.verdict] || SNOW_VERDICT_STYLE.NEUTRAL;
+    const asList  = (v) => Array.isArray(v) ? v.filter(Boolean) : (v ? [String(v)] : []);
+    const sections = [
+        ['Latest quarter', analysis.recentQuarter], ['Trend over time', analysis.trendOverTime],
+        ['Guidance & estimates', analysis.guidanceAndEstimates], ['Sentiment', analysis.sentimentSummary],
+        ['Investment angle', analysis.investmentAngle],
+    ].filter(([, v]) => v);
+    const catalysts = asList(analysis.catalysts), risks = asList(analysis.risks), sources = asList(analysis.sources).slice(0, 8);
+    const chip = (color) => ({ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:`${color}22`, color, border:`1px solid ${color}55`, whiteSpace:'nowrap' });
+    const head = { fontSize:'10px', fontWeight:'800', color:tk.sub, letterSpacing:'0.07em', marginBottom:'3px' };
+
+    return (
+        <div style={{ borderRadius:'12px', border:`1px solid ${bias.color}55`, backgroundColor:tk.card, padding:'14px', color:tk.text, fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', alignItems:'center', marginBottom:'8px' }}>
+                <span style={chip(bias.color)}>{bias.icon} {analysis.bias} BIAS</span>
+                <span style={chip(verdict.color)}>{verdict.icon} {String(analysis.verdict).replace(/_/g, ' ')}</span>
+                {analysis.confidence != null && <span style={{ fontSize:'11px', color:tk.sub, fontWeight:'700' }}>{analysis.confidence}% conf</span>}
+                {analysis.opportunityScore != null && <span style={{ fontSize:'11px', color:tk.sub, fontWeight:'700' }}>score {analysis.opportunityScore}/100</span>}
+            </div>
+            <div style={{ fontSize:'13.5px', fontWeight:'700', lineHeight:1.5, marginBottom:'10px' }}>{analysis.tldr}</div>
+
+            {sections.map(([label, text]) => (
+                <div key={label} style={{ marginBottom:'9px' }}>
+                    <div style={head}>{label.toUpperCase()}</div>
+                    <div style={{ fontSize:'12.5px', lineHeight:1.55 }}>{text}</div>
+                </div>
+            ))}
+
+            {analysis.narrativeRiskFlags && (
+                <div style={{ marginBottom:'9px', padding:'8px 10px', borderRadius:'8px', backgroundColor:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.35)' }}>
+                    <div style={{ ...head, color:'#f59e0b' }}>⚠️ NARRATIVE RISK</div>
+                    <div style={{ fontSize:'12px', lineHeight:1.5 }}>{analysis.narrativeRiskFlags}</div>
+                </div>
+            )}
+
+            {(catalysts.length > 0 || risks.length > 0) && (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))', gap:'10px', marginBottom:'9px' }}>
+                    {catalysts.length > 0 && (
+                        <div><div style={{ ...head, color:'#10b981' }}>🚀 CATALYSTS</div>
+                            {catalysts.map((c, i) => <div key={i} style={{ fontSize:'12px', lineHeight:1.5 }}>• {c}</div>)}</div>
+                    )}
+                    {risks.length > 0 && (
+                        <div><div style={{ ...head, color:'#ef4444' }}>🛑 RISKS</div>
+                            {risks.map((r, i) => <div key={i} style={{ fontSize:'12px', lineHeight:1.5 }}>• {r}</div>)}</div>
+                    )}
+                </div>
+            )}
+
+            {sources.length > 0 && (
+                <div style={{ display:'flex', gap:'4px', flexWrap:'wrap', marginBottom:'8px' }}>
+                    {sources.map((s, i) => <span key={i} style={{ fontSize:'10px', padding:'1px 8px', borderRadius:'10px', border:`1px solid ${tk.border}`, color:tk.sub }}>{s}</span>)}
+                </div>
+            )}
+
+            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', fontSize:'10px', color:tk.sub }}>
+                <span>via {analysis.source || 'AI'} · {snowTimeAgo(analysis.savedAt)}</span>
+                <span>· AI-generated research input, not financial advice</span>
+                <span style={{ marginLeft:'auto', display:'flex', gap:'6px' }}>
+                    {onReask  && <button onClick={onReask}  style={{ fontSize:'10px', padding:'2px 9px', borderRadius:'6px', border:`1px solid ${tk.border}`, backgroundColor:'transparent', color:tk.sub, cursor:'pointer' }}>🔄 Re-run</button>}
+                    {onRemove && <button onClick={onRemove} style={{ fontSize:'10px', padding:'2px 9px', borderRadius:'6px', border:`1px solid ${tk.border}`, backgroundColor:'transparent', color:tk.sub, cursor:'pointer' }}>🗑</button>}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function EarningsAISidePanel({ ticker, onClose }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const storeVersion = useEarningsAIStoreVersion();
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError]     = React.useState(null);
+    const [prompt, setPrompt]   = React.useState(null);
+    const analysis = React.useMemo(() => SnowEarningsAIStore.get(ticker), [ticker, storeVersion]);
+
+    const run = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_search_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            if (!(json.past || []).length && !(json.upcoming || []).length) throw new Error(`No earnings data found for ${ticker} (ETF, index or newly listed?).`);
+            setPrompt(buildEarningsAIPrompt(ticker, json));
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    return (
+        <div style={{ padding:'12px', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px' }}>
+                <span style={{ fontSize:'12px', fontWeight:'800', color:'#fff' }}>📈 Earnings AI · {ticker}</span>
+                <button onClick={onClose} title="Hide this panel" style={{ marginLeft:'auto', background:'rgba(255,255,255,0.08)', border:'none', borderRadius:'6px', color:'#94a3b8', width:'24px', height:'24px', cursor:'pointer' }}>×</button>
+            </div>
+
+            {analysis ? (
+                <EarningsAIResultCard analysis={analysis} theme="dark" onReask={run} onRemove={() => SnowEarningsAIStore.remove(ticker)} />
+            ) : (
+                <div style={{ padding:'14px', borderRadius:'10px', border:'1px dashed rgba(255,255,255,0.18)', textAlign:'center' }}>
+                    <div style={{ fontSize:'12px', color:'#94a3b8', lineHeight:1.5, marginBottom:'10px' }}>
+                        No earnings AI analysis saved for {ticker} yet. Run one to see the bias, trend and catalysts here.
+                    </div>
+                    <button onClick={run} disabled={loading} style={{ padding:'8px 14px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'800', fontSize:'12px', cursor: loading ? 'wait' : 'pointer', background:'linear-gradient(135deg,#7c3aed,#db2777)' }}>
+                        {loading ? '⏳ Loading earnings data...' : '🤖 Run Earnings AI Analysis'}
+                    </button>
+                </div>
+            )}
+            {error && <div style={{ marginTop:'8px', fontSize:'11px', color:'#fca5a5' }}>⚠️ {error}</div>}
+            {loading && analysis && <div style={{ marginTop:'8px', fontSize:'11px', color:'#94a3b8' }}>⏳ Loading earnings data...</div>}
+
+            <ExternalAIModal
+                isOpen={!!prompt} onClose={() => setPrompt(null)}
+                title={`Earnings AI — ${ticker}`} promptText={prompt || ''}
+                onParsed={(parsed, source) => saveEarningsAIResponse(ticker, parsed, source)}
+            />
+        </div>
+    );
+}
+
+function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, onPickTicker }) {
+    const storeVersion = useEarningsAIStoreVersion();
+    const [limit, setLimit]       = React.useState(25);
+    const [flowOpen, setFlowOpen] = React.useState(false);
+    const saved  = React.useMemo(() => SnowEarningsAIStore.getMonth(monthKey), [monthKey, storeVersion]);
+    const ranked = React.useMemo(() => [...items].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0)).slice(0, limit), [items, limit]);
+    const prompt = React.useMemo(() => buildEarningsMonthPrompt(monthLabel, ranked, items.length), [monthLabel, ranked, items.length]);
+    if (!isOpen) return null;
+
+    const STANCE = { LONG:'#10b981', SHORT:'#ef4444', WATCH:'#f59e0b', AVOID:'#94a3b8' };
+    const opps = saved && Array.isArray(saved.opportunities) ? [...saved.opportunities].sort((a, b) => (a.rank || 99) - (b.rank || 99)) : [];
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10050, backgroundColor:'rgba(0,0,0,0.6)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'12px', overflowY:'auto', backdropFilter:'blur(4px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(860px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'16px' }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#1e3a5f,#7c3aed)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>🤖 AI Month Scan — {monthLabel}</div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'3px' }}>
+                                {items.length} companies report this month · scanning the top {Math.min(limit, items.length)} by market cap
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                        <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>Scan top</span>
+                        <select value={limit} onChange={e => setLimit(Number(e.target.value))} style={{ padding:'5px 8px', borderRadius:'7px', border:'none', fontSize:'12px' }}>
+                            {[15, 25, 40].map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                        <button onClick={() => setFlowOpen(true)} disabled={ranked.length === 0} style={{ padding:'7px 16px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'800', fontSize:'12px', cursor:'pointer', background:'linear-gradient(135deg,#db2777,#7c3aed)' }}>
+                            {saved ? '🔄 Re-run AI scan' : '🤖 Ask AI to scan'}
+                        </button>
+                        {saved && <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>last scan {snowTimeAgo(saved.savedAt)} via {saved.source}</span>}
+                    </div>
+                </div>
+
+                <div style={{ padding:'16px 20px', maxHeight:'70vh', overflowY:'auto' }}>
+                    {!saved && (
+                        <div style={{ padding:'30px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px', lineHeight:1.6 }}>
+                            Hit <strong>Ask AI to scan</strong>. The prompt lists this month's biggest reporters with their beat history, and asks the AI to search recent coverage and rank the best setups, discounting coverage that looks promotional.
+                        </div>
+                    )}
+                    {saved && (
+                        <>
+                            {saved.overallTone && (
+                                <div style={{ padding:'10px 14px', borderRadius:'10px', backgroundColor:'#f5f3ff', border:'1px solid #ddd6fe', fontSize:'13px', lineHeight:1.55, color:'#4c1d95', marginBottom:'14px' }}>
+                                    <strong>Month tone:</strong> {saved.overallTone}
+                                </div>
+                            )}
+                            <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                                {opps.map((o, i) => {
+                                    const sc = STANCE[String(o.stance).toUpperCase()] || '#94a3b8';
+                                    const bs = SNOW_BIAS_STYLE[String(o.sentiment).toUpperCase()] || SNOW_BIAS_STYLE.MIXED;
+                                    const conv = Math.max(0, Math.min(10, Number(o.conviction) || 0));
+                                    return (
+                                        <div key={`${o.ticker}-${i}`} style={{ padding:'11px 13px', borderRadius:'10px', border:'1px solid #e2e8f0', borderLeft:`4px solid ${sc}` }}>
+                                            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', marginBottom:'6px' }}>
+                                                <span style={{ fontSize:'11px', fontWeight:'800', color:'#94a3b8' }}>#{o.rank ?? i + 1}</span>
+                                                <span onClick={() => onPickTicker && onPickTicker(o.ticker)} title="Open this stock's earnings history" style={{ fontSize:'15px', fontWeight:'800', color:'#2563eb', cursor:'pointer', textDecoration:'underline dotted' }}>{o.ticker}</span>
+                                                <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:`${sc}22`, color:sc }}>{String(o.stance).toUpperCase()}</span>
+                                                <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:`${bs.color}22`, color:bs.color }}>{bs.icon} {String(o.sentiment).toUpperCase()}</span>
+                                                <span style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'6px' }}>
+                                                    <span style={{ width:'60px', height:'5px', borderRadius:'3px', backgroundColor:'#e2e8f0', overflow:'hidden', display:'inline-block' }}>
+                                                        <span style={{ display:'block', height:'100%', width:`${conv * 10}%`, backgroundColor:sc }} />
+                                                    </span>
+                                                    <span style={{ fontSize:'11px', fontWeight:'800', color:'#475569' }}>{conv}/10</span>
+                                                </span>
+                                            </div>
+                                            {o.timing && <div style={{ fontSize:'11px', color:'#64748b', marginBottom:'4px' }}>⏱ {o.timing}</div>}
+                                            <div style={{ fontSize:'12.5px', lineHeight:1.55, color:'#1a1a1a' }}>{o.thesis}</div>
+                                            {o.narrativeRisk && <div style={{ fontSize:'11.5px', color:'#b45309', marginTop:'5px', lineHeight:1.5 }}>⚠️ <strong>Narrative risk:</strong> {o.narrativeRisk}</div>}
+                                            {o.mainRisk && <div style={{ fontSize:'11.5px', color:'#b91c1c', marginTop:'3px', lineHeight:1.5 }}>🛑 <strong>Risk:</strong> {o.mainRisk}</div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {Array.isArray(saved.sectorTilts) && saved.sectorTilts.length > 0 && (
+                                <div style={{ marginTop:'14px' }}>
+                                    <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'6px' }}>SECTOR TILTS</div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}>
+                                        {saved.sectorTilts.map((s, i) => <div key={i} style={{ fontSize:'12px', color:'#475569' }}><strong>{s.sector}:</strong> {s.tilt}</div>)}
+                                    </div>
+                                </div>
+                            )}
+                            {saved.caveats && <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'12px', lineHeight:1.5 }}>{saved.caveats}</div>}
+                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'8px' }}>AI-generated research input, not financial advice. Sentiment can already be priced in, so treat this as a shortlist to verify.</div>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <ExternalAIModal
+                isOpen={flowOpen} onClose={() => setFlowOpen(false)}
+                title={`Month scan — ${monthLabel}`} promptText={prompt}
+                onParsed={(parsed, source) => {
+                    if (!parsed || Array.isArray(parsed) || !Array.isArray(parsed.opportunities) || parsed.opportunities.length === 0) {
+                        throw new Error('Expected a JSON object with a non-empty "opportunities" array.');
+                    }
+                    SnowEarningsAIStore.setMonth(monthKey, { ...parsed, source, monthLabel, scannedTickers: ranked.map(r => r.ticker) });
+                }}
+            />
+        </div>,
+        document.body
+    );
+}
+
 function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null, focusPositionId = null, analysisAsOf = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -536,6 +1042,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [editingPosition, setEditingPosition] = React.useState(null);
 
     const [showOverlays, setShowOverlays] = React.useState(true);
+    const [showEarningsAI, setShowEarningsAI] = React.useState(false);
     const candlesRef    = React.useRef([]);
     const extraLinesRef = React.useRef([]);
 
@@ -882,6 +1389,8 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     }, [chartLoading, extraKey]);
 
     // ── render ────────────────────────────────────────────────────────────────
+        // The panel is hidden while the trade ticket / edit modal is open, then comes back
+    const earningsPanelVisible = showEarningsAI && !showTicket && !editingPosition;
     const chartContent = (
         <div style={{
             backgroundColor: '#0f172a',
@@ -889,8 +1398,10 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             overflow: 'hidden',
             border: isFullscreen ? 'none' : '1px solid #1e293b',
             marginTop: isFullscreen ? 0 : '10px',
-            ...(isFullscreen ? { position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', flexDirection: 'column' } : {}),
+            display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+            ...(isFullscreen ? { position: 'fixed', inset: 0, zIndex: 999999 } : {}),
         }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* Toolbar */}
             <div style={{ padding:'10px 14px', borderBottom:'1px solid #1e293b', display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap', backgroundColor:'#0a1628', flexShrink:0 }}>
                 <span style={{ fontSize:'13px', fontWeight:'800', color:'#fff', flex:1, minWidth:'70px' }}>📊 {ticker}</span>
@@ -937,6 +1448,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                 <button onClick={() => setShowOverlays(o => !o)} title={showOverlays ? 'Hide the info cards on the chart' : 'Show the info cards'} style={tbBtn(!showOverlays)}>
                     {showOverlays ? '🗂 Hide info' : '🗂 Show info'}
                 </button>
+                <button onClick={() => setShowEarningsAI(s => !s)} title="Show / hide the earnings AI analysis for this asset" style={tbBtn(showEarningsAI)}>📈 Earnings AI</button>
                 <button onClick={() => setShowTicket(true)} title="Open paper position" style={tbBtn(true)}>📝 Trade</button>
 
 
@@ -946,12 +1458,12 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             </div>
 
             {/* Chart area */}
-            <div style={{ position:'relative', ...(isFullscreen ? { flex:1, minHeight:'320px' } : { height: `${height}px` }) }}>
+            <div style={{ position:'relative', ...(isFullscreen ? { flex:1, minHeight: isMobile ? '180px' : '320px' } : { height: `${height}px` }) }}>
                 {showOverlays && scannerMeta && (
                     <div onClick={() => setMetaExpanded(e => !e)} style={{
                         position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
                         border:'1px solid rgba(255,255,255,0.1)', padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
-                        maxWidth: isMobile ? '150px' : '220px', backdropFilter:'blur(4px)',
+                        maxWidth: isMobile ? '150px' : '220px', maxHeight:'46%', overflowY:'auto', backdropFilter:'blur(4px)',
                     }}>
                         <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
                             <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: scannerMeta.direction === 'BULLISH' ? '#10b981' : scannerMeta.direction === 'BEARISH' ? '#ef4444' : '#94a3b8' }}>
@@ -1011,7 +1523,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     return (
                         <div onClick={() => setSavedAnalysisExpanded(e => !e)} style={{
                             position:'absolute', bottom:'34px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
-                            border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
+                            maxHeight: isMobile ? '34%' : '40%', overflowY:'auto', border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
                             maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
                         }}>
                             <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>{analysisAsOf ? (latestSavedAnalysis.date === analysisAsOf ? '📅 SAVED ANALYSIS · TRADE DAY' : '📅 SAVED ANALYSIS · LATEST BEFORE TRADE') : '📅 LAST SAVED ANALYSIS'}</div>
@@ -1130,8 +1642,20 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
 
             <style>{`
                 @keyframes spin  { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+                                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
             `}</style>
+            </div>
+
+            {earningsPanelVisible && (
+                <div style={{
+                    flexShrink: 0, overflowY: 'auto', backgroundColor: '#0a1628',
+                    ...(isMobile
+                        ? { width: '100%', borderTop: '1px solid #1e293b', maxHeight: isFullscreen ? '40%' : '360px', height: isFullscreen ? '40%' : 'auto' }
+                        : { width: isFullscreen ? 'min(400px, 40vw)' : 'min(340px, 42%)', borderLeft: '1px solid #1e293b' }),
+                }}>
+                    <EarningsAISidePanel ticker={ticker} onClose={() => setShowEarningsAI(false)} />
+                </div>
+            )}
         </div>
     );
 
@@ -4973,7 +5497,7 @@ function PositionOverlayCard({ position, livePositions, lastPrice, extendedActiv
         <div onClick={() => setExpanded(e => !e)} style={{
             position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.94)',
             borderRadius:'10px', border:`1px solid ${statusColor}60`, padding: mobile ? '6px 9px' : '9px 13px',
-            cursor:'pointer', maxWidth: mobile ? '215px' : '300px', maxHeight:'calc(100% - 16px)', overflowY:'auto',
+            cursor:'pointer', maxWidth: mobile ? '215px' : '300px', maxHeight:'46%', overflowY:'auto',
             backdropFilter:'blur(4px)',
         }}>
             <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
@@ -8958,6 +9482,15 @@ function EarningsCalendar({ onSelectTicker, openaiKey }) {
     const [showSearchPanel, setShowSearchPanel] = React.useState(false);
 
     const [previewTicker, setPreviewTicker] = React.useState(null);
+    const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
+    const [earningsAIModal, setEarningsAIModal] = React.useState(null); // { ticker, prompt }
+    const [showMonthAI, setShowMonthAI] = React.useState(false);
+    useEarningsAIStoreVersion();
+    React.useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     // Fetch all earnings on mount + month change
     React.useEffect(() => {
@@ -9002,7 +9535,7 @@ function EarningsCalendar({ onSelectTicker, openaiKey }) {
     // Top 5 per day by market cap
     const top5 = (date) => {
         const list = byDate[date] || [];
-        return [...list].sort((a, b) => (b.marketCap||0) - (a.marketCap||0)).slice(0, 5);
+        return [...list].sort((a, b) => (b.marketCap||0) - (a.marketCap||0)).slice(0, isMobile ? 2 : 5);
     };
 
     const openDay = (dateStr) => {
@@ -9953,6 +10486,8 @@ React.useEffect(() => {
     while (cells.length % 7 !== 0) cells.push(null);
 
     const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const monthKey      = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthEarnings = earnings.filter(e => e.earningsDate?.startsWith(monthKey));
 
     return (
         <div style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", backgroundColor:'#f8fafc', borderRadius:'16px', border:'1px solid #e2e8f0', overflow:'hidden', marginBottom:'24px' }}>
@@ -9964,15 +10499,20 @@ React.useEffect(() => {
                         {earnings.length} upcoming reports tracked across {Object.keys(SECTOR_MAP).length} stocks
                     </div>
                 </div>
-                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
                     <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))}
                         style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>‹</button>
-                    <span style={{ fontSize:'15px', fontWeight:'700', color:'#fff', minWidth:'160px', textAlign:'center' }}>{monthLabel}</span>
+                    <span style={{ fontSize:'15px', fontWeight:'700', color:'#fff', minWidth: isMobile ? '110px' : '160px', textAlign:'center' }}>{monthLabel}</span>
                     <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))}
                         style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>›</button>
                     <button onClick={fetchEarnings} disabled={loading}
                         style={{ padding:'6px 14px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
                         {loading ? '⏳' : '↻ Refresh'}
+                    </button>
+                                        <button onClick={() => setShowMonthAI(true)} disabled={monthEarnings.length === 0}
+                        title="Ask an AI to scan this month's reporters and rank the best opportunities"
+                        style={{ padding:'6px 14px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', background: monthEarnings.length === 0 ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor: monthEarnings.length === 0 ? 'not-allowed' : 'pointer', whiteSpace:'nowrap' }}>
+                        🤖 AI Month Scan ({monthEarnings.length})
                     </button>
                 </div>
             </div>
@@ -10100,8 +10640,8 @@ React.useEffect(() => {
 
                                 {/* ── Stock header ── */}
                                 <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#1a1a1a' }}>
+                                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                                        <div style={{ fontSize: isMobile ? '17px' : '20px', fontWeight: '800', color: '#1a1a1a', wordBreak: 'break-word' }}>
                                             {r.ticker} — {info.name || r.ticker}
                                         </div>
                                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
@@ -10122,6 +10662,17 @@ React.useEffect(() => {
                                         }}
                                     >
                                         😼 Sabrina's Earnings Preview
+                                    </button>
+                                    <button
+                                        onClick={() => setEarningsAIModal({ ticker: r.ticker, prompt: buildEarningsAIPrompt(r.ticker, r) })}
+                                        style={{
+                                            padding:'10px 18px', borderRadius:'10px',
+                                            background:'linear-gradient(135deg,#0891b2,#7c3aed)',
+                                            color:'#fff', border:'none', fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'7px', alignSelf:'flex-start', flexShrink: 0,
+                                        }}
+                                    >
+                                        🤖 Earnings AI Analysis
                                     </button>
 
                                     {/* Beat rate badge */}
@@ -10170,6 +10721,14 @@ React.useEffect(() => {
                                         </div>
                                     )}
                                 </div>
+
+                                {SnowEarningsAIStore.get(r.ticker) && (
+                                    <EarningsAIResultCard
+                                        analysis={SnowEarningsAIStore.get(r.ticker)}
+                                        onReask={() => setEarningsAIModal({ ticker: r.ticker, prompt: buildEarningsAIPrompt(r.ticker, r) })}
+                                        onRemove={() => SnowEarningsAIStore.remove(r.ticker)}
+                                    />
+                                )}
 
                                 {/* ── EPS trend sparkline ── */}
                                 {trend.length >= 3 && (
@@ -10407,7 +10966,7 @@ React.useEffect(() => {
                     </div>
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
                         {cells.map((day, idx) => {
-                            if (!day) return <div key={`empty-${idx}`} style={{ minHeight:'90px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9', backgroundColor:'#fafbfc' }} />;
+                            if (!day) return <div key={`empty-${idx}`} style={{ minHeight: isMobile ? '64px' : '90px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9', backgroundColor:'#fafbfc' }} />;
                             const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                             const top = top5(dateStr);
                             const total = (byDate[dateStr]||[]).length;
@@ -10418,7 +10977,7 @@ React.useEffect(() => {
                                 <div key={dateStr}
                                     onClick={() => top.length > 0 && openDay(dateStr)}
                                     style={{
-                                        minHeight:'90px', padding:'6px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9',
+                                        minHeight: isMobile ? '64px' : '90px', padding:'6px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9',
                                         backgroundColor: todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff',
                                         cursor: top.length > 0 ? 'pointer' : 'default',
                                         position:'relative',
@@ -10443,9 +11002,9 @@ React.useEffect(() => {
                                         <span style={{ fontSize:'12px', fontWeight: todayCell ? '800' : '500', color: todayCell ? '#2563eb' : isWknd ? '#94a3b8' : '#374151' }}>
                                             {day}
                                         </span>
-                                        {total > 5 && (
+                                        {total > (isMobile ? 2 : 5) && (
                                             <span style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', backgroundColor:'#e2e8f0', borderRadius:'10px', padding:'1px 5px' }}>
-                                                +{total - 5}
+                                                +{total - (isMobile ? 2 : 5)}
                                             </span>
                                         )}
                                     </div>
@@ -10464,7 +11023,7 @@ React.useEffect(() => {
                         })}
                     </div>
 
-                    {hoveredCell && (() => {
+                    {!isMobile && hoveredCell && (() => {
                         const dayData = (byDate[hoveredCell.dateStr] || [])
                             .sort((a, b) => (b.marketCap||0) - (a.marketCap||0));
                         if (!dayData.length) return null;
@@ -10743,7 +11302,7 @@ React.useEffect(() => {
                                         return (
                                             <div style={{
                                                 position: 'absolute', right: 0, top: 0, bottom: 0,
-                                                width: '300px', backgroundColor: '#fff',
+                                                width: 'min(300px, 88vw)', backgroundColor: '#fff',
                                                 borderLeft: '1px solid #e2e8f0',
                                                 display: 'flex', flexDirection: 'column',
                                                 overflow: 'hidden', zIndex: 10,
@@ -11033,6 +11592,22 @@ React.useEffect(() => {
             <style>{`
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
+
+                        <ExternalAIModal
+                isOpen={!!earningsAIModal}
+                onClose={() => setEarningsAIModal(null)}
+                title={earningsAIModal ? `Earnings AI — ${earningsAIModal.ticker}` : ''}
+                promptText={earningsAIModal ? earningsAIModal.prompt : ''}
+                onParsed={(parsed, source) => saveEarningsAIResponse(earningsAIModal.ticker, parsed, source)}
+            />
+            <EarningsMonthAIModal
+                isOpen={showMonthAI}
+                onClose={() => setShowMonthAI(false)}
+                monthKey={monthKey}
+                monthLabel={monthLabel}
+                items={monthEarnings}
+                onPickTicker={(sym) => { setShowMonthAI(false); setSearchTicker(sym); searchEarnings(sym); }}
+            />
 
             {previewTicker && (
                 <SabrinaEarningsPreview
