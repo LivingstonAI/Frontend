@@ -1139,11 +1139,11 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     title: `Entry ${isLong ? '(L)' : '(S)'} $${pos.entry_price}`,
                 });
                 if (pos.sl_price) lines.sl = seriesRef.current.createPriceLine({
-                    price: pos.sl_price, color: '#ef4444', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    price: pos.sl_price, color: '#ef4444', lineWidth: 2, lineStyle: 0, axisLabelVisible: true,
                     title: pos.sl_dollars ? `SL $${pos.sl_price} (-$${Math.abs(pos.sl_dollars).toFixed(2)})` : `SL $${pos.sl_price}`,
                 });
                 if (pos.tp_price) lines.tp = seriesRef.current.createPriceLine({
-                    price: pos.tp_price, color: '#10b981', lineWidth: 1, lineStyle: 2, axisLabelVisible: true,
+                    price: pos.tp_price, color: '#10b981', lineWidth: 2, lineStyle: 0, axisLabelVisible: true,
                     title: pos.tp_dollars ? `TP $${pos.tp_price} (+$${Math.abs(pos.tp_dollars).toFixed(2)})` : `TP $${pos.tp_price}`,
                 });
             } catch (e) { console.error('[ScannerChart lines]', e); }
@@ -1159,7 +1159,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         }
         if (price != null && !isNaN(price)) {
             draftLinesRef.current[key] = seriesRef.current.createPriceLine({
-                price, color, lineWidth: 1, lineStyle: 3, axisLabelVisible: true, title: label,
+                price, color, lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: label,
             });
         }
     };
@@ -1294,13 +1294,13 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
 
         const container = containerRef.current;
         const chart = LC.createChart(container, {
-            autoSize: true,
+            autoSize: false,
             width:  container.clientWidth  || 600,
             height: container.clientHeight || 300,
             layout: { background: { color: '#0f172a' }, textColor: '#94a3b8' },
             grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
             crosshair: { mode: LC.CrosshairMode.Normal },
-            rightPriceScale: { borderColor: '#1e293b' },
+            rightPriceScale: { borderColor: '#1e293b', scaleMargins: { top: 0.1, bottom: 0.06 } },
             timeScale: { borderColor: '#1e293b', timeVisible: true, secondsVisible: false },
         });
         chartRef.current = chart;
@@ -1315,16 +1315,26 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             e200: chart.addLineSeries(lineOpts('#ef4444', 'EMA200')),
         };
 
-                // The library's own autoSize handles resizing. This observer is only a fallback for older builds that ignore it.
-        let ro = null;
-        if (typeof chart.options().autoSize === 'undefined') {
-            ro = new ResizeObserver(() => {
-                if (chartRef.current === chart && container.clientWidth > 0 && container.clientHeight > 0) {
-                    chart.resize(container.clientWidth, container.clientHeight);
-                }
-            });
-            ro.observe(container);
-        }
+                // Size the chart from its PARENT box ourselves. Don't rely on autoSize (older library builds ignore it).
+        const host = container.parentElement || container;
+        const fitToHost = () => {
+            if (chartRef.current !== chart) return;
+            try {
+                const r = host.getBoundingClientRect();
+                const w = Math.floor(r.width), h = Math.floor(r.height);
+                if (w > 0 && h > 0) chart.resize(w, h, true);
+            } catch (_) {}
+        };
+        fitToHost();
+        requestAnimationFrame(() => { fitToHost(); requestAnimationFrame(fitToHost); });
+        const ro = new ResizeObserver(fitToHost);
+        ro.observe(host);
+        setTimeout(() => {
+            if (chartRef.current !== chart) return;
+            const hr = host.getBoundingClientRect();
+            const cr = container.firstElementChild ? container.firstElementChild.getBoundingClientRect() : null;
+            console.log('[ScannerChart size]', ticker, 'area', Math.round(hr.width) + 'x' + Math.round(hr.height), 'chart', cr ? Math.round(cr.width) + 'x' + Math.round(cr.height) : 'n/a');
+        }, 800);
 
         let cancelled = false;
         const loadData = async () => {
@@ -1366,7 +1376,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         (extraLines || []).forEach(l => {
             try {
                 extraLinesRef.current.push(seriesRef.current.createPriceLine({
-                    price: l.price, color: l.color, lineWidth: l.lineWidth || 1, lineStyle: l.lineStyle ?? 2,
+                    price: l.price, color: l.color, lineWidth: l.lineWidth || 2, lineStyle: l.lineStyle ?? 0,
                     axisLabelVisible: true, title: l.title,
                 }));
             } catch (e) { console.error('[ScannerChart extra lines]', e); }
@@ -5667,6 +5677,13 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         .filter(a => !search.trim() || a.asset.toUpperCase().includes(search.trim().toUpperCase()))
         .filter(a => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? a.open > 0 : a.closed > 0))
         .sort((x, y) => y.total - x.total || x.asset.localeCompare(y.asset));
+    
+    // Overall closed-trade performance, built from ALL positions so it never changes with filters, search or view
+    const closedAll      = positions.filter(p => p.status !== 'OPEN');
+    const wonCount       = closedAll.filter(p => (p.realized_pnl_dollars ?? 0) > 0).length;
+    const lostCount      = closedAll.filter(p => (p.realized_pnl_dollars ?? 0) < 0).length;
+    const evenCount      = closedAll.length - wonCount - lostCount;
+    const overallWinRate = closedAll.length ? (wonCount / closedAll.length) * 100 : null;
 
     const pill = (active) => ({
         padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
@@ -5699,6 +5716,25 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 {positions.length} trades · {assetCount} assets · {openCount} open · {closedCount} closed
                                 {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
                                 {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
+                            </div>
+                                                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', alignItems:'center', marginTop:'8px' }}>
+                                <span style={{
+                                    fontSize:'11px', fontWeight:'800', padding:'3px 11px', borderRadius:'20px',
+                                    backgroundColor: overallWinRate == null ? 'rgba(255,255,255,0.1)' : overallWinRate >= 50 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                                    color: overallWinRate == null ? '#cbd5e1' : overallWinRate >= 50 ? '#34d399' : '#f87171',
+                                }}>🏆 Win rate {overallWinRate != null ? `${overallWinRate.toFixed(1)}%` : '—'}</span>
+                                <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(16,185,129,0.15)', color:'#34d399' }}>✓ {wonCount} won</span>
+                                <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(239,68,68,0.15)', color:'#f87171' }}>✗ {lostCount} lost</span>
+                                {evenCount > 0 && (
+                                    <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(148,163,184,0.15)', color:'#cbd5e1' }}>= {evenCount} breakeven</span>
+                                )}
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)' }}>of {closedAll.length} closed</span>
+                                {closedAll.length > 0 && (
+                                    <span title={`${wonCount} won · ${lostCount} lost · ${evenCount} breakeven`} style={{ display:'inline-flex', width:'90px', height:'6px', borderRadius:'3px', overflow:'hidden', backgroundColor:'rgba(255,255,255,0.12)' }}>
+                                        <span style={{ width:`${(wonCount / closedAll.length) * 100}%`, backgroundColor:'#10b981' }} />
+                                        <span style={{ width:`${(lostCount / closedAll.length) * 100}%`, backgroundColor:'#ef4444' }} />
+                                    </span>
+                                )}
                             </div>
                             {marketSession && (
                                 <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)', marginTop:'3px' }}>
@@ -5922,8 +5958,8 @@ function PositionChartModal({ position, allPositions = [], onClose, onSelectTick
     // Open trade: the chart draws its own live lines. Closed trade: drawn from the saved levels.
     const extraLines = isOpenPos ? null : [
         { price: selected.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${selected.entry_price}` },
-        ...(selected.tp_price != null ? [{ price: selected.tp_price, color:'#10b981', lineStyle:2, title:`TP $${selected.tp_price}` }] : []),
-        ...(selected.sl_price != null ? [{ price: selected.sl_price, color:'#ef4444', lineStyle:2, title:`SL $${selected.sl_price}` }] : []),
+        ...(selected.tp_price != null ? [{ price: selected.tp_price, color:'#10b981', lineStyle:0, title:`TP $${selected.tp_price}` }] : []),
+        ...(selected.sl_price != null ? [{ price: selected.sl_price, color:'#ef4444', lineStyle:0, title:`SL $${selected.sl_price}` }] : []),
         ...(selected.closed_price != null ? [{ price: selected.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${selected.closed_price}` }] : []),
     ];
     const exitColor = (selected.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
