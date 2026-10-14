@@ -792,12 +792,13 @@ function EarningsAIResultCard({ analysis, theme = 'light', onReask, onRemove }) 
     const head = { fontSize:'10px', fontWeight:'800', color:tk.sub, letterSpacing:'0.07em', marginBottom:'3px' };
 
     return (
-        <div style={{ borderRadius:'12px', border:`1px solid ${bias.color}55`, backgroundColor:tk.card, padding:'14px', color:tk.text, fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+        <div data-snow-readable="true" style={{ borderRadius:'12px', border:`1px solid ${bias.color}55`, backgroundColor:tk.card, padding:'14px', color:tk.text, fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
             <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', alignItems:'center', marginBottom:'8px' }}>
                 <span style={chip(bias.color)}>{bias.icon} {analysis.bias} BIAS</span>
                 <span style={chip(verdict.color)}>{verdict.icon} {String(analysis.verdict).replace(/_/g, ' ')}</span>
                 {analysis.confidence != null && <span style={{ fontSize:'11px', color:tk.sub, fontWeight:'700' }}>{analysis.confidence}% conf</span>}
                 {analysis.opportunityScore != null && <span style={{ fontSize:'11px', color:tk.sub, fontWeight:'700' }}>score {analysis.opportunityScore}/100</span>}
+                <span style={{ marginLeft:'auto' }}><ReadAloudButton tone={theme} label={`${analysis.ticker || ''} earnings analysis`} /></span>
             </div>
             <div style={{ fontSize:'13.5px', fontWeight:'700', lineHeight:1.5, marginBottom:'10px' }}>{analysis.tldr}</div>
 
@@ -834,7 +835,7 @@ function EarningsAIResultCard({ analysis, theme = 'light', onReask, onRemove }) 
                 </div>
             )}
 
-            <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', fontSize:'10px', color:tk.sub }}>
+            <div data-snow-skip="true" style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', fontSize:'10px', color:tk.sub }}>
                 <span>via {analysis.source || 'AI'} · {snowTimeAgo(analysis.savedAt)}</span>
                 <span>· AI-generated research input, not financial advice</span>
                 <span style={{ marginLeft:'auto', display:'flex', gap:'6px' }}>
@@ -933,10 +934,11 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
                             {saved ? '🔄 Re-run AI scan' : '🤖 Ask AI to scan'}
                         </button>
                         {saved && <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>last scan {snowTimeAgo(saved.savedAt)} via {saved.source}</span>}
+                        {saved && <ReadAloudButton tone="dark" targetId="snow-month-scan-results" label={`${monthLabel} scan`} />}
                     </div>
                 </div>
 
-                <div style={{ padding:'16px 20px', maxHeight:'70vh', overflowY:'auto' }}>
+                <div id="snow-month-scan-results" style={{ padding:'16px 20px', maxHeight:'70vh', overflowY:'auto' }}>
                     {!saved && (
                         <div style={{ padding:'30px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px', lineHeight:1.6 }}>
                             Hit <strong>Ask AI to scan</strong>. The prompt lists this month's biggest reporters with their beat history, and asks the AI to search recent coverage and rank the best setups, discounting coverage that looks promotional.
@@ -1006,6 +1008,338 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
     );
 }
 
+// ═══════════════════════════ Voice reader ═══════════════════════════
+const SnowVoice = (() => {
+    const listeners = new Set();
+    const state = { status: 'idle', id: null, label: '', rate: 1, progress: 0 };
+    try {
+        const saved = parseFloat(localStorage.getItem('snow_voice_rate'));
+        if (saved >= 0.5 && saved <= 2.5) state.rate = saved;
+    } catch (_) {}
+
+    let token = 0, map = [], text = '', resumeAt = 0, wordStart = 0, fallbackTimer = null;
+
+    const supported = () => typeof window !== 'undefined' && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined';
+    const emit = () => listeners.forEach(fn => { try { fn({ ...state }); } catch (_) {} });
+    const clearFallback = () => { if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; } };
+    const clearHighlight = () => { try { if (window.CSS && window.CSS.highlights) window.CSS.highlights.delete('snow-speaking'); } catch (_) {} };
+
+    const ensureStyle = () => {
+        if (document.getElementById('snow-voice-style')) return;
+        const s = document.createElement('style');
+        s.id = 'snow-voice-style';
+        s.textContent = '::highlight(snow-speaking){background-color:#fde047;color:#0f172a;}';
+        document.head.appendChild(s);
+    };
+
+    // Collect readable text nodes (skips buttons, inputs, svg, and anything marked data-snow-skip)
+    const SKIP = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'STYLE', 'SCRIPT', 'SVG', 'CANVAS', 'OPTION', 'DATALIST']);
+    const collect = (rootEl) => {
+        const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+            acceptNode(n) {
+                if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                for (let p = n.parentElement; p && p !== rootEl; p = p.parentElement) {
+                    if (SKIP.has(p.tagName.toUpperCase()) || p.hasAttribute('data-snow-skip')) return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            },
+        });
+        const nodes = [];
+        let t = '';
+        let n = walker.nextNode();
+        while (n) {
+            if (t) t += ' ';
+            nodes.push({ node: n, start: t.length, end: t.length + n.nodeValue.length });
+            t += n.nodeValue;
+            n = walker.nextNode();
+        }
+        return { nodes, text: t };
+    };
+
+    // Length-preserving cleanup, so character offsets still line up with the DOM text
+    const clean = (s) => s
+        .replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, (m) => ' '.repeat(m.length))
+        .replace(/[·•]/g, ',')
+        .replace(/[▲▼△▽►◄→←↑↓●○◆◇■□✓✗⤢⛶]/g, ' ')
+        .replace(/×/g, 'x');
+
+    const keepInView = (range) => {
+        try {
+            const r = range.getBoundingClientRect();
+            if (!r || (!r.width && !r.height)) return;
+            let el = range.startContainer.parentElement;
+            while (el && el !== document.body) {
+                const cs = getComputedStyle(el);
+                if (/(auto|scroll)/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 2) {
+                    const b = el.getBoundingClientRect();
+                    if (r.top < b.top + 24 || r.bottom > b.bottom - 24) el.scrollTop += (r.top - b.top) - b.height / 3;
+                    return;
+                }
+                el = el.parentElement;
+            }
+            if (r.top < 60 || r.bottom > window.innerHeight - 90) window.scrollBy({ top: r.top - window.innerHeight / 3 });
+        } catch (_) {}
+    };
+
+    const highlight = (start, len) => {
+        if (!(window.CSS && window.CSS.highlights) || typeof window.Highlight === 'undefined') return;
+        const seg = map.find(m => start >= m.start && start < m.end);
+        if (!seg || !seg.node.isConnected) return;
+        const off = start - seg.start;
+        const range = document.createRange();
+        range.setStart(seg.node, off);
+        range.setEnd(seg.node, Math.min(seg.node.nodeValue.length, off + len));
+        window.CSS.highlights.set('snow-speaking', new window.Highlight(range));
+        keepInView(range);
+    };
+
+    const onWord = (abs) => {
+        const m = text.slice(abs).match(/^(\s*)(\S+)/);
+        const start = abs + (m ? m[1].length : 0);
+        const word  = m ? m[2].replace(/[.,;:!?)\]"']+$/, '') : '';
+        wordStart = start;
+        highlight(start, Math.max(1, word.length));
+        state.progress = text.length ? start / text.length : 0;
+        emit();
+    };
+
+    // Some voices never report word positions, so estimate the highlight from word length
+    const runFallback = (a, b, myToken) => {
+        clearFallback();
+        const words = [];
+        const seg = text.slice(a, b);
+        const re = /\S+/g;
+        let m = re.exec(seg);
+        while (m) { words.push({ at: a + m.index, len: m[0].length }); m = re.exec(seg); }
+        const ms = (w) => (110 + 62 * w.len) / state.rate;
+        let i = 0, skipMs = 700;
+        while (i < words.length && skipMs > 0) { skipMs -= ms(words[i]); i++; }
+        const step = () => {
+            if (myToken !== token || i >= words.length) return;
+            const w = words[i++];
+            onWord(w.at);
+            fallbackTimer = setTimeout(step, ms(w));
+        };
+        step();
+    };
+
+    // Short chunks avoid Chrome's habit of cutting long utterances off mid-way
+    const chunkRanges = (from) => {
+        const out = [];
+        const MAX = 200;
+        let i = from;
+        while (i < text.length) {
+            let end = Math.min(i + MAX, text.length);
+            if (end < text.length) {
+                const win = text.slice(i, end);
+                let cut = Math.max(win.lastIndexOf('. '), win.lastIndexOf('! '), win.lastIndexOf('? '), win.lastIndexOf('; '));
+                if (cut < 60) cut = Math.max(win.lastIndexOf(', '), win.lastIndexOf(' '));
+                if (cut > 0) end = i + cut + 1;
+            }
+            out.push([i, end]);
+            i = end;
+        }
+        return out;
+    };
+
+    const pickVoice = () => {
+        try {
+            const name = localStorage.getItem('sabrina_voice');
+            if (name) {
+                const v = window.speechSynthesis.getVoices().find(x => x.name === name);
+                if (v) return v;
+            }
+        } catch (_) {}
+        return null;
+    };
+
+    const stopInternal = () => {
+        token++;
+        clearFallback();
+        try { window.speechSynthesis.cancel(); } catch (_) {}
+        clearHighlight();
+        state.status = 'idle'; state.id = null; state.progress = 0;
+        emit();
+    };
+
+    const speakFrom = (start) => {
+        const myToken = ++token;
+        try { window.speechSynthesis.cancel(); } catch (_) {}
+        clearFallback();
+        const ranges = chunkRanges(start);
+        if (!ranges.length) { stopInternal(); return; }
+        state.status = 'playing';
+        emit();
+        const voice = pickVoice();
+
+        const playChunk = (k) => {
+            if (myToken !== token) return;
+            if (k >= ranges.length) { stopInternal(); return; }
+            const [a, b] = ranges[k];
+            const utt = new window.SpeechSynthesisUtterance(text.slice(a, b));
+            if (voice) { utt.voice = voice; utt.lang = voice.lang; }
+            utt.rate = state.rate;
+            let gotBoundary = false, done = false;
+            utt.onstart = () => {
+                setTimeout(() => { if (myToken === token && !gotBoundary && !done) runFallback(a, b, myToken); }, 700);
+            };
+            utt.onboundary = (e) => {
+                if (myToken !== token) return;
+                if (e.name && e.name !== 'word') return;
+                gotBoundary = true;
+                clearFallback();
+                onWord(a + e.charIndex);
+            };
+            utt.onend = () => { done = true; clearFallback(); if (myToken === token) playChunk(k + 1); };
+            utt.onerror = (e) => {
+                if (myToken !== token) return;
+                if (e.error === 'interrupted' || e.error === 'canceled') return;
+                stopInternal();
+            };
+            window.speechSynthesis.speak(utt);
+        };
+        // Chrome can drop a speak() issued in the same tick as cancel()
+        setTimeout(() => playChunk(0), 60);
+    };
+
+    return {
+        supported,
+        get state() { return state; },
+        subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+        start(id, el, label) {
+            if (!supported() || !el) return false;
+            ensureStyle();
+            stopInternal();
+            const c = collect(el);
+            if (!c.text.trim()) return false;
+            map = c.nodes; text = clean(c.text);
+            state.id = id; state.label = label || ''; state.progress = 0;
+            resumeAt = 0; wordStart = 0;
+            speakFrom(0);
+            return true;
+        },
+        pause() {
+            if (state.status !== 'playing') return;
+            resumeAt = wordStart; token++; clearFallback();
+            try { window.speechSynthesis.cancel(); } catch (_) {}
+            state.status = 'paused';
+            emit();
+        },
+        resume() { if (state.status === 'paused') speakFrom(resumeAt); },
+        stop() { stopInternal(); },
+        setRate(r) {
+            state.rate = r;
+            try { localStorage.setItem('snow_voice_rate', String(r)); } catch (_) {}
+            if (state.status === 'playing') speakFrom(wordStart); else emit();
+        },
+        setVoiceName(name) {
+            try { if (name) localStorage.setItem('sabrina_voice', name); else localStorage.removeItem('sabrina_voice'); } catch (_) {}
+            if (state.status === 'playing') speakFrom(wordStart); else emit();
+        },
+    };
+})();
+
+function useSnowVoice(selector) {
+    const [val, setVal] = React.useState(() => selector(SnowVoice.state));
+    React.useEffect(() => SnowVoice.subscribe(s => setVal(selector(s))), []);
+    return val;
+}
+
+function SnowVoiceBar() {
+    const s = useSnowVoice(st => st);
+    const [voices, setVoices] = React.useState(() => (SnowVoice.supported() ? window.speechSynthesis.getVoices() : []));
+    React.useEffect(() => {
+        if (!SnowVoice.supported()) return;
+        const load = () => setVoices(window.speechSynthesis.getVoices());
+        load();
+        window.speechSynthesis.addEventListener('voiceschanged', load);
+        return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+    }, []);
+    let currentVoice = '';
+    try { currentVoice = localStorage.getItem('sabrina_voice') || ''; } catch (_) {}
+    const ctl = { background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.18)', color:'#e2e8f0', borderRadius:'8px', padding:'5px 11px', fontSize:'12px', fontWeight:'700', cursor:'pointer' };
+    const sel = { ...ctl, padding:'5px 6px', fontWeight:'600', backgroundColor:'#0f172a' };
+
+    return (
+        <div style={{
+            position:'fixed', left:'50%', transform:'translateX(-50%)', bottom:'14px', zIndex:2000000,
+            width:'min(560px, 94vw)', backgroundColor:'rgba(10,22,40,0.97)', border:'1px solid rgba(124,58,237,0.5)',
+            borderRadius:'14px', boxShadow:'0 10px 40px rgba(0,0,0,0.5)', padding:'10px 12px',
+            fontFamily:"'Segoe UI', system-ui, sans-serif",
+        }}>
+            <div style={{ height:'3px', borderRadius:'2px', backgroundColor:'rgba(255,255,255,0.12)', marginBottom:'8px', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${Math.round((s.progress || 0) * 100)}%`, backgroundColor:'#a78bfa', transition:'width 0.2s' }} />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                <button onClick={() => (s.status === 'playing' ? SnowVoice.pause() : SnowVoice.resume())} style={ctl}>
+                    {s.status === 'playing' ? '⏸ Pause' : '▶ Resume'}
+                </button>
+                <button onClick={() => SnowVoice.stop()} style={ctl}>⏹ Stop</button>
+                <span style={{ fontSize:'11px', color:'#94a3b8', flex:1, minWidth:'70px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    🔊 {s.label || 'Reading'}
+                </span>
+                <select value={String(s.rate)} onChange={e => SnowVoice.setRate(parseFloat(e.target.value))} style={sel}>
+                    {[0.75, 1, 1.25, 1.5, 1.75, 2].map(r => <option key={r} value={String(r)}>{r}×</option>)}
+                </select>
+                <select value={currentVoice} onChange={e => SnowVoice.setVoiceName(e.target.value)} style={{ ...sel, maxWidth:'150px' }}>
+                    <option value="">Browser default</option>
+                    {voices.map(v => <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>)}
+                </select>
+            </div>
+        </div>
+    );
+}
+
+// Drop this inside any container: it reads the nearest [data-snow-readable] ancestor,
+// or its own parent element if there isn't one (or the element with `targetId`).
+function ReadAloudButton({ tone = 'light', label = 'Read', beforeRead = null, targetId = null, style = {} }) {
+    const wrapRef = React.useRef(null);
+    const idRef   = React.useRef(`snow-read-${Math.random().toString(36).slice(2)}`);
+    const status  = useSnowVoice(s => (s.id === idRef.current ? s.status : 'idle'));
+
+    // Reading stops automatically when this card / modal goes away
+    React.useEffect(() => () => { if (SnowVoice.state.id === idRef.current) SnowVoice.stop(); }, []);
+
+    if (!SnowVoice.supported()) return null;
+
+    const palette = tone === 'dark'
+        ? { bg:'rgba(255,255,255,0.08)', border:'rgba(255,255,255,0.18)', color:'#cbd5e1' }
+        : { bg:'#f1f5f9', border:'#e2e8f0', color:'#475569' };
+    const pill = {
+        padding:'2px 9px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor:'pointer', whiteSpace:'nowrap',
+        border:`1px solid ${status !== 'idle' ? '#a78bfa' : palette.border}`,
+        backgroundColor: status !== 'idle' ? 'rgba(167,139,250,0.2)' : palette.bg,
+        color: status !== 'idle' ? '#a78bfa' : palette.color,
+    };
+
+    const click = async (e) => {
+        e.stopPropagation();
+        if (status === 'playing') { SnowVoice.pause(); return; }
+        if (status === 'paused')  { SnowVoice.resume(); return; }
+        if (beforeRead) {
+            await beforeRead();
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        }
+        const wrap = wrapRef.current;
+        const el = targetId
+            ? document.getElementById(targetId)
+            : (wrap && (wrap.closest('[data-snow-readable]') || wrap.parentElement));
+        SnowVoice.start(idRef.current, el, label);
+    };
+
+    return (
+        <span ref={wrapRef} data-snow-skip="true" style={{ display:'inline-flex', alignItems:'center', gap:'4px', ...style }}>
+            <button onClick={click} title="Read aloud" style={pill}>
+                {status === 'playing' ? '⏸ Pause' : status === 'paused' ? '▶ Resume' : '🔊 Read'}
+            </button>
+            {status !== 'idle' && (
+                <button onClick={(e) => { e.stopPropagation(); SnowVoice.stop(); }} title="Stop" style={pill}>⏹</button>
+            )}
+            {status !== 'idle' && ReactDOM.createPortal(<SnowVoiceBar />, document.body)}
+        </span>
+    );
+}
+
 function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null, focusPositionId = null, analysisAsOf = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -1049,6 +1383,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const [latestSavedAnalysis,   setLatestSavedAnalysis]   = React.useState(null);
     const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
     const [analysisLoaded, setAnalysisLoaded] = React.useState(false);
+    const [sizeInfo, setSizeInfo] = React.useState('');
 
     const INTERVALS      = ['15m','1h','1D','1W','1M','3M','1Y'];
     const INTRADAY       = ['15m','1h'];
@@ -1282,7 +1617,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         return () => { alive = false; };
     }, [isFullscreen, ticker, analysisAsOf]);
 
-    // ── chart creation: rebuilt on ticker / interval / fullscreen / pre-post change ──
+        // ── chart creation: rebuilt on ticker / interval / fullscreen / pre-post change ──
     React.useEffect(() => {
         if (!chartReady || !containerRef.current || !ticker) return;
         const LC = window.LightweightCharts;
@@ -1293,10 +1628,13 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         positionLinesRef.current = {}; draftLinesRef.current = {};
 
         const container = containerRef.current;
+        const host = container.parentElement || container;
+        const measure = () => { const r = host.getBoundingClientRect(); return { w: Math.floor(r.width), h: Math.floor(r.height) }; };
+
+        const first = measure();
         const chart = LC.createChart(container, {
-            autoSize: false,
-            width:  container.clientWidth  || 600,
-            height: container.clientHeight || 300,
+            width:  first.w > 0 ? first.w : 600,
+            height: first.h > 0 ? first.h : 300,
             layout: { background: { color: '#0f172a' }, textColor: '#94a3b8' },
             grid: { vertLines: { color: '#1e293b' }, horzLines: { color: '#1e293b' } },
             crosshair: { mode: LC.CrosshairMode.Normal },
@@ -1315,26 +1653,26 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             e200: chart.addLineSeries(lineOpts('#ef4444', 'EMA200')),
         };
 
-                // Size the chart from its PARENT box ourselves. Don't rely on autoSize (older library builds ignore it).
-        const host = container.parentElement || container;
-        const fitToHost = () => {
+        // Compare the chart's REAL rendered size with its parent box and fix any mismatch
+        const syncSize = () => {
             if (chartRef.current !== chart) return;
-            try {
-                const r = host.getBoundingClientRect();
-                const w = Math.floor(r.width), h = Math.floor(r.height);
-                if (w > 0 && h > 0) chart.resize(w, h, true);
-            } catch (_) {}
+            const { w, h } = measure();
+            if (w <= 0 || h <= 0) return;
+            const el  = container.firstElementChild;
+            const cur = el ? el.getBoundingClientRect() : null;
+            if (!cur || Math.abs(cur.width - w) > 1 || Math.abs(cur.height - h) > 1) {
+                try { chart.resize(w, h, true); } catch (_) {}
+            }
+            const shown = el ? el.getBoundingClientRect() : cur;
+            const label = `chart ${Math.round(shown ? shown.width : 0)}×${Math.round(shown ? shown.height : 0)} · area ${w}×${h}`;
+            setSizeInfo(prev => (prev === label ? prev : label));
         };
-        fitToHost();
-        requestAnimationFrame(() => { fitToHost(); requestAnimationFrame(fitToHost); });
-        const ro = new ResizeObserver(fitToHost);
+        syncSize();
+        requestAnimationFrame(() => { syncSize(); requestAnimationFrame(syncSize); });
+        const ro = new ResizeObserver(syncSize);
         ro.observe(host);
-        setTimeout(() => {
-            if (chartRef.current !== chart) return;
-            const hr = host.getBoundingClientRect();
-            const cr = container.firstElementChild ? container.firstElementChild.getBoundingClientRect() : null;
-            console.log('[ScannerChart size]', ticker, 'area', Math.round(hr.width) + 'x' + Math.round(hr.height), 'chart', cr ? Math.round(cr.width) + 'x' + Math.round(cr.height) : 'n/a');
-        }, 800);
+        window.addEventListener('resize', syncSize);
+        const watchdog = setInterval(syncSize, 500);
 
         let cancelled = false;
         const loadData = async () => {
@@ -1360,7 +1698,9 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
 
         return () => {
             cancelled = true;
-            if (ro) ro.disconnect();
+            clearInterval(watchdog);
+            window.removeEventListener('resize', syncSize);
+            ro.disconnect();
             try { chart.remove(); } catch {}
             if (chartRef.current === chart) { chartRef.current = null; seriesRef.current = null; }
         };
@@ -1407,7 +1747,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         // The panel is hidden while the trade ticket / edit modal is open, then comes back
     const earningsPanelVisible = showEarningsAI && !showTicket && !editingPosition;
     const chartContent = (
-        <div style={{
+        <div data-snow-skip="true" style={{
             backgroundColor: '#0f172a',
             borderRadius: isFullscreen ? '0px' : '12px',
             overflow: 'hidden',
@@ -1542,7 +1882,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                 {showOverlays && isFullscreen && latestSavedAnalysis && (() => {
                     const av = SAVED_AI_VERDICT_COLORS[latestSavedAnalysis.aiVerdict] || SAVED_AI_VERDICT_COLORS.NEUTRAL;
                     return (
-                        <div onClick={() => setSavedAnalysisExpanded(e => !e)} style={{
+                        <div data-snow-readable="true" onClick={() => setSavedAnalysisExpanded(e => !e)} style={{
                             position:'absolute', bottom:'34px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.92)', borderRadius:'10px',
                             maxHeight: isMobile ? '34%' : '40%', overflowY:'auto', border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
                             maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
@@ -1551,6 +1891,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                             <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
                                 <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: av.color }}>{av.icon} {latestSavedAnalysis.aiVerdict?.replace('_',' ') || 'No AI data'}</span>
                                 <span style={{ fontSize:'9px', color:'#64748b' }}>{savedAnalysisExpanded ? '▾' : '▸'}</span>
+                                <ReadAloudButton tone="dark" label="Saved analysis" beforeRead={() => setSavedAnalysisExpanded(true)} />
                             </div>
                             <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'2px' }}>{latestSavedAnalysis.date}</div>
                             {savedAnalysisExpanded && (
@@ -1594,6 +1935,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                     Candles · EMAs · {interval}{extendedActive ? ' · +Pre/Post' : ''}
                     {lastRefreshed ? ` · ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
                 </span>
+                {sizeInfo && <span style={{ fontSize:'9px', color:'#334155' }}>{sizeInfo}</span>}
                 {refreshError && <span style={{ fontSize:'10px', color:'#ef4444' }}>⚠️ {refreshError}</span>}
             </div>
 
@@ -3090,6 +3432,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                 borderTop:`1px solid ${sc.border}`,
                                                 display:'flex', flexDirection:'column', gap:'12px',
                                             }}>
+                                                <ReadAloudButton label={`${r.ticker} analysis`} style={{ alignSelf:'flex-end' }} />
                                                 {/* Why it showed up */}
                                                 <div style={{
                                                     padding:'10px 14px', backgroundColor: sc.bg,
