@@ -1008,20 +1008,42 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
     );
 }
 
-// ═══════════════════════════ Voice reader ═══════════════════════════
 const SnowVoice = (() => {
     const listeners = new Set();
-    const state = { status: 'idle', id: null, label: '', rate: 1, progress: 0 };
-    try {
-        const saved = parseFloat(localStorage.getItem('snow_voice_rate'));
-        if (saved >= 0.5 && saved <= 2.5) state.rate = saved;
-    } catch (_) {}
+    const IS_MOBILE = typeof navigator !== 'undefined' &&
+        (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && window.innerWidth < 900));
+    // Starting guesses, used only until the real pace of the voice has been measured
+    const DEFAULT_MS_PER_CHAR = IS_MOBILE ? 85 : 66;   // roughly 12 / 15 characters per second at normal speed
+    const START_LAG_MS        = IS_MOBILE ? 350 : 120; // speech rarely begins the instant 'start' fires
 
-    let token = 0, map = [], text = '', resumeAt = 0, wordStart = 0, fallbackTimer = null;
+    const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+    const num = (k, def, lo, hi) => { const v = parseFloat(lsGet(k)); return v >= lo && v <= hi ? v : def; };
+    const readMap = (k) => { try { return JSON.parse(lsGet(k) || '{}') || {}; } catch (_) { return {}; } };
+    const paceMap = () => readMap('snow_voice_learned_pace');
+    const badMap  = () => readMap('snow_voice_bad_boundaries');
+
+    const state = {
+        status: 'idle', id: null, label: '', progress: 0,
+        rate:    num('snow_voice_rate', 1, 0.5, 2.5),
+        hlPace:  num('snow_voice_hl_pace', 1, 0.4, 2.5),   // highlight speed multiplier (your nudge)
+        hlDelay: num('snow_voice_hl_delay', 0, 0, 3000),   // ms the highlight is held back
+        learned: null,                                     // measured ms per character at normal speed, for the current voice
+        mode: '',                                          // 'voice timing' | 'estimated'
+    };
+
+    let token = 0, map = [], text = '', resumeAt = 0, wordStart = 0, est = null, tickTimer = null;
+    const timers = new Set();
 
     const supported = () => typeof window !== 'undefined' && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined';
     const emit = () => listeners.forEach(fn => { try { fn({ ...state }); } catch (_) {} });
-    const clearFallback = () => { if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; } };
+    const later = (fn, ms) => {
+        if (!ms) { fn(); return; }
+        const id = setTimeout(() => { timers.delete(id); fn(); }, ms);
+        timers.add(id);
+    };
+    const clearTimers = () => { timers.forEach(clearTimeout); timers.clear(); };
+    const stopTick = () => { if (tickTimer) { clearInterval(tickTimer); tickTimer = null; } };
     const clearHighlight = () => { try { if (window.CSS && window.CSS.highlights) window.CSS.highlights.delete('snow-speaking'); } catch (_) {} };
 
     const ensureStyle = () => {
@@ -1032,7 +1054,7 @@ const SnowVoice = (() => {
         document.head.appendChild(s);
     };
 
-    // Collect readable text nodes (skips buttons, inputs, svg, and anything marked data-snow-skip)
+    // ── text collection (skips buttons, inputs, svg and anything marked data-snow-skip) ──
     const SKIP = new Set(['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'STYLE', 'SCRIPT', 'SVG', 'CANVAS', 'OPTION', 'DATALIST']);
     const collect = (rootEl) => {
         const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
@@ -1103,27 +1125,60 @@ const SnowVoice = (() => {
         emit();
     };
 
-    // Some voices never report word positions, so estimate the highlight from word length
-    const runFallback = (a, b, myToken) => {
-        clearFallback();
-        const words = [];
-        const seg = text.slice(a, b);
-        const re = /\S+/g;
+    // ── timing model ──
+    const msPerChar = () => (state.learned || DEFAULT_MS_PER_CHAR) / state.hlPace;
+
+    // When each word should start, assuming the voice's measured pace plus a pause after punctuation
+    const buildWords = (a, b) => {
+        const seg = text.slice(a, b), re = /\S+/g, out = [];
         let m = re.exec(seg);
-        while (m) { words.push({ at: a + m.index, len: m[0].length }); m = re.exec(seg); }
-        const ms = (w) => (110 + 62 * w.len) / state.rate;
-        let i = 0, skipMs = 700;
-        while (i < words.length && skipMs > 0) { skipMs -= ms(words[i]); i++; }
-        const step = () => {
-            if (myToken !== token || i >= words.length) return;
-            const w = words[i++];
-            onWord(w.at);
-            fallbackTimer = setTimeout(step, ms(w));
-        };
-        step();
+        while (m) { out.push({ at: a + m.index, len: m[0].length, last: m[0].slice(-1) }); m = re.exec(seg); }
+        const mpc = msPerChar() / state.rate;
+        let t = 0;
+        out.forEach(w => {
+            w.startMs = t;
+            t += (w.len + 1) * mpc;
+            if (',;:'.includes(w.last)) t += 180 / state.rate;
+            else if ('.!?'.includes(w.last)) t += 380 / state.rate;
+        });
+        return out;
     };
 
-    // Short chunks avoid Chrome's habit of cutting long utterances off mid-way
+    // Re-anchor the estimate so the clock agrees with the word currently highlighted
+    const realignTo = (pos) => {
+        if (!est || !est.words.length) return;
+        let i = 0;
+        while (i + 1 < est.words.length && est.words[i + 1].at <= pos) i++;
+        est.tAudio = performance.now() - est.words[i].startMs - state.hlDelay;
+        est.idx = i;
+    };
+    const rebuildEstimator = () => {
+        if (!est) return;
+        est.words = buildWords(est.a, est.b);
+        realignTo(wordStart);
+    };
+
+    // One 45 ms tick drives the highlight from the real clock (no drifting chained timeouts)
+    const startTick = () => {
+        if (tickTimer) return;
+        tickTimer = setInterval(() => {
+            if (!est || state.status !== 'playing') return;
+            const now = performance.now();
+            if (est.boundaryMode) {
+                if (now - est.lastBoundaryAt < 2200) return;
+                est.boundaryMode = false;      // the voice stopped reporting words: carry on from the last real one
+                realignTo(wordStart);
+                state.mode = 'estimated'; emit();
+            }
+            const elapsed = now - est.tAudio - state.hlDelay;
+            if (elapsed < 0) return;
+            let k = est.idx;
+            while (k + 1 < est.words.length && est.words[k + 1].startMs <= elapsed) k++;
+            if (k !== est.idx && k >= 0) { est.idx = k; onWord(est.words[k].at); }
+        }, 45);
+    };
+
+    // Short chunks avoid Chrome cutting long utterances off mid-way
     const chunkRanges = (from) => {
         const out = [];
         const MAX = 200;
@@ -1142,35 +1197,41 @@ const SnowVoice = (() => {
         return out;
     };
 
-    const pickVoice = () => {
-        try {
-            const name = localStorage.getItem('sabrina_voice');
-            if (name) {
-                const v = window.speechSynthesis.getVoices().find(x => x.name === name);
-                if (v) return v;
-            }
-        } catch (_) {}
+    const voiceObj = () => {
+        const name = lsGet('sabrina_voice');
+        if (name) {
+            const v = window.speechSynthesis.getVoices().find(x => x.name === name);
+            if (v) return v;
+        }
         return null;
     };
+    const voiceKey = () => { const v = voiceObj(); return v ? v.name : 'default'; };
 
     const stopInternal = () => {
         token++;
-        clearFallback();
+        stopTick(); clearTimers();
+        est = null;
         try { window.speechSynthesis.cancel(); } catch (_) {}
         clearHighlight();
-        state.status = 'idle'; state.id = null; state.progress = 0;
+        state.status = 'idle'; state.id = null; state.progress = 0; state.mode = '';
         emit();
     };
 
     const speakFrom = (start) => {
         const myToken = ++token;
         try { window.speechSynthesis.cancel(); } catch (_) {}
-        clearFallback();
+        clearTimers();
         const ranges = chunkRanges(start);
         if (!ranges.length) { stopInternal(); return; }
+
+        const voice = voiceObj();
+        const vKey  = voice ? voice.name : 'default';
+        state.learned = paceMap()[vKey] || null;
+        const distrust = !!badMap()[vKey];   // this voice has burst its word events before: don't trust them
+        state.mode = 'estimated';
         state.status = 'playing';
         emit();
-        const voice = pickVoice();
+        startTick();
 
         const playChunk = (k) => {
             if (myToken !== token) return;
@@ -1179,18 +1240,52 @@ const SnowVoice = (() => {
             const utt = new window.SpeechSynthesisUtterance(text.slice(a, b));
             if (voice) { utt.voice = voice; utt.lang = voice.lang; }
             utt.rate = state.rate;
-            let gotBoundary = false, done = false;
+
+            est = { a, b, words: buildWords(a, b), tAudio: performance.now() + START_LAG_MS, idx: -1, boundaryMode: false, lastBoundaryAt: 0 };
+            let tStart = 0, prevB = null, fast = 0, good = 0, burst = distrust, ended = false;
+
             utt.onstart = () => {
-                setTimeout(() => { if (myToken === token && !gotBoundary && !done) runFallback(a, b, myToken); }, 700);
+                if (myToken !== token) return;
+                tStart = performance.now();
+                if (est && est.a === a) est.tAudio = tStart + START_LAG_MS;   // anchor to when speech really began
+                startTick();
             };
             utt.onboundary = (e) => {
-                if (myToken !== token) return;
+                if (myToken !== token || burst || !est || est.a !== a) return;
                 if (e.name && e.name !== 'word') return;
-                gotBoundary = true;
-                clearFallback();
-                onWord(a + e.charIndex);
+                const now = performance.now();
+                const c = a + (e.charIndex || 0);
+                if (prevB) {
+                    // Events arriving much faster than the speech could possibly be spoken = a burst, not real timing
+                    const expect = Math.max(1, c - prevB.c) * (msPerChar() / state.rate);
+                    if (now - prevB.t < expect * 0.3) fast++; else good++;
+                    if (fast >= 3 && fast > good) {
+                        burst = true; est.boundaryMode = false;
+                        const bad = badMap(); bad[vKey] = 1; lsSet('snow_voice_bad_boundaries', JSON.stringify(bad));
+                        state.mode = 'estimated'; emit();
+                        return;
+                    }
+                }
+                prevB = { c, t: now };
+                est.boundaryMode = true; est.lastBoundaryAt = now;
+                if (state.mode !== 'voice timing') { state.mode = 'voice timing'; emit(); }
+                later(() => { if (myToken === token) onWord(c); }, state.hlDelay);
             };
-            utt.onend = () => { done = true; clearFallback(); if (myToken === token) playChunk(k + 1); };
+            utt.onend = () => {
+                if (ended) return; ended = true;
+                if (myToken !== token) return;
+                // Learn how fast this voice really speaks, so the next chunks (and next reads) track it
+                if (tStart) {
+                    const dur = performance.now() - tStart, chars = b - a;
+                    if (chars >= 40 && dur > 400) {
+                        const obs = Math.min(200, Math.max(30, dur * state.rate / chars));
+                        state.learned = state.learned == null ? obs : 0.6 * state.learned + 0.4 * obs;
+                        const m = paceMap(); m[vKey] = Math.round(state.learned * 10) / 10;
+                        lsSet('snow_voice_learned_pace', JSON.stringify(m));
+                    }
+                }
+                playChunk(k + 1);
+            };
             utt.onerror = (e) => {
                 if (myToken !== token) return;
                 if (e.error === 'interrupted' || e.error === 'canceled') return;
@@ -1220,7 +1315,7 @@ const SnowVoice = (() => {
         },
         pause() {
             if (state.status !== 'playing') return;
-            resumeAt = wordStart; token++; clearFallback();
+            resumeAt = wordStart; token++; stopTick(); clearTimers();
             try { window.speechSynthesis.cancel(); } catch (_) {}
             state.status = 'paused';
             emit();
@@ -1229,11 +1324,30 @@ const SnowVoice = (() => {
         stop() { stopInternal(); },
         setRate(r) {
             state.rate = r;
-            try { localStorage.setItem('snow_voice_rate', String(r)); } catch (_) {}
+            lsSet('snow_voice_rate', String(r));
             if (state.status === 'playing') speakFrom(wordStart); else emit();
         },
         setVoiceName(name) {
-            try { if (name) localStorage.setItem('sabrina_voice', name); else localStorage.removeItem('sabrina_voice'); } catch (_) {}
+            if (name) lsSet('sabrina_voice', name); else { try { localStorage.removeItem('sabrina_voice'); } catch (_) {} }
+            if (state.status === 'playing') speakFrom(wordStart); else emit();
+        },
+        // Live highlight tuning (applies without restarting the audio)
+        nudgePace(factor) {
+            state.hlPace = Math.min(2.5, Math.max(0.4, Math.round(state.hlPace * factor * 1000) / 1000));
+            lsSet('snow_voice_hl_pace', String(state.hlPace));
+            rebuildEstimator(); emit();
+        },
+        nudgeDelay(ms) {
+            state.hlDelay = Math.min(3000, Math.max(0, state.hlDelay + ms));
+            lsSet('snow_voice_hl_delay', String(state.hlDelay));
+            emit();
+        },
+        resetSync() {
+            state.hlPace = 1; state.hlDelay = 0; state.learned = null;
+            lsSet('snow_voice_hl_pace', '1'); lsSet('snow_voice_hl_delay', '0');
+            const key = voiceKey();
+            const p = paceMap(); delete p[key]; lsSet('snow_voice_learned_pace', JSON.stringify(p));
+            const b = badMap();  delete b[key]; lsSet('snow_voice_bad_boundaries', JSON.stringify(b));
             if (state.status === 'playing') speakFrom(wordStart); else emit();
         },
     };
@@ -1247,6 +1361,7 @@ function useSnowVoice(selector) {
 
 function SnowVoiceBar() {
     const s = useSnowVoice(st => st);
+    const [showSync, setShowSync] = React.useState(false);
     const [voices, setVoices] = React.useState(() => (SnowVoice.supported() ? window.speechSynthesis.getVoices() : []));
     React.useEffect(() => {
         if (!SnowVoice.supported()) return;
@@ -1257,8 +1372,11 @@ function SnowVoiceBar() {
     }, []);
     let currentVoice = '';
     try { currentVoice = localStorage.getItem('sabrina_voice') || ''; } catch (_) {}
-    const ctl = { background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.18)', color:'#e2e8f0', borderRadius:'8px', padding:'5px 11px', fontSize:'12px', fontWeight:'700', cursor:'pointer' };
-    const sel = { ...ctl, padding:'5px 6px', fontWeight:'600', backgroundColor:'#0f172a' };
+
+    const ctl  = { background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.18)', color:'#e2e8f0', borderRadius:'8px', padding:'5px 11px', fontSize:'12px', fontWeight:'700', cursor:'pointer' };
+    const sel  = { ...ctl, padding:'5px 6px', fontWeight:'600', backgroundColor:'#0f172a' };
+    const step = { ...ctl, padding:'2px 10px', fontSize:'14px', lineHeight:1.2 };
+    const followingVoice = s.mode === 'voice timing';
 
     return (
         <div style={{
@@ -1278,6 +1396,7 @@ function SnowVoiceBar() {
                 <span style={{ fontSize:'11px', color:'#94a3b8', flex:1, minWidth:'70px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     🔊 {s.label || 'Reading'}
                 </span>
+                <button onClick={() => setShowSync(v => !v)} title="Tune the yellow highlight" style={{ ...ctl, backgroundColor: showSync ? 'rgba(167,139,250,0.25)' : ctl.background }}>⚙ Sync</button>
                 <select value={String(s.rate)} onChange={e => SnowVoice.setRate(parseFloat(e.target.value))} style={sel}>
                     {[0.75, 1, 1.25, 1.5, 1.75, 2].map(r => <option key={r} value={String(r)}>{r}×</option>)}
                 </select>
@@ -1286,6 +1405,29 @@ function SnowVoiceBar() {
                     {voices.map(v => <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>)}
                 </select>
             </div>
+
+            {showSync && (
+                <div style={{ marginTop:'9px', paddingTop:'9px', borderTop:'1px solid rgba(255,255,255,0.1)', display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:'6px', opacity: followingVoice ? 0.45 : 1 }}>
+                        <span style={{ fontSize:'11px', color:'#94a3b8' }}>Highlight pace</span>
+                        <button onClick={() => SnowVoice.nudgePace(1 / 1.12)} style={step}>−</button>
+                        <span style={{ fontSize:'12px', fontWeight:'800', color:'#e2e8f0', minWidth:'40px', textAlign:'center' }}>{Math.round(s.hlPace * 100)}%</span>
+                        <button onClick={() => SnowVoice.nudgePace(1.12)} style={step}>+</button>
+                    </span>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:'6px' }}>
+                        <span style={{ fontSize:'11px', color:'#94a3b8' }}>Delay</span>
+                        <button onClick={() => SnowVoice.nudgeDelay(-100)} style={step}>−</button>
+                        <span style={{ fontSize:'12px', fontWeight:'800', color:'#e2e8f0', minWidth:'40px', textAlign:'center' }}>{(s.hlDelay / 1000).toFixed(1)}s</span>
+                        <button onClick={() => SnowVoice.nudgeDelay(100)} style={step}>+</button>
+                    </span>
+                    <button onClick={() => SnowVoice.resetSync()} title="Reset pace/delay and forget what was learned for this voice" style={{ ...step, fontSize:'11px' }}>↺ Reset</button>
+                    <span style={{ fontSize:'10px', color:'#64748b', flexBasis:'100%' }}>
+                        {followingVoice
+                            ? 'Following this voice\'s own word timing. Pace has no effect here; use Delay if the highlight leads the audio.'
+                            : 'Estimated timing, learned from this voice as it speaks. If the highlight runs ahead, press Pace −. If it\'s early or late by a steady amount, use Delay.'}
+                    </span>
+                </div>
+            )}
         </div>
     );
 }
