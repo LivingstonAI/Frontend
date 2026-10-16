@@ -1032,7 +1032,8 @@ const SnowVoice = (() => {
         mode: '',                                          // 'voice timing' | 'estimated'
     };
 
-    let token = 0, map = [], text = '', resumeAt = 0, wordStart = 0, est = null, tickTimer = null;
+    let token = 0, map = [], text = '', resumeAt = 0, wordStart = 0, est = null, tickTimer = null, lastCancelAt = 0;
+    state.error = '';
     const timers = new Set();
 
     const supported = () => typeof window !== 'undefined' && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined';
@@ -1207,19 +1208,36 @@ const SnowVoice = (() => {
     };
     const voiceKey = () => { const v = voiceObj(); return v ? v.name : 'default'; };
 
+        const synthBusy = () => { try { return window.speechSynthesis.speaking || window.speechSynthesis.pending; } catch (_) { return false; } };
+    const safeCancel = () => {
+        try { if (synthBusy()) { window.speechSynthesis.cancel(); lastCancelAt = performance.now(); } } catch (_) {}
+    };
+
     const stopInternal = () => {
         token++;
         stopTick(); clearTimers();
         est = null;
-        try { window.speechSynthesis.cancel(); } catch (_) {}
+        safeCancel();
         clearHighlight();
-        state.status = 'idle'; state.id = null; state.progress = 0; state.mode = '';
+        state.status = 'idle'; state.id = null; state.progress = 0; state.mode = ''; state.error = '';
+        emit();
+    };
+
+    // Keep the bar up with a reason instead of silently vanishing
+    const fail = (message) => {
+        token++;
+        stopTick(); clearTimers();
+        est = null;
+        safeCancel();
+        clearHighlight();
+        state.status = 'error'; state.error = message; state.mode = '';
         emit();
     };
 
     const speakFrom = (start) => {
         const myToken = ++token;
-        try { window.speechSynthesis.cancel(); } catch (_) {}
+        const wasBusy = synthBusy();
+        safeCancel();
         clearTimers();
         const ranges = chunkRanges(start);
         if (!ranges.length) { stopInternal(); return; }
@@ -1230,8 +1248,10 @@ const SnowVoice = (() => {
         const distrust = !!badMap()[vKey];   // this voice has burst its word events before: don't trust them
         state.mode = 'estimated';
         state.status = 'playing';
+        state.error = '';
         emit();
         startTick();
+        let quick = 0;
 
         const playChunk = (k) => {
             if (myToken !== token) return;
@@ -1242,21 +1262,29 @@ const SnowVoice = (() => {
             utt.rate = state.rate;
 
             est = { a, b, words: buildWords(a, b), tAudio: performance.now() + START_LAG_MS, idx: -1, boundaryMode: false, lastBoundaryAt: 0 };
-            let tStart = 0, prevB = null, fast = 0, good = 0, burst = distrust, ended = false;
+            let tStart = 0, prevB = null, fast = 0, good = 0, burst = distrust, ended = false, gotBoundary = false;
+
+            // Nothing started in 4s = the browser almost certainly blocked or dropped the speech
+            const startWatch = setTimeout(() => {
+                if (myToken === token && !tStart) fail('No audio started. The browser may have blocked speech. Tap Retry, or pick another voice in the list.');
+            }, 4000);
+            timers.add(startWatch);
 
             utt.onstart = () => {
                 if (myToken !== token) return;
                 tStart = performance.now();
+                clearTimeout(startWatch);
                 if (est && est.a === a) est.tAudio = tStart + START_LAG_MS;   // anchor to when speech really began
                 startTick();
             };
             utt.onboundary = (e) => {
                 if (myToken !== token || burst || !est || est.a !== a) return;
                 if (e.name && e.name !== 'word') return;
+                gotBoundary = true;
                 const now = performance.now();
                 const c = a + (e.charIndex || 0);
                 if (prevB) {
-                    // Events arriving much faster than the speech could possibly be spoken = a burst, not real timing
+                    // Events arriving much faster than the speech could be spoken = a burst, not real timing
                     const expect = Math.max(1, c - prevB.c) * (msPerChar() / state.rate);
                     if (now - prevB.t < expect * 0.3) fast++; else good++;
                     if (fast >= 3 && fast > good) {
@@ -1273,33 +1301,52 @@ const SnowVoice = (() => {
             };
             utt.onend = () => {
                 if (ended) return; ended = true;
+                clearTimeout(startWatch);
                 if (myToken !== token) return;
-                // Learn how fast this voice really speaks, so the next chunks (and next reads) track it
-                if (tStart) {
-                    const dur = performance.now() - tStart, chars = b - a;
-                    if (chars >= 40 && dur > 400) {
-                        const obs = Math.min(200, Math.max(30, dur * state.rate / chars));
-                        state.learned = state.learned == null ? obs : 0.6 * state.learned + 0.4 * obs;
-                        const m = paceMap(); m[vKey] = Math.round(state.learned * 10) / 10;
-                        lsSet('snow_voice_learned_pace', JSON.stringify(m));
-                    }
+                const dur = tStart ? performance.now() - tStart : 0, chars = b - a;
+                // 30+ characters can't be spoken in under 250 ms: the voice produced no audio
+                if (chars >= 30 && dur < 250 && !gotBoundary) {
+                    quick++;
+                    if (quick >= 2) { fail('This voice finished instantly with no sound. Pick a different voice in the list.'); return; }
+                } else quick = 0;
+                // Learn how fast this voice really speaks
+                if (tStart && chars >= 40 && dur > 400) {
+                    const obs = Math.min(200, Math.max(30, dur * state.rate / chars));
+                    state.learned = state.learned == null ? obs : 0.6 * state.learned + 0.4 * obs;
+                    const m = paceMap(); m[vKey] = Math.round(state.learned * 10) / 10;
+                    lsSet('snow_voice_learned_pace', JSON.stringify(m));
                 }
                 playChunk(k + 1);
             };
             utt.onerror = (e) => {
+                clearTimeout(startWatch);
                 if (myToken !== token) return;
                 if (e.error === 'interrupted' || e.error === 'canceled') return;
-                stopInternal();
+                fail(e.error === 'not-allowed'
+                    ? 'The browser blocked speech. Tap Retry (it has to start from a tap).'
+                    : `Speech failed (${e.error || 'unknown error'}). Try another voice in the list.`);
             };
             window.speechSynthesis.speak(utt);
         };
-        // Chrome can drop a speak() issued in the same tick as cancel()
-        setTimeout(() => playChunk(0), 60);
+
+        // Speak straight away when possible: phones only allow it inside the tap that started it.
+        // A short delay is only needed right after a cancel(), which Chrome can otherwise swallow the new utterance on.
+        const go = () => { if (myToken === token) playChunk(0); };
+        if (wasBusy || performance.now() - lastCancelAt < 150) setTimeout(go, 80); else go();
     };
 
     return {
         supported,
         get state() { return state; },
+                // Speak a silent utterance inside a tap, to unlock speech for later calls (iOS especially)
+        prime() {
+            if (!supported()) return;
+            try {
+                const u = new window.SpeechSynthesisUtterance(' ');
+                u.volume = 0;
+                window.speechSynthesis.speak(u);
+            } catch (_) {}
+        },
         subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
         start(id, el, label) {
             if (!supported() || !el) return false;
@@ -1385,13 +1432,18 @@ function SnowVoiceBar() {
             borderRadius:'14px', boxShadow:'0 10px 40px rgba(0,0,0,0.5)', padding:'10px 12px',
             fontFamily:"'Segoe UI', system-ui, sans-serif",
         }}>
+            {s.status === 'error' && (
+                <div style={{ fontSize:'12px', color:'#fca5a5', lineHeight:1.5, marginBottom:'8px' }}>⚠️ {s.error}</div>
+            )}
             <div style={{ height:'3px', borderRadius:'2px', backgroundColor:'rgba(255,255,255,0.12)', marginBottom:'8px', overflow:'hidden' }}>
                 <div style={{ height:'100%', width:`${Math.round((s.progress || 0) * 100)}%`, backgroundColor:'#a78bfa', transition:'width 0.2s' }} />
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
-                <button onClick={() => (s.status === 'playing' ? SnowVoice.pause() : SnowVoice.resume())} style={ctl}>
-                    {s.status === 'playing' ? '⏸ Pause' : '▶ Resume'}
-                </button>
+                {s.status !== 'error' && (
+                    <button onClick={() => (s.status === 'playing' ? SnowVoice.pause() : SnowVoice.resume())} style={ctl}>
+                        {s.status === 'playing' ? '⏸ Pause' : '▶ Resume'}
+                    </button>
+                )}
                 <button onClick={() => SnowVoice.stop()} style={ctl}>⏹ Stop</button>
                 <span style={{ fontSize:'11px', color:'#94a3b8', flex:1, minWidth:'70px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     🔊 {s.label || 'Reading'}
@@ -1432,8 +1484,6 @@ function SnowVoiceBar() {
     );
 }
 
-// Drop this inside any container: it reads the nearest [data-snow-readable] ancestor,
-// or its own parent element if there isn't one (or the element with `targetId`).
 function ReadAloudButton({ tone = 'light', label = 'Read', beforeRead = null, targetId = null, style = {} }) {
     const wrapRef = React.useRef(null);
     const idRef   = React.useRef(`snow-read-${Math.random().toString(36).slice(2)}`);
@@ -1447,18 +1497,21 @@ function ReadAloudButton({ tone = 'light', label = 'Read', beforeRead = null, ta
     const palette = tone === 'dark'
         ? { bg:'rgba(255,255,255,0.08)', border:'rgba(255,255,255,0.18)', color:'#cbd5e1' }
         : { bg:'#f1f5f9', border:'#e2e8f0', color:'#475569' };
+    const active = status !== 'idle';
     const pill = {
         padding:'2px 9px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor:'pointer', whiteSpace:'nowrap',
-        border:`1px solid ${status !== 'idle' ? '#a78bfa' : palette.border}`,
-        backgroundColor: status !== 'idle' ? 'rgba(167,139,250,0.2)' : palette.bg,
-        color: status !== 'idle' ? '#a78bfa' : palette.color,
+        border:`1px solid ${status === 'error' ? '#f87171' : active ? '#a78bfa' : palette.border}`,
+        backgroundColor: status === 'error' ? 'rgba(248,113,113,0.15)' : active ? 'rgba(167,139,250,0.2)' : palette.bg,
+        color: status === 'error' ? '#f87171' : active ? '#a78bfa' : palette.color,
     };
 
     const click = async (e) => {
         e.stopPropagation();
         if (status === 'playing') { SnowVoice.pause(); return; }
         if (status === 'paused')  { SnowVoice.resume(); return; }
+        // Anything awaited before speaking can cost phones the tap, so only do it when we have to
         if (beforeRead) {
+            SnowVoice.prime();
             await beforeRead();
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         }
@@ -1472,12 +1525,12 @@ function ReadAloudButton({ tone = 'light', label = 'Read', beforeRead = null, ta
     return (
         <span ref={wrapRef} data-snow-skip="true" style={{ display:'inline-flex', alignItems:'center', gap:'4px', ...style }}>
             <button onClick={click} title="Read aloud" style={pill}>
-                {status === 'playing' ? '⏸ Pause' : status === 'paused' ? '▶ Resume' : '🔊 Read'}
+                {status === 'playing' ? '⏸ Pause' : status === 'paused' ? '▶ Resume' : status === 'error' ? '↻ Retry' : '🔊 Read'}
             </button>
-            {status !== 'idle' && (
+            {active && (
                 <button onClick={(e) => { e.stopPropagation(); SnowVoice.stop(); }} title="Stop" style={pill}>⏹</button>
             )}
-            {status !== 'idle' && ReactDOM.createPortal(<SnowVoiceBar />, document.body)}
+            {active && ReactDOM.createPortal(<SnowVoiceBar />, document.body)}
         </span>
     );
 }
