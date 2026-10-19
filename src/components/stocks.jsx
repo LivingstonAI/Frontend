@@ -6662,6 +6662,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     )}
                 </div>
             </div>
+            
 
             <PositionAutopsyModal
                 isOpen={showAutopsy}
