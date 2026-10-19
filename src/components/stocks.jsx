@@ -282,8 +282,7 @@ function PositionLegFields({ label, color, priceVal, percentVal, dollarsVal, onS
     );
 }
 
-
-function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened, onDraftTp, onDraftSl }) {
+function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manual', onOpened, onDraftTp, onDraftSl, getEntryContext = null, contextPreview = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [direction, setDirection]   = React.useState('long');
     const [quantity, setQuantity]     = React.useState('10');
@@ -293,13 +292,14 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
     const [slPrice, setSlPrice] = React.useState(''); const [slPercent, setSlPercent] = React.useState(''); const [slDollars, setSlDollars] = React.useState('');
     const [submitting, setSubmitting] = React.useState(false);
     const [error, setError]           = React.useState(null);
+    const [tagsText, setTagsText] = React.useState('');
     const tpAnchor = React.useRef(null);
     const slAnchor = React.useRef(null);
 
     React.useEffect(() => {
         if (isOpen) {
             setEntryPrice(currentPrice != null ? String(currentPrice) : '');
-            setDirection('long'); setQuantity('10'); setNotes('');
+            setDirection('long'); setQuantity('10'); setNotes(''); setTagsText('');
             setTpPrice(''); setTpPercent(''); setTpDollars('');
             setSlPrice(''); setSlPercent(''); setSlDollars('');
             tpAnchor.current = null; slAnchor.current = null;
@@ -350,13 +350,15 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
         if (!entry || !qty) { setError('Entry price and quantity are required.'); return; }
         setSubmitting(true); setError(null);
         try {
+            let ctx = contextPreview || null;
+            try { if (getEntryContext) ctx = await getEntryContext(); } catch (_) {}
             const res = await fetch(`${BACKEND}/api/snowvault_positions/`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     asset: ticker, direction, quantity: qty, entryPrice: entry,
                     tpPrice: tpPrice || null, tpPercent: tpPercent || null, tpDollars: tpDollars || null,
                     slPrice: slPrice || null, slPercent: slPercent || null, slDollars: slDollars || null,
-                    notes, source,
+                    notes, source, entryContext: ctx, tags: tagsText.split(',').map(t => t.trim()).filter(Boolean),
                 }),
             });
             const json = await res.json();
@@ -394,6 +396,28 @@ function PositionTicket({ isOpen, onClose, ticker, currentPrice, source = 'manua
                     </div>
                     <PositionLegFields label="🎯 TAKE PROFIT" color="#10b981" priceVal={tpPrice} percentVal={tpPercent} dollarsVal={tpDollars} onSync={syncTp} />
                     <PositionLegFields label="🛑 STOP LOSS" color="#ef4444" priceVal={slPrice} percentVal={slPercent} dollarsVal={slDollars} onSync={syncSl} />
+                                        {contextPreview && (
+                        <div style={{ padding:'8px 10px', borderRadius:'9px', backgroundColor:'#f5f3ff', border:'1px solid #ddd6fe' }}>
+                            <div style={{ fontSize:'10px', fontWeight:'800', color:'#6d28d9', letterSpacing:'0.06em', marginBottom:'5px' }}>🏷 RECORDED WITH THIS TRADE</div>
+                            <div style={{ display:'flex', gap:'5px', flexWrap:'wrap' }}>
+                                {[['Lens', contextPreview.lens],
+                                  ['Signal', contextPreview.signal && String(contextPreview.signal).replace(/_/g, ' ')],
+                                  ['AI', contextPreview.aiVerdict && String(contextPreview.aiVerdict).replace(/_/g, ' ')],
+                                  ['Score', contextPreview.score],
+                                  ['Stability', contextPreview.stability != null ? `${contextPreview.stability}%` : null],
+                                  ['Earnings AI', contextPreview.earningsBias]]
+                                    .filter(([, v]) => v != null && v !== '')
+                                    .map(([k, v]) => (
+                                        <span key={k} style={{ fontSize:'10px', fontWeight:'700', padding:'2px 8px', borderRadius:'10px', backgroundColor:'#ede9fe', color:'#5b21b6' }}>{k}: {v}</span>
+                                    ))}
+                            </div>
+                            <div style={{ fontSize:'10px', color:'#7c3aed', marginTop:'5px', lineHeight:1.4 }}>
+                                {contextPreview.signal ? 'The AI verdict is also filled in from a saved snapshot if it\'s under 7 days old.' : 'No scanner data on this chart. Open it from a scanner row or the Vault to capture the signal.'}
+                            </div>
+                        </div>
+                    )}
+                    <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Your tags (optional, comma separated)</label>
+                        <input type="text" value={tagsText} onChange={e => setTagsText(e.target.value)} placeholder="e.g. earnings-play, dip-buy" style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
                     <div><label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b' }}>Notes (optional)</label>
                         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} style={{ width:'100%', padding:'8px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'13px', boxSizing:'border-box', marginTop:'3px' }} /></div>
                     {error && <div style={{ padding:'8px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px' }}>⚠️ {error}</div>}
@@ -1535,6 +1559,321 @@ function ReadAloudButton({ tone = 'light', label = 'Read', beforeRead = null, ta
     );
 }
 
+// ═══════════════════════════ Vault: assets of interest ═══════════════════════════
+const SnowVaultInterest = (() => {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const state = { items: [], loaded: false, loading: false, error: null };
+    const listeners = new Set();
+    const emit = () => listeners.forEach(fn => { try { fn(); } catch (_) {} });
+    const post = async (name, body) => {
+        const res  = await fetch(`${BACKEND}/api/snowvault_interest_${name}/`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+        return json;
+    };
+    const upsert = (asset) => {
+        const i = state.items.findIndex(a => a.ticker === asset.ticker);
+        state.items = i >= 0 ? state.items.map((a, k) => (k === i ? asset : a)) : [asset, ...state.items];
+    };
+    return {
+        get: () => state,
+        subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+        async load(force) {
+            if (state.loading || (state.loaded && !force)) return;
+            state.loading = true; state.error = null; emit();
+            try { const json = await post('list'); state.items = json.assets || []; state.loaded = true; }
+            catch (e) { state.error = e.message; }
+            finally { state.loading = false; emit(); }
+        },
+        async add(ticker, extra)    { const j = await post('add', { ticker, ...(extra || {}) }); upsert(j.asset); emit(); return j.asset; },
+        async update(ticker, patch) { const j = await post('update', { ticker, ...patch });      upsert(j.asset); emit(); return j.asset; },
+        async remove(ticker)        { await post('remove', { ticker }); state.items = state.items.filter(a => a.ticker !== ticker); emit(); },
+        async analyse(tickers)      { const j = await post('analyse', { tickers }); (j.assets || []).forEach(upsert); emit(); return j; },
+    };
+})();
+
+function useVaultInterest() {
+    const [, bump] = React.useState(0);
+    React.useEffect(() => {
+        const unsub = SnowVaultInterest.subscribe(() => bump(x => x + 1));
+        SnowVaultInterest.load(false);
+        return unsub;
+    }, []);
+    const st = SnowVaultInterest.get();
+    return { items: st.items, loaded: st.loaded, loading: st.loading, error: st.error, byTicker: Object.fromEntries(st.items.map(a => [a.ticker, a])) };
+}
+
+// ⭐ toggle — drop it next to any ticker. `snapshot` = { name, sector, price, signal, direction, score }
+function VaultStarButton({ ticker, snapshot = null, source = 'chart', tone = 'dark', style = {} }) {
+    const { byTicker } = useVaultInterest();
+    const [busy, setBusy] = React.useState(false);
+    const [err, setErr]   = React.useState(null);
+    const existing = byTicker[ticker];
+    const inVault  = !!existing;
+    const dark = tone === 'dark';
+
+    const toggle = async (e) => {
+        e.stopPropagation();
+        if (busy) return;
+        if (inVault && (existing.note || (existing.tags || []).length) && !window.confirm(`Remove ${ticker} from the vault? Its note and tags will be deleted.`)) return;
+        setBusy(true); setErr(null);
+        try {
+            if (inVault) await SnowVaultInterest.remove(ticker);
+            else await SnowVaultInterest.add(ticker, { source, snapshot });
+        } catch (error) { setErr(error.message); }
+        finally { setBusy(false); }
+    };
+
+    return (
+        <button onClick={toggle} disabled={busy}
+            title={err ? `Vault error: ${err}` : inVault ? `${ticker} is in your vault. Click to remove.` : `Add ${ticker} to your vault of assets of interest`}
+            style={{
+                padding:'3px 9px', borderRadius:'5px', fontSize:'11px', fontWeight:'700', cursor: busy ? 'wait' : 'pointer', whiteSpace:'nowrap',
+                border: `1px solid ${err ? '#f87171' : inVault ? '#facc15' : (dark ? 'transparent' : '#e2e8f0')}`,
+                backgroundColor: inVault ? 'rgba(250,204,21,0.18)' : (dark ? 'rgba(255,255,255,0.07)' : '#f1f5f9'),
+                color: err ? '#f87171' : inVault ? '#facc15' : (dark ? '#64748b' : '#475569'),
+                ...style,
+            }}
+        >{err ? '⚠️ Vault' : inVault ? '★ Vault' : '☆ Vault'}</button>
+    );
+}
+
+function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
+    const { items, loading, error } = useVaultInterest();
+    const [search, setSearch]     = React.useState('');
+    const [tagFilter, setTagFilter] = React.useState('');
+    const [sortBy, setSortBy]     = React.useState('added');
+    const [addTicker, setAddTicker] = React.useState('');
+    const [addNote, setAddNote]   = React.useState('');
+    const [addTags, setAddTags]   = React.useState('');
+    const [adding, setAdding]     = React.useState(false);
+    const [localError, setLocalError] = React.useState(null);
+    const [analysing, setAnalysing] = React.useState({});
+    const [failed, setFailed]     = React.useState({});
+    const [chartTicker, setChartTicker] = React.useState(null);
+    const [chartInterval, setChartInterval] = React.useState('1D');
+    const [editing, setEditing]   = React.useState(null); // { ticker, note, tags }
+
+    const sinceAdded = (a) => (a.addedPrice && a.analysis && a.analysis.currentPrice != null)
+        ? ((a.analysis.currentPrice - a.addedPrice) / a.addedPrice) * 100 : null;
+
+    const allTags = React.useMemo(() => [...new Set(items.flatMap(a => a.tags || []))].sort(), [items]);
+    const shown = React.useMemo(() => {
+        const q = search.trim().toLowerCase();
+        const list = items.filter(a =>
+            (!q || a.ticker.toLowerCase().includes(q) || (a.name || '').toLowerCase().includes(q)) &&
+            (!tagFilter || (a.tags || []).includes(tagFilter)));
+        const keys = {
+            added:  a => Date.parse(a.createdAt) || 0,
+            score:  a => (a.analysis && a.analysis.score != null ? a.analysis.score : -1),
+            since:  a => { const v = sinceAdded(a); return v == null ? -Infinity : v; },
+        };
+        if (sortBy === 'ticker') return [...list].sort((a, b) => a.ticker.localeCompare(b.ticker));
+        return [...list].sort((a, b) => keys[sortBy](b) - keys[sortBy](a));
+    }, [items, search, tagFilter, sortBy]);
+
+    if (!isOpen) return null;
+
+    const SIG = {
+        RANGE_BREAKOUT_BULL: ['🚀', 'Range breakout ▲', '#10b981'], RANGE_BREAKOUT_BEAR: ['🔻', 'Range breakout ▼', '#ef4444'],
+        ACCELERATING_BULL:   ['⚡', 'Accelerating ▲',   '#3b82f6'], ACCELERATING_BEAR:   ['⚡', 'Accelerating ▼',   '#f97316'],
+        BREAKOUT:            ['📈', 'Breakout',          '#8b5cf6'], TREND_BUILDING:      ['📊', 'Trend building',    '#06b6d4'],
+        WATCH:               ['👁', 'Watch',             '#94a3b8'],
+    };
+
+    const analyseTickers = async (tickers) => {
+        const list = [...new Set(tickers)];
+        if (!list.length) return;
+        setLocalError(null);
+        setAnalysing(prev => { const n = { ...prev }; list.forEach(t => { n[t] = true; }); return n; });
+        try {
+            for (let i = 0; i < list.length; i += 8) {
+                const chunk = list.slice(i, i + 8);
+                const json  = await SnowVaultInterest.analyse(chunk);
+                const bad   = new Set(json.failed || []);
+                setFailed(prev => { const n = { ...prev }; chunk.forEach(t => { if (bad.has(t)) n[t] = true; else delete n[t]; }); return n; });
+                setAnalysing(prev => { const n = { ...prev }; chunk.forEach(t => delete n[t]); return n; });
+            }
+        } catch (e) { setLocalError(e.message); }
+        finally { setAnalysing(prev => { const n = { ...prev }; list.forEach(t => delete n[t]); return n; }); }
+    };
+
+    const doAdd = async () => {
+        const t = addTicker.trim().toUpperCase();
+        if (!t) return;
+        setAdding(true); setLocalError(null);
+        try {
+            const asset = await SnowVaultInterest.add(t, { source: 'manual', note: addNote, tags: addTags });
+            setAddTicker(''); setAddNote(''); setAddTags('');
+            analyseTickers([asset.ticker]);
+        } catch (e) { setLocalError(e.message); }
+        finally { setAdding(false); }
+    };
+
+    const saveEdit = async () => {
+        if (!editing) return;
+        try { await SnowVaultInterest.update(editing.ticker, { note: editing.note, tags: editing.tags }); setEditing(null); }
+        catch (e) { setLocalError(e.message); }
+    };
+
+    const removeAsset = async (a) => {
+        if ((a.note || (a.tags || []).length) && !window.confirm(`Remove ${a.ticker} from the vault? Its note and tags will be deleted.`)) return;
+        try { await SnowVaultInterest.remove(a.ticker); if (chartTicker === a.ticker) setChartTicker(null); }
+        catch (e) { setLocalError(e.message); }
+    };
+
+    const toggleChart = (a) => {
+        if (chartTicker === a.ticker) { setChartTicker(null); return; }
+        setChartTicker(a.ticker);
+        // Stale analysis would make a trade's recorded context misleading, so refresh it when opening the chart
+        if (!a.lastAnalysedAt || Date.now() - Date.parse(a.lastAnalysedAt) > 6 * 3600 * 1000) analyseTickers([a.ticker]);
+    };
+
+    const analysingCount = Object.keys(analysing).length;
+    const btn = (color) => ({ padding:'4px 11px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:`1px solid ${color}55`, backgroundColor:`${color}12`, color });
+    const inp = { padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none' };
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10078, backgroundColor:'rgba(0,0,0,0.6)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'12px', overflowY:'auto', backdropFilter:'blur(4px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(940px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.35)', fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'16px' }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#b45309)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>⭐ Vault: assets of interest ({items.length})</div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'3px', lineHeight:1.5 }}>
+                                Stays here even when the scanner stops flagging them. Analyse on demand, chart them, trade them.
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'6px', marginTop:'12px', flexWrap:'wrap' }}>
+                        <input value={addTicker} onChange={e => setAddTicker(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && doAdd()} placeholder="Ticker (e.g. NVDA)" style={{ ...inp, width:'120px' }} />
+                        <input value={addNote} onChange={e => setAddNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAdd()} placeholder="Why it's interesting (optional)" style={{ ...inp, flex:'1 1 180px', minWidth:'140px' }} />
+                        <input value={addTags} onChange={e => setAddTags(e.target.value)} onKeyDown={e => e.key === 'Enter' && doAdd()} placeholder="tags, comma, separated" style={{ ...inp, width:'160px' }} />
+                        <button onClick={doAdd} disabled={adding || !addTicker.trim()} style={{ padding:'7px 16px', borderRadius:'8px', border:'none', fontWeight:'800', fontSize:'12px', color:'#fff', cursor: adding ? 'wait' : 'pointer', backgroundColor: addTicker.trim() ? '#f59e0b' : 'rgba(245,158,11,0.4)' }}>
+                            {adding ? '⏳' : '＋ Add'}
+                        </button>
+                    </div>
+                </div>
+
+                <div style={{ padding:'10px 20px', borderBottom:'1px solid #e2e8f0', display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center', backgroundColor:'#f8fafc' }}>
+                    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker or name…" style={{ ...inp, width:'160px' }} />
+                    <select value={tagFilter} onChange={e => setTagFilter(e.target.value)} style={inp}>
+                        <option value="">All tags</option>
+                        {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={inp}>
+                        <option value="added">Newest added</option><option value="score">Highest score</option>
+                        <option value="since">Best since added</option><option value="ticker">A → Z</option>
+                    </select>
+                    <button onClick={() => analyseTickers(items.map(a => a.ticker))} disabled={analysingCount > 0 || items.length === 0} style={{ ...btn('#7c3aed'), marginLeft:'auto' }}>
+                        {analysingCount > 0 ? `⏳ Analysing ${analysingCount}…` : `🔄 Analyse all (${items.length})`}
+                    </button>
+                </div>
+
+                <div style={{ padding:'14px 20px', maxHeight:'72vh', overflowY:'auto' }}>
+                    {(error || localError) && <div style={{ padding:'10px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px', marginBottom:'10px' }}>⚠️ {localError || error}</div>}
+                    {loading && items.length === 0 && <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading…</div>}
+                    {!loading && items.length === 0 && (
+                        <div style={{ padding:'36px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px', lineHeight:1.6 }}>
+                            Nothing here yet. Add a ticker above, or hit <b>☆ Vault</b> on any chart or scanner result.
+                        </div>
+                    )}
+                    {items.length > 0 && shown.length === 0 && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No matches.</div>}
+
+                    <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                        {shown.map(a => {
+                            const an = a.analysis;
+                            const sg = an ? (SIG[an.signal] || SIG.WATCH) : null;
+                            const dirColor = an ? (an.direction === 'BULLISH' ? '#10b981' : an.direction === 'BEARISH' ? '#ef4444' : '#94a3b8') : '#94a3b8';
+                            const since = sinceAdded(a);
+                            const busy = !!analysing[a.ticker];
+                            const isEditing = editing && editing.ticker === a.ticker;
+                            return (
+                                <div key={a.ticker} style={{ border:'1px solid #e2e8f0', borderLeft:`4px solid ${an ? dirColor : '#e2e8f0'}`, borderRadius:'10px', padding:'10px 12px' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'15px', fontWeight:'800', color:'#1a1a1a' }}>{a.ticker}</span>
+                                        <span style={{ fontSize:'11px', color:'#64748b' }}>{[a.name, a.sector].filter(Boolean).join(' · ')}</span>
+                                        {sg && <span style={{ padding:'2px 9px', borderRadius:'10px', fontSize:'10px', fontWeight:'800', backgroundColor:`${sg[2]}18`, color:sg[2] }}>{sg[0]} {sg[1]}</span>}
+                                        {an && <span style={{ padding:'2px 9px', borderRadius:'10px', fontSize:'10px', fontWeight:'800', backgroundColor:`${dirColor}18`, color:dirColor }}>{an.direction}</span>}
+                                        {an && an.score != null && <span style={{ fontSize:'11px', fontWeight:'800', color:'#475569' }}>score {Math.round(an.score)}</span>}
+                                        {failed[a.ticker] && <span style={{ fontSize:'10px', fontWeight:'700', color:'#b45309' }}>⚠️ no data (too little history?)</span>}
+                                        <span style={{ marginLeft:'auto', fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>{an && an.currentPrice != null ? `$${an.currentPrice}` : ''}</span>
+                                    </div>
+
+                                    <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', marginTop:'5px', fontSize:'11px', color:'#64748b' }}>
+                                        {an ? (
+                                            <>
+                                                <span>ADX <b>{an.adxNow ?? '—'}</b></span>
+                                                <span>ROC20 <b>{an.roc20 != null ? `${an.roc20}%` : '—'}</b></span>
+                                                <span>Vol <b>{an.volRatio != null ? `${an.volRatio}×` : '—'}</b></span>
+                                                <span>From 52W high <b>{an.pctFromHigh != null ? `${an.pctFromHigh}%` : '—'}</b></span>
+                                            </>
+                                        ) : <span>Not analysed yet</span>}
+                                        {since != null && (
+                                            <span style={{ fontWeight:'800', color: since >= 0 ? '#10b981' : '#ef4444' }}>
+                                                since added {since >= 0 ? '+' : ''}{since.toFixed(2)}%
+                                                <span style={{ fontWeight:'500', color:'#94a3b8' }}> (added ${a.addedPrice}{a.addedDirection ? ` as ${a.addedDirection}` : ''})</span>
+                                            </span>
+                                        )}
+                                        <span style={{ color:'#94a3b8' }}>{a.lastAnalysedAt ? `analysed ${snowTimeAgo(a.lastAnalysedAt)}` : ''}</span>
+                                    </div>
+
+                                    {isEditing ? (
+                                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginTop:'8px' }}>
+                                            <input value={editing.note} onChange={e => setEditing({ ...editing, note: e.target.value })} placeholder="Note" style={{ ...inp, flex:'1 1 200px' }} />
+                                            <input value={editing.tags} onChange={e => setEditing({ ...editing, tags: e.target.value })} placeholder="tags, comma, separated" style={{ ...inp, width:'170px' }} />
+                                            <button onClick={saveEdit} style={btn('#10b981')}>Save</button>
+                                            <button onClick={() => setEditing(null)} style={btn('#64748b')}>Cancel</button>
+                                        </div>
+                                    ) : (
+                                        (a.note || (a.tags || []).length > 0) && (
+                                            <div style={{ marginTop:'7px', display:'flex', gap:'6px', flexWrap:'wrap', alignItems:'center' }}>
+                                                {a.note && <span style={{ fontSize:'12px', color:'#334155', lineHeight:1.5 }}>📝 {a.note}</span>}
+                                                {(a.tags || []).map(t => <span key={t} style={{ fontSize:'10px', fontWeight:'700', padding:'1px 8px', borderRadius:'10px', backgroundColor:'#fef3c7', color:'#92400e' }}>{t}</span>)}
+                                            </div>
+                                        )
+                                    )}
+
+                                    <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginTop:'9px' }}>
+                                        <button onClick={() => analyseTickers([a.ticker])} disabled={busy} style={btn('#7c3aed')}>{busy ? '⏳ Analysing…' : '🔄 Analyse'}</button>
+                                        <button onClick={() => toggleChart(a)} style={btn('#2563eb')}>{chartTicker === a.ticker ? '▲ Hide chart' : '📊 Chart / Trade'}</button>
+                                        {onSelectTicker && <button onClick={() => { onSelectTicker(a.ticker); onClose(); }} style={btn('#0891b2')}>→ Screener</button>}
+                                        <button onClick={() => setEditing({ ticker: a.ticker, note: a.note || '', tags: (a.tags || []).join(', ') })} style={btn('#64748b')}>✏️ Note / tags</button>
+                                        <button onClick={() => removeAsset(a)} style={{ ...btn('#ef4444'), marginLeft:'auto' }}>🗑 Remove</button>
+                                    </div>
+
+                                    {chartTicker === a.ticker && (
+                                        <ScannerChart ticker={a.ticker} interval={chartInterval} onIntervalChange={setChartInterval} hideClose scannerMeta={an || null} />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+function VaultLauncher({ onSelectTicker, style = {} }) {
+    const { items } = useVaultInterest();
+    const [open, setOpen] = React.useState(false);
+    return (
+        <>
+            <button onClick={() => setOpen(true)} title="Assets you've marked as interesting, analysable even when the scanner doesn't flag them"
+                style={{ padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer', whiteSpace:'nowrap',
+                         border:'1px solid rgba(245,158,11,0.5)', backgroundColor:'#f59e0b', color:'#fff', ...style }}>
+                ⭐ Vault ({items.length})
+            </button>
+            <VaultInterestModal isOpen={open} onClose={() => setOpen(false)} onSelectTicker={onSelectTicker} />
+        </>
+    );
+}
+
 function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay = 0, hideClose = false, scannerMeta = null, height = 300, renderOverlay = null, extraLines = null, extraMarkers = null, focusPositionId = null, analysisAsOf = null }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
 
@@ -1938,6 +2277,40 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
         try { seriesRef.current.setMarkers(markers); } catch (e) { console.error('[ScannerChart markers]', e); }
     }, [chartLoading, extraKey]);
 
+        // ── what's true right now, recorded with each trade (feeds the By-tag stats) ──
+    const buildContextPreview = () => {
+        const earn = SnowEarningsAIStore.get(ticker);
+        const stab = scannerMeta && scannerMeta.stability && scannerMeta.stability.combined ? scannerMeta.stability.combined.stabilityScore : null;
+        return {
+            signal:          scannerMeta ? (scannerMeta.signal || null) : null,
+            scanDirection:   scannerMeta ? (scannerMeta.direction || null) : null,
+            score:           scannerMeta && scannerMeta.score != null ? Math.round(scannerMeta.score) : null,
+            aiVerdict:       (scannerMeta && scannerMeta.aiVerdict) || null,
+            stability:       stab,
+            earningsBias:    earn ? earn.bias : null,
+            earningsVerdict: earn ? earn.verdict : null,
+            lens:            interval,
+            extendedHours:   extendedActive,
+        };
+    };
+    const getEntryContext = async () => {
+        const ctx = buildContextPreview();
+        if (!ctx.aiVerdict) {
+            // Fall back to your latest saved snapshot, but only if it's recent enough to describe "now"
+            try {
+                const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ticker, limit: 1 }),
+                });
+                const json = await res.json();
+                const row  = (json.results || [])[0];
+                if (row && row.aiVerdict && (Date.now() - Date.parse(row.date)) / 86400000 <= 7) {
+                    ctx.aiVerdict = row.aiVerdict; ctx.aiVerdictDate = row.date;
+                }
+            } catch (_) {}
+        }
+        return ctx;
+    };
+
     // ── render ────────────────────────────────────────────────────────────────
         // The panel is hidden while the trade ticket / edit modal is open, then comes back
     const earningsPanelVisible = showEarningsAI && !showTicket && !editingPosition;
@@ -2004,6 +2377,11 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                 <button onClick={() => setShowOverlays(o => !o)} title={showOverlays ? 'Hide the info cards on the chart' : 'Show the info cards'} style={tbBtn(!showOverlays)}>
                     {showOverlays ? '🗂 Hide info' : '🗂 Show info'}
                 </button>
+                <VaultStarButton ticker={ticker} source="chart"
+                    snapshot={{ name: scannerMeta ? scannerMeta.name : undefined, sector: scannerMeta ? scannerMeta.sector : undefined,
+                                price: (scannerMeta && scannerMeta.currentPrice != null) ? scannerMeta.currentPrice : lastPrice,
+                                signal: scannerMeta ? scannerMeta.signal : undefined, direction: scannerMeta ? scannerMeta.direction : undefined,
+                                score: scannerMeta ? scannerMeta.score : undefined }} />
                 <button onClick={() => setShowEarningsAI(s => !s)} title="Show / hide the earnings AI analysis for this asset" style={tbBtn(showEarningsAI)}>📈 Earnings AI</button>
                 <button onClick={() => setShowTicket(true)} title="Open paper position" style={tbBtn(true)}>📝 Trade</button>
 
@@ -2187,6 +2565,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
             <PositionTicket
                 isOpen={showTicket} onClose={closeTicket} ticker={ticker}
                 currentPrice={lastPrice ?? scannerMeta?.currentPrice ?? null} source="trend_scanner"
+                getEntryContext={getEntryContext} contextPreview={buildContextPreview()}
                 onOpened={handlePositionOpened}
                 onDraftTp={(price) => setDraftLevel('tp', price, '#10b981', 'TP (draft)')}
                 onDraftSl={(price) => setDraftLevel('sl', price, '#ef4444', 'SL (draft)')}
@@ -3254,6 +3633,8 @@ Do not include anything outside the JSON array. The response must be parseable b
                                 : <>🛡️ Check Stability</>}
                         </button>
 
+                        <VaultLauncher onSelectTicker={(t) => { onSelectTicker && onSelectTicker(t); onClose(); }} />
+
                         {/* Sort */}
 
                         <button
@@ -3627,7 +4008,11 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                 borderTop:`1px solid ${sc.border}`,
                                                 display:'flex', flexDirection:'column', gap:'12px',
                                             }}>
-                                                <ReadAloudButton label={`${r.ticker} analysis`} style={{ alignSelf:'flex-end' }} />
+                                                <div style={{ display:'flex', gap:'6px', justifyContent:'flex-end', alignItems:'center' }}>
+                                                    <VaultStarButton ticker={r.ticker} tone="light" source="trend_scanner"
+                                                        snapshot={{ name: r.name, sector: r.sector, price: r.currentPrice, signal: r.signal, direction: r.direction, score: r.score }} />
+                                                    <ReadAloudButton label={`${r.ticker} analysis`} />
+                                                </div>
                                                 {/* Why it showed up */}
                                                 <div style={{
                                                     padding:'10px 14px', backgroundColor: sc.bg,
@@ -3881,7 +4266,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                         onClose={() => setChartTicker(null)}
                                                         mountDelay={showAllCharts ? rowIdx * 400 : 0}
                                                         hideClose={showAllCharts}
-                                                        scannerMeta={{ ...r, stability: stabilityData?.[r.ticker] || null }}
+                                                        scannerMeta={{ ...r, stability: stabilityData?.[r.ticker] || null, aiVerdict: getEffectiveVerdict(r.ticker) || null }}
                                                     />
                                                 )}
                                             </div>
@@ -6048,6 +6433,12 @@ function PositionOverlayCard({ position, livePositions, lastPrice, extendedActiv
         ...(rr ? [['R:R', `1 : ${rr}`, '#e2e8f0']] : []),
         ['Opened', fmtWhen(live.opened_at), '#94a3b8'],
         ...(!isOpenPos ? [['Closed', fmtWhen(live.closed_at), '#94a3b8']] : []),
+                ...(() => {
+            const c = live.entry_context || {};
+            const bits = [c.signal && String(c.signal).replace(/_/g, ' '), c.aiVerdict && String(c.aiVerdict).replace(/_/g, ' '),
+                          c.score != null && `score ${c.score}`, c.lens && `${c.lens} lens`].filter(Boolean);
+            return bits.length ? [['Setup', bits.join(' · '), '#c4b5fd']] : [];
+        })(),
         ...(live.notes ? [['Notes', live.notes, '#94a3b8']] : []),
         ...(live.source && live.source !== 'manual' ? [['Source', String(live.source).replace(/_/g, ' '), '#94a3b8']] : []),
     ];
@@ -6313,6 +6704,90 @@ function PositionAutopsyModal({ isOpen, onClose, onPickPosition }) {
     );
 }
 
+function PositionTagStats() {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError]     = React.useState(null);
+    const [data, setData]       = React.useState(null);
+
+    const load = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_tag_stats/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+    React.useEffect(() => { load(); }, []);
+
+    const HELP = {
+        'Lens': 'The chart timeframe you had open when you placed the trade (1h = hourly entries, 1D = daily).',
+        'Alignment': 'Whether your trade direction matched the scanner direction at entry.',
+        'Signal': 'The scanner signal at entry.', 'AI verdict': 'The AI opportunity verdict at entry.',
+        'Score': 'The scanner score at entry.', 'Stability': 'The stability score at entry.',
+        'Earnings AI': 'The earnings AI bias saved for the stock when you entered.',
+        'Session': 'Market session when the trade was opened.', 'Direction': 'Long or short (known for every trade).',
+        'Source': 'Where the trade was opened from (known for every trade).', 'Custom': 'Tags you typed in the ticket.',
+    };
+    const money = (v) => v == null ? '—' : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(2)}`;
+    const col   = (v) => v == null ? '#94a3b8' : v >= 0 ? '#10b981' : '#ef4444';
+    const th = { padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', fontSize:'11px' };
+    const td = { padding:'7px 10px', whiteSpace:'nowrap', fontSize:'12px' };
+    const o  = data ? data.overall : null;
+
+    return (
+        <div style={{ padding:'14px 20px' }}>
+            {loading && !data && <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading…</div>}
+            {error && <div style={{ padding:'10px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px', marginBottom:'10px' }}>⚠️ {error}</div>}
+            {o && (
+                <>
+                    <div style={{ padding:'11px 14px', borderRadius:'10px', backgroundColor:'#f5f3ff', border:'1px solid #ddd6fe', fontSize:'13px', lineHeight:1.6, color:'#4c1d95', marginBottom:'6px' }}>
+                        <b>{o.closed}</b> closed trades · win rate <b>{o.winRate != null ? `${o.winRate}%` : '—'}</b>
+                        {o.winRateLow != null && <> (95% range {o.winRateLow}–{o.winRateHigh}%)</>} · total <b style={{ color: col(o.totalPnl) }}>{money(o.totalPnl)}</b> · {o.open} still open.
+                        {o.untaggedClosed > 0 && <div style={{ fontSize:'11px', marginTop:'3px', color:'#6d28d9' }}>{o.untaggedClosed} closed trades were opened before tagging existed, so they only appear under Direction and Source.</div>}
+                    </div>
+                    <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'12px', lineHeight:1.5 }}>
+                        Each trade counts in every group it belongs to. A group needs roughly 20+ trades before its win rate means much. The range in brackets is a 95% confidence interval, so if two groups' ranges overlap heavily, you can't tell them apart yet. Groups under 5 trades are dimmed.
+                    </div>
+                    {data.families.length === 0 && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No closed trades yet.</div>}
+                    {data.families.map(f => (
+                        <div key={f.family} style={{ marginBottom:'14px' }}>
+                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>{f.family}</div>
+                            <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'4px' }}>{HELP[f.family]}</div>
+                            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                                    <thead><tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Group','Trades','W / L','Win rate (95% range)','Avg %','Total P&L','Profit factor','Open now'].map(h => <th key={h} style={th}>{h}</th>)}
+                                    </tr></thead>
+                                    <tbody>
+                                        {f.tags.map(t => (
+                                            <tr key={t.tag} style={{ borderBottom:'1px solid #f1f5f9', opacity: t.n < 5 ? 0.55 : 1 }}>
+                                                <td style={{ ...td, fontWeight:'800' }}>{t.tag}</td>
+                                                <td style={td}>{t.n}</td>
+                                                <td style={td}>{t.wins} / {t.losses}</td>
+                                                <td style={{ ...td, fontWeight:'800', color: t.winRate >= 50 ? '#10b981' : '#ef4444' }}>
+                                                    {t.winRate}% <span style={{ fontWeight:'500', color:'#94a3b8' }}>({t.winRateLow}–{t.winRateHigh}%)</span>
+                                                </td>
+                                                <td style={{ ...td, color: col(t.avgPct) }}>{t.avgPct != null ? `${t.avgPct >= 0 ? '+' : ''}${t.avgPct}%` : '—'}</td>
+                                                <td style={{ ...td, fontWeight:'800', color: col(t.totalPnl) }}>{money(t.totalPnl)}</td>
+                                                <td style={td}>{t.profitFactor != null ? t.profitFactor : '—'}</td>
+                                                <td style={{ ...td, color:'#64748b' }}>{t.open || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ))}
+                    <button onClick={load} disabled={loading} style={{ padding:'5px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', backgroundColor:'#fff', color:'#64748b', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>{loading ? '⏳' : '↻'} Refresh</button>
+                </>
+            )}
+        </div>
+    );
+}
+
 function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [loading, setLoading]       = React.useState(false);
@@ -6512,8 +6987,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                         ))}
                         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
                             style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
-                                                <button onClick={() => setViewMode('trades')} title="Every individual trade" style={pill(viewMode === 'trades')}>📋 Trades</button>
+                        <button onClick={() => setViewMode('trades')} title="Every individual trade" style={pill(viewMode === 'trades')}>📋 Trades</button>
                         <button onClick={() => setViewMode('assets')} title="One row per asset with its total trade count" style={pill(viewMode === 'assets')}>🗂 By asset</button>
+                        <button onClick={() => setViewMode('tags')} title="Win rate by entry conditions: lens, signal, AI verdict, score…" style={pill(viewMode === 'tags')}>🏷 By tag</button>
                         <button onClick={() => setShowAutopsy(true)} title="What did price do after your trades closed? Were your stops too tight?" style={pill(false)}>🔬 Autopsy</button>
                         <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
                         <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
@@ -6544,7 +7020,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     )}
                     {error && <div style={{ padding:'14px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
                     {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
-                    {!loading && filtered.length === 0 && (
+                    {viewMode === 'tags' && <PositionTagStats />}
+                    {!loading && viewMode !== 'tags' && filtered.length === 0 && (
                         <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
                             No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.
                         </div>
@@ -15329,6 +15806,8 @@ export default function SnowAIStockScreener() {
                                 >
                                     📒 Positions
                                 </button>
+
+                                <VaultLauncher onSelectTicker={handleStockClick} />
 
                             </div>
                             {error && <div style={styles.error}>{error}</div>}
