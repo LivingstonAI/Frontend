@@ -4063,6 +4063,47 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                     );
                                                 })()}
 
+                                                                                                {r.retrace && (() => {
+                                                    const rt = r.retrace;
+                                                    const isPull = rt.mode === 'PULLBACK';
+                                                    const col = isPull ? '#10b981' : '#ef4444';
+                                                    const cells = [
+                                                        [isPull ? 'Off the swing high' : 'Off the swing low', `${isPull ? '−' : '+'}${rt.depthPct}%`, `${rt.depthAtr} ATR`],
+                                                        ['Gave back', `${rt.retracePct}%`, `of a ${rt.legPct}% leg`],
+                                                        ['Swing set', `${rt.barsSinceExtreme} bars ago`, `$${rt.extreme}`],
+                                                        ['Volume on the way', rt.volRatio != null ? `${rt.volRatio}×` : '—', 'vs the move before (under 1× is healthy)'],
+                                                        ['RSI(14)', rt.rsi14 != null ? rt.rsi14 : '—', ''],
+                                                        ['50-day slope', `${rt.sma50SlopePct}%`, ''],
+                                                    ];
+                                                    return (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:`${col}10`, borderRadius:'8px', border:`1px solid ${col}30` }}>
+                                                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color:col, letterSpacing:'0.07em' }}>
+                                                                    {isPull ? '📉 PULLBACK IN AN UPTREND' : '📈 BOUNCE IN A DOWNTREND'}
+                                                                </span>
+                                                                <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:col, color:'#fff' }}>quality {rt.quality}/100</span>
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color: rt.stabilising ? '#10b981' : '#f59e0b' }}>
+                                                                    {rt.stabilising
+                                                                        ? (isPull ? '✓ holding: no fresh low in the last 3 bars' : '✓ stalling: no fresh high in the last 3 bars')
+                                                                        : (isPull ? '⚠ still printing fresh lows' : '⚠ still printing fresh highs')}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(118px, 1fr))', gap:'8px' }}>
+                                                                {cells.map(([label, value, sub]) => (
+                                                                    <div key={label} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>{value}</div>
+                                                                        {sub && <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'1px' }}>{sub}</div>}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'7px', lineHeight:1.5 }}>
+                                                                Quality is a judgment-based ranking (depth near the 50–62% zone, leg size, holding, light volume), not a fitted model. The score above is the original trend score.
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+
                                                 {/* Metrics grid */}
 
                                                 {/* AI Opportunity Analysis (external AI, multi-source + synthesis) */}
