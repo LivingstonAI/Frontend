@@ -2758,6 +2758,9 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     const [chartTicker, setChartTicker] = React.useState(null);
     const [chartInterval, setChartInterval] = React.useState('1D');
     const [showAllCharts, setShowAllCharts] = React.useState(false);
+    const [scanMode, setScanMode] = React.useState('pullback'); // 'pullback' | 'breakout'
+    // Pullbacks are ranked by pullback quality, so the client must not re-sort them by the breakout score
+    React.useEffect(() => { setSortBy(scanMode === 'pullback' ? 'quality' : 'score'); }, [scanMode]);
 
 
     // -- Watchlist state --
@@ -3047,7 +3050,8 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
         }
     };
 
-    const filtered = (results?.results || [])
+    const activeList = (scanMode === 'pullback' ? results?.pullbackResults : results?.breakoutResults) ?? results?.results ?? [];
+    const filtered = (activeList)
         .filter(r => !search || r.ticker.includes(search) || (r.name || '').toUpperCase().includes(search))
         .filter(r => filterSig === 'ALL' || r.signal === filterSig)
         .filter(r => filterDir === 'ALL' || r.direction === filterDir)
@@ -3060,6 +3064,8 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
             if (sortBy === 'vol')   return (b.volRatio||0) - (a.volRatio||0);
             if (sortBy === 'cap')   return (b.marketCap||0) - (a.marketCap||0);
             if (sortBy === 'ext')   return Math.abs(b.extendedChangePct||0) - Math.abs(a.extendedChangePct||0);
+            if (sortBy === 'quality') return ((b.retrace && b.retrace.quality) || 0) - ((a.retrace && a.retrace.quality) || 0);
+            if (sortBy === 'depth')   return ((b.retrace && b.retrace.depthPct) || 0) - ((a.retrace && a.retrace.depthPct) || 0);
             return 0;
         });
 
@@ -3635,6 +3641,20 @@ Do not include anything outside the JSON array. The response must be parseable b
 
                         <VaultLauncher onSelectTicker={(t) => { onSelectTicker && onSelectTicker(t); onClose(); }} />
 
+                        <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
+                            {[['pullback', '📉 Pullbacks', results?.pullbackCount ?? results?.pullbackResults?.length],
+                              ['breakout', '🚀 Breakouts', results?.breakoutCount ?? results?.breakoutResults?.length]].map(([k, label, n]) => (
+                                <button key={k} onClick={() => setScanMode(k)}
+                                    title={k === 'pullback' ? 'Deep pullbacks in an uptrend (or bounces in a downtrend), ranked by pullback quality' : 'The original breakout / momentum list'}
+                                    style={{
+                                        padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer', whiteSpace:'nowrap',
+                                        border:`1px solid ${scanMode === k ? '#7c3aed' : '#e2e8f0'}`,
+                                        backgroundColor: scanMode === k ? '#7c3aed' : '#fff', color: scanMode === k ? '#fff' : '#64748b',
+                                    }}>
+                                    {label}{n != null ? ` (${n})` : ''}
+                                </button>
+                            ))}
+                        </div>
                         {/* Sort */}
 
                         <button
@@ -3655,7 +3675,7 @@ Do not include anything outside the JSON array. The response must be parseable b
                         {/* Sort */}
                         <div style={{ marginLeft:'auto', display:'flex', gap:'4px', alignItems:'center', flexWrap:'wrap' }}>
                             <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'600' }}>Sort:</span>
-                                {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Vol'],['cap','Cap'],['ext','Ext Move']].map(([k,l]) => (
+                                {[['score','Score'],['adx','ADX'],['roc','ROC'],['vol','Vol'],['cap','Cap'],['ext','Ext Move'],['quality','Quality'],['depth','Depth']].map(([k,l]) => (
                                 <button key={k} onClick={() => setSortBy(k)}
                                     style={{
                                         padding:'3px 8px', borderRadius:'6px',
@@ -3897,6 +3917,20 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                     }}>
                                                         {r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'} {r.direction}
                                                     </span>
+
+                                                    {r.retrace && (
+                                                        <span
+                                                            title={`${r.retrace.mode === 'PULLBACK' ? 'Pullback in an uptrend' : 'Bounce in a downtrend'}: ${r.retrace.depthPct}% off the swing ${r.retrace.mode === 'PULLBACK' ? 'high' : 'low'}, gave back ${r.retrace.retracePct}% of a ${r.retrace.legPct}% leg, quality ${r.retrace.quality}/100`}
+                                                            style={{
+                                                                padding:'2px 8px', borderRadius:'10px', fontSize:'11px', fontWeight:'700', whiteSpace:'nowrap',
+                                                                backgroundColor: r.retrace.mode === 'PULLBACK' ? '#10b98118' : '#ef444418',
+                                                                color: r.retrace.mode === 'PULLBACK' ? '#059669' : '#dc2626',
+                                                                border: `1px solid ${r.retrace.mode === 'PULLBACK' ? '#10b98150' : '#ef444450'}`,
+                                                            }}
+                                                        >
+                                                            {r.retrace.mode === 'PULLBACK' ? '📉 −' : '📈 +'}{r.retrace.depthPct}% · {r.retrace.retracePct}% of leg{r.retrace.stabilising ? ' ✓' : ''}
+                                                        </span>
+                                                    )}
                                                                                                         {(() => {
                                                         const synth = aiSynthesis[r.ticker];
                                                         const runs  = aiRuns[r.ticker];
@@ -4322,7 +4356,9 @@ Do not include anything outside the JSON array. The response must be parseable b
                     {!loading && results && filtered.length === 0 && (
                         <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
                             <div style={{ fontSize:'32px', marginBottom:'10px' }}>🔭</div>
-                            No stocks matched your filters. Try loosening the signal or direction filter.
+                              {scanMode === 'pullback'
+                                ? 'No pullbacks match right now. When most stocks sit near their highs this list is short or empty, which is the filter working. Check Breakouts, or loosen the thresholds in SNOWVAULT_RETRACE_DEFAULTS.'
+                                : 'No stocks matched your filters. Try loosening the signal or direction filter.'}
                         </div>
                     )}
                 </div>
@@ -6436,8 +6472,8 @@ Do not include anything outside the JSON array. The response must be parseable b
     );
 }
 
-function PositionOverlayCard({ position, livePositions, lastPrice, extendedActive, marketSession }) {
-    const [expanded, setExpanded] = React.useState(true);
+function PositionOverlayCard({ position, livePositions, lastPrice, extendedActive, marketSession, defaultExpanded = true }) {
+    const [expanded, setExpanded] = React.useState(defaultExpanded);
     const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
     const live      = (livePositions || []).find(p => p.id === position.id) || position;
@@ -6829,6 +6865,70 @@ function PositionTagStats() {
     );
 }
 
+function PositionChartCard({ position, interval, onIntervalChange, mountDelay = 0, height = 270, onOpen }) {
+    const isOpenPos = position.status === 'OPEN';
+    const isLong    = position.direction === 'long';
+    const exitLabel = position.status === 'CLOSED_TP' ? 'TP hit' : position.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
+    const statusColor = position.status === 'OPEN' ? '#3b82f6' : position.status === 'CLOSED_TP' ? '#10b981' : position.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+
+    // Open trade: the chart draws its own live lines. Closed trade: drawn from the saved levels.
+    const extraLines = isOpenPos ? null : [
+        { price: position.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${position.entry_price}` },
+        ...(position.tp_price != null ? [{ price: position.tp_price, color:'#10b981', lineStyle:0, title:`TP $${position.tp_price}` }] : []),
+        ...(position.sl_price != null ? [{ price: position.sl_price, color:'#ef4444', lineStyle:0, title:`SL $${position.sl_price}` }] : []),
+        ...(position.closed_price != null ? [{ price: position.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${position.closed_price}` }] : []),
+    ];
+    const exitColor = (position.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
+    const extraMarkers = [
+        { ms: Date.parse(position.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
+        ...(!isOpenPos && position.closed_at ? [{ ms: Date.parse(position.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
+    ];
+
+    return (
+        <div style={{ border:'1px solid #1e293b', borderRadius:'12px', overflow:'hidden', backgroundColor:'#0b1220' }}>
+            <div style={{ padding:'8px 12px', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
+                <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>{position.asset}</span>
+                <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                <span style={{ fontSize:'9px', fontWeight:'800', padding:'1px 8px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
+                    {position.status.replace('CLOSED_', 'CLOSED · ')}
+                </span>
+                <span style={{ fontSize:'10px', color:'#64748b' }}>
+                    {position.quantity} sh · {new Date(position.opened_at).toLocaleDateString([], { month:'short', day:'numeric' })}
+                </span>
+                <button onClick={onOpen} title="Open the full chart with the trade picker" style={{
+                    marginLeft:'auto', padding:'3px 10px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                    border:'1px solid rgba(59,130,246,0.4)', backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd',
+                }}>Open ↗</button>
+            </div>
+            <div style={{ padding:'0 10px 10px' }}>
+                <ScannerChart
+                    key={position.id}
+                    ticker={position.asset}
+                    interval={interval}
+                    onIntervalChange={onIntervalChange}
+                    hideClose
+                    height={height}
+                    mountDelay={mountDelay}
+                    focusPositionId={position.id}
+                    analysisAsOf={position.opened_at ? position.opened_at.slice(0, 10) : null}
+                    extraLines={extraLines}
+                    extraMarkers={extraMarkers}
+                    renderOverlay={(ctx) => (
+                        <PositionOverlayCard
+                            position={position}
+                            livePositions={ctx.positions}
+                            lastPrice={ctx.lastPrice}
+                            extendedActive={ctx.extendedActive}
+                            marketSession={ctx.marketSession}
+                            defaultExpanded={false}
+                        />
+                    )}
+                />
+            </div>
+        </div>
+    );
+}
+
 function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [loading, setLoading]       = React.useState(false);
@@ -6846,6 +6946,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [chartPosition, setChartPosition] = React.useState(null);
     const [showAutopsy, setShowAutopsy] = React.useState(false);
     const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
+    const [showCharts, setShowCharts]       = React.useState(false);
+    const [chartsInterval, setChartsInterval] = React.useState('1D');
+    const [chartsShown, setChartsShown]     = React.useState(12);
     const refreshingRef     = React.useRef(false);
     const refreshVisibleRef = React.useRef(null);
 
@@ -7031,6 +7134,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                         <button onClick={() => setViewMode('trades')} title="Every individual trade" style={pill(viewMode === 'trades')}>📋 Trades</button>
                         <button onClick={() => setViewMode('assets')} title="One row per asset with its total trade count" style={pill(viewMode === 'assets')}>🗂 By asset</button>
                         <button onClick={() => setViewMode('tags')} title="Win rate by entry conditions: lens, signal, AI verdict, score…" style={pill(viewMode === 'tags')}>🏷 By tag</button>
+                        <button onClick={() => setShowCharts(s => !s)} disabled={viewMode === 'tags'} title="Show a chart for every trade in the list" style={pill(showCharts)}>
+                            📊 {showCharts ? 'Back to table' : 'View all charts'}
+                        </button>
                         <button onClick={() => setShowAutopsy(true)} title="What did price do after your trades closed? Were your stops too tight?" style={pill(false)}>🔬 Autopsy</button>
                         <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
                         <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
@@ -7067,7 +7173,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                             No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.
                         </div>
                     )}
-                                        {!loading && viewMode === 'assets' && assetSummaries.length > 0 && (
+                    {!loading && !showCharts && viewMode === 'assets' && assetSummaries.length > 0 && (
                         <div style={{ overflowX:'auto' }}>
                             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                                 <thead>
@@ -7113,7 +7219,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                             </table>
                         </div>
                     )}
-                    {!loading && viewMode === 'trades' && filtered.length > 0 && (
+                    {!loading && !showCharts && viewMode === 'trades' && filtered.length > 0 && (
                         <div style={{ overflowX:'auto' }}>
                             <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
                                 <thead>
