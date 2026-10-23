@@ -4053,4 +4053,12304 @@ Do not include anything outside the JSON array. The response must be parseable b
                                                     borderRadius:'8px', borderLeft:`3px solid ${sc.color}`,
                                                 }}>
                                                     <div style={{ fontSize:'11px', fontWeight:'700', color:sc.color, letterSpacing:'0.07em', marginBottom:'4px' }}>
-                     
+                                                        WHY THIS SHOWED UP
+                                                    </div>
+                                                    <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>
+                                                        {r.rangeToTrend && `ADX moved from ${r.adx20Ago?.toFixed(0)} → ${r.adxNow?.toFixed(0)} over 20 bars — classic range-to-trend transition. `}
+                                                        {r.adxRising && !r.rangeToTrend && `ADX rising (was ${r.adx5Ago?.toFixed(0)}, now ${r.adxNow?.toFixed(0)}) — trend is strengthening. `}
+                                                        {r.rocAccelerating && `ROC accelerating (+${r.acceleration?.toFixed(2)} above recent avg) — momentum is speeding up. `}
+                                                        {r.volConfirming && `Volume is ${r.volRatio}× the 20-day average — real conviction behind the move. `}
+                                                        {r.breakingOut && `Price breaking above recent range highs. `}
+                                                                                                                {r.earningsNearby && r.earningsBeat === true  && `Recent earnings beat (${r.daysSinceEarnings}d ago) may be fuelling this. `}
+                                                        {r.earningsNearby && r.earningsBeat === false && `Recent earnings miss (${r.daysSinceEarnings}d ago) — trend is despite bad earnings. `}
+                                                    </div>
+                                                </div>
+
+                                                {stabilityData?.[r.ticker] && (() => {
+                                                    const s = stabilityData[r.ticker];
+                                                    const info = stabilityLabel(s.combined.winRate);
+                                                    return (
+                                                        <div style={{ padding:'12px 14px', backgroundColor: `${info.color}10`, borderRadius:'8px', border:`1px solid ${info.color}30` }}>
+                                                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                <Shield size={13} color={info.color} />
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color: info.color, letterSpacing:'0.07em' }}>
+                                                                    HISTORICAL STABILITY
+                                                                </span>
+                                                                <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor: info.color, color:'#fff' }}>
+                                                                    {s.combined.stabilityScore}% · {info.label}
+                                                                </span>
+                                                                <span style={{ fontSize:'10px', color:'#94a3b8' }}>{s.occurrenceCount} past occurrences</span>
+                                                            </div>
+                                                            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                                                                {STABILITY_HORIZONS.map(h => {
+                                                                    const cell = s.byHorizon[String(h)];
+                                                                    const hinfo = stabilityLabel(cell?.winRate);
+                                                                    return (
+                                                                        <div key={h} style={{ padding:'5px 9px', borderRadius:'8px', backgroundColor:'#fff', border:`1px solid ${hinfo.color}30`, textAlign:'center', minWidth:'50px' }}>
+                                                                            <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'700' }}>{h}D</div>
+                                                                            <div style={{ fontSize:'12px', fontWeight:'800', color: hinfo.color }}>{cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}</div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                                                                {r.retrace && (() => {
+                                                    const rt = r.retrace;
+                                                    const isPull = rt.mode === 'PULLBACK';
+                                                    const col = isPull ? '#10b981' : '#ef4444';
+                                                    const cells = [
+                                                        [isPull ? 'Off the swing high' : 'Off the swing low', `${isPull ? '−' : '+'}${rt.depthPct}%`, `${rt.depthAtr} ATR`],
+                                                        ['Gave back', `${rt.retracePct}%`, `of a ${rt.legPct}% leg`],
+                                                        ['Swing set', `${rt.barsSinceExtreme} bars ago`, `$${rt.extreme}`],
+                                                        ['Volume on the way', rt.volRatio != null ? `${rt.volRatio}×` : '—', 'vs the move before (under 1× is healthy)'],
+                                                        ['RSI(14)', rt.rsi14 != null ? rt.rsi14 : '—', ''],
+                                                        ['50-day slope', `${rt.sma50SlopePct}%`, ''],
+                                                    ];
+                                                    return (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:`${col}10`, borderRadius:'8px', border:`1px solid ${col}30` }}>
+                                                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color:col, letterSpacing:'0.07em' }}>
+                                                                    {isPull ? '📉 PULLBACK IN AN UPTREND' : '📈 BOUNCE IN A DOWNTREND'}
+                                                                </span>
+                                                                <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:col, color:'#fff' }}>quality {rt.quality}/100</span>
+                                                                <span style={{ fontSize:'11px', fontWeight:'700', color: rt.stabilising ? '#10b981' : '#f59e0b' }}>
+                                                                    {rt.stabilising
+                                                                        ? (isPull ? '✓ holding: no fresh low in the last 3 bars' : '✓ stalling: no fresh high in the last 3 bars')
+                                                                        : (isPull ? '⚠ still printing fresh lows' : '⚠ still printing fresh highs')}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(118px, 1fr))', gap:'8px' }}>
+                                                                {cells.map(([label, value, sub]) => (
+                                                                    <div key={label} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>{value}</div>
+                                                                        {sub && <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'1px' }}>{sub}</div>}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'7px', lineHeight:1.5 }}>
+                                                                Quality is a judgment-based ranking (depth near the 50–62% zone, leg size, holding, light volume), not a fitted model. The score above is the original trend score.
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* Metrics grid */}
+
+                                                {/* AI Opportunity Analysis (external AI, multi-source + synthesis) */}
+                                                {(() => {
+                                                    const runs  = aiRuns[r.ticker] || [];
+                                                    const synth = aiSynthesis[r.ticker];
+                                                    const c     = getConsensus(r.ticker);
+
+                                                    return (
+                                                        <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+
+                                                            {/* Synthesis — shown first if it exists */}
+                                                            {synth && (() => {
+                                                                const av = AI_VERDICT_CONFIG[synth.finalVerdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`2px solid ${av.color}` }}>
+                                                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                            <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>
+                                                                                ✨🧠 AI SYNTHESIS ({synth.runCountAtSynthesis} sources)
+                                                                            </span>
+                                                                            <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
+                                                                                {av.icon} {synth.finalVerdict?.replace('_',' ')} · {synth.finalOpportunityScore}/100
+                                                                            </span>
+                                                                            <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
+                                                                                {synth.agreementLevel} agreement
+                                                                            </span>
+                                                                        </div>
+                                                                        <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>
+                                                                            {synth.synthesizedThesis}
+                                                                        </div>
+                                                                        {synth.consensusSummary && (
+                                                                            <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, marginBottom:'6px' }}>
+                                                                                <strong>Agree on:</strong> {synth.consensusSummary}
+                                                                            </div>
+                                                                        )}
+                                                                        {synth.disagreements && (
+                                                                            <div style={{ fontSize:'12px', color:'#b45309', lineHeight:1.5 }}>
+                                                                                <strong>Diverge on:</strong> {synth.disagreements}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* Consensus stat strip — only when 2+ runs */}
+                                                            {c && c.runCount >= 2 && (
+                                                                <div style={{ display:'flex', gap:'14px', alignItems:'center', padding:'8px 12px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        <strong style={{ color:'#1a1a1a' }}>{c.runCount}</strong> AI runs
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Mean score <strong style={{ color:'#1a1a1a' }}>{c.meanScore}</strong>
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Mode verdict <strong style={{ color:'#1a1a1a' }}>{c.modeVerdict?.replace('_',' ')}</strong>
+                                                                    </span>
+                                                                    <span style={{ fontSize:'11px', color:'#64748b' }}>
+                                                                        Agreement <strong style={{ color: c.agreement >= 70 ? '#10b981' : c.agreement >= 40 ? '#f59e0b' : '#ef4444' }}>{c.agreement}%</strong>
+                                                                    </span>
+                                                                    {!synth && (
+                                                                        <button onClick={() => openSynthesisPrompt(r.ticker)} style={{
+                                                                            marginLeft:'auto', padding:'5px 12px', borderRadius:'20px',
+                                                                            fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                                                            border:'1px solid rgba(124,58,237,0.4)',
+                                                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
+                                                                        }}>
+                                                                            ✨ Synthesize with AI
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {/* Individual run chips */}
+                                                            {runs.length > 0 && (
+                                                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                    {runs.map((run, idx) => {
+                                                                        const av = AI_VERDICT_CONFIG[run.verdict] || AI_VERDICT_CONFIG.NEUTRAL;
+                                                                        return (
+                                                                            <div key={idx} style={{ padding:'9px 11px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
+                                                                                <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                                                                    <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', backgroundColor:'#fff', padding:'1px 7px', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                                                                        {run.source || 'AI'}
+                                                                                    </span>
+                                                                                    <span style={{ fontSize:'11px', fontWeight:'800', color:av.color }}>
+                                                                                        {av.icon} {run.verdict?.replace('_',' ')} · {run.opportunityScore}/100
+                                                                                    </span>
+                                                                                    <button onClick={() => removeAiRun(r.ticker, idx)} title="Remove this run" style={{
+                                                                                        marginLeft:'auto', background:'none', border:'none', cursor:'pointer',
+                                                                                        color:'#94a3b8', fontSize:'13px', fontWeight:'900', lineHeight:1, padding:0,
+                                                                                    }}>×</button>
+                                                                                </div>
+                                                                                <div style={{ fontSize:'12px', color:'#333', lineHeight:1.5 }}>{run.thesis}</div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+
+                                                            <button
+                                                                onClick={() => openIndividualAIPrompt(r)}
+                                                                style={{
+                                                                    padding:'10px', borderRadius:'9px',
+                                                                    background: runs.length > 0 ? '#fff' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                    color: runs.length > 0 ? '#7c3aed' : '#fff',
+                                                                    border: runs.length > 0 ? '1.5px solid #7c3aed' : 'none',
+                                                                    fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                                    display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
+                                                                }}
+                                                            >
+                                                                {runs.length > 0 ? `🧠 Add Another AI's Take (${runs.length} so far)` : '🧠 Ask External AI for Opportunity Analysis'}
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })()}
+
+                                                {/* Metrics grid */}
+                                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'8px' }}>
+                                                    {[
+                                                        { label:'ADX Now',      value: r.adxNow?.toFixed(1),   color: r.adxNow >= 25 ? '#10b981' : r.adxNow >= 20 ? '#f59e0b' : '#94a3b8', sub: r.adxNow >= 25 ? 'Trending' : r.adxNow >= 20 ? 'Building' : 'Ranging' },
+                                                        { label:'ADX 20d Ago',  value: r.adx20Ago?.toFixed(1) || '—', color:'#94a3b8', sub:'was' },
+                                                        { label:'+DI / -DI',    value: `${r.plusDI?.toFixed(0)} / ${r.minusDI?.toFixed(0)}`, color: r.plusDI > r.minusDI ? '#10b981' : '#ef4444', sub: r.plusDI > r.minusDI ? 'Bulls ▲' : 'Bears ▼' },
+                                                        { label:'ROC 5d',       value: r.roc5  != null ? `${r.roc5  >= 0 ? '+' : ''}${r.roc5}%`  : '—', color:(r.roc5||0)  >= 0 ? '#10b981':'#ef4444', sub:'' },
+                                                        { label:'ROC 20d',      value: r.roc20 != null ? `${r.roc20 >= 0 ? '+' : ''}${r.roc20}%` : '—', color:(r.roc20||0) >= 0 ? '#10b981':'#ef4444', sub:'' },
+                                                        { label:'Acceleration', value: r.acceleration != null ? `${r.acceleration >= 0 ? '+' : ''}${r.acceleration?.toFixed(2)}` : '—', color:(r.acceleration||0) > 0 ? '#10b981':'#ef4444', sub:(r.acceleration||0) > 0 ? '⚡ Speeding up':'🐢 Slowing' },
+                                                        { label:'Vol Ratio',    value: r.volRatio != null ? `${r.volRatio}×` : '—', color:(r.volRatio||0) >= 1.3 ? '#10b981':'#94a3b8', sub:'5d / 20d avg' },
+                                                        { label:'From 52W High',value: r.pctFromHigh != null ? `${r.pctFromHigh}%` : '—', color:(r.pctFromHigh||0) >= -5 ? '#10b981':'#94a3b8', sub:'' },
+                                                        { label:'Mkt Cap',      value: fmtCap(r.marketCap), color:'#3b82f6', sub: r.sector },
+                                                    ].map((item, ii) => (
+                                                        <div key={ii} style={{
+                                                            padding:'8px 10px', backgroundColor:'#fff',
+                                                            borderRadius:'8px', border:'1px solid #e2e8f0',
+                                                            borderLeft:`2px solid ${item.color}`,
+                                                        }}>
+                                                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'3px' }}>{item.label}</div>
+                                                            <div style={{ fontSize:'14px', fontWeight:'800', color:item.color }}>{item.value}</div>
+                                                            {item.sub && <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'1px' }}>{item.sub}</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Earnings */}
+                                                {r.lastEarningsDate && (
+                                                    <div style={{
+                                                        display:'flex', gap:'8px', alignItems:'center',
+                                                        padding:'8px 12px', borderRadius:'8px', fontSize:'12px',
+                                                        backgroundColor: r.earningsBeat === true ? 'rgba(16,185,129,0.08)' : r.earningsBeat === false ? 'rgba(239,68,68,0.08)' : '#f8fafc',
+                                                        border:`1px solid ${r.earningsBeat === true ? '#bbf7d0' : r.earningsBeat === false ? '#fecaca' : '#e2e8f0'}`,
+                                                        flexWrap:'wrap',
+                                                    }}>
+                                                        <span style={{ fontSize:'14px' }}>💰</span>
+                                                        <span style={{ color:'#64748b' }}>
+                                                            Last earnings: <strong>{r.lastEarningsDate}</strong>
+                                                            {r.daysSinceEarnings != null && ` (${r.daysSinceEarnings}d ago)`}
+                                                        </span>
+                                                        {r.earningsBeat === true  && <span style={{ color:'#10b981', fontWeight:'700' }}>✓ Beat</span>}
+                                                        {r.earningsBeat === false && <span style={{ color:'#ef4444', fontWeight:'700' }}>✗ Miss</span>}
+                                                        {r.earningsNearby && (
+                                                            <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'700', color:'#f59e0b', backgroundColor:'#fffbeb', padding:'1px 7px', borderRadius:'10px', border:'1px solid #fde68a' }}>
+                                                                Recent
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Action buttons */}
+                                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                                    {!showAllCharts && (
+                                                        <button
+                                                            onClick={() => setChartTicker(chartTicker === r.ticker ? null : r.ticker)}
+                                                            style={{
+                                                                flex:1, padding:'9px', borderRadius:'9px',
+                                                                background: chartTicker === r.ticker
+                                                                    ? '#0f172a'
+                                                                    : 'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                                                color:'#fff', border:`1px solid ${chartTicker === r.ticker ? '#3b82f6' : 'transparent'}`,
+                                                                fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                                display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                                                            }}
+                                                        >
+                                                            {chartTicker === r.ticker ? '📊 Hide Chart' : '📊 Show Chart'}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => { onSelectTicker && onSelectTicker(r.ticker); onClose(); }}
+                                                        style={{
+                                                            flex:1, padding:'9px', borderRadius:'9px',
+                                                            background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                            color:'#fff', border:'none',
+                                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'6px',
+                                                        }}
+                                                    >→ Open in Screener</button>
+                                                </div>
+
+                                                {/* Inline chart */}
+                                                {(chartTicker === r.ticker || showAllCharts) && (
+                                                    <ScannerChart
+                                                        ticker={r.ticker}
+                                                        interval={chartInterval}
+                                                        onIntervalChange={(iv) => setChartInterval(iv)}
+                                                        onClose={() => setChartTicker(null)}
+                                                        mountDelay={showAllCharts ? rowIdx * 400 : 0}
+                                                        hideClose={showAllCharts}
+                                                        scannerMeta={{ ...r, stability: stabilityData?.[r.ticker] || null, aiVerdict: getEffectiveVerdict(r.ticker) || null }}
+                                                    />
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* No results after filter */}
+                    {!loading && results && filtered.length === 0 && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                            <div style={{ fontSize:'32px', marginBottom:'10px' }}>🔭</div>
+                              {scanMode === 'pullback'
+                                ? 'No pullbacks match right now. When most stocks sit near their highs this list is short or empty, which is the filter working. Check Breakouts, or loosen the thresholds in SNOWVAULT_RETRACE_DEFAULTS.'
+                                : 'No stocks matched your filters. Try loosening the signal or direction filter.'}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            
+            <style>{`
+                @keyframes modalSlideUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+                @keyframes spin          { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes sabrnaTyping  { 0%,60%,100% { transform:translateY(0); opacity:0.4; } 30% { transform:translateY(-5px); opacity:1; } }
+            `}</style>
+            
+        </div>
+
+        {/* AI Prompt Modal */}
+            {showAiPromptModal && (() => {
+                const mode = aiPromptScope?.mode;
+                const promptText = mode === 'synthesis'
+                    ? buildSynthesisPrompt(aiPromptScope.ticker)
+                    : mode === 'bulkSynthesis'
+                        ? buildBulkSynthesisPrompt(aiPromptScope.tickers || [])
+                        : buildScannerAIPrompt(aiPromptScope?.stocks || []);
+                const scopeLabel = mode === 'synthesis'
+                    ? `Synthesis for ${aiPromptScope.ticker}`
+                    : mode === 'bulkSynthesis'
+                        ? `Bulk synthesis — ${aiPromptScope.tickers?.length || 0} stocks`
+                        : mode === 'bulk'
+                            ? `${filtered.length} stocks shown`
+                            : aiPromptScope?.ticker;
+                return (
+                    <div onClick={() => setShowAiPromptModal(false)} style={{
+                        position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        zIndex:10030, padding:'20px', backdropFilter:'blur(3px)',
+                    }}>
+                        <div onClick={e => e.stopPropagation()} style={{
+                            width:'min(680px,100%)', maxHeight:'85vh', borderRadius:'16px', overflow:'hidden',
+                            display:'flex', flexDirection:'column', backgroundColor:'#fff',
+                            boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                        }}>
+                            <div style={{ padding:'20px 24px 16px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                                    <div>
+                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                            <span style={{ fontSize:'18px' }}>🧠</span>
+                                            <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>AI Opportunity Prompt — {scopeLabel}</span>
+                                        </div>
+                                        <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', lineHeight:1.5 }}>
+                                            Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowAiPromptModal(false)} style={{
+                                        background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%',
+                                        width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                                    }}>×</button>
+                                </div>
+                            </div>
+                            <div style={{ flex:1, overflowY:'auto', padding:'20px 24px' }}>
+                                <div style={{
+                                    backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px',
+                                    padding:'16px', fontSize:'13px', lineHeight:1.7, color:'#333',
+                                    fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-word',
+                                }}>
+                                    {promptText}
+                                </div>
+                                <div style={{
+                                    marginTop:'14px', padding:'10px 14px', backgroundColor:'rgba(32,178,170,0.07)',
+                                    border:'1px solid rgba(32,178,170,0.25)', borderRadius:'9px',
+                                    display:'flex', gap:'10px', alignItems:'flex-start',
+                                }}>
+                                    <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                    <div style={{ fontSize:'12px', color:'#0f766e', lineHeight:1.55 }}>
+                                        <strong>Tip:</strong> Perplexity is the best pick here — it searches the web live and can pull current sector/ETF performance automatically.
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ padding:'14px 24px', borderTop:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:'12px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                                <div>
+                                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', marginBottom:'8px' }}>
+                                        OPEN DIRECTLY IN (prompt auto-filled)
+                                    </div>
+                                    <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                        {[
+                                            { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl:p=>`https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                                            { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl:p=>`https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                                            { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl:p=>`https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                                            { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl:p=>`https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                                            { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
+                                            { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+                                        ].map(({ name, icon, color, bg, border, getUrl }) => (
+                                                <button key={name} onClick={() => { setAiLastOpenedSource(name); window.open(getUrl(promptText), '_blank'); }} style={{
+                                                padding:'8px 14px', borderRadius:'9px', border:`1.5px solid ${border}`,
+                                                backgroundColor:bg, color, fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap',
+                                            }}>
+                                                <span style={{ fontSize:'15px' }}>{icon}</span>{name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div style={{ height:'1px', backgroundColor:'#e2e8f0' }} />
+                                <div style={{ display:'flex', gap:'10px' }}>
+                                    <button
+                                        onClick={() => { navigator.clipboard.writeText(promptText); setAiCopied(true); setTimeout(() => setAiCopied(false), 2000); }}
+                                        style={{
+                                            flex:1, padding:'10px',
+                                            background: aiCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#4c1d95,#7c3aed)',
+                                            border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px',
+                                            cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                        }}
+                                    >
+                                        {aiCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowAiPromptModal(false); setShowAiPasteModal(true); }}
+                                        style={{
+                                            flex:1, padding:'10px', backgroundColor:'#fff', border:'2px solid #7c3aed',
+                                            borderRadius:'9px', color:'#7c3aed', fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                        }}
+                                    >
+                                        <span>📥</span> Paste Response
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* AI Paste Response Modal */}
+            {showAiPasteModal && (
+                <div onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                    position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    zIndex:10030, padding:'20px', backdropFilter:'blur(3px)',
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        width:'min(640px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff',
+                        boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                        display:'flex', flexDirection:'column',
+                    }}>
+                        <div style={{ padding:'18px 22px 14px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                                <div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>📥 Paste AI Response</div>
+                                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>
+                                        Paste the raw JSON array the AI returned — one object per stock.
+                                    </div>
+                                </div>
+                                <button onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                                    background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%',
+                                    width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                }}>×</button>
+                            </div>
+                        </div>
+                        <div style={{ padding:'20px 22px 0' }}>
+                            {(aiPromptScope?.mode !== 'synthesis' && aiPromptScope?.mode !== 'bulkSynthesis') && (
+                                <div style={{ marginBottom:'10px' }}>
+                                    <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>
+                                        Which AI is this from?
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="ai-source-options"
+                                        value={aiPasteSource || aiLastOpenedSource}
+                                        onChange={e => setAiPasteSource(e.target.value)}
+                                        placeholder="Perplexity, ChatGPT, Gemini, Claude, Deepseek, Qwen..."
+                                        style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }}
+                                    />
+                                    <datalist id="ai-source-options">
+                                        <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" /><option value="DeepSeek" /><option value="Qwen" />
+                                    </datalist>
+                                </div>
+                            )}
+                            <textarea
+                                autoFocus
+                                value={aiPasteText}
+                                onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
+                                placeholder={
+                                    aiPromptScope?.mode === 'synthesis'
+                                        ? `Paste the JSON object here. Should start with {\n  "finalVerdict": "OPPORTUNITY", ...\n}`
+                                        : aiPromptScope?.mode === 'bulkSynthesis'
+                                            ? `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "finalVerdict": "OPPORTUNITY", ... }\n]`
+                                            : `Paste the JSON array here. Should start with [\n  { "ticker": "AAPL", "verdict": "OPPORTUNITY", ... }\n]`
+                                }
+                                style={{
+                                    width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
+                                    border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`,
+                                    fontSize:'13px', fontFamily:'monospace', lineHeight:1.6, resize:'vertical',
+                                    outline:'none', boxSizing:'border-box', color:'#1a1a1a',
+                                    backgroundColor: aiPasteError ? '#fef2f2' : '#f8fafc',
+                                }}
+                            />
+                            {aiPasteError && (
+                                <div style={{ marginTop:'10px', padding:'10px 14px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', fontSize:'13px', color:'#b91c1c', lineHeight:1.5 }}>
+                                    ⚠️ {aiPasteError}
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ padding:'16px 22px', display:'flex', gap:'10px' }}>
+                            <button
+                                onClick={handlePasteAIResponse}
+                                disabled={!aiPasteText.trim()}
+                                style={{
+                                    flex:1, padding:'11px',
+                                    background: !aiPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)',
+                                    border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px',
+                                    cursor: !aiPasteText.trim() ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                ✓ Parse & Save
+                            </button>
+                            <button
+                                onClick={() => { setShowAiPasteModal(false); setShowAiPromptModal(true); setAiPasteError(null); }}
+                                style={{
+                                    padding:'11px 16px', backgroundColor:'#fff', border:'1px solid #e2e8f0',
+                                    borderRadius:'9px', color:'#64748b', fontWeight:'600', fontSize:'14px', cursor:'pointer',
+                                }}
+                            >
+                                ← Back to prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Stability Check Modal */}
+        {showStabilityModal && stabilityData && (() => {
+            const list = Object.values(stabilityData).sort((a, b) => (b.combined.stabilityScore ?? -1) - (a.combined.stabilityScore ?? -1));
+            const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+            return (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10040, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto' }}
+                    onClick={() => setShowStabilityModal(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        width:'100%', maxWidth:'760px', borderRadius:'18px', overflow:'hidden', backgroundColor:'#fff',
+                        boxShadow:'0 24px 80px rgba(0,0,0,0.3)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                        marginTop:'8px', marginBottom:'24px',
+                    }}>
+                        <div style={{ padding:'18px 20px', background:'linear-gradient(135deg,#0f172a,#0891b2)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                            <div>
+                                <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                    <Shield size={18} color="#fff" />
+                                    <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Stability Ranking</span>
+                                </div>
+                                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.6)' }}>
+                                    Based on saved backtest history — {list.length} of the currently-shown stocks have prior data
+                                </div>
+                            </div>
+                            <button onClick={() => setShowStabilityModal(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                        </div>
+                        <div style={{ padding:'16px 20px', maxHeight:'70vh', overflowY:'auto' }}>
+                            {list.length === 0 ? (
+                                <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>
+                                    <Shield size={32} color="#cbd5e1" style={{ marginBottom:'10px' }} />
+                                    <div style={{ fontSize:'13px' }}>None of the currently-shown stocks have saved backtest history yet. Save a scanner snapshot across a few different days to start building stability data.</div>
+                                </div>
+                            ) : (
+                                <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+                                    {list.map((a, i) => {
+                                        const info = stabilityLabel(a.combined.winRate);
+                                        return (
+                                            <div key={a.key}
+                                                onClick={() => { setShowStabilityModal(false); onSelectTicker && onSelectTicker(a.key); onClose(); }}
+                                                style={{
+                                                    display:'flex', alignItems:'center', gap:'12px', padding:'10px 14px', borderRadius:'10px',
+                                                    border:`1px solid ${info.color}30`, backgroundColor: i === 0 ? `${info.color}0d` : '#fff', cursor:'pointer',
+                                                }}>
+                                                {i === 0 && <Award size={16} color="#f59e0b" style={{ flexShrink:0 }} />}
+                                                <span style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a', minWidth:'55px' }}>{a.key}</span>
+                                                <span style={{ fontSize:'11px', color:'#94a3b8' }}>{a.occurrenceCount} occ.</span>
+                                                <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'12px' }}>
+                                                    <OccurrenceDots rows={a.rows} horizon={5} />
+                                                    <div style={{ textAlign:'right', minWidth:'70px' }}>
+                                                        <div style={{ fontSize:'15px', fontWeight:'900', color: info.color }}>{a.combined.stabilityScore != null ? `${a.combined.stabilityScore}%` : '—'}</div>
+                                                        <div style={{ fontSize:'9px', fontWeight:'700', color: info.color }}>{info.label}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        })()}
+                </>
+
+    );
+}
+
+function BacktestTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+        <div style={{ backgroundColor:'#0f172a', color:'#fff', padding:'8px 12px', borderRadius:'8px', fontSize:'12px', lineHeight:1.6 }}>
+            <div style={{ fontWeight:'800' }}>{d.label}</div>
+            <div>Avg return: <strong style={{ color: d.value >= 0 ? '#10b981' : '#ef4444' }}>{d.value >= 0 ? '+' : ''}{d.value}%</strong></div>
+            {d.winRate != null && <div>Win rate: {d.winRate}%</div>}
+            <div>Sample size: {d.count}</div>
+        </div>
+    );
+}
+
+function BacktestPlainEnglish({ btData }) {
+    if (!btData || btData.totalSnapshots === 0) return null;
+    const REF_HORIZON = '5';
+    const MIN_SAMPLE  = 3;
+    const insights = [];
+
+    const overallCell = btData.aggregate?.ALL?.[REF_HORIZON];
+    if (overallCell && overallCell.count > 0) {
+        insights.push({
+            Icon: Target, positive: overallCell.avgDirectionAdjustedReturn >= 0,
+            text: `Across ${overallCell.count} saved signals, calling the direction right and holding 5 trading days worked out ${overallCell.winRate}% of the time — averaging ${overallCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${overallCell.avgDirectionAdjustedReturn}% per trade.`,
+        });
+    }
+
+    const signalEntries = Object.entries(btData.bySignal || {})
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (signalEntries.length > 0) {
+        const sorted = [...signalEntries].sort((a, b) => b.cell.avgDirectionAdjustedReturn - a.cell.avgDirectionAdjustedReturn);
+        const best  = sorted[0];
+        const worst = sorted[sorted.length - 1];
+        insights.push({
+            Icon: TrendingUp, positive: true,
+            text: `Strongest signal so far: ${best.key.replace(/_/g, ' ')} — right ${best.cell.winRate}% of the time over 5 days, averaging ${best.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${best.cell.avgDirectionAdjustedReturn}% (${best.cell.count} signals).`,
+        });
+        if (worst.key !== best.key) {
+            insights.push({
+                Icon: TrendingDown, positive: false,
+                text: `Weakest signal: ${worst.key.replace(/_/g, ' ')} — right just ${worst.cell.winRate}% of the time, averaging ${worst.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${worst.cell.avgDirectionAdjustedReturn}% (${worst.cell.count} signals).`,
+            });
+        }
+    }
+
+    const strongCell = btData.byAiVerdict?.STRONG_OPPORTUNITY?.[REF_HORIZON];
+    const avoidCell  = btData.byAiVerdict?.AVOID?.[REF_HORIZON] || btData.byAiVerdict?.CAUTION?.[REF_HORIZON];
+    if (strongCell && strongCell.count >= MIN_SAMPLE && avoidCell && avoidCell.count >= MIN_SAMPLE) {
+        const diff = Math.round((strongCell.avgDirectionAdjustedReturn - avoidCell.avgDirectionAdjustedReturn) * 10) / 10;
+        insights.push({
+            Icon: Brain, positive: diff >= 0,
+            text: `Stocks the AI flagged as a strong opportunity beat the ones it flagged caution/avoid by ${diff >= 0 ? '+' : ''}${diff}pp on average over 5 days — ${diff >= 0 ? "the AI's opportunity calls appear to be adding real signal." : "worth a closer look — the cautious calls actually held up better here."}`,
+        });
+    }
+
+    if (btData.totalSnapshots < 15) {
+        insights.push({
+            Icon: AlertTriangle, positive: null,
+            text: `Only ${btData.totalSnapshots} snapshots saved so far — treat these numbers as early signal, not a verdict. More daily saves will make this meaningful.`,
+        });
+    }
+
+    if (insights.length === 0) return null;
+
+    return (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'22px' }}>
+            {insights.map((ins, i) => {
+                const color = ins.positive === true ? '#10b981' : ins.positive === false ? '#ef4444' : '#f59e0b';
+                const bg    = ins.positive === true ? '#f0fdf4' : ins.positive === false ? '#fef2f2' : '#fffbeb';
+                const Icon  = ins.Icon;
+                return (
+                    <div key={i} style={{
+                        display:'flex', gap:'10px', alignItems:'flex-start',
+                        padding:'10px 14px', backgroundColor:bg, borderRadius:'10px', border:`1px solid ${color}30`,
+                    }}>
+                        <Icon size={16} color={color} style={{ flexShrink:0, marginTop:'1px' }} />
+                        <div style={{ fontSize:'12.5px', color:'#333', lineHeight:1.55 }}>{ins.text}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function BacktestReturnByHorizonChart({ aggregate, horizons }) {
+    const HORIZON_LABELS = { 1:'1 Day', 3:'3 Days', 5:'5 Days', 10:'10 Days', 20:'20 Days' };
+    const data = horizons.map(h => {
+        const cell = aggregate?.ALL?.[String(h)];
+        return {
+            label:   HORIZON_LABELS[h] || `${h}D`,
+            value:   cell?.avgDirectionAdjustedReturn ?? 0,
+            winRate: cell?.winRate ?? null,
+            count:   cell?.count ?? 0,
+            hasData: !!(cell && cell.count > 0),
+        };
+    }).filter(d => d.hasData);
+
+    if (data.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <BarChart3 size={15} color="#1a1a1a" />
+                <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Average Return by Holding Period</span>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function BacktestSignalComparisonChart({ bySignal, horizon, onHorizonChange, horizons }) {
+    const SIG_LABELS = {
+        RANGE_BREAKOUT_BULL: 'Range Breakout ▲', RANGE_BREAKOUT_BEAR: 'Range Breakout ▼',
+        ACCELERATING_BULL:   'Accelerating ▲',    ACCELERATING_BEAR:   'Accelerating ▼',
+        BREAKOUT:            'Breakout',          TREND_BUILDING:      'Trend Building', WATCH: 'Watch',
+    };
+    const MIN_SAMPLE = 3;
+    const data = Object.entries(bySignal || {})
+        .map(([key, hmap]) => {
+            const cell = hmap[String(horizon)];
+            return { label: SIG_LABELS[key] || key.replace(/_/g, ' '), value: cell?.avgDirectionAdjustedReturn ?? null, winRate: cell?.winRate ?? null, count: cell?.count ?? 0 };
+        })
+        .filter(d => d.value !== null && d.count >= MIN_SAMPLE)
+        .sort((a, b) => b.value - a.value);
+
+    if (data.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <Telescope size={15} color="#1a1a1a" />
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Signal Performance</span>
+                </div>
+                <div style={{ display:'flex', gap:'4px' }}>
+                    {horizons.map(h => (
+                        <button key={h} onClick={() => onHorizonChange(String(h))} style={{
+                            padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                            border:`1px solid ${String(horizon) === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                            backgroundColor: String(horizon) === String(h) ? '#eff6ff' : '#fff',
+                            color: String(horizon) === String(h) ? '#2563eb' : '#94a3b8',
+                        }}>{h}D</button>
+                    ))}
+                </div>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>min. 3 signals per type shown</span>
+            </div>
+            <ResponsiveContainer width="100%" height={Math.max(160, data.length * 34)}>
+                <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#334155' }} width={140} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function BacktestGroupComparisonChart({ title, IconComp, data, horizon, onHorizonChange, horizons, labelize }) {
+    const MIN_SAMPLE = 3;
+    const chartData = Object.entries(data || {})
+        .map(([key, hmap]) => {
+            const cell = hmap[String(horizon)];
+            return { label: labelize ? labelize(key) : key.replace(/_/g, ' '), value: cell?.avgDirectionAdjustedReturn ?? null, winRate: cell?.winRate ?? null, count: cell?.count ?? 0 };
+        })
+        .filter(d => d.value !== null && d.count >= MIN_SAMPLE)
+        .sort((a, b) => b.value - a.value);
+
+    if (chartData.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <IconComp size={15} color="#1a1a1a" />
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>{title}</span>
+                </div>
+                <div style={{ display:'flex', gap:'4px' }}>
+                    {horizons.map(h => (
+                        <button key={h} onClick={() => onHorizonChange(String(h))} style={{
+                            padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                            border:`1px solid ${String(horizon) === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                            backgroundColor: String(horizon) === String(h) ? '#eff6ff' : '#fff',
+                            color: String(horizon) === String(h) ? '#2563eb' : '#94a3b8',
+                        }}>{h}D</button>
+                    ))}
+                </div>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>min. 3 per group shown</span>
+            </div>
+            <ResponsiveContainer width="100%" height={Math.max(160, chartData.length * 34)}>
+                <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#334155' }} width={140} />
+                    <Tooltip content={<BacktestTooltip />} />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                        {chartData.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function GlobalPicksPlainEnglish({ gpData }) {
+    if (!gpData || gpData.totalPicks === 0) return null;
+    const REF_HORIZON = '5';
+    const MIN_SAMPLE  = 3;
+    const insights = [];
+
+    const overallCell = gpData.aggregate?.ALL?.[REF_HORIZON];
+    if (overallCell && overallCell.count > 0) {
+        insights.push({
+            Icon: Target, positive: overallCell.avgDirectionAdjustedReturn >= 0,
+            text: `Across ${overallCell.count} saved global picks, the call was right ${overallCell.winRate}% of the time over 5 trading days — averaging ${overallCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${overallCell.avgDirectionAdjustedReturn}% per pick.`,
+        });
+    }
+
+    const recEntries = Object.entries(gpData.byRec || {})
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (recEntries.length > 0) {
+        const sorted = [...recEntries].sort((a, b) => b.cell.avgDirectionAdjustedReturn - a.cell.avgDirectionAdjustedReturn);
+        const best = sorted[0];
+        insights.push({
+            Icon: TrendingUp, positive: true,
+            text: `Best-performing rec label: "${best.key}" — right ${best.cell.winRate}% of the time over 5 days, averaging ${best.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${best.cell.avgDirectionAdjustedReturn}% (${best.cell.count} picks).`,
+        });
+    }
+
+    const topCell = gpData.byTopPick?.['Top Pick']?.[REF_HORIZON];
+    const regCell = gpData.byTopPick?.['Regular']?.[REF_HORIZON];
+    if (topCell && topCell.count >= MIN_SAMPLE && regCell && regCell.count >= MIN_SAMPLE) {
+        const diff = Math.round((topCell.avgDirectionAdjustedReturn - regCell.avgDirectionAdjustedReturn) * 10) / 10;
+        insights.push({
+            Icon: Brain, positive: diff >= 0,
+            text: `Picks flagged as "Top Pick" beat regular picks by ${diff >= 0 ? '+' : ''}${diff}pp on average over 5 days — ${diff >= 0 ? 'the top-pick flag appears to be adding real signal.' : "worth a look — regular picks actually held up better here."}`,
+        });
+    }
+
+    const convEntries = Object.entries(gpData.byConvictionBucket || {})
+        .filter(([k]) => k !== 'Unknown')
+        .map(([key, hmap]) => ({ key, cell: hmap[REF_HORIZON] }))
+        .filter(e => e.cell && e.cell.count >= MIN_SAMPLE);
+    if (convEntries.length >= 2) {
+        const rank = { '8-10': 3, '6-7': 2, '4-5': 1, '1-3': 0 };
+        const sorted = [...convEntries].sort((a, b) => rank[b.key] - rank[a.key]);
+        const high = sorted[0], low = sorted[sorted.length - 1];
+        if (high && low && high.key !== low.key) {
+            insights.push({
+                Icon: Gauge, positive: high.cell.avgDirectionAdjustedReturn >= low.cell.avgDirectionAdjustedReturn,
+                text: `High-conviction picks (${high.key}) averaged ${high.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${high.cell.avgDirectionAdjustedReturn}% vs ${low.cell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${low.cell.avgDirectionAdjustedReturn}% for low-conviction (${low.key}) — ${high.cell.avgDirectionAdjustedReturn >= low.cell.avgDirectionAdjustedReturn ? "conviction level tracks with results so far." : "conviction level isn't tracking with results yet."}`,
+            });
+        }
+    }
+
+    if (gpData.totalPicks < 15) {
+        insights.push({
+            Icon: AlertTriangle, positive: null,
+            text: `Only ${gpData.totalPicks} global picks saved so far — treat these numbers as early signal, not a verdict.`,
+        });
+    }
+
+    if (insights.length === 0) return null;
+
+    return (
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px', marginBottom:'22px' }}>
+            {insights.map((ins, i) => {
+                const color = ins.positive === true ? '#10b981' : ins.positive === false ? '#ef4444' : '#f59e0b';
+                const bg    = ins.positive === true ? '#f0fdf4' : ins.positive === false ? '#fef2f2' : '#fffbeb';
+                const Icon  = ins.Icon;
+                return (
+                    <div key={i} style={{
+                        display:'flex', gap:'10px', alignItems:'flex-start',
+                        padding:'10px 14px', backgroundColor:bg, borderRadius:'10px', border:`1px solid ${color}30`,
+                    }}>
+                        <Icon size={16} color={color} style={{ flexShrink:0, marginTop:'1px' }} />
+                        <div style={{ fontSize:'12.5px', color:'#333', lineHeight:1.55 }}>{ins.text}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function GlobalPicksTopBottomPerformers({ rows, horizon }) {
+    const resolved = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ ...r, value: r.directionAdjustedReturns[horizon] }));
+    if (resolved.length < 2) return null;
+
+    const sorted = [...resolved].sort((a, b) => b.value - a.value);
+    const best  = sorted[0];
+    const worst = sorted[sorted.length - 1];
+
+    const Card = ({ item, isBest }) => (
+        <div style={{
+            flex:1, minWidth:'220px', padding:'12px 14px', borderRadius:'10px',
+            backgroundColor: isBest ? '#f0fdf4' : '#fef2f2',
+            border:`1px solid ${isBest ? '#bbf7d0' : '#fecaca'}`,
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px' }}>
+                {isBest ? <TrendingUp size={14} color="#10b981" /> : <TrendingDown size={14} color="#ef4444" />}
+                <span style={{ fontSize:'10px', fontWeight:'800', color: isBest ? '#10b981' : '#ef4444', letterSpacing:'0.06em' }}>
+                    {isBest ? 'BEST PERFORMER' : 'WORST PERFORMER'} · {horizon}D
+                </span>
+            </div>
+            <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>
+                {item.flag} {item.symbol} <span style={{ fontWeight:'500', color:'#64748b', fontSize:'12px' }}>({item.name})</span>
+            </div>
+            <div style={{ fontSize:'11px', color:'#64748b', marginTop:'2px' }}>
+                {item.country} · {item.sector} · {item.rec} · saved {item.date}
+            </div>
+            <div style={{ fontSize:'20px', fontWeight:'900', color: isBest ? '#10b981' : '#ef4444', marginTop:'6px' }}>
+                {item.value >= 0 ? '+' : ''}{item.value}%
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'22px' }}>
+            <Card item={best} isBest={true} />
+            <Card item={worst} isBest={false} />
+        </div>
+    );
+}
+
+function GlobalPicksDetailTable({ rows, horizons, sortField, sortDir, onSort, onSelectTicker, onClose }) {
+    if (!rows || rows.length === 0) return null;
+
+    const sorted = [...rows].sort((a, b) => {
+        let av, bv;
+        if (sortField === 'date')          { av = a.date; bv = b.date; }
+        else if (sortField === 'symbol')   { av = a.symbol; bv = b.symbol; }
+        else if (sortField === 'country')  { av = a.country || ''; bv = b.country || ''; }
+        else if (sortField === 'sector')   { av = a.sector || ''; bv = b.sector || ''; }
+        else if (sortField === 'conviction') { av = a.conviction ?? -1; bv = b.conviction ?? -1; }
+        else {
+            av = a.directionAdjustedReturns?.[sortField]; av = av == null ? -Infinity : av;
+            bv = b.directionAdjustedReturns?.[sortField]; bv = bv == null ? -Infinity : bv;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const SortHeader = ({ field, label, align = 'left' }) => (
+        <th
+            onClick={() => onSort(field)}
+            style={{
+                padding:'8px 10px', textAlign:align, fontWeight:'700', color: sortField === field ? '#7c3aed' : '#64748b',
+                borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none',
+            }}
+        >
+            {label} {sortField === field ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </th>
+    );
+
+    return (
+        <div style={{ marginBottom:'20px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <span style={{ fontSize:'14px' }}>🌍</span>
+                <span style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>Individual Picks — {rows.length} total</span>
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>click a column to sort · click a symbol to open in screener</span>
+            </div>
+            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                    <thead>
+                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                            <SortHeader field="symbol" label="Symbol" />
+                            <SortHeader field="country" label="Country" />
+                            <SortHeader field="sector" label="Sector" />
+                            <SortHeader field="conviction" label="Conv." align="center" />
+                            <SortHeader field="date" label="Saved" />
+                            <th style={{ padding:'8px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Dir</th>
+                            {horizons.map(h => (
+                                <SortHeader key={h} field={String(h)} label={HORIZON_LABELS[h] || `${h}D`} align="center" />
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((r, i) => (
+                            <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <td style={{ padding:'7px 10px', fontWeight:'800', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                    {onSelectTicker ? (
+                                        <span
+                                            onClick={() => { onSelectTicker(r.symbol); onClose && onClose(); }}
+                                            style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}
+                                        >{r.flag} {r.symbol}</span>
+                                    ) : <>{r.flag} {r.symbol}</>}
+                                    {r.topPick && <span title="Flagged as Top Pick" style={{ marginLeft:'4px' }}>⭐</span>}
+                                </td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{r.country}</td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{r.sector}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{r.conviction ?? '—'}</td>
+                                <td style={{ padding:'7px 10px', color:'#64748b', whiteSpace:'nowrap' }}>{r.date}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                    <span style={{
+                                        fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                        backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                        color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'}</span>
+                                </td>
+                                {horizons.map(h => {
+                                    if (r.error) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }} title={r.error}>err</td>;
+                                    const v = r.directionAdjustedReturns?.[String(h)];
+                                    if (v == null) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                    return (
+                                        <td key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: v >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {v >= 0 ? '+' : ''}{v}%
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function computeAggregateFromRows(rows, horizons) {
+    const cell = {};
+    horizons.forEach(h => { cell[String(h)] = { count: 0, dirSum: 0, wins: 0 }; });
+    (rows || []).forEach(r => {
+        if (r.error) return;
+        horizons.forEach(h => {
+            const v = r.directionAdjustedReturns?.[String(h)];
+            if (v == null) return;
+            const c = cell[String(h)];
+            c.count += 1; c.dirSum += v; if (v > 0) c.wins += 1;
+        });
+    });
+    const out = { ALL: {} };
+    horizons.forEach(h => {
+        const c = cell[String(h)];
+        out.ALL[String(h)] = c.count === 0
+            ? { count: 0, avgReturn: null, avgDirectionAdjustedReturn: null, winRate: null }
+            : {
+                count: c.count,
+                avgReturn: Math.round((c.dirSum / c.count) * 100) / 100,
+                avgDirectionAdjustedReturn: Math.round((c.dirSum / c.count) * 100) / 100,
+                winRate: Math.round((c.wins / c.count) * 1000) / 10,
+            };
+    });
+    return out;
+}
+
+function normalizeRowsForPerfModal(rawRows, source) {
+    return (rawRows || []).map(r => ({
+        date: r.date,
+        label: source === 'scanner' ? (r.signal || '').replace(/_/g, ' ') : (r.rec || ''),
+        direction: r.direction,
+        scoreLabel: source === 'scanner'
+            ? `Score ${r.score != null ? Math.round(r.score) : '—'}`
+            : `Conviction ${r.conviction ?? '—'}`,
+        entryPrice: r.entryPrice,
+        error: r.error,
+        directionAdjustedReturns: r.directionAdjustedReturns,
+        rawReturns: r.rawReturns,
+    }));
+}
+
+function TickerReturnTimelineTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+        <div style={{ backgroundColor:'#0f172a', color:'#fff', padding:'8px 12px', borderRadius:'8px', fontSize:'12px', lineHeight:1.6 }}>
+            <div style={{ fontWeight:'800' }}>{d.date}</div>
+            <div>{d.label}</div>
+            <div>Return: <strong style={{ color: d.value >= 0 ? '#10b981' : '#ef4444' }}>{d.value >= 0 ? '+' : ''}{d.value}%</strong></div>
+            {d.entryPrice != null && <div>Entry: ${d.entryPrice}</div>}
+        </div>
+    );
+}
+
+function TickerReturnTimelineChart({ rows, horizon }) {
+    const data = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ date: r.date, label: r.label, value: r.directionAdjustedReturns[horizon], entryPrice: r.entryPrice }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    if (data.length === 0) return null;
+    return (
+        <div style={{ marginBottom:'24px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'10px' }}>
+                <Calendar size={15} color="#1a1a1a" />
+                <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>Return Over Time — {horizon}D Horizon</span>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => `${v}%`} />
+                    <Tooltip content={<TickerReturnTimelineTooltip />} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {data.map((d, i) => <Cell key={i} fill={d.value >= 0 ? '#10b981' : '#ef4444'} />)}
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function ScannerBacktestTopBottomPerformers({ rows, horizon }) {
+    const resolved = (rows || [])
+        .filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null)
+        .map(r => ({ ...r, value: r.directionAdjustedReturns[horizon] }));
+    if (resolved.length < 2) return null;
+
+    const sorted = [...resolved].sort((a, b) => b.value - a.value);
+    const best  = sorted[0];
+    const worst = sorted[sorted.length - 1];
+
+    const Card = ({ item, isBest }) => (
+        <div style={{
+            flex:1, minWidth:'220px', padding:'12px 14px', borderRadius:'10px',
+            backgroundColor: isBest ? '#f0fdf4' : '#fef2f2',
+            border:`1px solid ${isBest ? '#bbf7d0' : '#fecaca'}`,
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom:'6px' }}>
+                {isBest ? <TrendingUp size={14} color="#10b981" /> : <TrendingDown size={14} color="#ef4444" />}
+                <span style={{ fontSize:'10px', fontWeight:'800', color: isBest ? '#10b981' : '#ef4444', letterSpacing:'0.06em' }}>
+                    {isBest ? 'BEST SIGNAL' : 'WORST SIGNAL'} · {horizon}D
+                </span>
+            </div>
+            <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{item.ticker}</div>
+            <div style={{ fontSize:'11px', color:'#64748b', marginTop:'2px' }}>
+                {(item.signal || '').replace(/_/g,' ')} · {item.direction} · flagged {item.date}
+            </div>
+            <div style={{ fontSize:'20px', fontWeight:'900', color: isBest ? '#10b981' : '#ef4444', marginTop:'6px' }}>
+                {item.value >= 0 ? '+' : ''}{item.value}%
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', marginBottom:'22px' }}>
+            <Card item={best} isBest={true} />
+            <Card item={worst} isBest={false} />
+        </div>
+    );
+}
+
+function ScannerBacktestDetailTable({ rows, horizons, onSelectAsset, onSelectTicker, onClose }) {
+    const [search, setSearch] = React.useState('');
+    const [sortField, setSortField] = React.useState('date');
+    const [sortDir, setSortDir] = React.useState('desc');
+
+    if (!rows || rows.length === 0) return null;
+
+    const filtered = search.trim()
+        ? rows.filter(r => r.ticker?.toUpperCase().includes(search.trim().toUpperCase()))
+        : rows;
+
+    const sorted = [...filtered].sort((a, b) => {
+        let av, bv;
+        if (sortField === 'date')        { av = a.date; bv = b.date; }
+        else if (sortField === 'ticker') { av = a.ticker; bv = b.ticker; }
+        else if (sortField === 'signal') { av = a.signal || ''; bv = b.signal || ''; }
+        else if (sortField === 'score')  { av = a.score ?? -1; bv = b.score ?? -1; }
+        else {
+            av = a.directionAdjustedReturns?.[sortField]; av = av == null ? -Infinity : av;
+            bv = b.directionAdjustedReturns?.[sortField]; bv = bv == null ? -Infinity : bv;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const onSort = (field) => {
+        if (field === sortField) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        else { setSortField(field); setSortDir('desc'); }
+    };
+
+    const SortHeader = ({ field, label, align = 'left' }) => (
+        <th onClick={() => onSort(field)} style={{
+            padding:'8px 10px', textAlign:align, fontWeight:'700', color: sortField === field ? '#2563eb' : '#64748b',
+            borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none',
+        }}>
+            {label} {sortField === field ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+        </th>
+    );
+
+    return (
+        <div style={{ marginBottom:'20px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <Telescope size={14} />
+                    <span style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>Individual Signals — {filtered.length} of {rows.length}</span>
+                </div>
+                <input
+                    type="text" value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder="Search ticker..."
+                    style={{ padding:'4px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'11px', outline:'none', width:'130px' }}
+                />
+                <span style={{ fontSize:'10px', color:'#94a3b8' }}>click a column to sort · click a ticker for detailed stats</span>
+            </div>
+            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                    <thead>
+                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                            <SortHeader field="ticker" label="Ticker" />
+                            <SortHeader field="signal" label="Signal" />
+                            <th style={{ padding:'8px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Dir</th>
+                            <SortHeader field="score" label="Score" align="center" />
+                            <SortHeader field="date" label="Date" />
+                            {horizons.map(h => (
+                                <SortHeader key={h} field={String(h)} label={HORIZON_LABELS[h] || `${h}D`} align="center" />
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((r, i) => (
+                            <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <td style={{ padding:'7px 10px', fontWeight:'800', whiteSpace:'nowrap' }}>
+                                    <span onClick={() => onSelectAsset(r.ticker)} style={{ cursor:'pointer', color:'#7c3aed', textDecoration:'underline dotted' }}>
+                                        {r.ticker}
+                                    </span>
+                                    {onSelectTicker && (
+                                        <span onClick={() => { onSelectTicker(r.ticker); onClose && onClose(); }} title="Open in full screener"
+                                            style={{ marginLeft:'6px', fontSize:'10px', color:'#94a3b8', cursor:'pointer' }}>↗</span>
+                                    )}
+                                </td>
+                                <td style={{ padding:'7px 10px', color:'#475569', whiteSpace:'nowrap' }}>{(r.signal || '').replace(/_/g,' ')}</td>
+                                <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                    <span style={{
+                                        fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                        backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                        color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                    }}>{r.direction === 'BULLISH' ? '▲' : r.direction === 'BEARISH' ? '▼' : '→'}</span>
+                                </td>
+                                <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{r.score != null ? Math.round(r.score) : '—'}</td>
+                                <td style={{ padding:'7px 10px', color:'#64748b', whiteSpace:'nowrap' }}>{r.date}</td>
+                                {horizons.map(h => {
+                                    if (r.error) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }} title={r.error}>err</td>;
+                                    const v = r.directionAdjustedReturns?.[String(h)];
+                                    if (v == null) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                    return (
+                                        <td key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: v >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {v >= 0 ? '+' : ''}{v}%
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                        {sorted.length === 0 && (
+                            <tr><td colSpan={5 + horizons.length} style={{ padding:'20px', textAlign:'center', color:'#94a3b8' }}>No tickers match "{search}"</td></tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function TickerPerformanceModal({ symbol, rows, horizons, sourceLabel, onClose, onOpenInScreener }) {
+    const [horizon, setHorizon] = React.useState('5');
+    if (!symbol) return null;
+
+    const resolvedCount = rows.filter(r => !r.error).length;
+    const errorCount = rows.length - resolvedCount;
+    const aggregate = computeAggregateFromRows(rows, horizons);
+    const currentCell = aggregate.ALL[horizon];
+    const stabilityStats = computeStabilityStats(rows, horizons);
+    const stabilityInfo = stabilityLabel(stabilityStats.combined.winRate);
+
+    const sortedByDate = [...rows].sort((a, b) => b.date.localeCompare(a.date));
+    const firstDate = rows.length ? [...rows].sort((a, b) => a.date.localeCompare(b.date))[0].date : null;
+    const lastDate  = rows.length ? sortedByDate[0].date : null;
+
+    const resolvedAtHorizon = rows.filter(r => !r.error && r.directionAdjustedReturns?.[horizon] != null);
+    const best  = resolvedAtHorizon.length ? [...resolvedAtHorizon].sort((a, b) => b.directionAdjustedReturns[horizon] - a.directionAdjustedReturns[horizon])[0] : null;
+    const worst = resolvedAtHorizon.length ? [...resolvedAtHorizon].sort((a, b) => a.directionAdjustedReturns[horizon] - b.directionAdjustedReturns[horizon])[0] : null;
+
+    return (
+        <div
+            style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10035, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto' }}
+            onClick={onClose}
+        >
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'720px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.3)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)', display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                    <div>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                            <BarChart3 size={18} color="#fff" />
+                            <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>{symbol}</span>
+                            <span style={{ fontSize:'11px', fontWeight:'700', padding:'2px 9px', borderRadius:'20px', backgroundColor:'rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.8)' }}>{sourceLabel}</span>
+                        </div>
+                        <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                            {rows.length} occurrence{rows.length !== 1 ? 's' : ''} {firstDate && lastDate ? `· ${firstDate} → ${lastDate}` : ''}
+                        </div>
+                    </div>
+                    <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                </div>
+
+                <div style={{ padding:'20px', maxHeight:'72vh', overflowY:'auto' }}>
+                    <div style={{ display:'flex', gap:'6px', marginBottom:'16px' }}>
+                        {horizons.map(h => (
+                            <button key={h} onClick={() => setHorizon(String(h))} style={{
+                                padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${horizon === String(h) ? '#3b82f6' : '#e2e8f0'}`,
+                                backgroundColor: horizon === String(h) ? '#eff6ff' : '#fff',
+                                color: horizon === String(h) ? '#2563eb' : '#94a3b8',
+                            }}>{h}D</button>
+                        ))}
+                    </div>
+
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'10px', marginBottom:'22px' }}>
+                        {[
+                            { label:'Occurrences', value: rows.length, Icon: Repeat, color:'#3b82f6' },
+                            { label:`Win Rate (${horizon}D)`, value: currentCell?.winRate != null ? `${currentCell.winRate}%` : '—', Icon: Target, color: currentCell?.winRate >= 50 ? '#10b981' : '#ef4444' },
+                            { label:`Avg Return (${horizon}D)`, value: currentCell?.avgDirectionAdjustedReturn != null ? `${currentCell.avgDirectionAdjustedReturn >= 0 ? '+' : ''}${currentCell.avgDirectionAdjustedReturn}%` : '—', Icon: BarChart3, color: currentCell?.avgDirectionAdjustedReturn >= 0 ? '#10b981' : '#ef4444' },
+                            { label:'Stability (Combined)', value: stabilityStats.combined.stabilityScore != null ? `${stabilityStats.combined.stabilityScore}%` : '—', Icon: Shield, color: stabilityInfo.color },
+                            { label:'Data Errors', value: errorCount, Icon: AlertTriangle, color: errorCount > 0 ? '#f59e0b' : '#94a3b8' },
+                        ].map((s, i) => (
+                            <div key={i} style={{ padding:'12px', borderRadius:'10px', backgroundColor:'#f8fafc', border:'1px solid #e2e8f0' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                    <s.Icon size={12} color={s.color} />
+                                    <span style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.05em' }}>{s.label.toUpperCase()}</span>
+                                </div>
+                                <div style={{ fontSize:'17px', fontWeight:'800', color:s.color }}>{s.value}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {(best || worst) && (
+                        <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'22px' }}>
+                            {best && (
+                                <div style={{ flex:1, minWidth:'200px', padding:'10px 12px', borderRadius:'10px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                        <Award size={13} color="#10b981" />
+                                        <span style={{ fontSize:'10px', fontWeight:'800', color:'#10b981' }}>BEST CALL</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'#333' }}>{best.date} · {best.label}</div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#10b981' }}>+{best.directionAdjustedReturns[horizon]}%</div>
+                                </div>
+                            )}
+                            {worst && (
+                                <div style={{ flex:1, minWidth:'200px', padding:'10px 12px', borderRadius:'10px', backgroundColor:'#fef2f2', border:'1px solid #fecaca' }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'5px', marginBottom:'4px' }}>
+                                        <TrendingDown size={13} color="#ef4444" />
+                                        <span style={{ fontSize:'10px', fontWeight:'800', color:'#ef4444' }}>WORST CALL</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'#333' }}>{worst.date} · {worst.label}</div>
+                                    <div style={{ fontSize:'16px', fontWeight:'800', color:'#ef4444' }}>{worst.directionAdjustedReturns[horizon]}%</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                                        <div style={{ marginBottom:'22px' }}>
+                        <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px' }}>
+                            <Shield size={14} /> Stability by Horizon (Individual Days)
+                        </div>
+                        <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                            {horizons.map(h => {
+                                const cell = stabilityStats.byHorizon[String(h)];
+                                const info = stabilityLabel(cell?.winRate);
+                                return (
+                                    <div key={h} style={{ padding:'8px 12px', borderRadius:'10px', backgroundColor: `${info.color}10`, border:`1px solid ${info.color}30`, minWidth:'70px', textAlign:'center' }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>{h}D</div>
+                                        <div style={{ fontSize:'15px', fontWeight:'900', color: info.color }}>{cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}</div>
+                                        <div style={{ fontSize:'8px', color:'#94a3b8' }}>n={cell?.count ?? 0}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <BacktestReturnByHorizonChart aggregate={aggregate} horizons={horizons} />
+                    <TickerReturnTimelineChart rows={rows} horizon={horizon} />
+
+                    <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px' }}>All Occurrences</div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:'6px', marginBottom:'12px' }}>
+                        {sortedByDate.map((r, i) => (
+                            <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'11px', color:'#64748b', minWidth:'75px' }}>{r.date}</span>
+                                <span style={{ fontSize:'11px', color:'#475569' }}>{r.label}</span>
+                                <span style={{
+                                    fontSize:'10px', fontWeight:'700', padding:'1px 7px', borderRadius:'10px',
+                                    backgroundColor: r.direction === 'BULLISH' ? '#f0fdf4' : r.direction === 'BEARISH' ? '#fef2f2' : '#f8fafc',
+                                    color: r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8',
+                                }}>{r.direction}</span>
+                                <span style={{ fontSize:'10px', color:'#94a3b8' }}>{r.scoreLabel}</span>
+                                <span style={{ marginLeft:'auto', fontSize:'12px', fontWeight:'800',
+                                    color: r.error ? '#94a3b8' : (r.directionAdjustedReturns?.[horizon] >= 0 ? '#10b981' : '#ef4444') }}>
+                                    {r.error ? 'no data' : (r.directionAdjustedReturns?.[horizon] != null ? `${r.directionAdjustedReturns[horizon] >= 0 ? '+' : ''}${r.directionAdjustedReturns[horizon]}%` : '—')}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {onOpenInScreener && (
+                        <button onClick={onOpenInScreener} style={{
+                            width:'100%', padding:'11px', borderRadius:'10px',
+                            background:'linear-gradient(135deg,#1e3a5f,#2563eb)', color:'#fff', border:'none',
+                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                        }}>→ Open {symbol} in Full Screener</button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const [loading, setLoading] = React.useState(false);
+    const [isBackgroundRunning, setIsBackgroundRunning] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const [data, setData] = React.useState(null);
+    const [search, setSearch] = React.useState('');
+    const [countryFilter, setCountryFilter] = React.useState('ALL');
+    const [dirFilter, setDirFilter] = React.useState('ALL');
+    const [collapsedCountries, setCollapsedCountries] = React.useState({});
+    const [expandedTicker, setExpandedTicker] = React.useState(null);
+    const pollRef = React.useRef(null);
+
+        const [gpChartTicker, setGpChartTicker] = React.useState(null);
+    const [gpChartInterval, setGpChartInterval] = React.useState('1D');
+    const [gpShowAllCharts, setGpShowAllCharts] = React.useState(false);
+    const [gpShowAllChartsByCountry, setGpShowAllChartsByCountry] = React.useState({});
+    const toggleCountryCharts = (country) => setGpShowAllChartsByCountry(prev => ({ ...prev, [country]: !prev[country] }));
+
+    
+
+        // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
+    const [aiRuns, setAiRuns] = React.useState({});
+    const [aiSynthesis, setAiSynthesis] = React.useState({});
+    const [aiPromptScope, setAiPromptScope] = React.useState(null);
+    const [showAiPromptModal, setShowAiPromptModal] = React.useState(false);
+    const [showAiPasteModal, setShowAiPasteModal] = React.useState(false);
+    const [aiPasteText, setAiPasteText] = React.useState('');
+    const [aiPasteSource, setAiPasteSource] = React.useState('');
+    const [aiPasteError, setAiPasteError] = React.useState(null);
+    const [aiCopied, setAiCopied] = React.useState(false);
+    const [aiLastOpenedSource, setAiLastOpenedSource] = React.useState('');
+
+    // -- Stability check (reuses shared helpers built for the Trend Scanner) --
+    const GP_STABILITY_HORIZONS = [1, 3, 5, 10, 20];
+    const [gpStabilityLoading, setGpStabilityLoading] = React.useState(false);
+    const [gpStabilityError, setGpStabilityError] = React.useState(null);
+    const [gpStabilityRows, setGpStabilityRows] = React.useState([]);
+    const [gpStabilityData, setGpStabilityData] = React.useState(null);
+    const [perfModalTicker, setPerfModalTicker] = React.useState(null);
+
+    const GP_AI_VERDICT_CONFIG = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'⛔' },
+    };
+
+    const GP_SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', icon:'👁', label:'Watch'             },
+    };
+
+        // -- Local (same-browser, same-day) AI data persistence — survives reload/tab-switch
+    // but is NOT shared across devices and is separate from Trend Scanner's backend save --
+    const GP_AI_CACHE_KEY = 'snowvault_global_picks_ai_cache';
+    React.useEffect(() => {
+        try {
+            const raw = localStorage.getItem(GP_AI_CACHE_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                const today = new Date().toISOString().slice(0, 10);
+                if (parsed.date === today) {
+                    if (parsed.aiRuns) setAiRuns(parsed.aiRuns);
+                    if (parsed.aiSynthesis) setAiSynthesis(parsed.aiSynthesis);
+                }
+            }
+        } catch (e) { console.error('[GP AI cache load]', e); }
+    }, []);
+    React.useEffect(() => {
+        try {
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(GP_AI_CACHE_KEY, JSON.stringify({ date: today, aiRuns, aiSynthesis }));
+        } catch (e) { console.error('[GP AI cache save]', e); }
+    }, [aiRuns, aiSynthesis]);
+    const run = async (forceRefresh = false) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ forceRefresh }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+            setIsBackgroundRunning(!!json.isRunning);
+
+            if (json.isRunning && !pollRef.current) {
+                pollRef.current = setInterval(async () => {
+                    try {
+                        const pRes  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ forceRefresh: false }),
+                        });
+                        const pJson = await pRes.json();
+                        setData(pJson);
+                        setIsBackgroundRunning(!!pJson.isRunning);
+                        if (!pJson.isRunning) { clearInterval(pollRef.current); pollRef.current = null; }
+                    } catch (e) { console.error('[GlobalPicksTrendScan poll]', e); }
+                }, 5000);
+            }
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const forceReset = async () => {
+        setLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_global_picks_trend_scan_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ resetLock: true }),
+            });
+            const json = await res.json();
+            setData(json);
+            setIsBackgroundRunning(!!json.isRunning);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (isOpen && !data) run(false);
+        return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+    }, [isOpen]);
+
+    const toggleCountryCollapse = (country) => setCollapsedCountries(prev => ({ ...prev, [country]: !prev[country] }));
+
+    const countryEntries = React.useMemo(() => {
+        if (!data?.countries) return [];
+        return Object.entries(data.countries)
+            .filter(([country]) => countryFilter === 'ALL' || country === countryFilter)
+            .map(([country, cData]) => {
+                const tickers = cData.tickers.filter(t => {
+                    if (search.trim() && !t.ticker.toUpperCase().includes(search.trim().toUpperCase())) return false;
+                    if (dirFilter !== 'ALL' && t.direction !== dirFilter) return false;
+                    return true;
+                });
+                return [country, { ...cData, tickers }];
+            })
+            .filter(([, cData]) => cData.tickers.length > 0)
+            .sort((a, b) => (b[1].summary?.avgScore || 0) - (a[1].summary?.avgScore || 0));
+    }, [data, search, dirFilter, countryFilter]);
+
+    const allCountryNames = data?.countries ? Object.keys(data.countries).sort() : [];
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+    };
+
+        const buildGpCohortContext = () => {
+        if (!data?.countries) return '';
+        return Object.entries(data.countries).map(([country, cData]) => {
+            const s = cData.summary || {};
+            return `- ${cData.flag} ${country}: ${s.bullish} bullish / ${s.bearish} bearish / ${s.neutral} neutral of ${s.total} picks · avg score ${s.avgScore ?? 'n/a'}`;
+        }).join('\n');
+    };
+
+    const buildGpAIPrompt = (tickerObjs) => {
+        const cohortCtx = buildGpCohortContext();
+        const lines = tickerObjs.map(t => {
+            const catalystsStr = Array.isArray(t.catalysts) && t.catalysts.length ? t.catalysts.join('; ') : 'none listed';
+            return `### ${t.ticker} — ${t.name || ''} (${t.flag || ''} ${t.country}, sector: ${t.pickSector || t.sector || 'Unknown'})
+Original Pick: ${t.pickRec}${t.conviction != null ? ` · conviction ${t.conviction}/10` : ''}${t.topPick ? ' · ⭐ Top Pick' : ''}
+Original Thesis: ${t.thesis || 'none recorded'}
+Original Risk Note: ${t.risk || 'none recorded'}
+Catalysts Noted: ${catalystsStr}
+Analyst Target: ${t.analystTarget || 'N/A'}
+
+Fresh Technical Scan: Signal ${t.signal} · Direction ${t.direction} · Score ${t.score}/100
+Price: $${t.currentPrice ?? 'N/A'} · Market Cap: ${t.marketCap ? '$' + (t.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}
+ADX: ${t.adxNow ?? 'N/A'} · ROC20: ${t.roc20 ?? 'N/A'}% · Volume Ratio: ${t.volRatio ?? 'N/A'}× · From 52W High: ${t.pctFromHigh ?? 'N/A'}%`;
+        }).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst. Below are stocks originally recommended by an AI (with a written thesis) via a Country-Sector Drill feature, now ALSO re-checked with a fresh technical trend scan. Assess how genuinely LUCRATIVE each is right now — weighing whether the fresh technical signal supports or contradicts the original thesis, and whether the move looks country/sector-wide or stock-specific.
+
+Search the web for current country/sector-wide context and recent company-specific news for each ticker below before answering — don't rely on memorized data.
+
+PEER COHORT ACROSS ALL COUNTRIES CURRENTLY TRACKED:
+${cohortCtx || 'No cohort data available.'}
+
+STOCK(S) TO ANALYSE:
+${lines}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble), one object per stock, in this exact shape:
+[
+  {
+    "ticker": "<ticker>",
+    "opportunityScore": <integer 0-100>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "badge": "<max 4 words, punchy, for a small inline UI badge>",
+    "cohortRelation": "<1-2 sentences: does the fresh technical signal support or contradict the original AI thesis? Country/sector-wide or stock-specific?>",
+    "thesis": "<2-3 sentences: your updated synthesis>",
+    "risks": "<1-2 sentences: the main thing that would invalidate this>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+    };
+
+    const buildGpSynthesisPrompt = (ticker) => {
+        const runs = aiRuns[ticker] || [];
+        const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Cohort Relation: ${run.cohortRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. ${runs.length} different AI models have each independently analysed the same stock, ${ticker}. Synthesise these ${runs.length} analyses into one final, most defensible verdict — explicitly flag where they agree, where they disagree, and why.
+
+${runLines}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble):
+{
+  "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+  "finalOpportunityScore": <integer 0-100>,
+  "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+  "consensusSummary": "<2-3 sentences>",
+  "disagreements": "<1-2 sentences — empty string if none>",
+  "synthesizedThesis": "<3-4 sentences: your final take>"
+}
+
+Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+    };
+
+    const buildGpBulkSynthesisPrompt = (tickers) => {
+        const sections = tickers.map(ticker => {
+            const runs = aiRuns[ticker] || [];
+            const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'}
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Cohort Relation: ${run.cohortRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+            return `## ${ticker}\n${runLines}`;
+        }).join('\n\n---\n\n');
+
+        return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. For EACH stock below, multiple AI models have each independently analysed it. Synthesise the analyses for EACH stock into one final, most defensible verdict per stock.
+
+${sections}
+
+For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks, no preamble):
+[
+  {
+    "ticker": "<ticker>",
+    "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "finalOpportunityScore": <integer 0-100>,
+    "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+    "consensusSummary": "<2-3 sentences per stock>",
+    "disagreements": "<1-2 sentences per stock — empty string if none>",
+    "synthesizedThesis": "<3-4 sentences per stock>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+    };
+
+    
+    const openBulkAIPrompt = () => {
+        if (!data?.countries) return;
+        const allTickerObjs = Object.entries(data.countries).flatMap(([country, cData]) =>
+            cData.tickers.map(t => ({ ...t, country, flag: cData.flag }))
+        );
+        setAiPromptScope({ mode: 'bulk', tickerObjs: allTickerObjs });
+        setShowAiPromptModal(true);
+    };
+    const openCountryAIPrompt = (country) => {
+        const cData = data?.countries?.[country];
+        if (!cData?.tickers?.length) return;
+        const tickerObjs = cData.tickers.map(t => ({ ...t, country, flag: cData.flag }));
+        setAiPromptScope({ mode: 'country', country, tickerObjs });
+        setShowAiPromptModal(true);
+    };
+    const openIndividualAIPrompt = (tObj) => { setAiPromptScope({ mode: 'individual', tickerObjs: [tObj], ticker: tObj.ticker }); setShowAiPromptModal(true); };
+    const openSynthesisPrompt = (ticker) => { setAiPromptScope({ mode: 'synthesis', ticker }); setShowAiPromptModal(true); };
+    const bulkSynthesisEligibleTickers = data?.countries
+        ? [...new Set(Object.values(data.countries).flatMap(c => c.tickers.map(t => t.ticker)))].filter(t => (aiRuns[t] || []).length >= 2)
+        : [];
+    const openBulkSynthesisPrompt = () => {
+        if (bulkSynthesisEligibleTickers.length === 0) return;
+        setAiPromptScope({ mode: 'bulkSynthesis', tickers: bulkSynthesisEligibleTickers });
+        setShowAiPromptModal(true);
+    };
+
+    const handleGpPasteAIResponse = () => {
+        setAiPasteError(null);
+        if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
+        const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        if (aiPromptScope?.mode === 'synthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (Array.isArray(parsed) || parsed.finalVerdict == null || parsed.synthesizedThesis == null) {
+                setAiPasteError('Expected a single JSON object with finalVerdict + synthesizedThesis.');
+                return;
+            }
+            const ticker  = aiPromptScope.ticker;
+            const updated = { ...aiSynthesis };
+            updated[ticker] = { ...parsed, runCountAtSynthesis: (aiRuns[ticker] || []).length, savedAt: new Date().toLocaleString() };
+            setAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
+            return;
+        }
+
+        if (aiPromptScope?.mode === 'bulkSynthesis') {
+            let parsed;
+            try { parsed = JSON.parse(clean); }
+            catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+            if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one synthesis object per stock).'); return; }
+            const updated = { ...aiSynthesis };
+            let added = 0;
+            parsed.forEach(item => {
+                const t = String(item?.ticker || '').toUpperCase().trim();
+                if (!t || item.finalVerdict == null || item.synthesizedThesis == null) return;
+                updated[t] = { ...item, runCountAtSynthesis: (aiRuns[t] || []).length, savedAt: new Date().toLocaleString() };
+                added += 1;
+            });
+            if (added === 0) { setAiPasteError('No valid synthesis entries found.'); return; }
+            setAiSynthesis(updated);
+            setShowAiPasteModal(false);
+            setAiPasteText('');
+            return;
+        }
+
+        let parsed;
+        try { parsed = JSON.parse(clean); }
+        catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
+        if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one object per stock).'); return; }
+        const source  = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const updated = { ...aiRuns };
+        let added = 0;
+        parsed.forEach(item => {
+            const t = String(item?.ticker || '').toUpperCase().trim();
+            if (!t || item.verdict == null || item.thesis == null) return;
+            if (!updated[t]) updated[t] = [];
+            updated[t] = [...updated[t], { ...item, ticker: t, source, savedAt: new Date().toLocaleString() }];
+            added += 1;
+        });
+        if (added === 0) { setAiPasteError('No valid stock entries found.'); return; }
+        setAiRuns(updated);
+        setShowAiPasteModal(false);
+        setAiPasteText('');
+        setAiPasteSource('');
+    };
+
+    const getGpConsensus = (ticker) => {
+        const runs = aiRuns[ticker];
+        if (!runs || runs.length === 0) return null;
+        const scores = runs.map(r => r.opportunityScore).filter(v => typeof v === 'number');
+        const meanScore = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+        const counts = {};
+        runs.forEach(r => { if (r.verdict) counts[r.verdict] = (counts[r.verdict]||0) + 1; });
+        const modeVerdict = Object.keys(counts).length ? Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0] : null;
+        const agreement = (modeVerdict && runs.length) ? Math.round((counts[modeVerdict]/runs.length) * 100) : null;
+        return { meanScore, modeVerdict, agreement, runCount: runs.length };
+    };
+
+    const runGpStabilityCheck = async () => {
+        if (!data?.countries) return;
+        const allTickers = [...new Set(Object.values(data.countries).flatMap(c => c.tickers.map(t => t.ticker)))];
+        if (allTickers.length === 0) return;
+        setGpStabilityLoading(true);
+        setGpStabilityError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_global_picks_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ symbols: allTickers, limit: 5000, horizons: GP_STABILITY_HORIZONS }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpStabilityRows(json.rows || []);
+            setGpStabilityData(computeStabilityByAsset(json.rows || [], GP_STABILITY_HORIZONS, 'symbol'));
+        } catch (e) {
+            setGpStabilityError(e.message);
+        } finally {
+            setGpStabilityLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <>
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10060,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'920px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #7c3aed 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>🌍</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Global Picks Trend Scan</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Same trend-scanner signals (ADX, ROC, breakouts) run across every saved Country-Sector Drill pick — grouped by country
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%',
+                            width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0,
+                        }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', marginTop:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                        <button onClick={() => run(true)} disabled={loading || isBackgroundRunning} style={{
+                            padding:'8px 20px', borderRadius:'9px',
+                            background: (loading || isBackgroundRunning) ? 'rgba(124,58,237,0.4)' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                            border:'none', color:'#fff', fontWeight:'800', fontSize:'13px',
+                            cursor: (loading || isBackgroundRunning) ? 'wait' : 'pointer',
+                            display:'flex', alignItems:'center', gap:'7px',
+                        }}>
+                            {loading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span> Loading...</>
+                                : isBackgroundRunning ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span> Scanning...</>
+                                : <><span>🔭</span> Run Fresh Scan</>}
+                        </button>
+
+                                                <button
+                            onClick={openBulkAIPrompt}
+                            disabled={!data || data.totalTickers === 0}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: (!data || data.totalTickers === 0) ? 'rgba(219,39,119,0.2)' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                                cursor: (!data || data.totalTickers === 0) ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >🧠 AI Opportunity Scan</button>
+
+                        <button
+                            onClick={openBulkSynthesisPrompt}
+                            disabled={bulkSynthesisEligibleTickers.length === 0}
+                            title={bulkSynthesisEligibleTickers.length === 0 ? 'Needs 2+ AI runs on at least one ticker' : `Synthesize ${bulkSynthesisEligibleTickers.length} tickers`}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: bulkSynthesisEligibleTickers.length === 0 ? 'rgba(99,102,241,0.15)' : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                                border:'none', color: bulkSynthesisEligibleTickers.length === 0 ? 'rgba(255,255,255,0.4)' : '#fff',
+                                fontWeight:'800', fontSize:'12px',
+                                cursor: bulkSynthesisEligibleTickers.length === 0 ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >✨ Synthesize All ({bulkSynthesisEligibleTickers.length})</button>
+
+                        <button
+                            onClick={runGpStabilityCheck}
+                            disabled={gpStabilityLoading || !data || data.totalTickers === 0}
+                            style={{
+                                padding:'8px 16px', borderRadius:'9px',
+                                background: (gpStabilityLoading || !data || data.totalTickers === 0) ? 'rgba(8,145,178,0.2)' : '#0891b2',
+                                border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                                cursor: (gpStabilityLoading || !data || data.totalTickers === 0) ? 'not-allowed' : 'pointer',
+                                display:'flex', alignItems:'center', gap:'6px',
+                            }}
+                        >
+                            {gpStabilityLoading ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>🛡️</span> Checking...</> : <>🛡️ Check Stability</>}
+                        </button>
+
+                        {data && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>
+                                {data.totalTickers} tickers · {data.totalCountries} countries
+                                {data.scannedAt ? ` · as of ${data.scannedAt}` : ''}
+                            </span>
+                        )}
+                    </div>
+
+                    {data && (
+                        <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                                placeholder="Search ticker..."
+                                style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'130px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                            <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)}
+                                style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                <option value="ALL">All Countries</option>
+                                {allCountryNames.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                                                        {['ALL','BULLISH','BEARISH','NEUTRAL'].map(d => (
+                                <button key={d} onClick={() => setDirFilter(d)} style={{
+                                    padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                    border:`1px solid ${dirFilter === d ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                    backgroundColor: dirFilter === d ? 'rgba(255,255,255,0.15)' : 'transparent',
+                                    color:'#fff',
+                                }}>{d === 'ALL' ? 'All Dirs' : d}</button>
+                            ))}
+                            <button onClick={() => setGpShowAllCharts(s => !s)} style={{
+                                padding:'5px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${gpShowAllCharts ? 'rgba(124,58,237,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: gpShowAllCharts ? 'rgba(124,58,237,0.2)' : 'transparent', color:'#fff',
+                            }}>{gpShowAllCharts ? '📊 Hide All Charts' : '📊 Show All Charts'}</button>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
+                    {!loading && !data && !error && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'48px', marginBottom:'14px' }}>🌍</div>
+                            <div style={{ fontSize:'16px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>Ready to scan</div>
+                            <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'380px', margin:'0 auto', lineHeight:1.6 }}>
+                                Hit <strong>Run Fresh Scan</strong> to check every saved Global Stock Pick for the same trend signals the Trend Scanner looks for.
+                            </div>
+                        </div>
+                    )}
+                    {loading && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⚡</div>
+                            <div style={{ fontSize:'13px', color:'#94a3b8' }}>Loading...</div>
+                        </div>
+                    )}
+                    {error && !loading && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>
+                    )}
+                    {isBackgroundRunning && (
+                        <div style={{ padding:'10px 20px', backgroundColor:'#faf5ff', borderBottom:'1px solid #ddd6fe', fontSize:'12px', color:'#6b21a8', fontWeight:'600', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                            <span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⚡</span>
+                            Fresh scan running in the background — showing cached results below (auto-updates every 5s).
+                            <button onClick={forceReset} style={{ marginLeft:'auto', padding:'3px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', border:'1px solid #ef4444', backgroundColor:'#fff', color:'#ef4444', cursor:'pointer' }}>
+                                ⚠️ Stuck? Force Reset
+                            </button>
+                        </div>
+                    )}
+
+                    {!loading && data && countryEntries.length === 0 && data.totalTickers > 0 && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No picks match your filters.</div>
+                    )}
+                    {!loading && data && data.totalTickers === 0 && !isBackgroundRunning && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No Global Stock Picks saved yet</div>
+                            <div style={{ fontSize:'13px', color:'#64748b' }}>Save some via the Country-Sector Drill feature first.</div>
+                        </div>
+                    )}
+
+                    {countryEntries.map(([country, cData]) => {
+                        const collapsed = !!collapsedCountries[country];
+                        const s = cData.summary || {};
+                        return (
+                            <div key={country} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                <div onClick={() => toggleCountryCollapse(country)} style={{
+                                    padding:'12px 20px', display:'flex', alignItems:'center', gap:'10px',
+                                    cursor:'pointer', backgroundColor:'#f8fafc', position:'sticky', top:0, zIndex:1, flexWrap:'wrap',
+                                }}>
+                                    <span style={{ fontSize:'13px', transition:'transform 0.15s', transform: collapsed ? 'rotate(-90deg)' : 'none', display:'inline-block' }}>▾</span>
+                                    <span style={{ fontSize:'18px' }}>{cData.flag}</span>
+                                    <span style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{country}</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8' }}>{s.total} picks</span>
+                                    <span style={{ fontSize:'11px', color:'#10b981', fontWeight:'700' }}>{s.bullish}▲</span>
+                                    <span style={{ fontSize:'11px', color:'#ef4444', fontWeight:'700' }}>{s.bearish}▼</span>
+                                                                        <span style={{ fontSize:'11px', color:'#94a3b8', fontWeight:'700' }}>{s.neutral}→</span>
+                                    {cData.sessionDate && (
+                                        <span style={{ fontSize:'10px', color:'#94a3b8' }}>· picked {cData.sessionDate}</span>
+                                    )}
+                                        
+                                                                        <button
+                                        onClick={(e) => { e.stopPropagation(); openCountryAIPrompt(country); }}
+                                        style={{
+                                            marginLeft: s.avgScore != null ? '10px' : 'auto',
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
+                                            border:'1px solid rgba(124,58,237,0.4)',
+                                            background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff',
+                                            whiteSpace:'nowrap',
+                                        }}
+                                    >🧠 Scan {country}</button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); toggleCountryCharts(country); }}
+                                        style={{
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'10px', fontWeight:'800', cursor:'pointer',
+                                            border:`1px solid ${gpShowAllChartsByCountry[country] ? 'rgba(15,23,42,0.6)' : 'rgba(15,23,42,0.3)'}`,
+                                            background: gpShowAllChartsByCountry[country] ? '#0f172a' : 'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                            color:'#fff', whiteSpace:'nowrap',
+                                        }}
+                                    >{gpShowAllChartsByCountry[country] ? '📊 Hide Charts' : '📊 Show All Charts'}</button>
+                                    {s.avgScore != null && (
+                                        <span style={{ marginLeft: s.avgScore != null ? '0' : 'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Avg score {s.avgScore}</span>
+                                    )}
+                                </div>
+
+                                {!collapsed && (
+                                    <div style={{ padding:'8px 20px 16px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                                {cData.tickers.map((t, tIdx) => {
+                                            const sc = GP_SIG[t.signal] || GP_SIG.WATCH;
+                                            const dirColor = t.direction === 'BULLISH' ? '#10b981' : t.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+                                            const key = `${country}_${t.ticker}`;
+                                            const countryChartsOn = gpShowAllCharts || !!gpShowAllChartsByCountry[country];
+                                            const isExpanded = countryChartsOn || expandedTicker === key;
+                                            return (
+                                                <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
+                                                    <div onClick={() => setExpandedTicker(isExpanded ? null : key)} style={{
+                                                        padding:'9px 12px', display:'flex', alignItems:'center', gap:'10px',
+                                                        cursor:'pointer', backgroundColor: isExpanded ? sc.bg : '#fff', flexWrap:'wrap',
+                                                    }}>
+                                                        <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a', minWidth:'55px' }}>{t.ticker}</span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, color:sc.color, whiteSpace:'nowrap' }}>
+                                                            {sc.icon} {sc.label}
+                                                        </span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: dirColor+'15', color:dirColor }}>
+                                                            {t.direction}
+                                                        </span>
+                                                                                                                {(() => {
+                                                            const synth = aiSynthesis[t.ticker];
+                                                            const runs  = aiRuns[t.ticker];
+                                                            if (synth) {
+                                                                const av = GP_AI_VERDICT_CONFIG[synth.finalVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={synth.synthesizedThesis} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        ✨ {av.icon} Synth ({synth.runCountAtSynthesis})
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (runs?.length >= 2) {
+                                                                const c  = getGpConsensus(t.ticker);
+                                                                const av = GP_AI_VERDICT_CONFIG[c?.modeVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={`${c.runCount} AI runs · ${c.agreement}% agreement`} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        🧠 ×{c.runCount} · {c.meanScore}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (runs?.length === 1) {
+                                                                const av = GP_AI_VERDICT_CONFIG[runs[0].verdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                return (
+                                                                    <span title={runs[0].thesis} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: av.bg, color: av.color, border:`1px solid ${av.border}`, whiteSpace:'nowrap' }}>
+                                                                        {av.icon} 🧠 {runs[0].badge}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                        {gpStabilityData?.[t.ticker] && (() => {
+                                                            const s = gpStabilityData[t.ticker];
+                                                            const info = stabilityLabel(s.combined.winRate);
+                                                            return (
+                                                                <span title={`${s.combined.winRate}% win rate across ${s.occurrenceCount} occurrences (combined horizons)`} style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: `${info.color}18`, color: info.color, border:`1px solid ${info.color}40`, whiteSpace:'nowrap' }}>
+                                                                    🛡️ {s.combined.stabilityScore}%
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                        {t.topPick && <span title="Top Pick">⭐</span>}
+                                                        {t.pickRec && (
+                                                            <span style={{ fontSize:'10px', color:'#64748b' }}>{t.pickRec}{t.conviction != null ? ` · conv ${t.conviction}` : ''}</span>
+                                                        )}
+                                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>Score {Math.round(t.score)}</span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'55px', textAlign:'right' }}>
+                                                            {t.currentPrice != null ? `$${t.currentPrice}` : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'45px', textAlign:'right' }}>{fmtCap(t.marketCap)}</span>
+                                                    </div>
+                                                    {isExpanded && (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:'#fafafa', borderTop:`1px solid ${sc.color}`, display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:'8px' }}>
+                                                                {[
+                                                                    { label:'ADX', value: t.adxNow ?? '—' },
+                                                                    { label:'ROC20', value: t.roc20 != null ? `${t.roc20}%` : '—' },
+                                                                    { label:'Vol Ratio', value: t.volRatio != null ? `${t.volRatio}×` : '—' },
+                                                                    { label:'From 52W High', value: t.pctFromHigh != null ? `${t.pctFromHigh}%` : '—' },
+                                                                    { label:'Sector', value: t.pickSector || t.sector || '—' },
+                                                                ].map((item, ii) => (
+                                                                    <div key={ii} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{item.label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>{item.value}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                                                                                        {(() => {
+                                                                const runs  = aiRuns[t.ticker] || [];
+                                                                const synth = aiSynthesis[t.ticker];
+                                                                const c     = getGpConsensus(t.ticker);
+                                                                return (
+                                                                    <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                                        {synth && (() => {
+                                                                            const av = GP_AI_VERDICT_CONFIG[synth.finalVerdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                            return (
+                                                                                <div style={{ padding:'12px 14px', backgroundColor: av.bg, borderRadius:'8px', border:`2px solid ${av.color}` }}>
+                                                                                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                                        <span style={{ fontSize:'11px', fontWeight:'700', color:av.color, letterSpacing:'0.07em' }}>✨🧠 AI SYNTHESIS ({synth.runCountAtSynthesis} sources)</span>
+                                                                                        <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor:av.color, color:'#fff' }}>
+                                                                                            {av.icon} {synth.finalVerdict?.replace('_',' ')} · {synth.finalOpportunityScore}/100
+                                                                                        </span>
+                                                                                        <span style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>{synth.agreementLevel} agreement</span>
+                                                                                    </div>
+                                                                                    <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55, marginBottom:'8px' }}>{synth.synthesizedThesis}</div>
+                                                                                    {synth.consensusSummary && <div style={{ fontSize:'12px', color:'#475569', lineHeight:1.5, marginBottom:'6px' }}><strong>Agree on:</strong> {synth.consensusSummary}</div>}
+                                                                                    {synth.disagreements && <div style={{ fontSize:'12px', color:'#b45309', lineHeight:1.5 }}><strong>Diverge on:</strong> {synth.disagreements}</div>}
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+
+                                                                        {c && c.runCount >= 2 && (
+                                                                            <div style={{ display:'flex', gap:'14px', alignItems:'center', padding:'8px 12px', backgroundColor:'#f8fafc', borderRadius:'8px', border:'1px solid #e2e8f0', flexWrap:'wrap' }}>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}><strong style={{ color:'#1a1a1a' }}>{c.runCount}</strong> AI runs</span>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}>Mean score <strong style={{ color:'#1a1a1a' }}>{c.meanScore}</strong></span>
+                                                                                <span style={{ fontSize:'11px', color:'#64748b' }}>Agreement <strong style={{ color: c.agreement >= 70 ? '#10b981' : c.agreement >= 40 ? '#f59e0b' : '#ef4444' }}>{c.agreement}%</strong></span>
+                                                                                {!synth && (
+                                                                                    <button onClick={() => openSynthesisPrompt(t.ticker)} style={{ marginLeft:'auto', padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer', border:'1px solid rgba(124,58,237,0.4)', background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff' }}>✨ Synthesize with AI</button>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {runs.length > 0 && (
+                                                                            <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                                {runs.map((run, idx) => {
+                                                                                    const av = GP_AI_VERDICT_CONFIG[run.verdict] || GP_AI_VERDICT_CONFIG.NEUTRAL;
+                                                                                    return (
+                                                                                        <div key={idx} style={{ padding:'9px 11px', backgroundColor: av.bg, borderRadius:'8px', border:`1px solid ${av.border}` }}>
+                                                                                            <div style={{ display:'flex', alignItems:'center', gap:'7px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                                                                                <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', backgroundColor:'#fff', padding:'1px 7px', borderRadius:'10px', border:'1px solid #e2e8f0' }}>{run.source || 'AI'}</span>
+                                                                                                <span style={{ fontSize:'11px', fontWeight:'800', color:av.color }}>{av.icon} {run.verdict?.replace('_',' ')} · {run.opportunityScore}/100</span>
+                                                                                            </div>
+                                                                                            <div style={{ fontSize:'12px', color:'#333', lineHeight:1.5 }}>{run.thesis}</div>
+                                                                                            {run.cohortRelation && <div style={{ fontSize:'11px', color:'#475569', lineHeight:1.5, marginTop:'4px' }}><strong>Cohort:</strong> {run.cohortRelation}</div>}
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+                                                                        )}
+
+                                                                        <button
+                                                                            onClick={() => openIndividualAIPrompt({ ...t, country, flag: cData.flag })}
+                                                                            style={{
+                                                                                padding:'10px', borderRadius:'9px',
+                                                                                background: runs.length > 0 ? '#fff' : 'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                                color: runs.length > 0 ? '#7c3aed' : '#fff',
+                                                                                border: runs.length > 0 ? '1.5px solid #7c3aed' : 'none',
+                                                                                fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                                                                display:'flex', alignItems:'center', justifyContent:'center', gap:'7px', width:'100%',
+                                                                            }}
+                                                                        >{runs.length > 0 ? `🧠 Add Another AI's Take (${runs.length} so far)` : '🧠 Ask External AI for Opportunity Analysis'}</button>
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {gpStabilityData?.[t.ticker] && (() => {
+                                                                const s = gpStabilityData[t.ticker];
+                                                                const info = stabilityLabel(s.combined.winRate);
+                                                                return (
+                                                                    <div style={{ padding:'12px 14px', backgroundColor: `${info.color}10`, borderRadius:'8px', border:`1px solid ${info.color}30` }}>
+                                                                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                                                            <Shield size={13} color={info.color} />
+                                                                            <span style={{ fontSize:'11px', fontWeight:'700', color: info.color, letterSpacing:'0.07em' }}>HISTORICAL STABILITY</span>
+                                                                            <span style={{ padding:'2px 9px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', backgroundColor: info.color, color:'#fff' }}>{s.combined.stabilityScore}% · {info.label}</span>
+                                                                            <span style={{ fontSize:'10px', color:'#94a3b8' }}>{s.occurrenceCount} past occurrences</span>
+                                                                            <button onClick={() => setPerfModalTicker(t.ticker)} style={{ marginLeft:'auto', fontSize:'10px', color: info.color, background:'none', border:`1px solid ${info.color}40`, borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>View Details</button>
+                                                                        </div>
+                                                                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                                                                            {GP_STABILITY_HORIZONS.map(h => {
+                                                                                const cell = s.byHorizon[String(h)];
+                                                                                const hinfo = stabilityLabel(cell?.winRate);
+                                                                                return (
+                                                                                    <div key={h} style={{ padding:'5px 9px', borderRadius:'8px', backgroundColor:'#fff', border:`1px solid ${hinfo.color}30`, textAlign:'center', minWidth:'50px' }}>
+                                                                                        <div style={{ fontSize:'9px', color:'#94a3b8', fontWeight:'700' }}>{h}D</div>
+                                                                                        <div style={{ fontSize:'12px', fontWeight:'800', color: hinfo.color }}>{cell?.stabilityScore != null ? `${cell.stabilityScore}%` : '—'}</div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                                                                                        {countryChartsOn || gpChartTicker === t.ticker ? (
+                                                                <ScannerChart
+                                                                    ticker={t.ticker}
+                                                                    interval={gpChartInterval}
+                                                                    onIntervalChange={setGpChartInterval}
+                                                                    onClose={() => setGpChartTicker(null)}
+                                                                    hideClose={countryChartsOn}
+                                                                    mountDelay={countryChartsOn ? tIdx * 400 : 0}
+                                                                    scannerMeta={t}
+                                                                />
+                                                            ) : (
+                                                                <button onClick={() => setGpChartTicker(t.ticker)} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#0f172a,#1e3a5f)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>📊 Show Chart</button>
+                                                            )}
+
+                                                            {onSelectTicker && (
+                                                                <button onClick={() => { onSelectTicker(t.ticker); onClose(); }} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>→ Open {t.ticker} in Screener</button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                                        {gpStabilityError && (
+                        <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ Stability check error: {gpStabilityError}</div>
+                    )}
+
+                    {gpStabilityRows.length > 0 && (
+                        <div style={{ padding:'20px' }}>
+                            <StabilityRankingTable rows={gpStabilityRows} horizons={GP_STABILITY_HORIZONS} keyField="symbol"
+                                onSelectAsset={(sym) => setPerfModalTicker(sym)} title="Global Picks Stability Ranking (All Countries)" />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+                        <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+
+        {showAiPromptModal && (() => {
+            const mode = aiPromptScope?.mode;
+                        const promptText = mode === 'synthesis'
+                ? buildGpSynthesisPrompt(aiPromptScope.ticker)
+                : mode === 'bulkSynthesis'
+                    ? buildGpBulkSynthesisPrompt(aiPromptScope.tickers || [])
+                    : buildGpAIPrompt(aiPromptScope?.tickerObjs || []);
+            const scopeLabel = mode === 'synthesis' ? `Synthesis for ${aiPromptScope.ticker}`
+                : mode === 'bulkSynthesis' ? `Bulk synthesis — ${aiPromptScope.tickers?.length || 0} tickers`
+                : mode === 'country' ? `${aiPromptScope.country} — ${(aiPromptScope?.tickerObjs || []).length} tickers`
+                : mode === 'bulk' ? `${(aiPromptScope?.tickerObjs || []).length} tickers (all countries)`
+                : aiPromptScope?.ticker;
+            return (
+                <div onClick={() => setShowAiPromptModal(false)} style={{
+                    position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    zIndex:10070, padding:'20px', backdropFilter:'blur(3px)',
+                }}>
+                    <div onClick={e => e.stopPropagation()} style={{
+                        width:'min(680px,100%)', maxHeight:'85vh', borderRadius:'16px', overflow:'hidden',
+                        display:'flex', flexDirection:'column', backgroundColor:'#fff',
+                        boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+                    }}>
+                        <div style={{ padding:'20px 24px 16px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:'12px' }}>
+                                <div>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                        <span style={{ fontSize:'18px' }}>🧠</span>
+                                        <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>AI Opportunity Prompt — {scopeLabel}</span>
+                                    </div>
+                                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', lineHeight:1.5 }}>Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"</div>
+                                </div>
+                                <button onClick={() => setShowAiPromptModal(false)} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                            </div>
+                        </div>
+                        <div style={{ flex:1, overflowY:'auto', padding:'20px 24px' }}>
+                            <div style={{ backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'16px', fontSize:'13px', lineHeight:1.7, color:'#333', fontFamily:'monospace', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>
+                                {promptText}
+                            </div>
+                            <div style={{ marginTop:'14px', padding:'10px 14px', backgroundColor:'rgba(32,178,170,0.07)', border:'1px solid rgba(32,178,170,0.25)', borderRadius:'9px', display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                                <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                <div style={{ fontSize:'12px', color:'#0f766e', lineHeight:1.55 }}>
+                                    <strong>Tip:</strong> Perplexity and Qwen both search the web in real time — Qwen's search tends to be the most comprehensive. ChatGPT, Gemini, and Claude need web browsing enabled to do the same; DeepSeek has a toggleable search mode.
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ padding:'14px 24px', borderTop:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:'12px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                            <div>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.08em', marginBottom:'8px' }}>OPEN DIRECTLY IN (prompt auto-filled)</div>
+                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                    {[
+                                        { name:'Perplexity', icon:'🔍', color:'#20b2aa', bg:'rgba(32,178,170,0.08)', border:'rgba(32,178,170,0.35)', getUrl:p=>`https://www.perplexity.ai/search?q=${encodeURIComponent(p)}` },
+                                        { name:'ChatGPT',    icon:'✦',  color:'#10a37f', bg:'rgba(16,163,127,0.08)', border:'rgba(16,163,127,0.35)', getUrl:p=>`https://chatgpt.com/?q=${encodeURIComponent(p)}` },
+                                        { name:'Gemini',     icon:'✦',  color:'#4285f4', bg:'rgba(66,133,244,0.08)', border:'rgba(66,133,244,0.35)', getUrl:p=>`https://gemini.google.com/app?q=${encodeURIComponent(p)}` },
+                                        { name:'Claude',     icon:'◆',  color:'#cc785c', bg:'rgba(204,120,92,0.08)', border:'rgba(204,120,92,0.35)', getUrl:p=>`https://claude.ai/new?q=${encodeURIComponent(p)}` },
+                                        { name:'DeepSeek',   icon:'🐋', color:'#4d6bfe', bg:'rgba(77,107,254,0.08)', border:'rgba(77,107,254,0.35)', getUrl:()=>`https://chat.deepseek.com/` },
+                                        { name:'Qwen',       icon:'✦',  color:'#8b5cf6', bg:'rgba(139,92,246,0.08)', border:'rgba(139,92,246,0.35)', getUrl:()=>`https://chat.qwen.ai/` },
+                                    ].map(({ name, icon, color, bg, border, getUrl }) => (
+                                        <button key={name} onClick={() => { setAiLastOpenedSource(name); window.open(getUrl(promptText), '_blank'); }} style={{
+                                            padding:'8px 14px', borderRadius:'9px', border:`1.5px solid ${border}`, backgroundColor:bg, color, fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap',
+                                        }}><span style={{ fontSize:'15px' }}>{icon}</span>{name}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ height:'1px', backgroundColor:'#e2e8f0' }} />
+                            <div style={{ display:'flex', gap:'10px' }}>
+                                <button onClick={() => { navigator.clipboard.writeText(promptText); setAiCopied(true); setTimeout(() => setAiCopied(false), 2000); }} style={{
+                                    flex:1, padding:'10px', background: aiCopied ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#4c1d95,#7c3aed)',
+                                    border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                }}>{aiCopied ? <><span>✓</span> Copied!</> : <><span>📋</span> Copy Prompt</>}</button>
+                                <button onClick={() => { setShowAiPromptModal(false); setShowAiPasteModal(true); }} style={{
+                                    flex:1, padding:'10px', backgroundColor:'#fff', border:'2px solid #7c3aed', borderRadius:'9px', color:'#7c3aed', fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                    display:'flex', alignItems:'center', justifyContent:'center', gap:'7px',
+                                }}><span>📥</span> Paste Response</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        })()}
+
+        {showAiPasteModal && (
+            <div onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
+                position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center',
+                zIndex:10070, padding:'20px', backdropFilter:'blur(3px)',
+            }}>
+                <div onClick={e => e.stopPropagation()} style={{
+                    width:'min(640px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff',
+                    boxShadow:'0 20px 60px rgba(0,0,0,0.2)', fontFamily:"'Segoe UI', system-ui, sans-serif", display:'flex', flexDirection:'column',
+                }}>
+                    <div style={{ padding:'18px 22px 14px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', flexShrink:0 }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff', marginBottom:'4px' }}>📥 Paste AI Response</div>
+                                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)' }}>Paste the raw JSON the AI returned.</div>
+                            </div>
+                            <button onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer' }}>×</button>
+                        </div>
+                    </div>
+                    <div style={{ padding:'20px 22px 0' }}>
+                        {aiPromptScope?.mode !== 'synthesis' && aiPromptScope?.mode !== 'bulkSynthesis' && (
+                            <div style={{ marginBottom:'10px' }}>
+                                <label style={{ fontSize:'11px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'4px' }}>Which AI is this from?</label>
+                                <input type="text" list="gp-ai-source-options" value={aiPasteSource || aiLastOpenedSource} onChange={e => setAiPasteSource(e.target.value)}
+                                    placeholder="Perplexity, ChatGPT, Gemini, Claude, DeepSeek, Qwen..."
+                                    style={{ width:'100%', padding:'7px 10px', borderRadius:'8px', border:'1px solid #e2e8f0', fontSize:'12px', outline:'none', boxSizing:'border-box' }} />
+                                <datalist id="gp-ai-source-options">
+                                    <option value="Perplexity" /><option value="ChatGPT" /><option value="Gemini" /><option value="Claude" /><option value="DeepSeek" /><option value="Qwen" />
+                                </datalist>
+                            </div>
+                        )}
+                        <textarea autoFocus value={aiPasteText} onChange={e => { setAiPasteText(e.target.value); setAiPasteError(null); }}
+                            placeholder={aiPromptScope?.mode === 'synthesis' ? `Paste the JSON object here.` : `Paste the JSON array here.`}
+                            style={{
+                                width:'100%', height:'260px', padding:'14px', borderRadius:'10px',
+                                border:`2px solid ${aiPasteError ? '#ef4444' : '#e2e8f0'}`, fontSize:'13px', fontFamily:'monospace', lineHeight:1.6,
+                                resize:'vertical', outline:'none', boxSizing:'border-box', color:'#1a1a1a', backgroundColor: aiPasteError ? '#fef2f2' : '#f8fafc',
+                            }} />
+                        {aiPasteError && (
+                            <div style={{ marginTop:'10px', padding:'10px 14px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', borderRadius:'8px', fontSize:'13px', color:'#b91c1c', lineHeight:1.5 }}>⚠️ {aiPasteError}</div>
+                        )}
+                    </div>
+                    <div style={{ padding:'16px 22px', display:'flex', gap:'10px' }}>
+                        <button onClick={handleGpPasteAIResponse} disabled={!aiPasteText.trim()} style={{
+                            flex:1, padding:'11px', background: !aiPasteText.trim() ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg,#7c3aed,#4c1d95)',
+                            border:'none', borderRadius:'9px', color:'#fff', fontWeight:'700', fontSize:'14px', cursor: !aiPasteText.trim() ? 'not-allowed' : 'pointer',
+                        }}>✓ Parse & Save</button>
+                        <button onClick={() => { setShowAiPasteModal(false); setShowAiPromptModal(true); setAiPasteError(null); }} style={{
+                            padding:'11px 16px', backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'9px', color:'#64748b', fontWeight:'600', fontSize:'14px', cursor:'pointer',
+                        }}>← Back to prompt</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {perfModalTicker && (
+            <TickerPerformanceModal
+                symbol={perfModalTicker}
+                rows={normalizeRowsForPerfModal((gpStabilityRows || []).filter(r => r.symbol === perfModalTicker), 'globalPicks')}
+                horizons={GP_STABILITY_HORIZONS}
+                sourceLabel="Global Stock Picks"
+                onClose={() => setPerfModalTicker(null)}
+                onOpenInScreener={onSelectTicker ? () => { onSelectTicker(perfModalTicker); setPerfModalTicker(null); onClose && onClose(); } : null}
+            />
+        )}
+        </>
+    );
+}
+
+function PositionOverlayCard({ position, livePositions, lastPrice, extendedActive, marketSession, defaultExpanded = true }) {
+    const [expanded, setExpanded] = React.useState(defaultExpanded);
+    const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+    const live      = (livePositions || []).find(p => p.id === position.id) || position;
+    const isOpenPos = live.status === 'OPEN';
+    const isLong    = live.direction === 'long';
+    const mark      = isOpenPos ? (live.current_price ?? lastPrice) : live.closed_price;
+
+    let pnlD = null, pnlP = null;
+    if (!isOpenPos && live.realized_pnl_dollars != null) {
+        pnlD = live.realized_pnl_dollars; pnlP = live.realized_pnl_percent;
+    } else if (mark != null) {
+        pnlD = isLong ? (mark - live.entry_price) * live.quantity : (live.entry_price - mark) * live.quantity;
+        pnlP = (live.entry_price && live.quantity) ? (pnlD / (live.entry_price * live.quantity)) * 100 : null;
+    }
+    const pnlColor = (pnlD ?? 0) >= 0 ? '#10b981' : '#ef4444';
+
+    const STATUS = {
+        OPEN: ['OPEN', '#3b82f6'], CLOSED_TP: ['CLOSED · TP hit', '#10b981'],
+        CLOSED_SL: ['CLOSED · SL hit', '#ef4444'], CLOSED_MANUAL: ['CLOSED · manual', '#94a3b8'],
+    };
+    const [statusText, statusColor] = STATUS[live.status] || [live.status, '#94a3b8'];
+
+    const away    = (level) => (isOpenPos && level != null && mark) ? (Math.abs(level - mark) / mark) * 100 : null;
+    const fmtWhen = (d) => d ? new Date(d).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
+    const rr      = (live.tp_dollars && live.sl_dollars) ? (Math.abs(live.tp_dollars) / Math.abs(live.sl_dollars)).toFixed(2) : null;
+    const tpAway  = away(live.tp_price);
+    const slAway  = away(live.sl_price);
+
+    const rows = [
+        ['Size', `${live.quantity} sh @ $${live.entry_price}`, '#e2e8f0'],
+        [isOpenPos ? 'Now' : 'Exit', mark != null ? `$${Number(mark).toFixed(2)}${isOpenPos && extendedActive ? ' (ext)' : ''}` : '—', '#e2e8f0'],
+        ['TP', live.tp_price != null ? `$${live.tp_price} · +$${Math.abs(live.tp_dollars ?? 0).toFixed(2)} · ${Number(live.tp_percent ?? 0).toFixed(2)}%${tpAway != null ? ` · ${tpAway.toFixed(2)}% away` : ''}` : '—', '#10b981'],
+        ['SL', live.sl_price != null ? `$${live.sl_price} · -$${Math.abs(live.sl_dollars ?? 0).toFixed(2)} · ${Number(live.sl_percent ?? 0).toFixed(2)}%${slAway != null ? ` · ${slAway.toFixed(2)}% away` : ''}` : '—', '#ef4444'],
+        ...(rr ? [['R:R', `1 : ${rr}`, '#e2e8f0']] : []),
+        ['Opened', fmtWhen(live.opened_at), '#94a3b8'],
+        ...(!isOpenPos ? [['Closed', fmtWhen(live.closed_at), '#94a3b8']] : []),
+                ...(() => {
+            const c = live.entry_context || {};
+            const bits = [c.signal && String(c.signal).replace(/_/g, ' '), c.aiVerdict && String(c.aiVerdict).replace(/_/g, ' '),
+                          c.score != null && `score ${c.score}`, c.lens && `${c.lens} lens`].filter(Boolean);
+            return bits.length ? [['Setup', bits.join(' · '), '#c4b5fd']] : [];
+        })(),
+        ...(live.notes ? [['Notes', live.notes, '#94a3b8']] : []),
+        ...(live.source && live.source !== 'manual' ? [['Source', String(live.source).replace(/_/g, ' '), '#94a3b8']] : []),
+    ];
+
+    return (
+        <div onClick={() => setExpanded(e => !e)} style={{
+            position:'absolute', top:'8px', left:'8px', zIndex:3, backgroundColor:'rgba(10,22,40,0.94)',
+            borderRadius:'10px', border:`1px solid ${statusColor}60`, padding: mobile ? '6px 9px' : '9px 13px',
+            cursor:'pointer', maxWidth: mobile ? '215px' : '300px', maxHeight:'46%', overflowY:'auto',
+            backdropFilter:'blur(4px)',
+        }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                <span style={{ fontSize: mobile ? '11px' : '12px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                <span style={{ fontSize:'9px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>{statusText}</span>
+                <span style={{ fontSize:'9px', color:'#64748b', marginLeft:'auto' }}>{expanded ? '▾' : '▸'}</span>
+            </div>
+
+            {pnlD != null && (
+                <div style={{ fontSize: mobile ? '13px' : '15px', fontWeight:'900', color: pnlColor, marginTop:'3px' }}>
+                    {isOpenPos && <span style={{ display:'inline-block', width:'6px', height:'6px', borderRadius:'50%', backgroundColor:'#3b82f6', marginRight:'5px', animation:'pulse 2s ease-in-out infinite' }} />}
+                    {pnlD >= 0 ? '+' : '-'}${Math.abs(pnlD).toFixed(2)}
+                    {pnlP != null && <span style={{ fontSize:'11px', fontWeight:'700' }}> ({pnlP >= 0 ? '+' : ''}{pnlP.toFixed(2)}%)</span>}
+                </div>
+            )}
+
+            {expanded && (
+                <div style={{ marginTop:'7px', paddingTop:'7px', borderTop:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', gap:'3px' }}>
+                    {rows.map(([label, value, color]) => (
+                        <div key={label} style={{ display:'flex', justifyContent:'space-between', gap:'10px', fontSize: mobile ? '9px' : '10px' }}>
+                            <span style={{ color:'#64748b', flexShrink:0 }}>{label}</span>
+                            <span style={{ color, fontWeight:'700', textAlign:'right' }}>{value}</span>
+                        </div>
+                    ))}
+                    {isOpenPos && marketSession && (
+                        <div style={{ fontSize:'9px', color:'#64748b', marginTop:'3px' }}>
+                            {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : '○ NYC closed — TP/SL auto-close paused'}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function PositionAutopsyModal({ isOpen, onClose, onPickPosition }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [windowDays, setWindowDays]       = React.useState(10);
+    const [includeManual, setIncludeManual] = React.useState(false);
+    const [show, setShow]                   = React.useState('SL'); // 'SL' | 'TP' | 'MANUAL' | 'ALL'
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError]     = React.useState(null);
+    const [data, setData]       = React.useState(null);
+
+    const run = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_autopsy/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ window: windowDays, includeManual }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+    React.useEffect(() => { if (isOpen) run(); }, [isOpen, windowDays, includeManual]);
+
+    if (!isOpen) return null;
+
+    const V = {
+        SHAKEN_OUT:     { label:'Shaken out',     color:'#10b981', tip:'Stopped out, then price reached your take-profit within the window' },
+        RECOVERED:      { label:'Recovered',      color:'#3b82f6', tip:'Stopped out, then price got back to your entry (but not to TP)' },
+        STOP_JUSTIFIED: { label:'Stop justified', color:'#ef4444', tip:'Window finished and price never got back to your entry' },
+        PENDING:        { label:'Pending',        color:'#94a3b8', tip:'The window is still running' },
+        RAN_FURTHER:    { label:'Ran further',    color:'#f59e0b', tip:'Take-profit hit, and price kept going your way afterwards' },
+        EXIT_WELL:      { label:'Exit was fine',  color:'#10b981', tip:'Take-profit hit and price did not run much further' },
+        MANUAL:         { label:'Manual',         color:'#94a3b8', tip:'Closed by hand: raw numbers only' },
+        NO_DATA:        { label:'No data',        color:'#94a3b8', tip:'Could not get price history for this asset' },
+    };
+    const s  = data ? data.summary : null;
+    const vc = s ? (s.verdictCounts || {}) : {};
+    const signed = (v, d = 2) => v == null ? '—' : `${v >= 0 ? '+' : ''}${Number(v).toFixed(d)}`;
+    const money  = (v) => v == null ? '—' : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(2)}`;
+    const col    = (v) => v == null ? '#94a3b8' : v >= 0 ? '#10b981' : '#ef4444';
+    const th = { padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', fontSize:'11px' };
+    const td = { padding:'7px 10px', whiteSpace:'nowrap', fontSize:'12px' };
+    const pill = (active) => ({
+        padding:'4px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer', color:'#fff',
+        border:`1px solid ${active ? 'rgba(147,197,253,0.8)' : 'rgba(255,255,255,0.2)'}`,
+        backgroundColor: active ? 'rgba(59,130,246,0.4)' : 'transparent',
+    });
+
+    const rowsAll = data ? data.rows : [];
+    const rows = rowsAll.filter(r => show === 'ALL' ? true : show === 'SL' ? r.status === 'CLOSED_SL' : show === 'TP' ? r.status === 'CLOSED_TP' : r.status === 'CLOSED_MANUAL');
+
+    let reading = null;
+    if (s && s.decided > 0) {
+        if (s.decided < 15) reading = 'Small sample: treat this as a hint, not a verdict.';
+        else if (s.recoveredOrBetterPct >= 50) reading = 'More than half of your stops were followed by a recovery. That points to stops sitting inside normal price noise (or entries a bit early). Wider stops are worth testing, but check the what-if table first.';
+        else if (s.justifiedPct >= 60) reading = 'Most stopped trades kept going against you. That points to the entry or signal, not the stop width.';
+        else reading = 'Mixed picture: some stops were shaken out, some were right.';
+    }
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10090, backgroundColor:'rgba(0,0,0,0.65)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'12px', overflowY:'auto', backdropFilter:'blur(4px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(1000px,100%)', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.4)', fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'16px' }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#7c3aed)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>🔬 Stop-out Autopsy</div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'3px', lineHeight:1.5 }}>
+                                What price did after your trades closed. Were you shaken out of good trades, or were the stops right?
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                        <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>Look ahead</span>
+                        {[5, 10, 20].map(d => <button key={d} onClick={() => setWindowDays(d)} style={pill(windowDays === d)}>{d} days</button>)}
+                        <label style={{ fontSize:'11px', color:'rgba(255,255,255,0.75)', display:'flex', alignItems:'center', gap:'5px', cursor:'pointer', marginLeft:'6px' }}>
+                            <input type="checkbox" checked={includeManual} onChange={e => setIncludeManual(e.target.checked)} /> include manual closes
+                        </label>
+                        <button onClick={run} disabled={loading} style={{ ...pill(false), marginLeft:'auto' }}>{loading ? '⏳ Analysing…' : '↻ Re-run'}</button>
+                    </div>
+                </div>
+
+                <div style={{ padding:'16px 20px', maxHeight:'75vh', overflowY:'auto' }}>
+                    {loading && !data && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Pulling price history for every closed trade…</div>}
+                    {error && <div style={{ padding:'12px 14px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px', marginBottom:'12px' }}>⚠️ {error}</div>}
+
+                    {s && s.slTotal === 0 && s.tpTotal === 0 && !loading && (
+                        <div style={{ padding:'40px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No closed trades yet. Once a trade hits its stop or target, it shows up here.</div>
+                    )}
+
+                    {s && (s.slTotal > 0 || s.tpTotal > 0) && (
+                        <>
+                            {/* Plain-English read */}
+                            <div style={{ padding:'12px 14px', borderRadius:'10px', backgroundColor:'#f5f3ff', border:'1px solid #ddd6fe', fontSize:'13px', lineHeight:1.6, color:'#4c1d95', marginBottom:'14px', opacity: loading ? 0.5 : 1 }}>
+                                {s.decided > 0 ? (
+                                    <>Of <b>{s.decided}</b> stop-outs with a finished {data.window}-day window, <b>{vc.SHAKEN_OUT || 0}</b> ({s.shakenOutPct}%) went on to hit your take-profit and <b>{vc.RECOVERED || 0}</b> more got back to entry. <b>{vc.STOP_JUSTIFIED || 0}</b> ({s.justifiedPct}%) never got back.</>
+                                ) : (
+                                    <>None of your {s.slTotal} stop-outs has a finished {data.window}-day window yet. Check back after more trading days.</>
+                                )}
+                                {s.pending > 0 && <> {s.pending} still pending.</>}
+                                {reading && <div style={{ marginTop:'6px', fontWeight:'600' }}>{reading}</div>}
+                                <div style={{ marginTop:'6px', fontSize:'11px', color:'#6d28d9', opacity:0.8 }}>
+                                    "Recovered" only means price returned to your entry, which isn't profit, and a wider stop would also have taken bigger losses on the trades that never came back. The what-if table below accounts for that.
+                                </div>
+                            </div>
+
+                            {/* Verdict cards */}
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))', gap:'8px', marginBottom:'16px' }}>
+                                {['SHAKEN_OUT','RECOVERED','STOP_JUSTIFIED','PENDING'].map(k => (
+                                    <div key={k} title={V[k].tip} style={{ padding:'10px 12px', borderRadius:'10px', border:`1px solid ${V[k].color}40`, backgroundColor:`${V[k].color}10` }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'800', color:V[k].color, letterSpacing:'0.05em' }}>{V[k].label.toUpperCase()}</div>
+                                        <div style={{ fontSize:'22px', fontWeight:'900', color:V[k].color }}>{vc[k] || 0}</div>
+                                    </div>
+                                ))}
+                                <div title="Average best move in your favour after the stop, and average further drop after the stop" style={{ padding:'10px 12px', borderRadius:'10px', border:'1px solid #e2e8f0', backgroundColor:'#f8fafc' }}>
+                                    <div style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', letterSpacing:'0.05em' }}>AFTER THE STOP</div>
+                                    <div style={{ fontSize:'12px', color:'#10b981', fontWeight:'800' }}>best +{s.avgRebound ?? '—'}%</div>
+                                    <div style={{ fontSize:'12px', color:'#ef4444', fontWeight:'800' }}>worst −{s.avgKeptFalling ?? '—'}%</div>
+                                </div>
+                            </div>
+
+                            {/* If you'd held */}
+                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'6px' }}>If you had held with no stop</div>
+                            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px', marginBottom:'16px' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                                    <thead><tr style={{ backgroundColor:'#f8fafc' }}>
+                                        <th style={th}>Days after the stop</th><th style={th}>Trades with data</th>
+                                        <th style={th}>Finished above entry</th><th style={th}>Avg vs entry</th><th style={th}>Avg vs your exit</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {data.horizons.map(h => {
+                                            const c = s.byHorizon[String(h)] || {};
+                                            return (
+                                                <tr key={h} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                                    <td style={{ ...td, fontWeight:'800' }}>{h}D</td>
+                                                    <td style={{ ...td, color:'#64748b' }}>{c.count || 0}</td>
+                                                    <td style={{ ...td, fontWeight:'800', color: c.finishedAboveEntryPct == null ? '#94a3b8' : c.finishedAboveEntryPct >= 50 ? '#10b981' : '#ef4444' }}>{c.finishedAboveEntryPct != null ? `${c.finishedAboveEntryPct}%` : '—'}</td>
+                                                    <td style={{ ...td, fontWeight:'800', color: col(c.avgVsEntry) }}>{c.avgVsEntry != null ? `${signed(c.avgVsEntry)}%` : '—'}</td>
+                                                    <td style={{ ...td, fontWeight:'800', color: col(c.avgVsExit) }}>{c.avgVsExit != null ? `${signed(c.avgVsExit)}%` : '—'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Stop-width what-if */}
+                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'2px' }}>What if the stop had been wider?</div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'6px' }}>
+                                Your stopped trades replayed from the moment they opened, same take-profit, stop pushed further away. Take-profit trades are unchanged. Based on {s.whatIf.actual.losses + s.whatIf.actual.wins} trades{s.whatIf.skipped > 0 ? ` (${s.whatIf.skipped} skipped: no price data)` : ''}, so treat it as a lens, not a recipe.
+                            </div>
+                            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px', marginBottom:'16px' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                                    <thead><tr style={{ backgroundColor:'#f8fafc' }}>
+                                        <th style={th}>Stop distance</th><th style={th}>Wins / losses</th><th style={th}>Win rate</th>
+                                        <th style={th}>Total P&L</th><th style={th}>Avg / trade</th><th style={th}>Still running</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {[{ label:'Actual (1×)', ...s.whatIf.actual, open:0, bold:true },
+                                          ...s.whatIf.rows.map(r => ({ label:`${r.mult}× wider`, ...r }))].map(r => (
+                                            <tr key={r.label} style={{ borderBottom:'1px solid #f1f5f9', backgroundColor: r.bold ? '#f8fafc' : 'transparent' }}>
+                                                <td style={{ ...td, fontWeight:'800' }}>{r.label}</td>
+                                                <td style={td}>{r.wins} / {r.losses}</td>
+                                                <td style={{ ...td, fontWeight:'800' }}>{r.winRate != null ? `${r.winRate}%` : '—'}</td>
+                                                <td style={{ ...td, fontWeight:'800', color: col(r.totalPnl) }}>{money(r.totalPnl)}</td>
+                                                <td style={{ ...td, color: col(r.avgPnl) }}>{money(r.avgPnl)}</td>
+                                                <td style={{ ...td, color:'#64748b' }}>{r.open || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Per-trade table */}
+                            <div style={{ display:'flex', gap:'6px', alignItems:'center', marginBottom:'6px', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>Trade by trade</span>
+                                {[['SL','Stop-outs'],['TP','Take-profits'],...(includeManual ? [['MANUAL','Manual']] : []),['ALL','All']].map(([k, l]) => (
+                                    <button key={k} onClick={() => setShow(k)} style={{
+                                        padding:'3px 11px', borderRadius:'20px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${show === k ? '#7c3aed' : '#e2e8f0'}`, backgroundColor: show === k ? '#f5f3ff' : '#fff', color: show === k ? '#7c3aed' : '#94a3b8',
+                                    }}>{l}</button>
+                                ))}
+                                <span style={{ fontSize:'10px', color:'#94a3b8' }}>click a row to open its chart</span>
+                            </div>
+                            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                                    <thead><tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Dir','Closed','Verdict','TP hit after?','Best bounce','Fell further','Held 5D vs entry','Held 10D vs entry'].map(h => <th key={h} style={th}>{h}</th>)}
+                                    </tr></thead>
+                                    <tbody>
+                                        {rows.length === 0 && <tr><td colSpan={9} style={{ ...td, textAlign:'center', color:'#94a3b8', padding:'20px' }}>Nothing in this view.</td></tr>}
+                                        {rows.map(r => {
+                                            const vm = V[r.verdict] || V.NO_DATA;
+                                            return (
+                                                <tr key={r.id} onClick={() => onPickPosition && onPickPosition(r)} style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}
+                                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                                    <td style={{ ...td, fontWeight:'800' }}>{r.asset}</td>
+                                                    <td style={{ ...td, fontWeight:'800', color: r.direction === 'long' ? '#10b981' : '#ef4444' }}>{r.direction === 'long' ? '▲' : '▼'}</td>
+                                                    <td style={{ ...td, color:'#64748b' }}>{r.closed_at ? new Date(r.closed_at).toLocaleDateString([], { month:'short', day:'numeric' }) : '—'}</td>
+                                                    <td style={td}><span title={vm.tip} style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:`${vm.color}20`, color:vm.color }}>{vm.label}</span></td>
+                                                    <td style={{ ...td, fontWeight:'700', color: r.tpHitAfter ? '#10b981' : '#94a3b8' }}>{r.status === 'CLOSED_TP' ? '—' : r.tpHitAfter ? 'Yes' : 'No'}</td>
+                                                    <td style={{ ...td, color:'#10b981' }}>{r.reboundPct != null ? `+${r.reboundPct}%` : '—'}</td>
+                                                    <td style={{ ...td, color:'#ef4444' }}>{r.keptFallingPct != null ? `−${r.keptFallingPct}%` : '—'}</td>
+                                                    <td style={{ ...td, fontWeight:'700', color: col(r.heldVsEntry && r.heldVsEntry['5']) }}>{r.heldVsEntry && r.heldVsEntry['5'] != null ? `${signed(r.heldVsEntry['5'])}%` : '—'}</td>
+                                                    <td style={{ ...td, fontWeight:'700', color: col(r.heldVsEntry && r.heldVsEntry['10']) }}>{r.heldVsEntry && r.heldVsEntry['10'] != null ? `${signed(r.heldVsEntry['10'])}%` : '—'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+function PositionTagStats() {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError]     = React.useState(null);
+    const [data, setData]       = React.useState(null);
+
+    const load = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_tag_stats/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+    React.useEffect(() => { load(); }, []);
+
+    const HELP = {
+        'Lens': 'The chart timeframe you had open when you placed the trade (1h = hourly entries, 1D = daily).',
+        'Alignment': 'Whether your trade direction matched the scanner direction at entry.',
+        'Signal': 'The scanner signal at entry.', 'AI verdict': 'The AI opportunity verdict at entry.',
+        'Score': 'The scanner score at entry.', 'Stability': 'The stability score at entry.',
+        'Earnings AI': 'The earnings AI bias saved for the stock when you entered.',
+        'Session': 'Market session when the trade was opened.', 'Direction': 'Long or short (known for every trade).',
+        'Source': 'Where the trade was opened from (known for every trade).', 'Custom': 'Tags you typed in the ticket.',
+    };
+    const money = (v) => v == null ? '—' : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(2)}`;
+    const col   = (v) => v == null ? '#94a3b8' : v >= 0 ? '#10b981' : '#ef4444';
+    const th = { padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', fontSize:'11px' };
+    const td = { padding:'7px 10px', whiteSpace:'nowrap', fontSize:'12px' };
+    const o  = data ? data.overall : null;
+
+    return (
+        <div style={{ padding:'14px 20px' }}>
+            {loading && !data && <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading…</div>}
+            {error && <div style={{ padding:'10px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px', marginBottom:'10px' }}>⚠️ {error}</div>}
+            {o && (
+                <>
+                    <div style={{ padding:'11px 14px', borderRadius:'10px', backgroundColor:'#f5f3ff', border:'1px solid #ddd6fe', fontSize:'13px', lineHeight:1.6, color:'#4c1d95', marginBottom:'6px' }}>
+                        <b>{o.closed}</b> closed trades · win rate <b>{o.winRate != null ? `${o.winRate}%` : '—'}</b>
+                        {o.winRateLow != null && <> (95% range {o.winRateLow}–{o.winRateHigh}%)</>} · total <b style={{ color: col(o.totalPnl) }}>{money(o.totalPnl)}</b> · {o.open} still open.
+                        {o.untaggedClosed > 0 && <div style={{ fontSize:'11px', marginTop:'3px', color:'#6d28d9' }}>{o.untaggedClosed} closed trades were opened before tagging existed, so they only appear under Direction and Source.</div>}
+                    </div>
+                    <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'12px', lineHeight:1.5 }}>
+                        Each trade counts in every group it belongs to. A group needs roughly 20+ trades before its win rate means much. The range in brackets is a 95% confidence interval, so if two groups' ranges overlap heavily, you can't tell them apart yet. Groups under 5 trades are dimmed.
+                    </div>
+                    {data.families.length === 0 && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No closed trades yet.</div>}
+                    {data.families.map(f => (
+                        <div key={f.family} style={{ marginBottom:'14px' }}>
+                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a' }}>{f.family}</div>
+                            <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'4px' }}>{HELP[f.family]}</div>
+                            <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                                    <thead><tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Group','Trades','W / L','Win rate (95% range)','Avg %','Total P&L','Profit factor','Open now'].map(h => <th key={h} style={th}>{h}</th>)}
+                                    </tr></thead>
+                                    <tbody>
+                                        {f.tags.map(t => (
+                                            <tr key={t.tag} style={{ borderBottom:'1px solid #f1f5f9', opacity: t.n < 5 ? 0.55 : 1 }}>
+                                                <td style={{ ...td, fontWeight:'800' }}>{t.tag}</td>
+                                                <td style={td}>{t.n}</td>
+                                                <td style={td}>{t.wins} / {t.losses}</td>
+                                                <td style={{ ...td, fontWeight:'800', color: t.winRate >= 50 ? '#10b981' : '#ef4444' }}>
+                                                    {t.winRate}% <span style={{ fontWeight:'500', color:'#94a3b8' }}>({t.winRateLow}–{t.winRateHigh}%)</span>
+                                                </td>
+                                                <td style={{ ...td, color: col(t.avgPct) }}>{t.avgPct != null ? `${t.avgPct >= 0 ? '+' : ''}${t.avgPct}%` : '—'}</td>
+                                                <td style={{ ...td, fontWeight:'800', color: col(t.totalPnl) }}>{money(t.totalPnl)}</td>
+                                                <td style={td}>{t.profitFactor != null ? t.profitFactor : '—'}</td>
+                                                <td style={{ ...td, color:'#64748b' }}>{t.open || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ))}
+                    <button onClick={load} disabled={loading} style={{ padding:'5px 14px', borderRadius:'8px', border:'1px solid #e2e8f0', backgroundColor:'#fff', color:'#64748b', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>{loading ? '⏳' : '↻'} Refresh</button>
+                </>
+            )}
+        </div>
+    );
+}
+
+function PositionChartCard({ position, interval, onIntervalChange, mountDelay = 0, height = 270, onOpen }) {
+    const isOpenPos = position.status === 'OPEN';
+    const isLong    = position.direction === 'long';
+    const exitLabel = position.status === 'CLOSED_TP' ? 'TP hit' : position.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
+    const statusColor = position.status === 'OPEN' ? '#3b82f6' : position.status === 'CLOSED_TP' ? '#10b981' : position.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+
+    // Open trade: the chart draws its own live lines. Closed trade: drawn from the saved levels.
+    const extraLines = isOpenPos ? null : [
+        { price: position.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${position.entry_price}` },
+        ...(position.tp_price != null ? [{ price: position.tp_price, color:'#10b981', lineStyle:0, title:`TP $${position.tp_price}` }] : []),
+        ...(position.sl_price != null ? [{ price: position.sl_price, color:'#ef4444', lineStyle:0, title:`SL $${position.sl_price}` }] : []),
+        ...(position.closed_price != null ? [{ price: position.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${position.closed_price}` }] : []),
+    ];
+    const exitColor = (position.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
+    const extraMarkers = [
+        { ms: Date.parse(position.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
+        ...(!isOpenPos && position.closed_at ? [{ ms: Date.parse(position.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
+    ];
+
+    return (
+        <div style={{ border:'1px solid #1e293b', borderRadius:'12px', overflow:'hidden', backgroundColor:'#0b1220' }}>
+            <div style={{ padding:'8px 12px', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
+                <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>{position.asset}</span>
+                <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                <span style={{ fontSize:'9px', fontWeight:'800', padding:'1px 8px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
+                    {position.status.replace('CLOSED_', 'CLOSED · ')}
+                </span>
+                <span style={{ fontSize:'10px', color:'#64748b' }}>
+                    {position.quantity} sh · {new Date(position.opened_at).toLocaleDateString([], { month:'short', day:'numeric' })}
+                </span>
+                <button onClick={onOpen} title="Open the full chart with the trade picker" style={{
+                    marginLeft:'auto', padding:'3px 10px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                    border:'1px solid rgba(59,130,246,0.4)', backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd',
+                }}>Open ↗</button>
+            </div>
+            <div style={{ padding:'0 10px 10px' }}>
+                <ScannerChart
+                    key={position.id}
+                    ticker={position.asset}
+                    interval={interval}
+                    onIntervalChange={onIntervalChange}
+                    hideClose
+                    height={height}
+                    mountDelay={mountDelay}
+                    focusPositionId={position.id}
+                    analysisAsOf={position.opened_at ? position.opened_at.slice(0, 10) : null}
+                    extraLines={extraLines}
+                    extraMarkers={extraMarkers}
+                    renderOverlay={(ctx) => (
+                        <PositionOverlayCard
+                            position={position}
+                            livePositions={ctx.positions}
+                            lastPrice={ctx.lastPrice}
+                            extendedActive={ctx.extendedActive}
+                            marketSession={ctx.marketSession}
+                            defaultExpanded={false}
+                        />
+                    )}
+                />
+            </div>
+        </div>
+    );
+}
+
+function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [loading, setLoading]       = React.useState(false);
+    const [refreshing, setRefreshing] = React.useState(false);
+    const [error, setError]           = React.useState(null);
+    const [positions, setPositions]   = React.useState([]);
+    const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
+    const [search, setSearch]         = React.useState('');
+    const [includeExtended, setIncludeExtended] = React.useState(false);
+    const [autoRefresh, setAutoRefresh] = React.useState(false);
+    const [autoSecs, setAutoSecs]     = React.useState(30);
+    const [marketSession, setMarketSession] = React.useState(null);
+    const [lastRefreshed, setLastRefreshed] = React.useState(null);
+    const [notice, setNotice]         = React.useState(null);
+    const [chartPosition, setChartPosition] = React.useState(null);
+    const [showAutopsy, setShowAutopsy] = React.useState(false);
+    const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
+    const [showCharts, setShowCharts]       = React.useState(false);
+    const [chartsInterval, setChartsInterval] = React.useState('1D');
+    const [chartsShown, setChartsShown]     = React.useState(12);
+    const refreshingRef     = React.useRef(false);
+    const refreshVisibleRef = React.useRef(null);
+
+    const fetchAll = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions/?includeClosed=true`);
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setPositions(json.positions || []);
+        } catch (e) { setError(e.message); }
+        finally { setLoading(false); }
+    };
+
+    React.useEffect(() => {
+        if (isOpen) fetchAll();
+        else { setAutoRefresh(false); setChartPosition(null); }
+    }, [isOpen]);
+
+    const filtered = positions
+        .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
+        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+
+    // Re-prices every OPEN position currently visible in the table (respects the status filter + search)
+    const refreshVisible = async () => {
+        const assets = [...new Set(filtered.filter(p => p.status === 'OPEN').map(p => p.asset))];
+        if (assets.length === 0 || refreshingRef.current) return;
+        refreshingRef.current = true; setRefreshing(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_refresh_prices/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assets, includeExtended }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setMarketSession(json.marketSession || null);
+            const returned = json.positions || [];
+            const byId = {};
+            returned.forEach(p => { byId[p.id] = p; });
+            setPositions(prev => prev.map(p => byId[p.id] || p));
+            const justClosed = returned.filter(p => p.status !== 'OPEN');
+            if (justClosed.length) {
+                setNotice(justClosed.map(p =>
+                    `${p.asset} ${p.direction} auto-closed at ${p.status === 'CLOSED_TP' ? 'TP' : 'SL'} (${p.realized_pnl_dollars >= 0 ? '+' : ''}$${p.realized_pnl_dollars})`
+                ).join(' · '));
+            }
+            setLastRefreshed(new Date());
+        } catch (e) { setError(e.message); }
+        finally { refreshingRef.current = false; setRefreshing(false); }
+    };
+    refreshVisibleRef.current = refreshVisible;
+
+    // Auto-refresh: stops when the panel closes (the effect below also resets the toggle)
+    React.useEffect(() => {
+        if (!isOpen || !autoRefresh) return;
+        const id = setInterval(() => refreshVisibleRef.current && refreshVisibleRef.current(), Math.max(10, Number(autoSecs) || 30) * 1000);
+        return () => clearInterval(id);
+    }, [isOpen, autoRefresh, autoSecs]);
+
+    const closePosition = async (pos) => {
+        try {
+            await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ closePrice: pos.current_price || pos.entry_price }),
+            });
+            fetchAll();
+        } catch (e) { console.error(e); }
+    };
+
+    const openCount   = positions.filter(p => p.status === 'OPEN').length;
+    const closedCount = positions.length - openCount;
+    const totalUnrealized = positions.filter(p => p.status === 'OPEN' && p.current_price != null).reduce((sum, p) => {
+        const isLong = p.direction === 'long';
+        return sum + (isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity);
+    }, 0);
+    const totalRealized = positions.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null)
+        .reduce((sum, p) => sum + p.realized_pnl_dollars, 0);
+
+        // Per-asset trade stats — always built from ALL positions, so counts ignore the status/search filters
+    const assetStatsAll = {};
+    positions.forEach(p => {
+        if (!assetStatsAll[p.asset]) assetStatsAll[p.asset] = { asset: p.asset, total: 0, open: 0, closed: 0, wins: 0, realized: 0, unrealized: 0, pricedOpen: 0, latest: p };
+        const a = assetStatsAll[p.asset];
+        a.total += 1;
+        if (new Date(p.opened_at) > new Date(a.latest.opened_at)) a.latest = p;
+        if (p.status === 'OPEN') {
+            a.open += 1;
+            if (p.current_price != null) {
+                a.pricedOpen += 1;
+                a.unrealized += p.direction === 'long'
+                    ? (p.current_price - p.entry_price) * p.quantity
+                    : (p.entry_price - p.current_price) * p.quantity;
+            }
+        } else {
+            a.closed += 1;
+            if (p.realized_pnl_dollars != null) {
+                a.realized += p.realized_pnl_dollars;
+                if (p.realized_pnl_dollars > 0) a.wins += 1;
+            }
+        }
+    });
+    const assetCount = Object.keys(assetStatsAll).length;
+    // By-asset view: search applies, and the status pills mean "assets with at least one open / closed trade"
+    const assetSummaries = Object.values(assetStatsAll)
+        .filter(a => !search.trim() || a.asset.toUpperCase().includes(search.trim().toUpperCase()))
+        .filter(a => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? a.open > 0 : a.closed > 0))
+        .sort((x, y) => y.total - x.total || x.asset.localeCompare(y.asset));
+    
+    // Overall closed-trade performance, built from ALL positions so it never changes with filters, search or view
+    const closedAll      = positions.filter(p => p.status !== 'OPEN');
+    const wonCount       = closedAll.filter(p => (p.realized_pnl_dollars ?? 0) > 0).length;
+    const lostCount      = closedAll.filter(p => (p.realized_pnl_dollars ?? 0) < 0).length;
+    const evenCount      = closedAll.length - wonCount - lostCount;
+    const overallWinRate = closedAll.length ? (wonCount / closedAll.length) * 100 : null;
+
+    const pill = (active) => ({
+        padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+        border:`1px solid ${active ? 'rgba(147,197,253,0.7)' : 'rgba(255,255,255,0.2)'}`,
+        backgroundColor: active ? 'rgba(59,130,246,0.35)' : 'transparent', color:'#fff', whiteSpace:'nowrap',
+    });
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10085,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'980px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                {/* Header */}
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg,#0f172a,#1e3a5f)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>📒</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Paper Trading Positions</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)' }}>
+                                {positions.length} trades · {assetCount} assets · {openCount} open · {closedCount} closed
+                                {' · '}Unrealized <span style={{ color: totalUnrealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalUnrealized >= 0 ? '+' : ''}${totalUnrealized.toFixed(2)}</span>
+                                {' · '}Realized <span style={{ color: totalRealized >= 0 ? '#10b981' : '#ef4444', fontWeight:'700' }}>{totalRealized >= 0 ? '+' : ''}${totalRealized.toFixed(2)}</span>
+                            </div>
+                                                        <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', alignItems:'center', marginTop:'8px' }}>
+                                <span style={{
+                                    fontSize:'11px', fontWeight:'800', padding:'3px 11px', borderRadius:'20px',
+                                    backgroundColor: overallWinRate == null ? 'rgba(255,255,255,0.1)' : overallWinRate >= 50 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                                    color: overallWinRate == null ? '#cbd5e1' : overallWinRate >= 50 ? '#34d399' : '#f87171',
+                                }}>🏆 Win rate {overallWinRate != null ? `${overallWinRate.toFixed(1)}%` : '—'}</span>
+                                <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(16,185,129,0.15)', color:'#34d399' }}>✓ {wonCount} won</span>
+                                <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(239,68,68,0.15)', color:'#f87171' }}>✗ {lostCount} lost</span>
+                                {evenCount > 0 && (
+                                    <span style={{ fontSize:'11px', fontWeight:'800', padding:'3px 10px', borderRadius:'20px', backgroundColor:'rgba(148,163,184,0.15)', color:'#cbd5e1' }}>= {evenCount} breakeven</span>
+                                )}
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)' }}>of {closedAll.length} closed</span>
+                                {closedAll.length > 0 && (
+                                    <span title={`${wonCount} won · ${lostCount} lost · ${evenCount} breakeven`} style={{ display:'inline-flex', width:'90px', height:'6px', borderRadius:'3px', overflow:'hidden', backgroundColor:'rgba(255,255,255,0.12)' }}>
+                                        <span style={{ width:`${(wonCount / closedAll.length) * 100}%`, backgroundColor:'#10b981' }} />
+                                        <span style={{ width:`${(lostCount / closedAll.length) * 100}%`, backgroundColor:'#ef4444' }} />
+                                    </span>
+                                )}
+                            </div>
+                            {marketSession && (
+                                <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.45)', marginTop:'3px' }}>
+                                    {marketSession === 'regular' ? '● NYC open — TP/SL auto-close live' : `○ NYC ${marketSession === 'closed' ? 'closed' : marketSession + '-market'} — TP/SL auto-close paused`}
+                                    {lastRefreshed ? ` · refreshed ${lastRefreshed.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' })}` : ''}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'8px', marginTop:'12px', flexWrap:'wrap', alignItems:'center' }}>
+                        {[['OPEN','Open'],['CLOSED','Closed'],['ALL','All']].map(([v,l]) => (
+                            <button key={v} onClick={() => setFilterStatus(v)} style={pill(filterStatus === v)}>{l}</button>
+                        ))}
+                        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search ticker..."
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', outline:'none', width:'120px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                        <button onClick={() => setViewMode('trades')} title="Every individual trade" style={pill(viewMode === 'trades')}>📋 Trades</button>
+                        <button onClick={() => setViewMode('assets')} title="One row per asset with its total trade count" style={pill(viewMode === 'assets')}>🗂 By asset</button>
+                        <button onClick={() => setViewMode('tags')} title="Win rate by entry conditions: lens, signal, AI verdict, score…" style={pill(viewMode === 'tags')}>🏷 By tag</button>
+                        <button onClick={() => setShowCharts(s => !s)} disabled={viewMode === 'tags'} title="Show a chart for every trade in the list" style={pill(showCharts)}>
+                            📊 {showCharts ? 'Back to table' : 'View all charts'}
+                        </button>
+                        <button onClick={() => setShowAutopsy(true)} title="What did price do after your trades closed? Were your stops too tight?" style={pill(false)}>🔬 Autopsy</button>
+                        <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
+                        <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
+                            <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
+                        </button>
+                        <button onClick={() => setIncludeExtended(x => !x)} title="Use pre-market / after-hours prices when the NYC session is closed" style={pill(includeExtended)}>🌅 Ext. hours</button>
+                        <button onClick={() => setAutoRefresh(a => !a)} title="Auto-refresh visible open positions — stops when you close this panel" style={pill(autoRefresh)}>
+                            {autoRefresh ? '⏱ Auto ON' : '⏱ Auto'}
+                        </button>
+                        {autoRefresh && (
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:'4px' }}>
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>every</span>
+                                <input type="number" min="10" value={autoSecs} onChange={e => setAutoSecs(e.target.value)}
+                                    style={{ width:'54px', padding:'4px 6px', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.25)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)' }}>sec</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
+                    {notice && (
+                        <div style={{ padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe', fontSize:'12px', color:'#1d4ed8', display:'flex', gap:'8px' }}>
+                            <span>🔔 {notice}</span>
+                            <button onClick={() => setNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#1d4ed8', cursor:'pointer', fontSize:'15px' }}>×</button>
+                        </div>
+                    )}
+                    {error && <div style={{ padding:'14px 20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>}
+                    {loading && <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading...</div>}
+                    {!loading && showCharts && viewMode !== 'tags' && (() => {
+                        const items = viewMode === 'assets' ? assetSummaries.map(a => a.latest) : filtered;
+                        if (items.length === 0) {
+                            return <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>Nothing to chart in this view.</div>;
+                        }
+                        const shown = items.slice(0, chartsShown);
+                        return (
+                            <div style={{ padding:'14px 20px' }}>
+                                <div style={{ fontSize:'11px', color:'#94a3b8', marginBottom:'10px' }}>
+                                    Showing {shown.length} of {items.length} · {viewMode === 'assets' ? "each asset's latest trade" : 'one chart per trade'} · filters above apply · the interval is shared by all charts
+                                </div>
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%, 440px), 1fr))', gap:'14px' }}>
+                                    {shown.map((p, i) => (
+                                        <PositionChartCard
+                                            key={p.id}
+                                            position={p}
+                                            interval={chartsInterval}
+                                            onIntervalChange={setChartsInterval}
+                                            mountDelay={(i % 12) * 350}
+                                            height={270}
+                                            onOpen={() => setChartPosition(p)}
+                                        />
+                                    ))}
+                                </div>
+                                {items.length > shown.length && (
+                                    <button onClick={() => setChartsShown(n => n + 12)} style={{
+                                        marginTop:'14px', padding:'8px 18px', borderRadius:'9px', border:'1px solid #e2e8f0',
+                                        backgroundColor:'#fff', color:'#475569', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                    }}>Show 12 more ({items.length - shown.length} left)</button>
+                                )}
+                            </div>
+                        );
+                    })()}
+                    {viewMode === 'tags' && <PositionTagStats />}
+                    {!loading && viewMode !== 'tags' && filtered.length === 0 && (
+                        <div style={{ padding:'50px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                            No {filterStatus !== 'ALL' ? filterStatus.toLowerCase() : ''} positions{search ? ' matching your search' : ''}.
+                        </div>
+                    )}
+                    {!loading && !showCharts && viewMode === 'assets' && assetSummaries.length > 0 && (
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Trades','Open','Closed','Win rate','Realized P&L','Unrealized P&L','Last trade'].map(h => (
+                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {assetSummaries.map(a => {
+                                        const winRate = a.closed > 0 ? Math.round((a.wins / a.closed) * 100) : null;
+                                        return (
+                                            <tr key={a.asset} onClick={() => setChartPosition(a.latest)} title="Click to view this asset's trades on a chart"
+                                                style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
+                                                    {onSelectTicker ? (
+                                                        <span onClick={(e) => { e.stopPropagation(); onSelectTicker(a.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{a.asset}</span>
+                                                    ) : a.asset}
+                                                </td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span style={{ fontSize:'12px', fontWeight:'800', padding:'2px 10px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#1d4ed8' }}>×{a.total}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color: a.open ? '#3b82f6' : '#cbd5e1', fontWeight:'700' }}>{a.open || '—'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{a.closed || '—'}</td>
+                                                <td style={{ padding:'8px 10px', color: winRate == null ? '#cbd5e1' : winRate >= 50 ? '#10b981' : '#ef4444', fontWeight:'700', whiteSpace:'nowrap' }}>
+                                                    {winRate != null ? `${winRate}% (${a.wins}/${a.closed})` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: a.realized >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {a.closed > 0 ? `${a.realized >= 0 ? '+' : '-'}$${Math.abs(a.realized).toFixed(2)}` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: a.unrealized >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {a.pricedOpen > 0 ? `${a.unrealized >= 0 ? '+' : '-'}$${Math.abs(a.unrealized).toFixed(2)}` : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(a.latest.opened_at).toLocaleDateString()}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {!loading && !showCharts && viewMode === 'trades' && filtered.length > 0 && (
+                        <div style={{ overflowX:'auto' }}>
+                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor:'#f8fafc' }}>
+                                        {['Asset','Trades','Dir','Qty','Entry','Current/Closed','TP','SL','P&L','Status','Opened'].map(h => (
+                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                        ))}
+                                        <th style={{ padding:'8px 10px', borderBottom:'2px solid #e2e8f0' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(p => {
+                                        const isOpenPos = p.status === 'OPEN';
+                                        const isLong = p.direction === 'long';
+                                        let pnlDollars = null, pnlPercent = null;
+                                        if (isOpenPos && p.current_price != null) {
+                                            pnlDollars = isLong ? (p.current_price - p.entry_price) * p.quantity : (p.entry_price - p.current_price) * p.quantity;
+                                            pnlPercent = (pnlDollars / (p.entry_price * p.quantity)) * 100;
+                                        } else if (!isOpenPos) {
+                                            pnlDollars = p.realized_pnl_dollars; pnlPercent = p.realized_pnl_percent;
+                                        }
+                                        const statusColor = p.status === 'OPEN' ? '#3b82f6' : p.status === 'CLOSED_TP' ? '#10b981' : p.status === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+                                        return (
+                                            <tr key={p.id} onClick={() => setChartPosition(p)} title="Click to view this position on a chart"
+                                                style={{ borderBottom:'1px solid #f1f5f9', cursor:'pointer' }}
+                                                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color:'#1a1a1a' }}>
+                                                    {onSelectTicker ? (
+                                                        <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span>
+                                                    ) : p.asset}
+                                                </td>
+                                                                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span
+                                                        title={`${assetStatsAll[p.asset]?.total} total · ${assetStatsAll[p.asset]?.open} open · ${assetStatsAll[p.asset]?.closed} closed`}
+                                                        style={{ fontSize:'11px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#1d4ed8', whiteSpace:'nowrap' }}
+                                                    >×{assetStatsAll[p.asset]?.total ?? 1}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'700', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲' : '▼'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{p.quantity}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>${p.entry_price}</td>
+                                                <td style={{ padding:'8px 10px', color:'#475569' }}>{isOpenPos ? (p.current_price != null ? `$${p.current_price}` : '—') : `$${p.closed_price}`}</td>
+                                                <td style={{ padding:'8px 10px', color:'#10b981' }}>{p.tp_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
+                                                <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
+                                                    {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
+                                                </td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
+                                                </td>
+                                                <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
+                                                <td style={{ padding:'8px 10px' }}>
+                                                    {isOpenPos && (
+                                                        <button onClick={(e) => { e.stopPropagation(); closePosition(p); }} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+            
+
+            <PositionAutopsyModal
+                isOpen={showAutopsy}
+                onClose={() => setShowAutopsy(false)}
+                onPickPosition={(row) => setChartPosition(row)}
+            />
+
+            {chartPosition && (
+                <PositionChartModal
+                    position={chartPosition}
+                    allPositions={positions}
+                    onClose={() => setChartPosition(null)}
+                    onSelectTicker={onSelectTicker}
+                    onClosePanel={onClose}
+                />
+            )}
+
+            <style>{`@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }`}</style>
+        </div>
+    );
+}
+
+function PositionChartModal({ position, allPositions = [], onClose, onSelectTicker, onClosePanel }) {
+    const [chartInterval, setChartInterval] = React.useState('1D');
+    const [selectedId, setSelectedId]       = React.useState(position ? position.id : null);
+
+    React.useEffect(() => {
+        const el = document.getElementById(`pos-chip-${selectedId}`);
+        if (el && el.scrollIntoView) el.scrollIntoView({ block:'nearest', inline:'nearest' });
+    }, [selectedId]);
+
+    if (!position) return null;
+
+    // Every trade on this asset, newest first
+    const sameAsset = allPositions.filter(p => p.asset === position.asset)
+        .sort((a, b) => new Date(b.opened_at) - new Date(a.opened_at));
+    const list     = sameAsset.some(t => t.id === position.id) ? sameAsset : [position, ...sameAsset];
+    const selected = list.find(t => t.id === selectedId) || position;
+    const selIdx   = list.findIndex(t => t.id === selected.id);
+    const goNewer  = () => { if (selIdx > 0) setSelectedId(list[selIdx - 1].id); };
+    const goOlder  = () => { if (selIdx < list.length - 1) setSelectedId(list[selIdx + 1].id); };
+
+    const statusColorOf = (s) => s === 'OPEN' ? '#3b82f6' : s === 'CLOSED_TP' ? '#10b981' : s === 'CLOSED_SL' ? '#ef4444' : '#94a3b8';
+    const statusShort   = (s) => s === 'OPEN' ? 'OPEN' : s === 'CLOSED_TP' ? 'TP' : s === 'CLOSED_SL' ? 'SL' : 'MANUAL';
+    const tradePnl = (t) => {
+        if (t.status !== 'OPEN') return t.realized_pnl_dollars;
+        if (t.current_price == null) return null;
+        return t.direction === 'long' ? (t.current_price - t.entry_price) * t.quantity : (t.entry_price - t.current_price) * t.quantity;
+    };
+    const fmtChipDate = (iso) => {
+        const d = new Date(iso);
+        const day = d.toLocaleDateString([], { month:'short', day:'numeric', ...(d.getFullYear() !== new Date().getFullYear() ? { year:'2-digit' } : {}) });
+        return `${day} · ${d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}`;
+    };
+
+    const isOpenPos   = selected.status === 'OPEN';
+    const isLong      = selected.direction === 'long';
+    const exitLabel   = selected.status === 'CLOSED_TP' ? 'TP hit' : selected.status === 'CLOSED_SL' ? 'SL hit' : 'Exit';
+    const statusColor = statusColorOf(selected.status);
+
+    // Open trade: the chart draws its own live lines. Closed trade: drawn from the saved levels.
+    const extraLines = isOpenPos ? null : [
+        { price: selected.entry_price, color:'#3b82f6', lineStyle:0, lineWidth:2, title:`Entry ${isLong ? '(L)' : '(S)'} $${selected.entry_price}` },
+        ...(selected.tp_price != null ? [{ price: selected.tp_price, color:'#10b981', lineStyle:0, title:`TP $${selected.tp_price}` }] : []),
+        ...(selected.sl_price != null ? [{ price: selected.sl_price, color:'#ef4444', lineStyle:0, title:`SL $${selected.sl_price}` }] : []),
+        ...(selected.closed_price != null ? [{ price: selected.closed_price, color:'#f59e0b', lineStyle:3, title:`${exitLabel} $${selected.closed_price}` }] : []),
+    ];
+    const exitColor = (selected.realized_pnl_dollars ?? 0) >= 0 ? '#10b981' : '#ef4444';
+    const extraMarkers = [
+        { ms: Date.parse(selected.opened_at), position: isLong ? 'belowBar' : 'aboveBar', color:'#3b82f6', shape: isLong ? 'arrowUp' : 'arrowDown', text:'Entry' },
+        ...(!isOpenPos && selected.closed_at ? [{ ms: Date.parse(selected.closed_at), position: isLong ? 'aboveBar' : 'belowBar', color: exitColor, shape:'circle', text: exitLabel }] : []),
+    ];
+
+    const navBtn = (disabled) => ({
+        padding:'3px 10px', borderRadius:'6px', fontSize:'10px', fontWeight:'700', cursor: disabled ? 'not-allowed' : 'pointer',
+        border:'1px solid rgba(255,255,255,0.15)', backgroundColor:'rgba(255,255,255,0.06)',
+        color: disabled ? '#334155' : '#93c5fd', opacity: disabled ? 0.5 : 1,
+    });
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.65)', zIndex:10095,
+            display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(4px)',
+        }}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'min(1000px,100%)', maxHeight:'calc(100vh - 24px)', overflowY:'auto', borderRadius:'16px',
+                backgroundColor:'#0b1220', boxShadow:'0 24px 80px rgba(0,0,0,0.5)', fontFamily:"'Segoe UI', system-ui, sans-serif",
+            }}>
+                {/* Header */}
+                <div style={{ padding:'14px 18px', display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap', borderBottom:'1px solid #1e293b' }}>
+                    <span style={{ fontSize:'17px', fontWeight:'800', color:'#fff' }}>📒 {selected.asset}</span>
+                    <span style={{ fontSize:'11px', fontWeight:'800', color: isLong ? '#10b981' : '#ef4444' }}>{isLong ? '▲ LONG' : '▼ SHORT'}</span>
+                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor: statusColor + '25', color: statusColor }}>
+                        {selected.status.replace('CLOSED_', 'CLOSED · ')}
+                    </span>
+                    {onSelectTicker && (
+                        <button onClick={() => { onSelectTicker(selected.asset); onClose(); onClosePanel && onClosePanel(); }} style={{
+                            marginLeft:'auto', padding:'5px 12px', borderRadius:'8px', border:'1px solid rgba(59,130,246,0.4)',
+                            backgroundColor:'rgba(59,130,246,0.15)', color:'#93c5fd', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                        }}>→ Open in Screener</button>
+                    )}
+                    <button onClick={onClose} style={{
+                        marginLeft: onSelectTicker ? 0 : 'auto', background:'rgba(255,255,255,0.1)', border:'none', borderRadius:'50%',
+                        width:'30px', height:'30px', color:'#fff', fontSize:'16px', cursor:'pointer',
+                    }}>×</button>
+                </div>
+
+                {/* Trade picker (only when this asset has more than one trade) */}
+                {list.length > 1 && (
+                    <div style={{ padding:'10px 18px 4px', borderBottom:'1px solid #1e293b' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'7px', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', letterSpacing:'0.07em' }}>
+                                TRADES ON {selected.asset} · {selIdx + 1} of {list.length} · NEWEST FIRST
+                            </span>
+                            <span style={{ marginLeft:'auto', display:'flex', gap:'4px' }}>
+                                <button onClick={goNewer} disabled={selIdx <= 0} style={navBtn(selIdx <= 0)}>‹ Newer</button>
+                                <button onClick={goOlder} disabled={selIdx >= list.length - 1} style={navBtn(selIdx >= list.length - 1)}>Older ›</button>
+                            </span>
+                        </div>
+                        <div style={{ display:'flex', gap:'6px', overflowX:'auto', paddingBottom:'8px' }}>
+                            {list.map(t => {
+                                const active = t.id === selected.id;
+                                const sc  = statusColorOf(t.status);
+                                const pnl = tradePnl(t);
+                                const tLong = t.direction === 'long';
+                                return (
+                                    <button key={t.id} id={`pos-chip-${t.id}`} onClick={() => setSelectedId(t.id)} style={{
+                                        flexShrink:0, minWidth:'122px', textAlign:'left', padding:'6px 10px', borderRadius:'9px', cursor:'pointer',
+                                        border:`1px solid ${active ? '#3b82f6' : 'rgba(255,255,255,0.1)'}`, borderLeft:`3px solid ${sc}`,
+                                        backgroundColor: active ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.04)',
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'800', color: tLong ? '#10b981' : '#ef4444' }}>
+                                            {tLong ? '▲' : '▼'} {t.direction.toUpperCase()} · {t.quantity}sh
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'1px' }}>{fmtChipDate(t.opened_at)}</div>
+                                        <div style={{ fontSize:'11px', fontWeight:'800', marginTop:'2px', color: (pnl ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {pnl != null ? `${pnl >= 0 ? '+' : '-'}$${Math.abs(pnl).toFixed(2)}` : '—'}
+                                            <span style={{ fontSize:'9px', fontWeight:'800', color: sc, marginLeft:'6px' }}>{statusShort(t.status)}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Chart — remounts per trade so lines, card and analysis all follow the selected trade */}
+                <div style={{ padding:'10px 14px 14px' }}>
+                    <ScannerChart
+                        key={selected.id}
+                        ticker={selected.asset}
+                        interval={chartInterval}
+                        onIntervalChange={setChartInterval}
+                        hideClose
+                        height={460}
+                        focusPositionId={selected.id}
+                        analysisAsOf={selected.opened_at ? selected.opened_at.slice(0, 10) : null}
+                        extraLines={extraLines}
+                        extraMarkers={extraMarkers}
+                        renderOverlay={(ctx) => (
+                            <PositionOverlayCard
+                                position={selected}
+                                livePositions={ctx.positions}
+                                lastPrice={ctx.lastPrice}
+                                extendedActive={ctx.extendedActive}
+                                marketSession={ctx.marketSession}
+                            />
+                        )}
+                    />
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+
+function CompositeBacktestModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const HORIZONS = [1, 3, 5, 10, 20];
+    const HORIZON_LABELS = { 1:'1D', 3:'3D', 5:'5D', 10:'10D', 20:'20D' };
+
+    const [tab, setTab] = React.useState('scanner');
+
+    const [scMinScore, setScMinScore] = React.useState('');
+    const [scSignal, setScSignal] = React.useState('');
+    const [scDirection, setScDirection] = React.useState('');
+    const [scAiVerdictMin, setScAiVerdictMin] = React.useState('');
+    const [scStartDate, setScStartDate] = React.useState('');
+    const [scEndDate, setScEndDate] = React.useState('');
+    const [scLoading, setScLoading] = React.useState(false);
+    const [scError, setScError] = React.useState(null);
+    const [scData, setScData] = React.useState(null);
+    const [scHasRun, setScHasRun] = React.useState(false);
+    const [scHorizonFocus, setScHorizonFocus] = React.useState('5');
+
+    const [gpMinConviction, setGpMinConviction] = React.useState('');
+    const [gpRecMin, setGpRecMin] = React.useState('');
+    const [gpTopPickOnly, setGpTopPickOnly] = React.useState(false);
+    const [gpSector, setGpSector] = React.useState('');
+    const [gpCountry, setGpCountry] = React.useState('');
+    const [gpStartDate, setGpStartDate] = React.useState('');
+    const [gpEndDate, setGpEndDate] = React.useState('');
+    const [gpLoading, setGpLoading] = React.useState(false);
+    const [gpError, setGpError] = React.useState(null);
+    const [gpData, setGpData] = React.useState(null);
+    const [gpHasRun, setGpHasRun] = React.useState(false);
+    const [gpHorizonFocus, setGpHorizonFocus] = React.useState('5');
+
+    const runScannerComposite = async () => {
+        setScLoading(true); setScError(null); setScHasRun(true);
+        try {
+            const body = { horizons: HORIZONS, limit: 3000 };
+            if (scMinScore.trim()) body.minScore = parseFloat(scMinScore);
+            if (scSignal) body.signal = scSignal;
+            if (scDirection) body.direction = scDirection;
+            if (scAiVerdictMin) body.aiVerdictMin = scAiVerdictMin;
+            if (scStartDate) body.startDate = scStartDate;
+            if (scEndDate) body.endDate = scEndDate;
+            const res = await fetch(`${BACKEND}/api/snowvault_scanner_composite_backtest_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setScData(json);
+        } catch (e) { setScError(e.message); }
+        finally { setScLoading(false); }
+    };
+
+    const runGlobalPicksComposite = async () => {
+        setGpLoading(true); setGpError(null); setGpHasRun(true);
+        try {
+            const body = { horizons: HORIZONS, limit: 3000 };
+            if (gpMinConviction.trim()) body.minConviction = parseInt(gpMinConviction, 10);
+            if (gpRecMin) body.recMin = gpRecMin;
+            if (gpTopPickOnly) body.topPickOnly = true;
+            if (gpSector.trim()) body.sector = gpSector.trim();
+            if (gpCountry.trim()) body.country = gpCountry.trim();
+            if (gpStartDate) body.startDate = gpStartDate;
+            if (gpEndDate) body.endDate = gpEndDate;
+            const res = await fetch(`${BACKEND}/api/snowvault_global_picks_composite_backtest_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpData(json);
+        } catch (e) { setGpError(e.message); }
+        finally { setGpLoading(false); }
+    };
+
+    const renderRankingTable = (title, groupedData, horizonFocus, setHorizonFocus, labelKey, showFlag) => {
+        if (!groupedData || Object.keys(groupedData).length === 0) return null;
+        const entries = Object.entries(groupedData);
+        return (
+            <div style={{ marginBottom:'20px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>🛡️ {title}</span>
+                    <div style={{ display:'flex', gap:'4px' }}>
+                        {HORIZONS.map(h => (
+                            <button key={h} onClick={() => setHorizonFocus(String(h))} style={{
+                                padding:'2px 9px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', cursor:'pointer',
+                                border:`1px solid ${String(horizonFocus) === String(h) ? '#0891b2' : '#e2e8f0'}`,
+                                backgroundColor: String(horizonFocus) === String(h) ? '#ecfeff' : '#fff',
+                                color: String(horizonFocus) === String(h) ? '#0891b2' : '#94a3b8',
+                            }}>{HORIZON_LABELS[h]}</button>
+                        ))}
+                    </div>
+                </div>
+                <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px' }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor:'#f8fafc' }}>
+                                <th style={{ padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>{labelKey}</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Occ.</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Avg Return</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Win Rate</th>
+                                <th style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Stability (combined)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {entries.map(([label, g], i) => {
+                                const cell = g.byHorizon[String(horizonFocus)];
+                                const info = stabilityLabel(g.combined.winRate);
+                                return (
+                                    <tr key={label} style={{ borderBottom:'1px solid #f1f5f9', backgroundColor: i === 0 ? `${info.color}08` : 'transparent' }}>
+                                        <td style={{ padding:'7px 10px', fontWeight:'800', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                            {i === 0 && '🏆 '}{showFlag ? `${g.flag || ''} ` : ''}{label}
+                                        </td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', color:'#64748b' }}>{g.occurrenceCount} ({g.tickerCount} tickers)</td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color: (cell?.avgReturn ?? 0) >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {cell?.avgReturn != null ? `${cell.avgReturn >= 0 ? '+' : ''}${cell.avgReturn}%` : '—'}
+                                        </td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center', color:'#475569' }}>{cell?.winRate != null ? `${cell.winRate}%` : '—'}</td>
+                                        <td style={{ padding:'7px 10px', textAlign:'center' }}>
+                                            <span style={{ fontWeight:'900', color: info.color }}>{g.combined.stabilityScore != null ? `${g.combined.stabilityScore}%` : '—'}</span>
+                                            <span style={{ fontSize:'9px', color: info.color, display:'block' }}>{info.label}</span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10080,
+            display:'flex', alignItems:'flex-start', justifyContent:'center',
+            padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:'100%', maxWidth:'920px', borderRadius:'18px', overflow:'hidden',
+                backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+            }}>
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0891b2 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>🧬</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Composite Backtest</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Combine criteria (e.g. Strong Opportunity + score ≥ 70 + Bullish) and see how that EXACT combination performed historically
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%', width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ display:'flex', gap:'6px', marginTop:'14px' }}>
+                        {[{ t:'scanner', label:'🔭 Trend Scanner' }, { t:'globalPicks', label:'🌍 Global Picks by Country' }].map(({ t, label }) => (
+                            <button key={t} onClick={() => setTab(t)} style={{
+                                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${tab === t ? 'rgba(8,145,178,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: tab === t ? '#0891b2' : 'rgba(255,255,255,0.08)',
+                                color: tab === t ? '#fff' : 'rgba(255,255,255,0.6)',
+                            }}>{label}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ maxHeight:'72vh', overflowY:'auto', padding:'20px' }}>
+                    {tab === 'scanner' && (
+                        <>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'16px', padding:'14px', backgroundColor:'#f8fafc', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN SCORE</label>
+                                    <input type="number" value={scMinScore} onChange={e => setScMinScore(e.target.value)} placeholder="e.g. 70"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'80px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>SIGNAL</label>
+                                    <select value={scSignal} onChange={e => setScSignal(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        {['RANGE_BREAKOUT_BULL','RANGE_BREAKOUT_BEAR','ACCELERATING_BULL','ACCELERATING_BEAR','BREAKOUT','TREND_BUILDING','WATCH'].map(s => (
+                                            <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>DIRECTION</label>
+                                    <select value={scDirection} onChange={e => setScDirection(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        <option value="BULLISH">Bullish</option>
+                                        <option value="BEARISH">Bearish</option>
+                                        <option value="NEUTRAL">Neutral</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN AI VERDICT</label>
+                                    <select value={scAiVerdictMin} onChange={e => setScAiVerdictMin(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        {['STRONG_OPPORTUNITY','OPPORTUNITY','NEUTRAL','CAUTION','AVOID'].map(v => (
+                                            <option key={v} value={v}>{v.replace('_',' ')}+</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>FROM</label>
+                                    <input type="date" value={scStartDate} onChange={e => setScStartDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>TO</label>
+                                    <input type="date" value={scEndDate} onChange={e => setScEndDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <button onClick={runScannerComposite} disabled={scLoading} style={{
+                                    alignSelf:'flex-end', padding:'8px 18px', borderRadius:'8px',
+                                    background: scLoading ? 'rgba(8,145,178,0.4)' : '#0891b2', border:'none', color:'#fff',
+                                    fontWeight:'800', fontSize:'12px', cursor: scLoading ? 'wait' : 'pointer',
+                                }}>{scLoading ? '⏳ Running...' : '🔍 Run Composite Backtest'}</button>
+                            </div>
+
+                            {scError && <div style={{ padding:'12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px', marginBottom:'16px' }}>⚠️ {scError}</div>}
+
+                            {!scHasRun && !scLoading && (
+                                <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                                    Set your criteria above and hit Run — e.g. "STRONG_OPPORTUNITY+ · score ≥ 70 · Bullish" — to see exactly how that combination has performed.
+                                </div>
+                            )}
+
+                            {scData && scHasRun && !scLoading && (
+                                scData.matchedCount === 0 ? (
+                                    <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No saved snapshots matched every criterion together. Try loosening one.</div>
+                                ) : (
+                                    <>
+                                        <div style={{ padding:'12px 16px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', marginBottom:'18px' }}>
+                                            <div style={{ fontSize:'13px', color:'#065f46', lineHeight:1.6 }}>
+                                                <strong>{scData.matchedCount}</strong> snapshots matched this exact combination. Overall,{' '}
+                                                {(() => {
+                                                    const cell = scData.aggregate?.byHorizon?.[scHorizonFocus];
+                                                    if (!cell || cell.count === 0) return 'not enough resolved data yet to say.';
+                                                    return <>the call was right <strong>{cell.winRate}%</strong> of the time over {scHorizonFocus} days, averaging <strong style={{ color: cell.avgReturn >= 0 ? '#10b981' : '#ef4444' }}>{cell.avgReturn >= 0 ? '+' : ''}{cell.avgReturn}%</strong> per trade.</>;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        {renderRankingTable('Sector Stability Ranking (Trend Scanner has no country field — sector is the closest analog)', scData.bySector, scHorizonFocus, setScHorizonFocus, 'Sector', false)}
+                                    </>
+                                )
+                            )}
+                        </>
+                    )}
+
+                    {tab === 'globalPicks' && (
+                        <>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', marginBottom:'16px', padding:'14px', backgroundColor:'#f8fafc', borderRadius:'10px', border:'1px solid #e2e8f0' }}>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN CONVICTION</label>
+                                    <input type="number" min="1" max="10" value={gpMinConviction} onChange={e => setGpMinConviction(e.target.value)} placeholder="e.g. 7"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'80px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>MIN RECOMMENDATION</label>
+                                    <select value={gpRecMin} onChange={e => setGpRecMin(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                        <option value="">Any</option>
+                                        <option value="STRONG BUY">Strong Buy+</option>
+                                        <option value="BUY">Buy+</option>
+                                        <option value="WATCH">Watch+</option>
+                                        <option value="HOLD">Hold+</option>
+                                    </select>
+                                </div>
+                                <label style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'12px', color:'#475569', alignSelf:'flex-end', paddingBottom:'6px' }}>
+                                    <input type="checkbox" checked={gpTopPickOnly} onChange={e => setGpTopPickOnly(e.target.checked)} /> Top Picks only
+                                </label>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>SECTOR</label>
+                                    <input type="text" value={gpSector} onChange={e => setGpSector(e.target.value)} placeholder="e.g. Semiconductors"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'140px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>COUNTRY (blank = rank ALL)</label>
+                                    <input type="text" value={gpCountry} onChange={e => setGpCountry(e.target.value)} placeholder="e.g. Singapore"
+                                        style={{ padding:'6px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px', width:'150px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>FROM</label>
+                                    <input type="date" value={gpStartDate} onChange={e => setGpStartDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'3px' }}>TO</label>
+                                    <input type="date" value={gpEndDate} onChange={e => setGpEndDate(e.target.value)} style={{ padding:'6px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }} />
+                                </div>
+                                <button onClick={runGlobalPicksComposite} disabled={gpLoading} style={{
+                                    alignSelf:'flex-end', padding:'8px 18px', borderRadius:'8px',
+                                    background: gpLoading ? 'rgba(8,145,178,0.4)' : '#0891b2', border:'none', color:'#fff',
+                                    fontWeight:'800', fontSize:'12px', cursor: gpLoading ? 'wait' : 'pointer',
+                                }}>{gpLoading ? '⏳ Running...' : '🔍 Run Composite Backtest'}</button>
+                            </div>
+
+                            {gpError && <div style={{ padding:'12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px', marginBottom:'16px' }}>⚠️ {gpError}</div>}
+
+                            {!gpHasRun && !gpLoading && (
+                                <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>
+                                    Leave everything blank and hit Run to rank every country at once — this is the "which nations tend to be most stable" view.
+                                </div>
+                            )}
+
+                            {gpData && gpHasRun && !gpLoading && (
+                                gpData.matchedCount === 0 ? (
+                                    <div style={{ padding:'40px 20px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No saved picks matched every criterion together. Try loosening one.</div>
+                                ) : (
+                                    <>
+                                        <div style={{ padding:'12px 16px', backgroundColor:'#faf5ff', border:'1px solid #ddd6fe', borderRadius:'10px', marginBottom:'18px' }}>
+                                            <div style={{ fontSize:'13px', color:'#5b21b6', lineHeight:1.6 }}>
+                                                <strong>{gpData.matchedCount}</strong> picks matched this combination across <strong>{Object.keys(gpData.byCountry || {}).length}</strong> countries.
+                                                {Object.keys(gpData.byCountry || {}).length > 0 && (() => {
+                                                    const top = Object.entries(gpData.byCountry)[0];
+                                                    return <> Most stable so far: <strong>{top[1].flag} {top[0]}</strong> at <strong>{top[1].combined.stabilityScore}%</strong> combined stability.</>;
+                                                })()}
+                                            </div>
+                                        </div>
+                                        {renderRankingTable('Country Stability Ranking', gpData.byCountry, gpHorizonFocus, setGpHorizonFocus, 'Country', true)}
+                                    </>
+                                )
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+    );
+}
+
+
+function ScannerHistoryModal({ isOpen, onClose, onSelectTicker }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+
+    const [loading,       setLoading]       = React.useState(false);
+    const [error,         setError]         = React.useState(null);
+    const [rows,          setRows]          = React.useState([]);
+    const [tickerSearch,  setTickerSearch]  = React.useState('');
+    const [startDate,     setStartDate]     = React.useState('');
+    const [endDate,       setEndDate]       = React.useState('');
+    const [expandedKey,   setExpandedKey]   = React.useState(null);
+    const [collapsedDates,setCollapsedDates]= React.useState({});
+
+    // -- Backtest mode --
+    const [viewMode,        setViewMode]        = React.useState('timeline'); // 'timeline' | 'backtest'
+    const [btLoading,       setBtLoading]        = React.useState(false);
+    const [btError,         setBtError]          = React.useState(null);
+    const [btData,          setBtData]           = React.useState(null);
+    const [btSignalFilter,  setBtSignalFilter]   = React.useState('');
+    const [btDirFilter,     setBtDirFilter]      = React.useState('');
+    const [btVerdictFilter, setBtVerdictFilter]  = React.useState('');
+    const BT_HORIZONS = [1, 3, 5, 10, 20];
+
+    const [btHorizonFocus, setBtHorizonFocus] = React.useState('5');
+
+    // -- Global Picks backtest (second data source) --
+    const [btSource, setBtSource] = React.useState('scanner'); // 'scanner' | 'globalPicks'
+    const [gpCountryFilter, setGpCountryFilter] = React.useState('');
+    const [gpSectorFilter, setGpSectorFilter] = React.useState('');
+    const [gpRecFilter, setGpRecFilter] = React.useState('');
+    const [gpMinConviction, setGpMinConviction] = React.useState('');
+    const [gpTopPickOnly, setGpTopPickOnly] = React.useState(false);
+    const [gpLoading, setGpLoading] = React.useState(false);
+    const [gpError, setGpError] = React.useState(null);
+    const [gpData, setGpData] = React.useState(null);
+    const [gpHorizonFocus, setGpHorizonFocus] = React.useState('5');
+    const [gpHasRun, setGpHasRun] = React.useState(false);
+    const [gpSortField, setGpSortField] = React.useState('date');
+    const [gpSortDir, setGpSortDir] = React.useState('desc');
+
+    // -- Performance detail modal (works for either source) --
+    const [perfModalAsset, setPerfModalAsset] = React.useState(null); // { symbol, source: 'scanner' | 'globalPicks' }
+
+    const HIST_SIG = {
+        RANGE_BREAKOUT_BULL: { color:'#10b981', bg:'#f0fdf4', icon:'🚀', label:'Range Breakout ▲' },
+        RANGE_BREAKOUT_BEAR: { color:'#ef4444', bg:'#fef2f2', icon:'🔻', label:'Range Breakout ▼' },
+        ACCELERATING_BULL:   { color:'#3b82f6', bg:'#eff6ff', icon:'⚡', label:'Accelerating ▲'   },
+        ACCELERATING_BEAR:   { color:'#f97316', bg:'#fff7ed', icon:'⚡', label:'Accelerating ▼'   },
+        BREAKOUT:            { color:'#8b5cf6', bg:'#faf5ff', icon:'📈', label:'Breakout'          },
+        TREND_BUILDING:      { color:'#06b6d4', bg:'#ecfeff', icon:'📊', label:'Trend Building'    },
+        WATCH:               { color:'#94a3b8', bg:'#f8fafc', icon:'👁', label:'Watch'             },
+    };
+
+    const HIST_AI_VERDICT = {
+        STRONG_OPPORTUNITY: { color:'#10b981', bg:'#f0fdf4', icon:'🔥' },
+        OPPORTUNITY:         { color:'#3b82f6', bg:'#eff6ff', icon:'📈' },
+        NEUTRAL:             { color:'#94a3b8', bg:'#f8fafc', icon:'➡️' },
+        CAUTION:             { color:'#f59e0b', bg:'#fffbeb', icon:'⚠️' },
+        AVOID:               { color:'#ef4444', bg:'#fef2f2', icon:'⛔' },
+    };
+
+    const fetchHistory = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const body = { limit: 500 };
+            if (tickerSearch.trim()) body.ticker = tickerSearch.trim().toUpperCase();
+            if (startDate) body.startDate = startDate;
+            if (endDate)   body.endDate   = endDate;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_scanner_snapshot_list/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setRows(json.results || []);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => { if (isOpen) fetchHistory(); }, [isOpen]);
+
+    const fetchBacktest = async () => {
+        setBtLoading(true);
+        setBtError(null);
+        try {
+            const body = { limit: 3000, horizons: BT_HORIZONS };
+            if (tickerSearch.trim())   body.ticker    = tickerSearch.trim().toUpperCase();
+            if (startDate)             body.startDate = startDate;
+            if (endDate)               body.endDate   = endDate;
+            if (btSignalFilter)        body.signal    = btSignalFilter;
+            if (btDirFilter)           body.direction = btDirFilter;
+            if (btVerdictFilter)       body.aiVerdict = btVerdictFilter;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_scanner_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setBtData(json);
+        } catch (e) {
+            setBtError(e.message);
+        } finally {
+            setBtLoading(false);
+        }
+    };
+
+    const fetchGlobalPicksBacktest = async () => {
+        setGpLoading(true);
+        setGpError(null);
+        setGpHasRun(true);
+        try {
+            const body = { limit: 3000, horizons: BT_HORIZONS };
+            if (tickerSearch.trim())    body.symbol        = tickerSearch.trim().toUpperCase();
+            if (startDate)              body.startDate     = startDate;
+            if (endDate)                body.endDate       = endDate;
+            if (gpCountryFilter.trim()) body.country       = gpCountryFilter.trim();
+            if (gpSectorFilter.trim())  body.sector        = gpSectorFilter.trim();
+            if (gpRecFilter)            body.rec           = gpRecFilter;
+            if (gpMinConviction)        body.minConviction = parseInt(gpMinConviction, 10);
+            if (gpTopPickOnly)          body.topPickOnly   = true;
+
+            const res  = await fetch(`${BACKEND}/api/snowvault_global_picks_backtest_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(body),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setGpData(json);
+        } catch (e) {
+            setGpError(e.message);
+        } finally {
+            setGpLoading(false);
+        }
+    };
+
+    const runActiveFetch = () => {
+        if (viewMode === 'timeline') { fetchHistory(); return; }
+        if (btSource === 'globalPicks') { fetchGlobalPicksBacktest(); return; }
+        fetchBacktest();
+    };
+    const isActiveFetchLoading = viewMode === 'timeline' ? loading : (btSource === 'globalPicks' ? gpLoading : btLoading);
+
+        React.useEffect(() => {
+        if (!isOpen || viewMode !== 'backtest') return;
+        if (btSource === 'scanner' && !btData) fetchBacktest();
+        // Global Picks intentionally does NOT auto-run — country/sector/rec
+        // should be chosen first, then the user explicitly hits "Run Backtest".
+    }, [isOpen, viewMode, btSource]);
+
+    const fmtCap = (v) => {
+        if (!v) return '—';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(0)}B`;
+        return `$${(v/1e6).toFixed(0)}M`;
+    };
+
+    const grouped = React.useMemo(() => {
+        const map = {};
+        rows.forEach(r => { if (!map[r.date]) map[r.date] = []; map[r.date].push(r); });
+        return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+    }, [rows]);
+
+    const toggleDateCollapse = (date) => setCollapsedDates(prev => ({ ...prev, [date]: !prev[date] }));
+
+    const BT_HORIZON_LABELS = { '1':'1D', '3':'3D', '5':'5D', '10':'10D', '20':'20D' };
+
+    
+    const renderBacktestTable = (title, dataObj, Icon) => {
+        if (!dataObj || Object.keys(dataObj).length === 0) return null;
+        return (
+            <div style={{ marginBottom:'20px' }}>
+                <div style={{ fontSize:'12px', fontWeight:'800', color:'#1a1a1a', marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px' }}>
+                    {Icon && <Icon size={14} />} {title}
+                </div>
+                <div style={{ overflowX:'auto' }}>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                        <thead>
+                            <tr style={{ backgroundColor:'#f8fafc' }}>
+                                <th style={{ padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0' }}>Group</th>
+                                {BT_HORIZONS.map(h => (
+                                    <th key={h} style={{ padding:'7px 10px', textAlign:'center', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>
+                                        {BT_HORIZON_LABELS[h] || `${h}D`}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Object.entries(dataObj).map(([key, horizonMap]) => (
+                                <tr key={key} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                    <td style={{ padding:'7px 10px', fontWeight:'700', color:'#1a1a1a', whiteSpace:'nowrap' }}>
+                                        {key === 'ALL' ? 'All Snapshots' : key.replace('_',' ')}
+                                    </td>
+                                    {BT_HORIZONS.map(h => {
+                                        const cell = horizonMap[String(h)];
+                                        if (!cell || cell.count === 0) return <td key={h} style={{ padding:'7px 10px', textAlign:'center', color:'#cbd5e1' }}>—</td>;
+                                        const positive = cell.avgDirectionAdjustedReturn >= 0;
+                                        return (
+                                            <td key={h} style={{ padding:'7px 10px', textAlign:'center' }}>
+                                                <div style={{ fontWeight:'800', color: positive ? '#10b981' : '#ef4444' }}>
+                                                    {positive ? '+' : ''}{cell.avgDirectionAdjustedReturn}%
+                                                </div>
+                                                <div style={{ fontSize:'10px', color:'#94a3b8' }}>
+                                                    {cell.winRate}% win · n={cell.count}
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    if (!isOpen) return null;
+
+        return (
+        <>
+        <div
+            style={{
+                position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:10025,
+                display:'flex', alignItems:'flex-start', justifyContent:'center',
+                padding:'16px', backdropFilter:'blur(4px)', overflowY:'auto',
+            }}
+            onClick={onClose}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width:'100%', maxWidth:'900px', borderRadius:'18px', overflow:'hidden',
+                    backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.25)',
+                    fontFamily:"'Segoe UI', system-ui, sans-serif", marginTop:'8px', marginBottom:'24px',
+                }}
+            >
+                <div style={{ padding:'18px 20px 14px', background:'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #10b981 130%)' }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                                <span style={{ fontSize:'20px' }}>📜</span>
+                                <span style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>Scanner History</span>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.55)', lineHeight:1.5 }}>
+                                Saved daily snapshots for backtesting — trend signals + AI opportunity analysis over time
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.12)', border:'none', borderRadius:'50%',
+                            width:'32px', height:'32px', color:'#fff', fontSize:'17px', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+                        }}>×</button>
+                    </div>
+
+                    <div style={{ display:'flex', gap:'6px', marginTop:'14px', marginBottom:'10px' }}>
+                        {[{ m:'timeline', label:'Timeline', Icon: Calendar }, { m:'backtest', label:'Backtest', Icon: BarChart3 }].map(({ m, label, Icon }) => (
+                            <button key={m} onClick={() => setViewMode(m)} style={{
+                                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:'800', cursor:'pointer',
+                                border:`1px solid ${viewMode === m ? 'rgba(16,185,129,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                backgroundColor: viewMode === m ? '#10b981' : 'rgba(255,255,255,0.08)',
+                                color: viewMode === m ? '#fff' : 'rgba(255,255,255,0.6)',
+                                transition:'all 0.15s', display:'flex', alignItems:'center', gap:'6px',
+                            }}><Icon size={14} /> {label}</button>
+                        ))}
+                    </div>
+
+                    {viewMode === 'backtest' && (
+                        <div style={{ display:'flex', gap:'6px', marginBottom:'10px' }}>
+                            {[{ s:'scanner', label:'📊 Trend Scanner' }, { s:'globalPicks', label:'🌍 Global Picks' }].map(({ s, label }) => (
+                                <button key={s} onClick={() => setBtSource(s)} style={{
+                                    padding:'5px 12px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor:'pointer',
+                                    border:`1px solid ${btSource === s ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                    backgroundColor: btSource === s ? '#3b82f6' : 'rgba(255,255,255,0.06)',
+                                    color: btSource === s ? '#fff' : 'rgba(255,255,255,0.55)',
+                                }}>{label}</button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', alignItems:'center' }}>
+                        <input
+                            type="text" value={tickerSearch}
+                            onChange={e => setTickerSearch(e.target.value.toUpperCase())}
+                            onKeyDown={e => e.key === 'Enter' && runActiveFetch()}
+                            placeholder={viewMode === 'backtest' && btSource === 'globalPicks' ? 'Filter symbol e.g. 7203.T' : 'Filter ticker e.g. NVDA'}
+                            style={{ padding:'6px 12px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', fontWeight:'600', outline:'none', width:'140px', color:'#1a1a1a', backgroundColor:'#fff' }}
+                        />
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                            style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                        <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)' }}>to</span>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                            style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+
+                        {viewMode === 'backtest' && btSource === 'scanner' && (
+                            <>
+                                <select value={btSignalFilter} onChange={e => setBtSignalFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Signals</option>
+                                    {Object.keys(HIST_SIG).map(s => <option key={s} value={s}>{HIST_SIG[s].label}</option>)}
+                                </select>
+                                <select value={btDirFilter} onChange={e => setBtDirFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Directions</option>
+                                    <option value="BULLISH">Bullish</option>
+                                    <option value="BEARISH">Bearish</option>
+                                    <option value="NEUTRAL">Neutral</option>
+                                </select>
+                                <select value={btVerdictFilter} onChange={e => setBtVerdictFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All AI Verdicts</option>
+                                    {Object.keys(HIST_AI_VERDICT).map(v => <option key={v} value={v}>{v.replace('_',' ')}</option>)}
+                                </select>
+                            </>
+                        )}
+
+                        {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                            <>
+                                <input type="text" value={gpCountryFilter} onChange={e => setGpCountryFilter(e.target.value)}
+                                    placeholder="Country e.g. Japan"
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'110px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <input type="text" value={gpSectorFilter} onChange={e => setGpSectorFilter(e.target.value)}
+                                    placeholder="Sector"
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'100px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <select value={gpRecFilter} onChange={e => setGpRecFilter(e.target.value)}
+                                    style={{ padding:'6px 8px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', color:'#1a1a1a', backgroundColor:'#fff' }}>
+                                    <option value="">All Recs</option>
+                                    <option value="STRONG BUY">Strong Buy</option>
+                                    <option value="BUY">Buy</option>
+                                    <option value="WATCH">Watch</option>
+                                    <option value="HOLD">Hold</option>
+                                </select>
+                                <input type="number" min="1" max="10" value={gpMinConviction} onChange={e => setGpMinConviction(e.target.value)}
+                                    placeholder="Min conv."
+                                    style={{ padding:'6px 10px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.2)', fontSize:'12px', width:'80px', color:'#1a1a1a', backgroundColor:'#fff' }} />
+                                <label style={{ display:'flex', alignItems:'center', gap:'5px', fontSize:'12px', color:'rgba(255,255,255,0.75)', cursor:'pointer' }}>
+                                    <input type="checkbox" checked={gpTopPickOnly} onChange={e => setGpTopPickOnly(e.target.checked)} />
+                                    Top Picks only
+                                </label>
+                            </>
+                        )}
+
+                        <button onClick={runActiveFetch} disabled={isActiveFetchLoading} style={{
+                            padding:'6px 16px', borderRadius:'8px',
+                            background: isActiveFetchLoading ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
+                            border:'none', color:'#fff', fontWeight:'800', fontSize:'12px',
+                            cursor: isActiveFetchLoading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'6px',
+                        }}>
+                            {isActiveFetchLoading
+                                ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> {viewMode === 'backtest' ? 'Crunching...' : 'Loading...'}</>
+                                : <>🔍 {viewMode === 'backtest' ? 'Run Backtest' : 'Search'}</>}
+                        </button>
+                        {(tickerSearch || startDate || endDate || btSignalFilter || btDirFilter || btVerdictFilter || gpCountryFilter || gpSectorFilter || gpRecFilter || gpMinConviction || gpTopPickOnly) && (
+                                                        <button onClick={() => {
+                                setTickerSearch(''); setStartDate(''); setEndDate('');
+                                setBtSignalFilter(''); setBtDirFilter(''); setBtVerdictFilter('');
+                                setGpCountryFilter(''); setGpSectorFilter(''); setGpRecFilter(''); setGpMinConviction(''); setGpTopPickOnly(false);
+                                if (viewMode === 'backtest' && btSource === 'globalPicks') { setGpData(null); setGpHasRun(false); return; }
+                                setTimeout(runActiveFetch, 0);
+                            }}
+                                style={{ padding:'6px 12px', borderRadius:'8px', backgroundColor:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'rgba(255,255,255,0.8)', fontSize:'12px', fontWeight:'600', cursor:'pointer' }}>
+                                Clear
+                            </button>
+                        )}
+                        {viewMode === 'timeline' && rows.length > 0 && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {rows.length} snapshot{rows.length !== 1 ? 's' : ''} · {grouped.length} day{grouped.length !== 1 ? 's' : ''}
+                            </span>
+                        )}
+                        {viewMode === 'backtest' && btSource === 'scanner' && btData && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {btData.totalSnapshots} snapshot{btData.totalSnapshots !== 1 ? 's' : ''} evaluated
+                            </span>
+                        )}
+                        {viewMode === 'backtest' && btSource === 'globalPicks' && gpData && (
+                            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', marginLeft:'auto' }}>
+                                {gpData.totalPicks} pick{gpData.totalPicks !== 1 ? 's' : ''} evaluated
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                <div style={{ maxHeight:'70vh', overflowY:'auto' }}>
+                    {viewMode === 'timeline' && (
+                    <>
+                    {loading && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                            <div style={{ fontSize:'13px', color:'#94a3b8' }}>Loading saved snapshots...</div>
+                        </div>
+                    )}
+
+                    {error && !loading && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>⚠️ {error}</div>
+                    )}
+
+                    {!loading && !error && grouped.length === 0 && (
+                        <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                            <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No saved snapshots yet</div>
+                            <div style={{ fontSize:'13px', color:'#64748b' }}>
+                                Run the Trend Scanner and hit "Save Today's Snapshot" to start building history here.
+                            </div>
+                        </div>
+                    )}
+
+                    {!loading && grouped.map(([date, dateRows]) => {
+                        const collapsed = !!collapsedDates[date];
+                        const dateObj   = new Date(date + 'T12:00:00');
+                        const dateLabel = dateObj.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+                        const bullCount = dateRows.filter(r => r.direction === 'BULLISH').length;
+                        const bearCount = dateRows.filter(r => r.direction === 'BEARISH').length;
+
+                        return (
+                            <div key={date} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                                <div onClick={() => toggleDateCollapse(date)} style={{
+                                    padding:'12px 20px', display:'flex', alignItems:'center', gap:'10px',
+                                    cursor:'pointer', backgroundColor:'#f8fafc', position:'sticky', top:0, zIndex:1,
+                                }}>
+                                    <span style={{ fontSize:'13px', transition:'transform 0.15s', transform: collapsed ? 'rotate(-90deg)' : 'none', display:'inline-block' }}>▾</span>
+                                    <span style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{dateLabel}</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8' }}>{dateRows.length} stocks</span>
+                                    <span style={{ fontSize:'11px', color:'#10b981', fontWeight:'700' }}>{bullCount}▲</span>
+                                    <span style={{ fontSize:'11px', color:'#ef4444', fontWeight:'700' }}>{bearCount}▼</span>
+                                </div>
+
+                                {!collapsed && (
+                                    <div style={{ padding:'8px 20px 16px', display:'flex', flexDirection:'column', gap:'6px' }}>
+                                        {dateRows.sort((a, b) => (b.score||0) - (a.score||0)).map(r => {
+                                            const sc  = HIST_SIG[r.signal] || HIST_SIG.WATCH;
+                                            const av  = HIST_AI_VERDICT[r.aiVerdict] || null;
+                                            const key = `${r.date}_${r.ticker}`;
+                                            const isExpanded = expandedKey === key;
+                                            const dirColor = r.direction === 'BULLISH' ? '#10b981' : r.direction === 'BEARISH' ? '#ef4444' : '#94a3b8';
+
+                                            return (
+                                                <div key={key} style={{ borderRadius:'10px', border:`1px solid ${isExpanded ? sc.color : '#e2e8f0'}`, overflow:'hidden' }}>
+                                                    <div onClick={() => setExpandedKey(isExpanded ? null : key)} style={{
+                                                        padding:'9px 12px', display:'flex', alignItems:'center', gap:'10px',
+                                                        cursor:'pointer', backgroundColor: isExpanded ? sc.bg : '#fff', flexWrap:'wrap',
+                                                    }}>
+                                                        <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a', minWidth:'52px' }}>{r.ticker}</span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, color:sc.color, whiteSpace:'nowrap' }}>
+                                                            {sc.icon} {sc.label}
+                                                        </span>
+                                                        <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor: dirColor+'15', color:dirColor }}>
+                                                            {r.direction}
+                                                        </span>
+                                                        {av && (
+                                                            <span style={{ padding:'2px 8px', borderRadius:'10px', fontSize:'10px', fontWeight:'700', backgroundColor:av.bg, color:av.color, whiteSpace:'nowrap' }}>
+                                                                {av.icon} 🧠 {r.aiVerdict?.replace('_',' ')}
+                                                            </span>
+                                                        )}
+                                                        <span style={{ marginLeft:'auto', fontSize:'11px', color:'#64748b', fontWeight:'700' }}>
+                                                            Score {r.score != null ? Math.round(r.score) : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'55px', textAlign:'right' }}>
+                                                            {r.currentPrice != null ? `$${r.currentPrice}` : '—'}
+                                                        </span>
+                                                        <span style={{ fontSize:'11px', color:'#94a3b8', minWidth:'45px', textAlign:'right' }}>{fmtCap(r.marketCap)}</span>
+                                                        {r.savedCount > 1 && (
+                                                            <span title={`Refreshed ${r.savedCount}× that day`} style={{ fontSize:'10px', color:'#94a3b8' }}>×{r.savedCount}</span>
+                                                        )}
+                                                    </div>
+
+                                                    {isExpanded && (
+                                                        <div style={{ padding:'12px 14px', backgroundColor:'#fafafa', borderTop:`1px solid ${sc.color}`, display:'flex', flexDirection:'column', gap:'10px' }}>
+                                                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(90px,1fr))', gap:'8px' }}>
+                                                                {[
+                                                                    { label:'ADX', value: r.rawScanner?.adxNow ?? '—' },
+                                                                    { label:'ROC20', value: r.rawScanner?.roc20 != null ? `${r.rawScanner.roc20}%` : '—' },
+                                                                    { label:'Vol Ratio', value: r.rawScanner?.volRatio != null ? `${r.rawScanner.volRatio}×` : '—' },
+                                                                    { label:'From 52W High', value: r.rawScanner?.pctFromHigh != null ? `${r.rawScanner.pctFromHigh}%` : '—' },
+                                                                    { label:'Sector', value: r.sector || '—' },
+                                                                ].map((item, ii) => (
+                                                                    <div key={ii} style={{ padding:'7px 9px', backgroundColor:'#fff', borderRadius:'7px', border:'1px solid #e2e8f0' }}>
+                                                                        <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px' }}>{item.label.toUpperCase()}</div>
+                                                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#1a1a1a' }}>{item.value}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {r.aiSynthesis ? (
+                                                                <div style={{ padding:'10px 12px', backgroundColor: av?.bg || '#f8fafc', borderRadius:'8px', border:`2px solid ${av?.color || '#e2e8f0'}` }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:av?.color || '#64748b', letterSpacing:'0.06em', marginBottom:'6px' }}>
+                                                                        ✨🧠 AI SYNTHESIS ({r.aiSynthesis.runCountAtSynthesis} sources) — {r.aiSynthesis.finalOpportunityScore}/100
+                                                                    </div>
+                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55 }}>{r.aiSynthesis.synthesizedThesis}</div>
+                                                                </div>
+                                                            ) : r.aiRuns?.length > 0 ? (
+                                                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em' }}>
+                                                                        🧠 {r.aiRuns.length} AI RUN{r.aiRuns.length !== 1 ? 'S' : ''} (no synthesis saved that day)
+                                                                    </div>
+                                                                    {r.aiRuns.map((run, ri) => (
+                                                                        <div key={ri} style={{ padding:'8px 10px', backgroundColor:'#f8fafc', borderRadius:'7px', border:'1px solid #e2e8f0', fontSize:'11px' }}>
+                                                                            <strong>{run.source || 'AI'}:</strong> {run.verdict?.replace('_',' ')} ({run.opportunityScore}/100) — {run.thesis}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : r.aiAnalysis ? (
+                                                                <div style={{ padding:'10px 12px', backgroundColor: av?.bg || '#f8fafc', borderRadius:'8px', border:`1px solid ${av?.color || '#e2e8f0'}30` }}>
+                                                                    <div style={{ fontSize:'10px', fontWeight:'700', color:av?.color || '#64748b', letterSpacing:'0.06em', marginBottom:'6px' }}>
+                                                                        🧠 AI ANALYSIS (legacy) — {r.aiOpportunityScore}/100
+                                                                    </div>
+                                                                    <div style={{ fontSize:'12px', color:'#333', lineHeight:1.55 }}>{r.aiAnalysis.thesis}</div>
+                                                                </div>
+                                                            ) : (
+                                                                <div style={{ fontSize:'11px', color:'#94a3b8', fontStyle:'italic' }}>
+                                                                    No AI analysis was attached when this snapshot was saved.
+                                                                </div>
+                                                            )}
+
+                                                            {onSelectTicker && (
+                                                                <button onClick={() => { onSelectTicker(r.ticker); onClose(); }} style={{
+                                                                    padding:'8px', borderRadius:'8px',
+                                                                    background:'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                                                    color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer',
+                                                                }}>→ Open {r.ticker} in Screener</button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                    </>
+                    )}
+
+                    {viewMode === 'backtest' && btSource === 'scanner' && (
+                        <div style={{ padding:'20px' }}>
+                            {btLoading && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                                    <div style={{ fontSize:'13px', color:'#94a3b8' }}>Pulling price history and computing forward returns...</div>
+                                </div>
+                            )}
+                            {btError && !btLoading && (
+                                <div style={{ padding:'16px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px' }}>⚠️ {btError}</div>
+                            )}
+                            {!btLoading && !btError && btData && btData.totalSnapshots === 0 && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>📭</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No snapshots match these filters</div>
+                                </div>
+                            )}
+                            {!btLoading && !btError && btData && btData.totalSnapshots > 0 && (
+                                <>
+                                    <div style={{
+                                        padding:'10px 14px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0',
+                                        borderRadius:'8px', fontSize:'12px', color:'#065f46', lineHeight:1.6, marginBottom:'20px',
+                                    }}>
+                                        💡 Returns below are <strong>direction-adjusted</strong> — a BEARISH signal that saw price fall is counted as a <em>win</em>, not a loss. Win rate = % of resolved snapshots where the direction call was correct at that horizon. Horizons with no data yet are excluded, not guessed at.
+                                    </div>
+                                    <BacktestPlainEnglish btData={btData} />
+                                    <ScannerBacktestTopBottomPerformers rows={btData.rows} horizon={btHorizonFocus} />
+                                    <StabilityRankingTable rows={btData.rows} horizons={BT_HORIZONS} keyField="ticker"
+                                        onSelectAsset={(t) => setPerfModalAsset({ symbol: t, source: 'scanner' })} />
+                                    <BacktestReturnByHorizonChart aggregate={btData.aggregate} horizons={BT_HORIZONS} />
+                                    <BacktestSignalComparisonChart bySignal={btData.bySignal} horizon={btHorizonFocus} onHorizonChange={setBtHorizonFocus} horizons={BT_HORIZONS} />
+                                    {renderBacktestTable('Overall', btData.aggregate, BarChart3)}
+                                    {renderBacktestTable('By Signal', btData.bySignal, Telescope)}
+                                    {renderBacktestTable('By Direction', btData.byDirection, ArrowUpDown)}
+                                    {Object.keys(btData.byAiVerdict || {}).length > 0 && renderBacktestTable('By AI Verdict', btData.byAiVerdict, Brain)}
+                                                                        {renderBacktestTable('By Scanner Score', btData.byScoreBucket, Gauge)}
+                                    <ScannerBacktestDetailTable
+                                        rows={btData.rows} horizons={BT_HORIZONS}
+                                        onSelectAsset={(ticker) => setPerfModalAsset({ symbol: ticker, source: 'scanner' })}
+                                        onSelectTicker={onSelectTicker}
+                                        onClose={onClose}
+                                    />
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {viewMode === 'backtest' && btSource === 'globalPicks' && (
+                        <div style={{ padding:'20px' }}>
+                            {!gpHasRun && !gpLoading && (
+                                <div style={{ padding:'50px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>🌍</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>
+                                        Choose what to backtest
+                                    </div>
+                                    <div style={{ fontSize:'13px', color:'#64748b', maxWidth:'420px', margin:'0 auto', lineHeight:1.6 }}>
+                                        Enter a <strong>country</strong> and/or <strong>sector</strong> above (or set a min conviction / Top Picks only), then hit <strong>Run Backtest</strong>. This pulls real price history for every matching pick, so it's not instant — that's why it doesn't run automatically.
+                                    </div>
+                                </div>
+                            )}
+                            {gpLoading && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'10px' }}>⏳</div>
+                                    <div style={{ fontSize:'13px', color:'#94a3b8' }}>Pulling price history for global picks and computing forward returns...</div>
+                                </div>
+                            )}
+                            {gpError && !gpLoading && (
+                                <div style={{ padding:'16px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px', borderRadius:'8px' }}>⚠️ {gpError}</div>
+                            )}
+                            {gpHasRun && !gpLoading && !gpError && gpData && gpData.totalPicks === 0 && (
+                                <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                                    <div style={{ fontSize:'40px', marginBottom:'12px' }}>🌍</div>
+                                    <div style={{ fontSize:'15px', fontWeight:'700', color:'#1a1a1a', marginBottom:'6px' }}>No global picks match these filters</div>
+                                    <div style={{ fontSize:'13px', color:'#64748b' }}>Try a broader country/sector, or save picks from the Country-Sector Drill first.</div>
+                                </div>
+                            )}
+                            {gpHasRun && !gpLoading && !gpError && gpData && gpData.totalPicks > 0 && (
+                                <>
+                                    <div style={{
+                                        padding:'10px 14px', backgroundColor:'#eff6ff', border:'1px solid #bfdbfe',
+                                        borderRadius:'8px', fontSize:'12px', color:'#1d4ed8', lineHeight:1.6, marginBottom:'20px',
+                                    }}>
+                                        💡 "Direction" here comes from the rec label — STRONG BUY/BUY count as bullish, anything with SELL/AVOID counts as bearish, WATCH/HOLD are treated as neutral (not flipped). Same direction-adjusted return logic as the Trend Scanner backtest.
+                                    </div>
+                                    <GlobalPicksPlainEnglish gpData={gpData} />
+                                    <GlobalPicksTopBottomPerformers rows={gpData.rows} horizon={gpHorizonFocus} />
+                                    <StabilityRankingTable rows={gpData.rows} horizons={BT_HORIZONS} keyField="symbol"
+                                        onSelectAsset={(s) => setPerfModalAsset({ symbol: s, source: 'globalPicks' })} />
+                                    <BacktestReturnByHorizonChart aggregate={gpData.aggregate} horizons={BT_HORIZONS} />
+                                    <BacktestGroupComparisonChart
+                                        title="Performance by Recommendation" IconComp={Brain}
+                                        data={gpData.byRec} horizon={gpHorizonFocus} onHorizonChange={setGpHorizonFocus} horizons={BT_HORIZONS}
+                                        labelize={k => k}
+                                    />
+                                    <BacktestGroupComparisonChart
+                                        title="Performance by Country" IconComp={Telescope}
+                                        data={gpData.byCountry} horizon={gpHorizonFocus} onHorizonChange={setGpHorizonFocus} horizons={BT_HORIZONS}
+                                        labelize={k => k}
+                                    />
+                                    {renderBacktestTable('Overall', gpData.aggregate, BarChart3)}
+                                    {renderBacktestTable('By Recommendation', gpData.byRec, Brain)}
+                                    {renderBacktestTable('By Country', gpData.byCountry, Telescope)}
+                                    {renderBacktestTable('By Sector', gpData.bySector, Gauge)}
+                                    {renderBacktestTable('By Conviction', gpData.byConvictionBucket, Target)}
+                                    {renderBacktestTable('Top Pick vs Regular', gpData.byTopPick, ArrowUpDown)}
+                                    <GlobalPicksDetailTable
+                                        rows={gpData.rows} horizons={BT_HORIZONS}
+                                        sortField={gpSortField} sortDir={gpSortDir}
+                                        onSort={(field) => {
+                                            if (field === gpSortField) setGpSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                                            else { setGpSortField(field); setGpSortDir('desc'); }
+                                        }}
+                                        onSelectTicker={onSelectTicker}
+                                        onClose={onClose}
+                                    />
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+                        <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+            `}</style>
+        </div>
+
+        {perfModalAsset && (
+            <TickerPerformanceModal
+                symbol={perfModalAsset.symbol}
+                rows={
+                    perfModalAsset.source === 'scanner'
+                        ? normalizeRowsForPerfModal((btData?.rows || []).filter(r => r.ticker === perfModalAsset.symbol), 'scanner')
+                        : normalizeRowsForPerfModal((gpData?.rows || []).filter(r => r.symbol === perfModalAsset.symbol), 'globalPicks')
+                }
+                horizons={BT_HORIZONS}
+                sourceLabel={perfModalAsset.source === 'scanner' ? 'Trend Scanner' : 'Global Stock Picks'}
+                onClose={() => setPerfModalAsset(null)}
+                onOpenInScreener={onSelectTicker ? () => { onSelectTicker(perfModalAsset.symbol); setPerfModalAsset(null); onClose && onClose(); } : null}
+            />
+        )}
+        </>
+    );
+}
+
+function MomentumVelocityPanel({ ticker, openaiKey }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [data,     setData]     = React.useState(null);
+    const [loading,  setLoading]  = React.useState(false);
+    const [error,    setError]    = React.useState(null);
+    const [interval, setInterval] = React.useState('1D');
+    const [tab,      setTab]      = React.useState('overview'); // overview|roc|volume
+
+    React.useEffect(() => {
+        if (ticker) fetch_data();
+    }, [ticker, interval]);
+
+    const fetch_data = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_momentum_velocity_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ ticker, interval }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setData(json);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ── State config ─────────────────────────────────────────────────────────
+    const STATE_CONFIG = {
+        HIGH_VELOCITY: { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'High Velocity',  desc:'Strong momentum — stock is moving fast'         },
+        BUILDING:      { color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe', icon:'📈', label:'Building',       desc:'Momentum picking up — watch for breakout'        },
+        LOW_VELOCITY:  { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'🐢', label:'Low Velocity',   desc:'Weak momentum — moving but slowly'               },
+        IDLE:          { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'😴', label:'Idle',           desc:'No momentum — stock is going nowhere right now'  },
+        UNKNOWN:       { color:'#94a3b8', bg:'#f8fafc', border:'#e2e8f0', icon:'❓', label:'Unknown',        desc:'Not enough data'                                 },
+    };
+
+    const DIR_CONFIG = {
+        BULLISH: { color:'#10b981', icon:'▲', label:'Bullish' },
+        BEARISH: { color:'#ef4444', icon:'▼', label:'Bearish' },
+        NEUTRAL: { color:'#94a3b8', icon:'→', label:'Neutral' },
+    };
+
+    if (!ticker) return null;
+
+    const sc  = data ? (STATE_CONFIG[data.velocityState] || STATE_CONFIG.UNKNOWN) : null;
+    const dc  = data ? (DIR_CONFIG[data.direction]       || DIR_CONFIG.NEUTRAL)   : null;
+
+    // ── Mini sparkline helper ─────────────────────────────────────────────────
+    const Sparkline = ({ series, color, zeroLine = false, height = 48 }) => {
+        if (!series?.length) return null;
+        const W      = 300;
+        const H      = height;
+        const vals   = series.map(s => s.value);
+        const minV   = Math.min(...vals);
+        const maxV   = Math.max(...vals);
+        const range  = maxV - minV || 1;
+        const norm   = v => H - ((v - minV) / range) * (H - 4) - 2;
+        const pts    = series.map((s, i) => `${(i / (series.length - 1)) * W},${norm(s.value)}`).join(' ');
+        const zeroY  = zeroLine ? norm(0) : null;
+
+        return (
+            <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:'block' }}>
+                {zeroLine && zeroY !== null && (
+                    <line x1="0" y1={zeroY} x2={W} y2={zeroY}
+                        stroke="rgba(0,0,0,0.15)" strokeWidth="1" strokeDasharray="3,2"/>
+                )}
+                <polyline points={pts} fill="none"
+                    stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+                {/* Colour dots for positive/negative */}
+                {zeroLine && series.map((s, i) => {
+                    if (i % 5 !== 0) return null;
+                    return (
+                        <circle key={i}
+                            cx={(i / (series.length - 1)) * W}
+                            cy={norm(s.value)}
+                            r="2"
+                            fill={s.value >= 0 ? '#10b981' : '#ef4444'}
+                        />
+                    );
+                })}
+            </svg>
+        );
+    };
+
+    return (
+        <div style={{
+            backgroundColor: '#fff',
+            borderRadius:    '14px',
+            border:          '1px solid #e2e8f0',
+            boxShadow:       '0 4px 16px rgba(0,0,0,0.06)',
+            overflow:        'hidden',
+            marginBottom:    '20px',
+            fontFamily:      "'Segoe UI', system-ui, sans-serif",
+        }}>
+
+            {/* ── Header ─────────────────────────────────────────────────────── */}
+            <div style={{
+                padding:    '14px 18px',
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                display:    'flex', alignItems:'center',
+                justifyContent:'space-between', flexWrap:'wrap', gap:'10px',
+            }}>
+                <div>
+                    <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>
+                        ⚡ Momentum Velocity — {ticker}
+                    </div>
+                    <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.5)', marginTop:'2px' }}>
+                        ADX · ROC · Volume Velocity · Relative Strength
+                    </div>
+                </div>
+                <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
+                    {/* Interval picker */}
+                    {['15m','1h','1D','1W'].map(iv => (
+                        <button key={iv} onClick={() => setInterval(iv)}
+                            style={{
+                                padding:'4px 10px', borderRadius:'6px', fontSize:'11px',
+                                fontWeight:'700', cursor:'pointer', border:'none',
+                                backgroundColor: interval === iv ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                color: interval === iv ? '#fff' : 'rgba(255,255,255,0.5)',
+                                transition:'all 0.15s',
+                            }}>{iv}</button>
+                    ))}
+                    <button onClick={fetch_data} disabled={loading}
+                        style={{
+                            padding:'4px 10px', borderRadius:'6px', fontSize:'11px',
+                            fontWeight:'700', cursor:'pointer', border:'none',
+                            backgroundColor:'rgba(255,255,255,0.1)',
+                            color:'rgba(255,255,255,0.6)',
+                        }}>
+                        <span style={{ display:'inline-block', animation: loading ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Loading ─────────────────────────────────────────────────────── */}
+            {loading && (
+                <div style={{ padding:'40px', textAlign:'center', color:'#64748b' }}>
+                    <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⚡</div>
+                    <div style={{ fontSize:'13px', fontWeight:'600' }}>Calculating momentum velocity...</div>
+                </div>
+            )}
+
+            {/* ── Error ──────────────────────────────────────────────────────── */}
+            {error && !loading && (
+                <div style={{ padding:'16px 18px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'13px' }}>
+                    ⚠️ {error}
+                </div>
+            )}
+
+            {/* ── Main content ────────────────────────────────────────────────── */}
+            {data && !loading && (
+                <>
+                    {/* ── Velocity score hero ── */}
+                    <div style={{
+                        padding:         '18px 20px',
+                        backgroundColor: sc.bg,
+                        borderBottom:    `3px solid ${sc.color}`,
+                        display:         'flex', gap:'16px',
+                        alignItems:      'center', flexWrap:'wrap',
+                    }}>
+                        {/* Big score circle */}
+                        <div style={{
+                            width:'80px', height:'80px', borderRadius:'50%',
+                            backgroundColor: sc.color,
+                            display:'flex', flexDirection:'column',
+                            alignItems:'center', justifyContent:'center',
+                            flexShrink:0,
+                            boxShadow:`0 4px 20px ${sc.color}44`,
+                        }}>
+                            <div style={{ fontSize:'24px', fontWeight:'900', color:'#fff', lineHeight:1 }}>
+                                {data.velocityScore ?? '—'}
+                            </div>
+                            <div style={{ fontSize:'9px', color:'rgba(255,255,255,0.8)', fontWeight:'700', letterSpacing:'0.05em' }}>
+                                /100
+                            </div>
+                        </div>
+
+                        <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'20px' }}>{sc.icon}</span>
+                                <span style={{ fontSize:'18px', fontWeight:'800', color:sc.color }}>{sc.label}</span>
+                                <span style={{
+                                    padding:'3px 10px', borderRadius:'20px', fontSize:'12px',
+                                    fontWeight:'700',
+                                    backgroundColor: dc.color + '18',
+                                    color:           dc.color,
+                                    border:`1px solid ${dc.color}30`,
+                                }}>
+                                    {dc.icon} {dc.label}
+                                </span>
+                            </div>
+                            <div style={{ fontSize:'13px', color:'#475569', lineHeight:1.5 }}>
+                                {sc.desc}
+                            </div>
+                            {/* Velocity bar */}
+                            <div style={{ marginTop:'10px' }}>
+                                <div style={{ height:'6px', backgroundColor:'#e2e8f0', borderRadius:'3px', overflow:'hidden' }}>
+                                    <div style={{
+                                        height:'100%',
+                                        width:`${data.velocityScore ?? 0}%`,
+                                        backgroundColor: sc.color,
+                                        borderRadius:'3px',
+                                        transition:'width 1s ease',
+                                    }}/>
+                                </div>
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'9px', color:'#94a3b8', marginTop:'3px', fontWeight:'700' }}>
+                                    <span>IDLE</span>
+                                    <span>LOW</span>
+                                    <span>BUILDING</span>
+                                    <span>HIGH ⚡</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── Tab switcher ── */}
+                    <div style={{
+                        display:'flex', borderBottom:'2px solid #f1f5f9',
+                        padding:'0 18px', backgroundColor:'#fafafa',
+                    }}>
+                        {[
+                            { id:'overview', label:'Overview'       },
+                            { id:'roc',      label:'ROC Chart'      },
+                            { id:'volume',   label:'Volume Velocity'},
+                        ].map(t => (
+                            <button key={t.id} onClick={() => setTab(t.id)}
+                                style={{
+                                    padding:'10px 16px', fontSize:'12px', fontWeight:'700',
+                                    border:'none', backgroundColor:'transparent',
+                                    borderBottom:`2px solid ${tab === t.id ? '#3b82f6' : 'transparent'}`,
+                                    color: tab === t.id ? '#3b82f6' : '#94a3b8',
+                                    cursor:'pointer', marginBottom:'-2px',
+                                    transition:'all 0.15s', whiteSpace:'nowrap',
+                                }}>{t.label}</button>
+                        ))}
+                    </div>
+
+                    {/* ── Overview tab ── */}
+                    {tab === 'overview' && (
+                        <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:'14px' }}>
+
+                            {/* Key metrics grid */}
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:'10px' }}>
+                                {[
+                                    {
+                                        label: 'ADX',
+                                        value: data.adx != null ? data.adx.toFixed(1) : '—',
+                                        sub:   data.adx >= 25 ? 'Trending 🔥' : data.adx >= 20 ? 'Weak trend' : 'Ranging 😴',
+                                        color: data.adx >= 25 ? '#10b981' : data.adx >= 20 ? '#f59e0b' : '#94a3b8',
+                                        tip:   'ADX > 25 = trending. < 20 = idling.',
+                                    },
+                                    {
+                                        label: '+DI / -DI',
+                                        value: data.plusDI != null ? `${data.plusDI.toFixed(1)} / ${data.minusDI.toFixed(1)}` : '—',
+                                        sub:   data.plusDI > data.minusDI ? 'Bulls winning' : 'Bears winning',
+                                        color: data.plusDI > data.minusDI ? '#10b981' : '#ef4444',
+                                        tip:   '+DI > -DI = bullish pressure',
+                                    },
+                                    {
+                                        label: 'Vol Ratio',
+                                        value: data.volRatio != null ? `${data.volRatio}×` : '—',
+                                        sub:   data.volRatio >= 1.5 ? 'High activity' : data.volRatio >= 1.0 ? 'Normal' : 'Low activity',
+                                        color: data.volRatio >= 1.5 ? '#10b981' : data.volRatio >= 1.0 ? '#3b82f6' : '#94a3b8',
+                                        tip:   '5-day vs 20-day avg volume',
+                                    },
+                                    {
+                                        label: 'ROC 20d',
+                                        value: data.roc20 != null ? `${data.roc20 >= 0 ? '+' : ''}${data.roc20}%` : '—',
+                                        sub:   '20-day price change',
+                                        color: data.roc20 >= 5 ? '#10b981' : data.roc20 >= 0 ? '#3b82f6' : data.roc20 >= -5 ? '#f59e0b' : '#ef4444',
+                                        tip:   'Rate of change over 20 periods',
+                                    },
+                                    {
+                                        label: 'Acceleration',
+                                        value: data.acceleration != null ? `${data.acceleration >= 0 ? '+' : ''}${data.acceleration.toFixed(2)}` : '—',
+                                        sub:   data.acceleration > 0 ? '⚡ Speeding up' : data.acceleration < 0 ? '🐢 Slowing down' : 'Steady',
+                                        color: data.acceleration > 0.5 ? '#10b981' : data.acceleration < -0.5 ? '#ef4444' : '#f59e0b',
+                                        tip:   'Is momentum itself accelerating?',
+                                    },
+                                    {
+                                        label: 'vs SPY',
+                                        value: data.relStrength != null ? `${data.relStrength >= 0 ? '+' : ''}${data.relStrength}%` : '—',
+                                        sub:   data.relStrength > 0 ? 'Outperforming' : 'Underperforming',
+                                        color: data.relStrength > 0 ? '#10b981' : '#ef4444',
+                                        tip:   'Relative strength vs S&P 500',
+                                    },
+                                ].map((item, i) => (
+                                    <div key={i} title={item.tip} style={{
+                                        padding:'11px 13px',
+                                        backgroundColor:'#f8fafc',
+                                        borderRadius:'10px',
+                                        borderLeft:`3px solid ${item.color}`,
+                                        cursor:'help',
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'4px' }}>
+                                            {item.label}
+                                        </div>
+                                        <div style={{ fontSize:'17px', fontWeight:'800', color:item.color }}>
+                                            {item.value}
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>
+                                            {item.sub}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ROC multi-timeframe strip */}
+                            <div style={{
+                                padding:'12px 14px',
+                                backgroundColor:'#f8fafc',
+                                borderRadius:'10px',
+                                border:'1px solid #e2e8f0',
+                            }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                    RATE OF CHANGE — MULTI TIMEFRAME
+                                </div>
+                                <div style={{ display:'flex', gap:'8px', flexWrap:'wrap' }}>
+                                    {[
+                                        { label:'5-bar',  val: data.roc5  },
+                                        { label:'10-bar', val: data.roc10 },
+                                        { label:'20-bar', val: data.roc20 },
+                                        { label:'60-bar', val: data.roc60 },
+                                    ].filter(r => r.val != null).map((r, i) => {
+                                        const c = r.val >= 5 ? '#10b981' : r.val >= 0 ? '#3b82f6' : r.val >= -5 ? '#f59e0b' : '#ef4444';
+                                        return (
+                                            <div key={i} style={{
+                                                padding:'8px 14px', borderRadius:'20px',
+                                                backgroundColor: c + '15',
+                                                border:`1px solid ${c}30`,
+                                                display:'flex', flexDirection:'column', alignItems:'center',
+                                            }}>
+                                                <span style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600' }}>{r.label}</span>
+                                                <span style={{ fontSize:'15px', fontWeight:'800', color:c }}>
+                                                    {r.val >= 0 ? '+' : ''}{r.val}%
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Plain English summary */}
+                            <div style={{
+                                padding:'12px 14px',
+                                backgroundColor: sc.bg,
+                                borderRadius:'10px',
+                                border:`1px solid ${sc.border}`,
+                                borderLeft:`4px solid ${sc.color}`,
+                            }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:sc.color, letterSpacing:'0.07em', marginBottom:'6px' }}>
+                                    😼 WHAT THIS MEANS FOR YOU
+                                </div>
+                                <div style={{ fontSize:'13px', color:'#333', lineHeight:1.6 }}>
+                                    {data.velocityState === 'HIGH_VELOCITY' && `${ticker} is moving fast right now. ADX of ${data.adx?.toFixed(0)} confirms a strong trend. Volume is ${data.volRatio}× normal — real money is behind this move.`}
+                                    {data.velocityState === 'BUILDING' && `${ticker} is picking up steam. Momentum is ${data.acceleration > 0 ? 'accelerating' : 'present but not yet accelerating'}. ADX of ${data.adx?.toFixed(0)} suggests ${data.adx >= 20 ? 'a trend is forming' : 'still early — watch for confirmation'}.`}
+                                    {data.velocityState === 'LOW_VELOCITY' && `${ticker} is moving slowly. ADX of ${data.adx?.toFixed(0)} is below 25 — no strong trend. Volume ratio of ${data.volRatio}× is ${data.volRatio < 1 ? 'below average — low conviction' : 'normal'}. Wait for a catalyst.`}
+                                    {data.velocityState === 'IDLE' && `${ticker} is going nowhere right now. ADX of ${data.adx?.toFixed(0)} signals a ranging, trendless market. Trading this without a catalyst is a low-probability bet. Wait for velocity to build first.`}
+                                    {data.relStrength != null && ` It's ${data.relStrength > 0 ? `outperforming SPY by ${data.relStrength}%` : `underperforming SPY by ${Math.abs(data.relStrength)}%`} over 20 bars.`}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── ROC Chart tab ── */}
+                    {tab === 'roc' && (
+                        <div style={{ padding:'16px 18px' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                10-BAR RATE OF CHANGE — positive = accelerating up, negative = accelerating down
+                            </div>
+                            <div style={{
+                                padding:'14px',
+                                backgroundColor:'#0f172a',
+                                borderRadius:'10px',
+                                marginBottom:'12px',
+                            }}>
+                                <Sparkline
+                                    series={data.rocSeries}
+                                    color="#60a5fa"
+                                    zeroLine={true}
+                                    height={80}
+                                />
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'#475569', marginTop:'6px' }}>
+                                    <span>{data.rocSeries?.[0]?.date}</span>
+                                    <span style={{ color:'#60a5fa', fontWeight:'700' }}>
+                                        Now: {data.rocNow != null ? `${data.rocNow >= 0 ? '+' : ''}${data.rocNow}%` : '—'}
+                                    </span>
+                                    <span>{data.rocSeries?.[data.rocSeries.length-1]?.date}</span>
+                                </div>
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, padding:'0 2px' }}>
+                                ROC above zero = price is higher than it was 10 bars ago (positive momentum).
+                                ROC crossing zero from below = momentum turning bullish.
+                                Bars where ROC is rising = acceleration. Bars where it's falling = deceleration.
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── Volume Velocity tab ── */}
+                    {tab === 'volume' && (
+                        <div style={{ padding:'16px 18px' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                VOLUME RATIO (daily vol ÷ 20-day avg) — above 1.0 = above average activity
+                            </div>
+                            <div style={{
+                                padding:'14px',
+                                backgroundColor:'#0f172a',
+                                borderRadius:'10px',
+                                marginBottom:'12px',
+                            }}>
+                                <Sparkline
+                                    series={data.volSeries}
+                                    color="#f59e0b"
+                                    zeroLine={false}
+                                    height={80}
+                                />
+                                <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'#475569', marginTop:'6px' }}>
+                                    <span>{data.volSeries?.[0]?.date}</span>
+                                    <span style={{ color:'#f59e0b', fontWeight:'700' }}>
+                                        Now: {data.volRatio != null ? `${data.volRatio}× avg` : '—'}
+                                    </span>
+                                    <span>{data.volSeries?.[data.volSeries.length-1]?.date}</span>
+                                </div>
+                            </div>
+
+                            {/* Volume context */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px' }}>
+                                {[
+                                    { label:'Today\'s Vol',   value: data.currentVolume?.toLocaleString() || '—', color:'#f59e0b' },
+                                    { label:'5-day Avg',      value: data.volSma5?.toLocaleString()       || '—', color:'#94a3b8' },
+                                    { label:'20-day Avg',     value: data.volSma20?.toLocaleString()      || '—', color:'#94a3b8' },
+                                ].map((item, i) => (
+                                    <div key={i} style={{
+                                        padding:'10px 12px', backgroundColor:'#f8fafc',
+                                        borderRadius:'8px', border:'1px solid #e2e8f0',
+                                        textAlign:'center',
+                                    }}>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600', marginBottom:'4px' }}>{item.label}</div>
+                                        <div style={{ fontSize:'14px', fontWeight:'700', color:item.color }}>{item.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ marginTop:'10px', fontSize:'12px', color:'#64748b', lineHeight:1.6 }}>
+                                Volume confirms price moves. A price surge on {data.volRatio >= 1.5 ? 'high' : 'low'} volume like this ({data.volRatio}× average) is {data.volRatio >= 1.5 ? 'more likely to be sustained — real buyers/sellers are participating.' : 'less reliable — could be a false move without conviction behind it.'}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+                        <style>{`
+                @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+            `}</style>
+        </div>
+    );
+
+    // return isFullscreen ? ReactDOM.createPortal(chartContent, document.body) : chartContent;
+}
+
+// --- Sabrina AI Chatbot Component --------------------------------------------
+function SabrinaChat({ stockData, financials, earnings, news, ticker, openaiKey }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [messages, setMessages] = useState([{
+        role: 'assistant',
+        content: `Hey! I'm Sabrina 😼 Your AI stock analyst. Search a stock to load live data, or just ask me anything about markets, investing, or finance right now. What's on your mind?`
+    }]);
+    const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [orbPulse, setOrbPulse] = useState(true);
+    const [pendingImage, setPendingImage] = useState(null); // { dataUrl, base64, mimeType }
+    const [speakingMsgIdx, setSpeakingMsgIdx] = useState(null);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoiceName, setSelectedVoiceName] = useState(() => {
+        try { return localStorage.getItem('sabrina_voice') || ''; } catch { return ''; }
+    });
+    const [showVoicePanel, setShowVoicePanel] = useState(false);
+    const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const prevTickerRef = useRef(null);
+
+    // Load voices -- browsers load them async, need retry + event
+    useEffect(() => {
+        const load = () => {
+            const v = window.speechSynthesis.getVoices();
+            if (v.length > 0) {
+                setVoices(v);
+                setSelectedVoiceName(prev => {
+                    if (prev) return prev; // keep persisted choice
+                    try { const saved = localStorage.getItem('sabrina_voice'); if (saved) return saved; } catch {}
+                    const english = v.find(x => x.lang.startsWith('en') && x.default)
+                        || v.find(x => x.lang.startsWith('en'))
+                        || v[0];
+                    return english?.name || '';
+                });
+            }
+        };
+
+        load(); // try immediately
+        window.speechSynthesis.onvoiceschanged = load; // fire when ready
+
+        // Some browsers (Chrome) need a small delay nudge
+        const t = setTimeout(load, 200);
+        return () => clearTimeout(t);
+    }, []);
+
+    // Persist voice choice
+    useEffect(() => {
+        try { if (selectedVoiceName) localStorage.setItem('sabrina_voice', selectedVoiceName); } catch {}
+    }, [selectedVoiceName]);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    // Greet when a new ticker loads
+    useEffect(() => {
+        if (ticker && ticker !== prevTickerRef.current) {
+            prevTickerRef.current = ticker;
+            setMessages([{
+                role: 'assistant',
+                content: `**${ticker}** data loaded 😼 I've got price, earnings, financials and news all in front of me. What do you want to know?`
+            }]);
+        }
+    }, [ticker]);
+
+    // Stop speech when chat closes
+    useEffect(() => {
+        if (!isOpen) { window.speechSynthesis.cancel(); setSpeakingMsgIdx(null); }
+    }, [isOpen]);
+
+    const buildSystemPrompt = () => {
+        const hasData = !!stockData;
+        let context = `You are Sabrina, a sharp, confident AI stock analyst assistant named after Sabrina Pasterski (the physicist). You're knowledgeable, direct, and occasionally witty.`;
+
+        if (!hasData) {
+            context += `\n\nIMPORTANT: No stock is currently loaded in the screener. You do NOT have access to live market data right now. You can still answer general finance and investing questions from your training knowledge, but be upfront that you don't have real-time prices or current data unless the user loads a stock first. Don't make up numbers.`;
+        } else {
+            context += `\n\nCURRENT STOCK DATA for ${stockData.longName || ticker} (${ticker}):
+- Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'}
+- Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+- P/E Ratio: ${stockData.trailingPE?.toFixed(2) || 'N/A'}
+- 52-Week High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}
+- 52-Week Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}
+- Dividend Yield: ${stockData.dividendYield ? (stockData.dividendYield * 100).toFixed(2) + '%' : 'N/A'}
+- Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}
+- Business: ${stockData.longBusinessSummary?.substring(0, 400) || 'N/A'}`;
+
+            if (earnings?.length > 0) {
+                context += `\n\nRECENT QUARTERLY EARNINGS:`;
+                earnings.slice(0, 8).forEach(e => {
+                    context += `\n- ${e.quarter}: Revenue $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, Earnings $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`;
+                });
+            }
+            if (financials?.data) {
+                context += `\n\nANNUAL FINANCIALS:`;
+                financials.data.forEach(row => {
+                    const vals = row.values?.map((v, i) => `${financials.columns?.[i]}: $${v ? (v / 1e9).toFixed(2) + 'B' : 'N/A'}`).join(', ');
+                    context += `\n- ${row.metric}: ${vals}`;
+                });
+            }
+            if (news?.length > 0) {
+                context += `\n\nRECENT NEWS:`;
+                news.slice(0, 5).forEach(item => {
+                    if (item?.title) context += `\n- ${item.title} (${item.publisher || 'Unknown'})`;
+                });
+            }
+        }
+        context += `\n\nBe concise but insightful. Use **bold** for key figures. Don't be overly cautious -- give real analysis.`;
+        return context;
+    };
+
+    const sendMessage = async () => {
+        if ((!input.trim() && !pendingImage) || loading) return;
+        if (!openaiKey) {
+            setMessages(prev => [...prev,
+                { role: 'user', content: input, image: pendingImage?.dataUrl },
+                { role: 'assistant', content: "Can't reach my brain right now -- OpenAI key not loaded yet. Try again in a sec 😅" }
+            ]);
+            setInput(''); setPendingImage(null);
+            return;
+        }
+
+        const userMsg = { role: 'user', content: input, image: pendingImage?.dataUrl };
+        setMessages(prev => [...prev, userMsg]);
+        const currentInput = input;
+        const currentImage = pendingImage;
+        setInput(''); setPendingImage(null);
+        setLoading(true);
+
+        // Build OpenAI messages -- include images where present
+        const apiMessages = [
+            { role: 'system', content: buildSystemPrompt() },
+            ...messages
+                .filter(m => m.role !== 'system')
+                .map(m => {
+                    if (m.image) {
+                        return {
+                            role: m.role,
+                            content: [
+                                { type: 'image_url', image_url: { url: m.image } },
+                                { type: 'text', text: m.content || '(image attached)' }
+                            ]
+                        };
+                    }
+                    return { role: m.role, content: m.content };
+                }),
+        ];
+
+        // Add the current user message
+        if (currentImage) {
+            apiMessages.push({
+                role: 'user',
+                content: [
+                    { type: 'image_url', image_url: { url: currentImage.dataUrl } },
+                    { type: 'text', text: currentInput || '(image attached)' }
+                ]
+            });
+        } else {
+            apiMessages.push({ role: 'user', content: currentInput });
+        }
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages: apiMessages, max_tokens: 700, temperature: 0.7 })
+            });
+            const data = await response.json();
+            const reply = data.choices?.[0]?.message?.content || "Hmm, lost my train of thought. Try again?";
+            setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+        } catch {
+            setMessages(prev => [...prev, { role: 'assistant', content: "Network hiccup -- give me a sec 😼" }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleImagePick = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            setPendingImage({ dataUrl, mimeType: file.type });
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const handleSpeak = (text, idx) => {
+        if (speakingMsgIdx === idx) {
+            window.speechSynthesis.cancel();
+            setSpeakingMsgIdx(null);
+            return;
+        }
+        window.speechSynthesis.cancel();
+        // Strip markdown for speech
+        const plain = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1').replace(/<[^>]+>/g, '');
+        const utt = new SpeechSynthesisUtterance(plain);
+        const voice = voices.find(v => v.name === selectedVoiceName);
+        if (voice) utt.voice = voice;
+        utt.onend = () => setSpeakingMsgIdx(null);
+        utt.onerror = () => setSpeakingMsgIdx(null);
+        window.speechSynthesis.speak(utt);
+        setSpeakingMsgIdx(idx);
+    };
+
+    const renderMessage = (text) => text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br/>');
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    };
+
+    return (
+        <>
+            {/* -- Orb -- */}
+            <div
+                onClick={() => { setIsOpen(o => !o); setOrbPulse(false); }}
+                title="Chat with Sabrina"
+                className="sabrina-orb"
+                style={{
+                    position: 'fixed', bottom: '24px', right: '24px',
+                    width: '56px', height: '56px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777, #f59e0b)',
+                    boxShadow: orbPulse ? '0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5)' : '0 8px 32px rgba(124,58,237,0.4)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    zIndex: 10000, fontSize: '24px',
+                    animation: orbPulse ? 'sabrinaPulse 2s infinite' : 'none',
+                    transition: 'transform 0.2s', userSelect: 'none',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+                {isOpen ? 'x' : '😼'}
+            </div>
+
+            {/* -- Chat Panel -- */}
+            {isOpen && (
+                <div className="sabrina-panel" style={{
+                    position: 'fixed',
+                    // Desktop: anchored bottom-right above orb
+                    // Mobile: full screen overlay
+                    bottom: 0, right: 0,
+                    width: '100vw', height: '100dvh',
+                    maxWidth: '430px', maxHeight: 'calc(100dvh - 90px)',
+                    // On small screens snap to full bottom sheet
+                    borderRadius: window.innerWidth < 480 ? '20px 20px 0 0' : '20px',
+                    marginBottom: window.innerWidth < 480 ? 0 : '90px',
+                    marginRight: window.innerWidth < 480 ? 0 : '20px',
+                    backgroundColor: '#0f0f14',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.3)',
+                    display: 'flex', flexDirection: 'column', zIndex: 9999,
+                    overflow: 'hidden', fontFamily: "'Segoe UI', system-ui, sans-serif",
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        padding: '14px 16px',
+                        background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                        display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0,
+                    }}>
+                        <div style={{
+                            width: '38px', height: '38px', borderRadius: '50%',
+                            background: 'rgba(255,255,255,0.2)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '19px', flexShrink: 0,
+                        }}>😼</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ color: '#fff', fontWeight: '700', fontSize: '15px', lineHeight: 1.2 }}>Sabrina</div>
+                            <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '11px' }}>
+                                {ticker ? `Loaded: ${ticker}` : 'No stock loaded -- ask anything'}
+                                {' . '}
+                                <span style={{ color: '#86efac' }}>o Online</span>
+                            </div>
+                        </div>
+                        {/* Voice settings toggle */}
+                        <button
+                            onClick={() => setShowVoicePanel(v => !v)}
+                            title="Voice settings"
+                            style={{
+                                background: showVoicePanel ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
+                                border: 'none', borderRadius: '8px', padding: '6px 8px',
+                                color: '#fff', fontSize: '14px', cursor: 'pointer', flexShrink: 0,
+                                transition: 'background 0.15s',
+                            }}
+                        >🔊</button>
+                    </div>
+
+                    {/* Voice panel (collapsible) */}
+                    {showVoicePanel && (
+                        <div style={{
+                            padding: '10px 14px',
+                            backgroundColor: '#1a1a2e',
+                            borderBottom: '1px solid rgba(124,58,237,0.2)',
+                            flexShrink: 0,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '600' }}>🔊 Voice</span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>
+                                    {voices.length > 0 ? `${voices.length} available` : 'Loading...'}
+                                </span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', marginLeft: 'auto' }}>
+                                    Click 🔊 on any reply to read it
+                                </span>
+                            </div>
+                            {voices.length > 0 ? (
+                                <select
+                                    value={selectedVoiceName}
+                                    onChange={e => setSelectedVoiceName(e.target.value)}
+                                    style={{
+                                        width: '100%', padding: '7px 10px',
+                                        backgroundColor: '#0f0f14',
+                                        border: '1px solid rgba(124,58,237,0.4)',
+                                        borderRadius: '8px', color: '#f0f0f0',
+                                        fontSize: '12px', outline: 'none', cursor: 'pointer',
+                                    }}
+                                >
+                                    {voices.map((v, i) => (
+                                        <option key={i} value={v.name}>
+                                            {v.name} -- {v.lang}{v.default ? ' *' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', padding: '6px 0' }}>
+                                    No voices loaded yet -- try clicking the 🔊 button on a message first
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Messages */}
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {messages.map((msg, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: '6px', alignItems: 'flex-end' }}>
+                                {msg.role === 'assistant' && (
+                                    <div style={{
+                                        width: '26px', height: '26px', borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '13px', flexShrink: 0,
+                                    }}>😼</div>
+                                )}
+                                <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                                    {/* Image preview in message */}
+                                    {msg.image && (
+                                        <img src={msg.image} alt="uploaded" style={{ maxWidth: '100%', maxHeight: '160px', borderRadius: '10px', objectFit: 'cover' }} />
+                                    )}
+                                    {msg.content && (
+                                        <div style={{
+                                            padding: '9px 13px',
+                                            borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                                            backgroundColor: msg.role === 'user' ? '#7c3aed' : '#1e1e2e',
+                                            color: '#f0f0f0', fontSize: '13.5px', lineHeight: '1.5',
+                                            border: msg.role === 'assistant' ? '1px solid rgba(124,58,237,0.2)' : 'none',
+                                        }}
+                                            dangerouslySetInnerHTML={{ __html: renderMessage(msg.content) }}
+                                        />
+                                    )}
+                                    {/* Speak button on assistant messages */}
+                                    {msg.role === 'assistant' && msg.content && (
+                                        <button
+                                            onClick={() => handleSpeak(msg.content, idx)}
+                                            title={speakingMsgIdx === idx ? 'Stop reading' : 'Read aloud'}
+                                            style={{
+                                                background: 'none', border: 'none', cursor: 'pointer',
+                                                fontSize: '13px', padding: '2px 6px', borderRadius: '6px',
+                                                color: speakingMsgIdx === idx ? '#f59e0b' : 'rgba(255,255,255,0.3)',
+                                                transition: 'color 0.15s',
+                                                alignSelf: 'flex-start',
+                                            }}
+                                            onMouseEnter={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+                                            onMouseLeave={e => { if (speakingMsgIdx !== idx) e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
+                                        >
+                                            {speakingMsgIdx === idx ? 'Stop Stop' : '🔊'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+
+                        {loading && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #db2777)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>😼</div>
+                                <div style={{ padding: '9px 13px', backgroundColor: '#1e1e2e', borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(124,58,237,0.2)', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                    {[0, 1, 2].map(i => (
+                                        <div key={i} style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#7c3aed', animation: `sabrnaTyping 1.2s ${i * 0.2}s infinite` }} />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Pending image preview */}
+                    {pendingImage && (
+                        <div style={{
+                            padding: '8px 14px',
+                            backgroundColor: '#1a1a2e',
+                            borderTop: '1px solid rgba(124,58,237,0.15)',
+                            display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0,
+                        }}>
+                            <img src={pendingImage.dataUrl} alt="pending" style={{ height: '48px', width: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', flex: 1 }}>Image ready to send</span>
+                            <button onClick={() => setPendingImage(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '16px', cursor: 'pointer' }}>x</button>
+                        </div>
+                    )}
+
+                    {/* Input bar */}
+                    <div style={{
+                        padding: '10px 12px',
+                        borderTop: '1px solid rgba(255,255,255,0.07)',
+                        backgroundColor: '#0f0f14',
+                        display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0,
+                    }}>
+                        {/* Image upload button */}
+                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImagePick} style={{ display: 'none' }} />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Attach image"
+                            style={{
+                                background: pendingImage ? 'rgba(124,58,237,0.4)' : 'rgba(255,255,255,0.07)',
+                                border: '1px solid rgba(124,58,237,0.3)',
+                                borderRadius: '10px', padding: '8px 10px',
+                                color: '#ccc', fontSize: '15px', cursor: 'pointer', flexShrink: 0,
+                                transition: 'background 0.15s',
+                            }}
+                        >🖼️</button>
+
+                        <input
+                            value={input}
+                            onChange={e => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder={ticker ? `Ask about ${ticker}...` : 'Ask me anything...'}
+                            style={{
+                                flex: 1, padding: '9px 13px', minWidth: 0,
+                                backgroundColor: '#1e1e2e',
+                                border: '1px solid rgba(124,58,237,0.3)',
+                                borderRadius: '12px', color: '#f0f0f0',
+                                fontSize: '13.5px', outline: 'none',
+                            }}
+                        />
+                        <button
+                            onClick={sendMessage}
+                            disabled={loading || (!input.trim() && !pendingImage)}
+                            style={{
+                                padding: '9px 14px', flexShrink: 0,
+                                background: loading || (!input.trim() && !pendingImage) ? 'rgba(124,58,237,0.25)' : 'linear-gradient(135deg, #7c3aed, #db2777)',
+                                border: 'none', borderRadius: '12px', color: '#fff',
+                                fontSize: '16px', cursor: loading || (!input.trim() && !pendingImage) ? 'not-allowed' : 'pointer',
+                                transition: 'background 0.15s',
+                            }}
+                        >^</button>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes sabrinaPulse {
+                    0%   { box-shadow: 0 0 0 0 rgba(124,58,237,0.6), 0 8px 32px rgba(124,58,237,0.5); }
+                    70%  { box-shadow: 0 0 0 16px rgba(124,58,237,0), 0 8px 32px rgba(124,58,237,0.3); }
+                    100% { box-shadow: 0 0 0 0 rgba(124,58,237,0), 0 8px 32px rgba(124,58,237,0.5); }
+                }
+                @keyframes sabrnaTyping {
+                    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+                    30%           { transform: translateY(-4px); opacity: 1; }
+                }
+                @media (max-width: 480px) {
+                    /* Sabrina chat panel full-screen on mobile */
+                    .sabrina-panel {
+                        bottom: 0 !important;
+                        right: 0 !important;
+                        left: 0 !important;
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        height: calc(100dvh - 72px) !important;
+                        max-height: calc(100dvh - 72px) !important;
+                        border-radius: 20px 20px 0 0 !important;
+                        margin: 0 !important;
+                    }
+                    .sabrina-orb {
+                        bottom: 16px !important;
+                        right: 16px !important;
+                        width: 52px !important;
+                        height: 52px !important;
+                        font-size: 22px !important;
+                    }
+                }
+            `}</style>
+        </>
+    );
+}
+
+// --- AI News Analysis Modal ---------------------------------------------------
+function NewsAnalysisModal({ isOpen, onClose, analysis, ticker, onReanalyse, isAnalysing }) {
+    if (!isOpen) return null;
+
+    const biasConfig = {
+        BULLISH: { color: '#10b981', headerBg: '#f0fdf4', headerBorder: '#bbf7d0', badge: '#10b981', badgeText: '#fff', icon: '📈', label: 'Bullish' },
+        BEARISH: { color: '#ef4444', headerBg: '#fef2f2', headerBorder: '#fecaca', badge: '#ef4444', badgeText: '#fff', icon: '📉', label: 'Bearish' },
+        NEUTRAL: { color: '#f59e0b', headerBg: '#fffbeb', headerBorder: '#fde68a', badge: '#f59e0b', badgeText: '#fff', icon: '➡️', label: 'Neutral' },
+        MIXED:   { color: '#2563eb', headerBg: '#eff6ff', headerBorder: '#bfdbfe', badge: '#2563eb', badgeText: '#fff', icon: '🔀', label: 'Mixed' },
+    };
+
+    const cfg = biasConfig[analysis?.bias] || biasConfig.NEUTRAL;
+
+    const renderRich = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/#{1,3} (.*?)(\n|$)/g, '<span style="font-weight:700;font-size:15px;display:block;margin:12px 0 6px;color:#1a1a1a">$1</span>')
+            .replace(/\n/g, '<br/>');
+    };
+
+    return (
+        <div
+            style={{
+                position: 'fixed', inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 10001, padding: '16px',
+                backdropFilter: 'blur(3px)',
+            }}
+            onClick={onClose}
+        >
+            <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                    width: 'min(680px, 100%)',
+                    maxHeight: '92vh',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    backgroundColor: '#fff',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
+                    fontFamily: "'Segoe UI', system-ui, sans-serif",
+                    animation: 'modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+                }}
+            >
+                {/* Header */}
+                <div style={{
+                    backgroundColor: cfg.headerBg,
+                    borderBottom: `2px solid ${cfg.headerBorder}`,
+                    padding: '24px 24px 20px',
+                    flexShrink: 0,
+                    position: 'relative',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '13px', color: '#666', fontWeight: '600', letterSpacing: '0.05em' }}>
+                                    {analysis?.source === 'external' ? '🤖 External AI Analysis' : '😼 Sabrina\'s Analysis'}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#888', backgroundColor: '#fff', border: '1px solid #e0e0e0', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                                    {ticker}
+                                </span>
+                            </div>
+                            <div style={{ fontSize: '22px', fontWeight: '800', color: '#1a1a1a', lineHeight: 1.25, marginBottom: '12px' }}>
+                                {cfg.icon} News Intelligence Report
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <span style={{
+                                    backgroundColor: cfg.badge, color: cfg.badgeText,
+                                    padding: '5px 14px', borderRadius: '20px',
+                                    fontSize: '12px', fontWeight: '800', letterSpacing: '0.06em', textTransform: 'uppercase',
+                                }}>
+                                    {cfg.label} BIAS
+                                </span>
+                                {analysis?.confidence && (
+                                    <span style={{
+                                        backgroundColor: '#fff', color: '#555',
+                                        padding: '5px 12px', borderRadius: '20px',
+                                        fontSize: '12px', fontWeight: '600',
+                                        border: '1px solid #e0e0e0',
+                                    }}>
+                                        {analysis.confidence}% confidence
+                                    </span>
+                                )}
+                                {analysis?.articleCount && (
+                                    <span style={{ fontSize: '12px', color: '#999' }}>
+                                        . {analysis.articleCount} articles analysed
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <button onClick={onClose} style={{
+                            background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
+                            width: '34px', height: '34px', color: '#555', fontSize: '18px',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0, transition: 'background 0.15s',
+                        }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.06)'}
+                        >x</button>
+                    </div>
+
+                    {/* Confidence bar */}
+                    {analysis?.confidence && (
+                        <div style={{ marginTop: '16px' }}>
+                            <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px', fontWeight: '600', letterSpacing: '0.07em' }}>
+                                SIGNAL STRENGTH
+                            </div>
+                            <div style={{ height: '5px', backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{
+                                    height: '100%', borderRadius: '3px',
+                                    width: `${analysis.confidence}%`,
+                                    backgroundColor: cfg.color,
+                                    transition: 'width 1s ease',
+                                }} />
+                            </div>
+                        </div>
+                    )}
+
+                    {analysis?.generatedAt && (
+                        <div style={{ marginTop: '10px', fontSize: '11px', color: '#aaa' }}>
+                            Generated {analysis.generatedAt}
+                        </div>
+                    )}
+                </div>
+
+                {/* Body */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: '#fff' }}>
+
+                    {analysis?.sourceList?.length > 0 && (
+    <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '8px' }}>
+            SOURCES READ
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {analysis.sourceList.map((src, i) => (
+                <span key={i} style={{
+                    backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0',
+                    color: '#475569', padding: '3px 10px',
+                    borderRadius: '20px', fontSize: '12px', fontWeight: '500',
+                }}>
+                    {src}
+                </span>
+            ))}
+        </div>
+    </div>
+)}
+
+                    {/* TL;DR */}
+                    {analysis?.tldr && (
+                        <div style={{
+                            backgroundColor: cfg.headerBg,
+                            border: `1px solid ${cfg.headerBorder}`,
+                            borderLeft: `4px solid ${cfg.color}`,
+                            borderRadius: '10px',
+                            padding: '14px 18px',
+                        }}>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: cfg.color, letterSpacing: '0.1em', marginBottom: '6px' }}>TL;DR</div>
+                            <div style={{ fontSize: '15px', color: '#1a1a1a', lineHeight: '1.6', fontWeight: '500' }}
+                                dangerouslySetInnerHTML={{ __html: renderRich(analysis.tldr) }} />
+                        </div>
+                    )}
+
+                    {/* Key themes */}
+                    {analysis?.themes && analysis.themes.length > 0 && (
+                        <div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>KEY THEMES</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {analysis.themes.map((theme, i) => (
+                                    <span key={i} style={{
+                                        backgroundColor: '#eff6ff',
+                                        border: '1px solid #bfdbfe',
+                                        color: '#1d4ed8',
+                                        padding: '5px 13px',
+                                        borderRadius: '20px',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                    }}>
+                                        {theme}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Full summary */}
+                    {analysis?.summary && (
+                        <div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>FULL ANALYSIS</div>
+                            <div style={{
+                                fontSize: '14px', color: '#333', lineHeight: '1.75',
+                                backgroundColor: '#f8f9fa',
+                                borderRadius: '10px', padding: '16px 18px',
+                                border: '1px solid #e0e0e0',
+                            }}
+                                dangerouslySetInnerHTML={{ __html: renderRich(analysis.summary) }} />
+                        </div>
+                    )}
+
+                    {/* Catalysts */}
+                    {analysis?.catalysts && analysis.catalysts.length > 0 && (
+                        <div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>
+                                {analysis.bias === 'BEARISH' ? '!️ RISK CATALYSTS' : '🚀 KEY CATALYSTS'}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {analysis.catalysts.map((c, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', gap: '12px', alignItems: 'flex-start',
+                                        backgroundColor: '#f8f9fa',
+                                        borderRadius: '10px', padding: '12px 16px',
+                                        border: '1px solid #e8e8e8',
+                                    }}>
+                                        <div style={{
+                                            width: '22px', height: '22px', borderRadius: '50%',
+                                            backgroundColor: cfg.color + '20',
+                                            color: cfg.color, fontSize: '11px', fontWeight: '800',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            flexShrink: 0, marginTop: '1px',
+                                        }}>{i + 1}</div>
+                                        <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}
+                                            dangerouslySetInnerHTML={{ __html: renderRich(c) }} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Risks */}
+                    {analysis?.risks && analysis.risks.length > 0 && (
+                        <div>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.1em', marginBottom: '10px' }}>!️ WATCH-OUT RISKS</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {analysis.risks.map((r, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex', gap: '12px', alignItems: 'flex-start',
+                                        backgroundColor: '#fef2f2',
+                                        borderRadius: '10px', padding: '12px 16px',
+                                        border: '1px solid #fecaca',
+                                    }}>
+                                        <div style={{ color: '#ef4444', fontSize: '16px', flexShrink: 0, marginTop: '1px', fontWeight: '700' }}>v</div>
+                                        <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}
+                                            dangerouslySetInnerHTML={{ __html: renderRich(r) }} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sabrina's Take */}
+                    {analysis?.recommendation && (
+                        <div style={{
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #bfdbfe',
+                            borderLeft: '4px solid #2563eb',
+                            borderRadius: '10px',
+                            padding: '16px 18px',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '16px' }}>😼</span>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb', letterSpacing: '0.1em' }}>SABRINA'S TAKE</div>
+                            </div>
+                            <div style={{ fontSize: '15px', color: '#1e3a5f', lineHeight: '1.65', fontStyle: 'italic' }}
+                                dangerouslySetInnerHTML={{ __html: renderRich(analysis.recommendation) }} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div style={{
+                    backgroundColor: '#f8f9fa',
+                    borderTop: '1px solid #e0e0e0',
+                    padding: '14px 24px',
+                    display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap',
+                    flexShrink: 0,
+                }}>
+                    <button
+                        onClick={onReanalyse}
+                        disabled={isAnalysing}
+                        style={{
+                            padding: '9px 18px',
+                            backgroundColor: isAnalysing ? '#93c5fd' : '#2563eb',
+                            border: 'none', borderRadius: '8px',
+                            color: '#fff', fontSize: '14px', fontWeight: '600',
+                            cursor: isAnalysing ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            transition: 'background 0.2s',
+                        }}
+                        onMouseEnter={e => { if (!isAnalysing) e.currentTarget.style.backgroundColor = '#1d4ed8'; }}
+                        onMouseLeave={e => { if (!isAnalysing) e.currentTarget.style.backgroundColor = '#2563eb'; }}
+                    >
+                        {isAnalysing
+                            ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing...</>
+                            : <><span>🔄</span> Re-ask Sabrina</>}
+                    </button>
+                    <button onClick={onClose} style={{
+                        padding: '9px 18px',
+                        backgroundColor: '#fff',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '8px', color: '#555',
+                        fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                        transition: 'background 0.15s',
+                    }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f0f0f0'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                    >
+                        Close
+                    </button>
+                    <div style={{ marginLeft: 'auto', fontSize: '12px', color: '#bbb' }}>
+                        Powered by Sabrina x GPT-4o mini
+                    </div>
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes modalSlideUp {
+                    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+                    to   { opacity: 1; transform: translateY(0) scale(1); }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// --- News Section Component ---------------------------------------------------
+function EnhancedNewsSection({
+    ticker, baseUrl, existingNews, openaiKey, stockData,
+    hoistedMarketauxNews, setHoistedMarketauxNews,
+    hoistedFetchingNews, setHoistedFetchingNews,
+    hoistedNewsError, setHoistedNewsError,
+    hoistedHasFetched, setHoistedHasFetched,
+    hoistedActiveNewsTab, setHoistedActiveNewsTab,
+    hoistedCachedAnalyses, setHoistedCachedAnalyses,
+    hoistedShowAnalysisModal, setHoistedShowAnalysisModal,
+}) {
+    // Use hoisted state -- all persists across tab switches
+    const marketauxNews    = hoistedMarketauxNews  ?? [];
+    const setMarketauxNews = setHoistedMarketauxNews  || useState([])[1];
+    const fetchingNews     = hoistedFetchingNews   ?? false;
+    const setFetchingNews  = setHoistedFetchingNews  || useState(false)[1];
+    const newsError        = hoistedNewsError      ?? null;
+    const setNewsError     = setHoistedNewsError    || useState(null)[1];
+    const hasFetched       = hoistedHasFetched     ?? false;
+    const setHasFetched    = setHoistedHasFetched   || useState(false)[1];
+    const activeNewsTab    = hoistedActiveNewsTab  ?? 'yahoo';
+    const setActiveNewsTab = setHoistedActiveNewsTab || useState('yahoo')[1];
+    const [pendingArticle, setPendingArticle] = useState(null);
+
+    // Analysis states -- use hoisted versions so they survive tab switches
+    const showAnalysisModal    = hoistedShowAnalysisModal   ?? false;
+    const setShowAnalysisModal = setHoistedShowAnalysisModal || useState(false)[1];
+    const cachedAnalyses       = hoistedCachedAnalyses      ?? {};
+    const setCachedAnalyses    = setHoistedCachedAnalyses   || useState({})[1];
+    const [isAnalysing,    setIsAnalysing]    = useState(false);
+    const [analysisError,  setAnalysisError]  = useState(null);
+    const [showExternalPasteModal, setShowExternalPasteModal] = useState(false);
+    const [showPromptModal,        setShowPromptModal]        = useState(false);
+    const [externalPasteText,      setExternalPasteText]      = useState('');
+    const [externalParseError,     setExternalParseError]     = useState(null);
+    const [copied, setCopied] = useState(false);
+
+    // Load cached analyses from storage on mount (only once)
+    useEffect(() => {
+        const loadCached = async () => {
+            try {
+                const result = await window.storage.get('news-analyses');
+                if (result?.value) {
+                    const parsed = JSON.parse(result.value);
+                    setCachedAnalyses(parsed);
+                }
+            } catch {}
+        };
+        loadCached();
+    }, []);
+
+    const buildExternalPrompt = () => {
+            const stockContext = stockData ? `
+        Stock: ${stockData.longName || ticker} (${ticker})
+        Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}
+        Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+        P/E Ratio: ${stockData.trailingPE?.toFixed(2) || 'N/A'}
+        52W High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'} | 52W Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}` 
+            : `Stock: ${ticker}`;
+
+            return `You are a financial analyst. Search the web for as many recent news articles as possible about ${ticker} (${stockData?.longName || ticker}). Cast a wide net — aim for at least 15-20 articles from diverse sources (Bloomberg, Reuters, WSJ, CNBC, Seeking Alpha, earnings call transcripts, analyst reports, Reddit sentiment, etc).
+
+        ${stockContext}
+
+        After reading all articles, return ONLY a JSON object with no markdown, no backticks, no preamble:
+
+        {
+        "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+        "confidence": <integer 0-100>,
+        "tldr": "<one punchy sentence — the single most important thing to know right now>",
+        "themes": ["<theme1>", "<theme2>", "<theme3>", "<theme4>"],
+        "summary": "<4-6 paragraph deep analysis referencing specific articles and sources, use **bold** for key figures and turning points>",
+        "catalysts": ["<specific catalyst 1>", "<specific catalyst 2>", "<specific catalyst 3>", "<catalyst 4>"],
+        "risks": ["<risk 1>", "<risk 2>", "<risk 3>"],
+        "recommendation": "<a sharp, opinionated 2-3 sentence take. First person. Be direct.>",
+        "articleCount": <number of articles you actually found and read>,
+        "sourceList": ["<source1>", "<source2>", "<source3>"]
+        }
+
+        Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+        };
+
+    const handleExternalPaste = async () => {
+        setExternalParseError(null);
+        
+        if (!externalPasteText.trim()) {
+            setExternalParseError('Paste the JSON response first.');
+            return;
+        }
+
+        let parsed;
+        try {
+            // Strip accidental code fences a user might have copy-pasted
+            const clean = externalPasteText
+                .replace(/```json/gi, '')
+                .replace(/```/g, '')
+                .trim();
+            parsed = JSON.parse(clean);
+        } catch (e) {
+            setExternalParseError(
+                `Invalid JSON — couldn't parse. Make sure you copied the full response. Error: ${e.message}`
+            );
+            return;
+        }
+
+        // Schema validation — these fields are required for the modal to render
+        const required = ['bias', 'confidence', 'tldr', 'summary'];
+        const missing  = required.filter(k => parsed[k] == null);
+        if (missing.length > 0) {
+            setExternalParseError(
+                `JSON is missing required fields: ${missing.join(', ')}. ` +
+                `Make sure the AI followed the prompt format exactly.`
+            );
+            return;
+        }
+
+        // Normalise bias to uppercase in case the AI lowercased it
+        parsed.bias = String(parsed.bias).toUpperCase();
+        if (!['BULLISH', 'BEARISH', 'NEUTRAL', 'MIXED'].includes(parsed.bias)) {
+            parsed.bias = 'MIXED';
+        }
+
+        // Tag it so the modal can show a different source label
+        const analysis = {
+            ...parsed,
+            generatedAt:   new Date().toLocaleString(),
+            source:        'external', // used in the modal header below
+        };
+
+        await saveAnalysis(analysis); // reuses the exact same save function Sabrina uses
+        setShowExternalPasteModal(false);
+        setExternalPasteText('');
+        setHoistedShowAnalysisModal(true);
+    };
+
+    const currentAnalysis = cachedAnalyses[ticker] || null;
+
+    const saveAnalysis = async (newAnalysis) => {
+        const updated = { ...cachedAnalyses, [ticker]: newAnalysis };
+        setCachedAnalyses(updated);
+        try {
+            await window.storage.set('news-analyses', JSON.stringify(updated));
+        } catch (err) {
+            console.error('Storage save failed:', err);
+        }
+    };
+
+    const formatDate = (timestamp) => {
+        if (!timestamp || timestamp === 'N/A') return 'N/A';
+        try {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch { return timestamp; }
+    };
+
+    const fetchMarketauxNews = async () => {
+        if (!ticker) return;
+        setFetchingNews(true);
+        setNewsError(null);
+        try {
+            const response = await fetch(`${baseUrl}/fetch_news_data_api`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assets: [ticker], user_email: 'screener@snowai.app' })
+            });
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const data = await response.json();
+            setMarketauxNews(data.message || []);
+            setHasFetched(true);
+            setActiveNewsTab('marketaux');
+        } catch (err) {
+            setNewsError(err.message || 'Failed to fetch news. Please try again.');
+        } finally {
+            setFetchingNews(false);
+        }
+    };
+
+    const runNewsAnalysis = async () => {
+        if (!openaiKey) {
+            setAnalysisError("OpenAI key not loaded yet. Try again in a moment.");
+            return;
+        }
+
+        setIsAnalysing(true);
+        setAnalysisError(null);
+
+        // Build article corpus from whatever news is available
+        const allArticles = [
+            ...(existingNews || []).filter(n => n?.title).map(n => ({
+                title: n.title,
+                description: n.description || '',
+                source: n.publisher || 'Yahoo Finance',
+            })),
+            ...marketauxNews.filter(n => n?.title).map(n => ({
+                title: n.title,
+                description: n.description || '',
+                highlights: typeof n.highlights === 'string' ? n.highlights : '',
+                source: n.source || 'Marketaux',
+            })),
+        ];
+
+        if (allArticles.length === 0) {
+            setAnalysisError("No news articles loaded yet. Fetch some news first, then run analysis.");
+            setIsAnalysing(false);
+            return;
+        }
+
+        const stockContext = stockData ? `
+Stock: ${stockData.longName || ticker} (${ticker})
+Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}
+Current Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+P/E Ratio: ${stockData.trailingPE?.toFixed(2) || 'N/A'}` : `Stock: ${ticker}`;
+
+        const articleDump = allArticles.slice(0, 12).map((a, i) =>
+            `[${i + 1}] "${a.title}" -- ${a.source}\n${a.description || ''}${a.highlights ? '\nHighlight: ' + a.highlights : ''}`
+        ).join('\n\n');
+
+        const prompt = `You are Sabrina, a sharp AI stock analyst. Analyse these ${allArticles.length} news articles for ${ticker} and return a JSON object ONLY (no markdown, no backticks).
+
+${stockContext}
+
+NEWS ARTICLES:
+${articleDump}
+
+Return this exact JSON structure:
+{
+  "bias": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
+  "confidence": <integer 0-100>,
+  "tldr": "<one punchy sentence summary>",
+  "themes": ["<theme1>", "<theme2>", "<theme3>"],
+  "summary": "<3-5 paragraph analysis using the news, referencing specific articles, with markdown bold for key points>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>", "<catalyst 3>"],
+  "risks": ["<risk 1>", "<risk 2>"],
+  "recommendation": "<Sabrina's personal take in 2-3 sentences, direct and opinionated, first-person voice>"
+}`;
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openaiKey}`,
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 1200,
+                    temperature: 0.6,
+                })
+            });
+
+            const data = await response.json();
+            const raw = data.choices?.[0]?.message?.content || '';
+
+            let parsed;
+            try {
+                // strip any accidental code fences
+                const clean = raw.replace(/```json|```/g, '').trim();
+                parsed = JSON.parse(clean);
+            } catch {
+                throw new Error("Sabrina returned unexpected format. Try again.");
+            }
+
+            const analysis = {
+                ...parsed,
+                generatedAt: new Date().toLocaleString(),
+                articleCount: allArticles.length,
+            };
+
+            await saveAnalysis(analysis);
+            setShowAnalysisModal(true);
+        } catch (err) {
+            setAnalysisError(err.message || 'Analysis failed. Try again.');
+        } finally {
+            setIsAnalysing(false);
+        }
+    };
+
+    const getSentimentColor = (title) => {
+        const lower = title?.toLowerCase() || '';
+        if (['surge', 'rally', 'gain', 'beat', 'soar', 'rise', 'jump', 'up', 'high', 'record', 'profit', 'growth'].some(w => lower.includes(w)))
+            return { dot: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' };
+        if (['fall', 'drop', 'decline', 'miss', 'loss', 'down', 'low', 'crash', 'risk', 'warn', 'cut', 'layoff'].some(w => lower.includes(w)))
+            return { dot: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)' };
+        return { dot: '#f59e0b', bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.15)' };
+    };
+
+    const biasColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#6366f1' };
+    const biasIcons  = { BULLISH: '📈', BEARISH: '📉', NEUTRAL: '➡️', MIXED: '🔀' };
+    const totalArticles = (existingNews?.filter(n => n?.title)?.length || 0) + marketauxNews.length;
+
+    return (
+        <div style={{ width: '100%', boxSizing: 'border-box' }}>
+
+            {/* -- Top bar: tabs + AI button -- */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                {/* Yahoo tab */}
+                <button onClick={() => setActiveNewsTab('yahoo')} style={{
+                    padding: '8px 18px', borderRadius: '20px', border: '2px solid',
+                    borderColor: activeNewsTab === 'yahoo' ? '#2563eb' : '#e0e0e0',
+                    backgroundColor: activeNewsTab === 'yahoo' ? '#2563eb' : '#fff',
+                    color: activeNewsTab === 'yahoo' ? '#fff' : '#666',
+                    fontWeight: '600', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s',
+                }}>
+                    📰 Yahoo Finance ({existingNews?.filter(n => n?.title)?.length || 0})
+                </button>
+
+                {/* Marketaux tab */}
+                <button
+                    onClick={hasFetched ? () => setActiveNewsTab('marketaux') : fetchMarketauxNews}
+                    disabled={fetchingNews}
+                    style={{
+                        padding: '8px 18px', borderRadius: '20px', border: '2px solid',
+                        borderColor: activeNewsTab === 'marketaux' && hasFetched ? '#8b5cf6' : 'rgba(139,92,246,0.5)',
+                        backgroundColor: activeNewsTab === 'marketaux' && hasFetched ? '#8b5cf6' : fetchingNews ? 'rgba(139,92,246,0.15)' : '#fff',
+                        color: activeNewsTab === 'marketaux' && hasFetched ? '#fff' : '#8b5cf6',
+                        fontWeight: '600', fontSize: '14px', cursor: fetchingNews ? 'wait' : 'pointer',
+                        transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px',
+                    }}
+                >
+                    {fetchingNews
+                        ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>Fetching...</>
+                        : hasFetched ? `🔮 Marketaux (${marketauxNews.length})` : '🔮 Fetch Deep News'}
+                </button>
+
+                {hasFetched && (
+                    <button onClick={fetchMarketauxNews} disabled={fetchingNews} style={{
+                        padding: '8px 14px', borderRadius: '20px', border: '2px solid #e0e0e0',
+                        backgroundColor: '#fff', color: '#999', fontSize: '13px', cursor: 'pointer',
+                    }}>🔄 Refresh</button>
+                )}
+
+                {/* Divider */}
+                <div style={{ width: '1px', height: '28px', backgroundColor: '#e0e0e0', flexShrink: 0, display: totalArticles > 0 ? 'block' : 'none' }} />
+
+                {/* AI Analyse button */}
+                {totalArticles > 0 && (
+                    <button
+                        onClick={currentAnalysis ? () => setShowAnalysisModal(true) : runNewsAnalysis}
+                        disabled={isAnalysing}
+                        style={{
+                            padding: '8px 18px', borderRadius: '20px',
+                            border: '2px solid',
+                            borderColor: currentAnalysis ? biasColors[currentAnalysis.bias] || '#db2777' : 'rgba(219,39,119,0.5)',
+                            background: currentAnalysis
+                                ? `linear-gradient(135deg, ${biasColors[currentAnalysis.bias]}22, ${biasColors[currentAnalysis.bias]}11)`
+                                : isAnalysing ? 'rgba(219,39,119,0.1)' : '#fff',
+                            color: currentAnalysis ? biasColors[currentAnalysis.bias] : '#db2777',
+                            fontWeight: '700', fontSize: '14px',
+                            cursor: isAnalysing ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={e => { if (!isAnalysing) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        {isAnalysing ? (
+                            <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>Analysing...</>
+                        ) : currentAnalysis ? (
+                            <>{biasIcons[currentAnalysis.bias]} View Analysis ({currentAnalysis.bias})</>
+                        ) : (
+                            <>😼 Ask Sabrina to Analyse</>
+                        )}
+                    </button>
+                )}
+
+                <button
+                    onClick={() => setShowPromptModal(true)}
+                    style={{
+                        padding: '8px 16px', borderRadius: '20px',
+                        border: '2px solid rgba(99,102,241,0.5)',
+                        backgroundColor: '#fff',
+                        color: '#6366f1',
+                        fontWeight: '700', fontSize: '14px',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '7px',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.backgroundColor = '#eef2ff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.backgroundColor = '#fff'; }}
+                >
+                    🤖 Ask External AI
+                </button>
+
+                {/* Re-run option if cached analysis exists */}
+                {currentAnalysis && (
+                    <button
+                        onClick={runNewsAnalysis}
+                        disabled={isAnalysing}
+                        style={{
+                            padding: '8px 14px', borderRadius: '20px',
+                            border: '2px solid #e0e0e0', backgroundColor: '#fff',
+                            color: '#999', fontSize: '13px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '5px',
+                        }}
+                        title="Re-run analysis with latest news"
+                    >
+                        🔄 Re-ask
+                    </button>
+                )}
+            </div>
+
+            {/* Cached analysis preview strip */}
+            {currentAnalysis && !showAnalysisModal && (
+                <div
+                    onClick={() => setShowAnalysisModal(true)}
+                    style={{
+                        marginBottom: '16px',
+                        padding: '12px 18px',
+                        borderRadius: '12px',
+                        background: `linear-gradient(135deg, ${biasColors[currentAnalysis.bias]}18, ${biasColors[currentAnalysis.bias]}08)`,
+                        border: `1px solid ${biasColors[currentAnalysis.bias]}35`,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+                        transition: 'box-shadow 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = `0 4px 16px ${biasColors[currentAnalysis.bias]}25`}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                >
+                    <span style={{ fontSize: '20px' }}>{biasIcons[currentAnalysis.bias]}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: biasColors[currentAnalysis.bias], marginBottom: '2px' }}>
+                            😼 Sabrina's Analysis -- {currentAnalysis.bias} . {currentAnalysis.confidence}% confidence
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {currentAnalysis.tldr}
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#999', flexShrink: 0 }}>Tap to expand Go</div>
+                </div>
+            )}
+
+            {/* Error states */}
+            {(newsError || analysisError) && (
+                <div style={{
+                    padding: '14px 18px', backgroundColor: '#fef2f2', borderRadius: '10px',
+                    border: '1px solid #fecaca', color: '#b91c1c', marginBottom: '16px',
+                    fontSize: '14px', display: 'flex', gap: '10px', alignItems: 'flex-start',
+                }}>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>!️</span>
+                    <div><strong>{newsError ? "Couldn't load news:" : "Analysis error:"}</strong> {newsError || analysisError}</div>
+                </div>
+            )}
+
+            {/* Yahoo Finance News */}
+            {activeNewsTab === 'yahoo' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {existingNews && existingNews.filter(n => n?.title).length > 0 ? (
+                        existingNews.filter(n => n?.title).map((item, idx) => {
+                            const sentiment = getSentimentColor(item.title);
+                            return (
+                                <div key={idx} onClick={() => item.link && setPendingArticle({ title: item.title, publisher: item.publisher, url: item.link })}
+                                    style={{
+                                        padding: '16px 18px', backgroundColor: sentiment.bg,
+                                        borderRadius: '12px', border: `1px solid ${sentiment.border}`,
+                                        cursor: item.link ? 'pointer' : 'default',
+                                        transition: 'transform 0.15s, box-shadow 0.15s',
+                                        display: 'flex', gap: '14px', alignItems: 'flex-start',
+                                    }}
+                                    onMouseEnter={e => { if (item.link) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.08)'; } }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                >
+                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: sentiment.dot, marginTop: '5px', flexShrink: 0 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a1a1a', lineHeight: '1.4', marginBottom: '6px', wordBreak: 'break-word' }}>
+                                            {item.title}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#888', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            {item.publisher && <span style={{ backgroundColor: '#fff', padding: '2px 8px', borderRadius: '10px', border: '1px solid #e0e0e0', fontWeight: '500' }}>{item.publisher}</span>}
+                                            <span>{formatDate(item.providerPublishTime)}</span>
+                                            {item.link && <span style={{ color: '#2563eb' }}>Go Read more</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <EmptyNewsState message="No Yahoo Finance news available for this stock." />
+                    )}
+                </div>
+            )}
+
+            {/* Marketaux News */}
+            {activeNewsTab === 'marketaux' && hasFetched && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {marketauxNews.length > 0 ? (
+                        marketauxNews.map((item, idx) => {
+                            const sentiment = getSentimentColor(item.title);
+                            return (
+                                <div key={idx} onClick={() => item.url && setPendingArticle({ title: item.title, source: item.source, url: item.url })}
+                                    style={{
+                                        padding: '18px 20px', backgroundColor: sentiment.bg,
+                                        borderRadius: '14px', border: `1px solid ${sentiment.border}`,
+                                        cursor: item.url ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
+                                    }}
+                                    onMouseEnter={e => { if (item.url) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)'; } }}
+                                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                        <span style={{ backgroundColor: '#8b5cf6', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '6px', letterSpacing: '0.05em' }}>MARKETAUX</span>
+                                        {item.source && <span style={{ fontSize: '12px', color: '#666', fontWeight: '500' }}>via {item.source}</span>}
+                                        <div style={{ marginLeft: 'auto', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: sentiment.dot, flexShrink: 0 }} />
+                                    </div>
+                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#1a1a1a', lineHeight: '1.4', marginBottom: '10px' }}>{item.title}</div>
+                                    {item.description && (
+                                        <div style={{ fontSize: '14px', color: '#555', lineHeight: '1.6', marginBottom: '12px' }}>
+                                            {item.description.length > 200 ? item.description.substring(0, 200) + '...' : item.description}
+                                        </div>
+                                    )}
+                                    {(() => {
+                                        // Debug: log raw highlights to console so we can see exact format
+                                        // Backend debug: open browser console to see raw format
+                                        if (item.highlights) console.log('[SnowAI highlights raw]', typeof item.highlights, JSON.stringify(item.highlights).substring(0, 300));
+
+                                        const cleanText = (t) => {
+                                            if (!t) return '';
+                                            return String(t)
+                                                .replace(/<[^>]+>/g, '')
+                                                .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+                                                .replace(/\\n/g, ' ').replace(/\s+/g, ' ')
+                                                .replace(/^[\s,']+|[\s,']+$/g, '')
+                                                .trim();
+                                        };
+
+                                        const extractHighlight = (raw) => {
+                                            if (raw == null) return '';
+
+                                            // JS object with highlight key
+                                            if (typeof raw === 'object' && !Array.isArray(raw)) {
+                                                return cleanText(raw.highlight || raw.text || raw.content || '');
+                                            }
+
+                                            // Array -- grab first item
+                                            if (Array.isArray(raw)) {
+                                                if (raw.length === 0) return '';
+                                                const first = raw[0];
+                                                if (typeof first === 'object') return cleanText(first.highlight || first.text || '');
+                                                return cleanText(String(first));
+                                            }
+
+                                            // String handling
+                                            const s = String(raw).trim();
+
+                                            // Pure plain string with no dict artifacts -> use directly
+                                            if (!s.includes("'highlight'") && !s.includes('"highlight"') && !/\[\+?\d+ characters\]/.test(s)) {
+                                                return cleanText(s);
+                                            }
+
+                                            // Python dict repr: {'highlight': 'text with apostrophe\'s here', 'sentiment': 0.5, ...}
+                                            // GREEDY match from 'highlight': ' up to the LAST ', 'sentiment' occurrence
+                                            // This handles apostrophes inside the text
+                                            const pyMatch = s.match(/'highlight'\s*:\s*'([\s\S]*)',\s*'sentiment'/);
+                                            if (pyMatch) return cleanText(pyMatch[1]);
+
+                                            // Truncated repr: text[+345 characters] -- extract what came before
+                                            const truncMatch = s.match(/^([\s\S]+?)\[\+?\d+ characters\]/);
+                                            if (truncMatch) {
+                                                // Also strip leading dict key if present: {'highlight': 'ACTUAL TEXT
+                                                let extracted = truncMatch[1];
+                                                const keyMatch = extracted.match(/'highlight'\s*:\s*'([\s\S]+)/);
+                                                if (keyMatch) extracted = keyMatch[1];
+                                                return extracted.length > 15 ? cleanText(extracted) : '';
+                                            }
+
+                                            // JSON-quoted key: {"highlight": "text"}
+                                            try {
+                                                const parsed = JSON.parse(s);
+                                                return cleanText(parsed.highlight || parsed.text || '');
+                                            } catch {}
+
+                                            // Last resort: just clean whatever we have
+                                            return cleanText(s);
+                                        };
+
+                                        const hlText = extractHighlight(item.highlights);
+                                        const display = hlText.length > 280 ? hlText.substring(0, 280) + '...' : hlText;
+
+                                        return display ? (
+                                            <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '8px', padding: '10px 14px', borderLeft: `3px solid ${sentiment.dot}`, marginBottom: '10px' }}>
+                                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', marginBottom: '4px', letterSpacing: '0.08em' }}>KEY HIGHLIGHT</div>
+                                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{display}</div>
+                                            </div>
+                                        ) : null;
+                                    })()}
+                                    {item.url && <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600' }}>Go Read full article</div>}
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <EmptyNewsState message="No Marketaux news found for this ticker. Try a more popular stock." />
+                    )}
+                </div>
+            )}
+
+
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes sessionPulse { 0%,100% { box-shadow: 0 0 0 2px rgba(16,185,129,0.3); } 50% { box-shadow: 0 0 0 5px rgba(16,185,129,0.08); } }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+                @media (max-width: 768px) {
+                    .compare-grid { grid-template-columns: 1fr !important; }
+                    .compare-layout-toggle { display: none !important; }
+                }
+                @keyframes articleModalPop {
+                    from { opacity: 0; transform: scale(0.93) translateY(10px); }
+                    to   { opacity: 1; transform: scale(1) translateY(0); }
+                }
+            `}</style>
+
+            {/* Article Link Confirm Modal */}
+            {pendingArticle && (
+                <div
+                    onClick={() => setPendingArticle(null)}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 10002, padding: '20px',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(420px, 100%)',
+                            backgroundColor: '#fff',
+                            borderRadius: '16px',
+                            boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06)',
+                            overflow: 'hidden',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                            animation: 'articleModalPop 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                        }}
+                    >
+                        <div style={{ height: '4px', background: 'linear-gradient(90deg, #2563eb, #60a5fa)' }} />
+                        <div style={{ padding: '24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '16px' }}>
+                                <div style={{
+                                    width: '44px', height: '44px', borderRadius: '10px',
+                                    backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '22px', flexShrink: 0,
+                                }}>🔗</div>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#1a1a1a', marginBottom: '3px' }}>
+                                        Open external article?
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: '#888' }}>
+                                        {"You'll be taken to "}
+                                        <strong style={{ color: '#2563eb' }}>
+                                            {(() => { try { return new URL(pendingArticle.url).hostname.replace('www.', ''); } catch { return pendingArticle.url; } })()}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{
+                                backgroundColor: '#f8f9fa', borderRadius: '10px',
+                                padding: '12px 14px', border: '1px solid #e8e8e8', marginBottom: '20px',
+                            }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a', lineHeight: '1.4', marginBottom: '6px' }}>
+                                    {pendingArticle.title}
+                                </div>
+                                {(pendingArticle.publisher || pendingArticle.source) && (
+                                    <span style={{
+                                        fontSize: '11px', fontWeight: '600', color: '#555',
+                                        backgroundColor: '#fff', padding: '2px 8px',
+                                        borderRadius: '8px', border: '1px solid #e0e0e0',
+                                    }}>
+                                        {pendingArticle.publisher || pendingArticle.source}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    onClick={() => { window.open(pendingArticle.url, '_blank'); setPendingArticle(null); }}
+                                    style={{
+                                        flex: 1, padding: '11px 16px', backgroundColor: '#2563eb',
+                                        border: 'none', borderRadius: '10px', color: '#fff',
+                                        fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                                        transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#2563eb'}
+                                >
+                                    <span>Go</span> Yes, open article
+                                </button>
+                                <button
+                                    onClick={() => setPendingArticle(null)}
+                                    style={{
+                                        flex: 1, padding: '11px 16px', backgroundColor: '#fff',
+                                        border: '1px solid #e0e0e0', borderRadius: '10px', color: '#555',
+                                        fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                                        transition: 'background 0.15s',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f4f4f4'}
+                                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                                >
+                                    Stay here
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Analysis Modal */}
+            <NewsAnalysisModal
+                isOpen={showAnalysisModal}
+                onClose={() => setShowAnalysisModal(false)}
+                analysis={currentAnalysis}
+                ticker={ticker}
+                onReanalyse={() => { setShowAnalysisModal(false); runNewsAnalysis(); }}
+                isAnalysing={isAnalysing}
+            />
+
+            {showPromptModal && (
+    <div
+        onClick={() => setShowPromptModal(false)}
+        style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10003, padding: '20px',
+            backdropFilter: 'blur(3px)',
+        }}
+    >
+        <div
+            onClick={e => e.stopPropagation()}
+            style={{
+                width: 'min(680px, 100%)',
+                maxHeight: '85vh',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: '#fff',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                fontFamily: "'Segoe UI', system-ui, sans-serif",
+                animation: 'modalSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            }}
+        >
+            {/* Header */}
+            <div style={{
+                padding: '20px 24px 16px',
+                background: 'linear-gradient(135deg, #0f172a, #1e3a5f)',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '18px' }}>🤖</span>
+                            <span style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>
+                                External AI Prompt — {ticker}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
+                            Copy this prompt → paste into any AI below → copy their JSON response → hit "Paste Response"
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setShowPromptModal(false)}
+                        style={{
+                            background: 'rgba(255,255,255,0.12)', border: 'none',
+                            borderRadius: '50%', width: '32px', height: '32px',
+                            color: '#fff', fontSize: '17px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}
+                    >×</button>
+                </div>
+            </div>
+
+            {/* Prompt text area — scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                <div style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    fontSize: '13px',
+                    lineHeight: 1.7,
+                    color: '#333',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                }}>
+                    {buildExternalPrompt()}
+                </div>
+
+                {/* Perplexity callout — since it actually searches */}
+                <div style={{
+                    marginTop: '14px',
+                    padding: '10px 14px',
+                    backgroundColor: 'rgba(32,178,170,0.07)',
+                    border: '1px solid rgba(32,178,170,0.25)',
+                    borderRadius: '9px',
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
+                    <div style={{ fontSize: '12px', color: '#0f766e', lineHeight: 1.55 }}>
+                        <strong>Tip:</strong> Perplexity is the best pick here — it actually searches the web in real time and will pull fresh articles automatically. The others need web browsing enabled to do the same.
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+                padding: '14px 24px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex', flexDirection: 'column', gap: '12px',
+                flexShrink: 0,
+                backgroundColor: '#f8fafc',
+            }}>
+                {/* AI launch buttons */}
+                <div>
+                    <div style={{
+                        fontSize: '10px', fontWeight: '700', color: '#94a3b8',
+                        letterSpacing: '0.08em', marginBottom: '8px',
+                    }}>
+                        OPEN DIRECTLY IN (prompt auto-filled)
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                     {[
+                                            {
+                                                name: 'Perplexity',
+                                                icon: '🔍',
+                                                color: '#20b2aa',
+                                                bg: 'rgba(32,178,170,0.08)',
+                                                border: 'rgba(32,178,170,0.35)',
+                                                getUrl: (p) => `https://www.perplexity.ai/search?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'ChatGPT',
+                                                icon: '✦',
+                                                color: '#10a37f',
+                                                bg: 'rgba(16,163,127,0.08)',
+                                                border: 'rgba(16,163,127,0.35)',
+                                                getUrl: (p) => `https://chatgpt.com/?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'Gemini',
+                                                icon: '✦',
+                                                color: '#4285f4',
+                                                bg: 'rgba(66,133,244,0.08)',
+                                                border: 'rgba(66,133,244,0.35)',
+                                                getUrl: (p) => `https://gemini.google.com/app?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'Claude',
+                                                icon: '◆',
+                                                color: '#cc785c',
+                                                bg: 'rgba(204,120,92,0.08)',
+                                                border: 'rgba(204,120,92,0.35)',
+                                                getUrl: (p) => `https://claude.ai/new?q=${encodeURIComponent(p)}`,
+                                            },
+                                            {
+                                                name: 'DeepSeek',
+                                                icon: '🐋',
+                                                color: '#4d6bfe',
+                                                bg: 'rgba(77,107,254,0.08)',
+                                                border: 'rgba(77,107,254,0.35)',
+                                                // No documented ?q= prefill support — opens the chat; paste manually.
+                                                getUrl: () => `https://chat.deepseek.com/`,
+                                            },
+                                            {
+                                                name: 'Qwen',
+                                                icon: '✦',
+                                                color: '#8b5cf6',
+                                                bg: 'rgba(139,92,246,0.08)',
+                                                border: 'rgba(139,92,246,0.35)',
+                                                // No documented ?q= prefill support — opens the chat; paste manually.
+                                                getUrl: () => `https://chat.qwen.ai/`,
+                                            },
+                            ].map(({ name, icon, color, bg, border, getUrl }) => (       
+                            <button
+                                key={name}
+                                onClick={() => window.open(getUrl(buildExternalPrompt()), '_blank')}
+                                style={{
+                                    padding: '8px 14px',
+                                    borderRadius: '9px',
+                                    border: `1.5px solid ${border}`,
+                                    backgroundColor: bg,
+                                    color: color,
+                                    fontWeight: '700',
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '6px',
+                                    transition: 'all 0.15s',
+                                    whiteSpace: 'nowrap',
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = `0 4px 12px ${border}`;
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                }}
+                            >
+                                <span style={{ fontSize: '15px' }}>{icon}</span>
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: '1px', backgroundColor: '#e2e8f0' }} />
+
+                {/* Copy + Paste row */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={() => {
+                            navigator.clipboard.writeText(buildExternalPrompt());
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                        }}
+                        style={{
+                            flex: 1, padding: '10px',
+                            background: copied
+                                ? 'linear-gradient(135deg, #10b981, #059669)'
+                                : 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                            border: 'none', borderRadius: '9px',
+                            color: '#fff', fontWeight: '700', fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: '7px',
+                            transition: 'background 0.25s',
+                        }}
+                    >
+                        {copied ? (
+                            <><span>✓</span> Copied!</>
+                        ) : (
+                            <><span>📋</span> Copy Prompt</>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => {
+                            setShowPromptModal(false);
+                            setShowExternalPasteModal(true);
+                        }}
+                        style={{
+                            flex: 1, padding: '10px',
+                            backgroundColor: '#fff',
+                            border: '2px solid #2563eb',
+                            borderRadius: '9px',
+                            color: '#2563eb', fontWeight: '700', fontSize: '14px',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: '7px',
+                            transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fff'}
+                    >
+                        <span>📥</span> Paste Response
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
+
+            {showExternalPasteModal && (
+                <div
+                    onClick={() => { setShowExternalPasteModal(false); setExternalParseError(null); }}
+                    style={{
+                        position: 'fixed', inset: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 10003, padding: '20px',
+                        backdropFilter: 'blur(3px)',
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(640px, 100%)',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                            display: 'flex', flexDirection: 'column',
+                        }}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '18px 22px 14px',
+                            background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+                            flexShrink: 0,
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+                                        📥 Paste AI Response — {ticker}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
+                                        Paste the raw JSON the AI returned. It will be validated before saving.
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => { setShowExternalPasteModal(false); setExternalParseError(null); }}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.15)', border: 'none',
+                                        borderRadius: '50%', width: '32px', height: '32px',
+                                        color: '#fff', fontSize: '17px', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}
+                                >×</button>
+                            </div>
+                        </div>
+
+                        {/* Textarea */}
+                        <div style={{ padding: '20px 22px 0' }}>
+                            <textarea
+                                autoFocus
+                                value={externalPasteText}
+                                onChange={e => { setExternalPasteText(e.target.value); setExternalParseError(null); }}
+                                placeholder={`Paste the JSON here. Should start with {\n  "bias": "BULLISH",\n  "confidence": 82,\n  ...\n}`}
+                                style={{
+                                    width: '100%',
+                                    height: '260px',
+                                    padding: '14px',
+                                    borderRadius: '10px',
+                                    border: `2px solid ${externalParseError ? '#ef4444' : '#e2e8f0'}`,
+                                    fontSize: '13px',
+                                    fontFamily: 'monospace',
+                                    lineHeight: 1.6,
+                                    resize: 'vertical',
+                                    outline: 'none',
+                                    boxSizing: 'border-box',
+                                    color: '#1a1a1a',
+                                    backgroundColor: externalParseError ? '#fef2f2' : '#f8fafc',
+                                    transition: 'border-color 0.15s, background-color 0.15s',
+                                }}
+                            />
+
+                            {externalParseError && (
+                                <div style={{
+                                    marginTop: '10px',
+                                    padding: '10px 14px',
+                                    backgroundColor: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    color: '#b91c1c',
+                                    lineHeight: 1.5,
+                                }}>
+                                    ⚠️ {externalParseError}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{
+                            padding: '16px 22px',
+                            display: 'flex', gap: '10px',
+                            backgroundColor: '#fff',
+                        }}>
+                            <button
+                                onClick={handleExternalPaste}
+                                disabled={!externalPasteText.trim()}
+                                style={{
+                                    flex: 1, padding: '11px',
+                                    background: !externalPasteText.trim()
+                                        ? 'rgba(124,58,237,0.3)'
+                                        : 'linear-gradient(135deg, #7c3aed, #4c1d95)',
+                                    border: 'none', borderRadius: '9px',
+                                    color: '#fff', fontWeight: '700', fontSize: '14px',
+                                    cursor: !externalPasteText.trim() ? 'not-allowed' : 'pointer',
+                                    transition: 'background 0.15s',
+                                }}
+                            >
+                                ✓ Parse & Display
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowExternalPasteModal(false);
+                                    setShowPromptModal(true);
+                                    setExternalParseError(null);
+                                }}
+                                style={{
+                                    padding: '11px 16px',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #e2e8f0', borderRadius: '9px',
+                                    color: '#64748b', fontWeight: '600', fontSize: '14px',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ← Back to prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function EmptyNewsState({ message }) {
+    return (
+        <div style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '12px',
+            border: '2px dashed #e0e0e0',
+        }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
+            <div style={{ color: '#666', fontSize: '15px' }}>{message}</div>
+        </div>
+    );
+}
+
+// --- Earnings Calendar Component ----------------------------------------------
+function EarningsCalendar({ onSelectTicker, openaiKey }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [earnings,      setEarnings]      = React.useState([]);
+    const [loading,       setLoading]       = React.useState(false);
+    const [error,         setError]         = React.useState(null);
+    const [currentMonth,  setCurrentMonth]  = React.useState(() => new Date());
+    const [selectedDay,   setSelectedDay]   = React.useState(null);
+    const [showModal,     setShowModal]     = React.useState(false);
+    const [hoveredCell,      setHoveredCell]      = React.useState(null);
+    const [reactionData,     setReactionData]     = React.useState(null);
+    const [reactionLoading,  setReactionLoading]  = React.useState(false);
+    const [reactionTicker,   setReactionTicker]   = React.useState(null);
+    const [bulkReaction,     setBulkReaction]     = React.useState(null);
+    const [bulkLoading,      setBulkLoading]      = React.useState(false);
+    const [showBulk,         setShowBulk]         = React.useState(false);
+    const [modalEarnings, setModalEarnings] = React.useState([]);
+    const [search,        setSearch]        = React.useState('');
+    const [sectorFilter,  setSectorFilter]  = React.useState('All');
+    const [sortBy,        setSortBy]        = React.useState('date');
+
+    const [selectedEarningsStock, setSelectedEarningsStock] = useState(null);
+    const [stockReaction,         setStockReaction]         = useState(null);
+    const [reactionLoading2,      setReactionLoading2]      = useState(false);
+
+    const [searchTicker,    setSearchTicker]    = React.useState('');
+    const [searchResults,   setSearchResults]   = React.useState(null);
+    const [searchLoading,   setSearchLoading]   = React.useState(false);
+    const [searchError,     setSearchError]     = React.useState(null);
+    const [showSearchPanel, setShowSearchPanel] = React.useState(false);
+
+    const [previewTicker, setPreviewTicker] = React.useState(null);
+    const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' && window.innerWidth < 640);
+    const [earningsAIModal, setEarningsAIModal] = React.useState(null); // { ticker, prompt }
+    const [showMonthAI, setShowMonthAI] = React.useState(false);
+    useEarningsAIStoreVersion();
+    React.useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    // Fetch all earnings on mount + month change
+    React.useEffect(() => {
+        fetchEarnings();
+    }, []);
+
+    const fetchEarnings = async () => {
+        setLoading(true); setError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_calendar_vault/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tickers: ALL_CALENDAR_TICKERS }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setEarnings(json.results || []);
+        } catch(e) {
+            setError(e.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // -- Calendar helpers (no date-fns needed -- pure JS) ----------------------
+    const year  = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    const firstDay  = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Build date -> earnings map
+    const byDate = {};
+    earnings.forEach(e => {
+        const d = e.earningsDate?.slice(0, 10);
+        if (!d) return;
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(e);
+    });
+
+    // Top 5 per day by market cap
+    const top5 = (date) => {
+        const list = byDate[date] || [];
+        return [...list].sort((a, b) => (b.marketCap||0) - (a.marketCap||0)).slice(0, isMobile ? 2 : 5);
+    };
+
+    const openDay = (dateStr) => {
+        const all = byDate[dateStr] || [];
+        setSelectedDay(dateStr);
+        setModalEarnings(all);
+        setSearch(''); setSectorFilter('All');
+        setShowModal(true);
+    };
+
+    // -- Filter + sort for modal -----------------------------------------------
+    const sectors = ['All', ...new Set(Object.values(SECTOR_MAP))].sort();
+    const filtered = modalEarnings.filter(e => {
+        const matchSearch = !search || e.ticker.includes(search.toUpperCase()) || (e.name||'').toUpperCase().includes(search.toUpperCase());
+        const matchSector = sectorFilter === 'All' || SECTOR_MAP[e.ticker] === sectorFilter;
+        return matchSearch && matchSector;
+    }).sort((a, b) => {
+        if (sortBy === 'marketcap') return (b.marketCap||0) - (a.marketCap||0);
+        if (sortBy === 'sector') return (SECTOR_MAP[a.ticker]||'').localeCompare(SECTOR_MAP[b.ticker]||'');
+        return (a.earningsDate||'').localeCompare(b.earningsDate||'');
+    });
+
+    function SabrinaEarningsPreview({ ticker, openaiKey, onClose }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const [step,     setStep]     = React.useState('idle'); // idle|fetching|thinking|done|error
+    const [rawData,  setRawData]  = React.useState(null);
+    const [preview,  setPreview]  = React.useState(null);
+    const [error,    setError]    = React.useState(null);
+
+    React.useEffect(() => { run(); }, [ticker]);
+
+    const run = async (forceRefresh = false) => {
+    setLoading(true);
+    setError(null);
+    setScannerError(null);
+    if (forceRefresh) {
+        setExpandedRow(null);
+        setChartTicker(null);
+        setSearch('');
+    }
+    try {
+        const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                tickers:      tickersToScan,
+                minMarketCap: CAP_OPTIONS[minCap],
+                topN:         30,
+                forceRefresh, // true = kick off a fresh background scan
+            }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+
+        setResults(json);
+        setScannedAt(json.scannedAt);
+        setScannerError(json.lastError || null);
+        setIsBackgroundRunning(!!json.isRunning);
+
+        // If a fresh scan just kicked off, start polling for it to finish
+        if (json.isRunning && !pollRef.current) {
+            pollRef.current = setInterval(async () => {
+                try {
+                    const pRes  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({
+                            tickers:      tickersToScan,
+                            minMarketCap: CAP_OPTIONS[minCap],
+                            topN:         30,
+                            forceRefresh: false, // just checking cache, not re-triggering
+                        }),
+                    });
+                    const pJson = await pRes.json();
+                    setResults(pJson);
+                    setScannedAt(pJson.scannedAt);
+                    setScannerError(pJson.lastError || null);
+                    setIsBackgroundRunning(!!pJson.isRunning);
+
+                    if (!pJson.isRunning) {
+                        clearInterval(pollRef.current);
+                        pollRef.current = null;
+                    }
+                } catch (e) {
+                    console.error('[Scanner poll]', e);
+                }
+            }, 5000); // poll every 5s
+        }
+    } catch (e) {
+        setError(e.message);
+    } finally {
+        setLoading(false);
+    }
+};
+
+// Load cached results instantly when the modal opens — no forceRefresh
+React.useEffect(() => {
+    if (isOpen && !results) {
+        run(false);
+    }
+    return () => {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    };
+}, [isOpen]);
+
+React.useEffect(() => {
+        if (isOpen && !results) {
+            run(false);
+        }
+        return () => {
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        };
+    }, [isOpen]);
+
+    const forceResetScan = async () => {
+        setResetting(true);
+        setScannerError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    tickers:      tickersToScan,
+                    minMarketCap: CAP_OPTIONS[minCap],
+                    topN:         30,
+                    resetLock:    true,
+                }),
+            });
+            const json = await res.json();
+            setResults(json);
+            setScannedAt(json.scannedAt);
+            setScannerError(json.lastError || null);
+            setIsBackgroundRunning(!!json.isRunning);
+            setShowForceReset(false);
+            setBackgroundRunningSince(null);
+
+            if (json.isRunning && !pollRef.current) {
+                pollRef.current = setInterval(async () => {
+                    try {
+                        const pRes  = await fetch(`${BACKEND}/api/snowai_trend_reversal_scanner_vault/`, {
+                            method:  'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({
+                                tickers:      tickersToScan,
+                                minMarketCap: CAP_OPTIONS[minCap],
+                                topN:         30,
+                                forceRefresh: false,
+                            }),
+                        });
+                        const pJson = await pRes.json();
+                        setResults(pJson);
+                        setScannedAt(pJson.scannedAt);
+                        setScannerError(pJson.lastError || null);
+                        setIsBackgroundRunning(!!pJson.isRunning);
+                        if (!pJson.isRunning) {
+                            clearInterval(pollRef.current);
+                            pollRef.current = null;
+                        }
+                    } catch (e) {
+                        console.error('[Scanner poll]', e);
+                    }
+                }, 5000);
+            }
+        } catch (e) {
+            setScannerError(e.message);
+        } finally {
+            setResetting(false);
+        }
+    };
+
+
+//     const run = async () => {
+//         if (!ticker) return;
+//         setStep('fetching');
+//         setError(null);
+//         setPreview(null);
+
+//         // ── Step 1: fetch raw data ──────────────────────────────────────────
+//         let data;
+//         try {
+//             const res  = await fetch(`${BACKEND}/api/snowai_earnings_preview_vault/`, {
+//                 method:  'POST',
+//                 headers: { 'Content-Type': 'application/json' },
+//                 body:    JSON.stringify({ ticker }),
+//             });
+//             data = await res.json();
+//             if (!res.ok) throw new Error(data.error || `Server ${res.status}`);
+//             setRawData(data);
+//         } catch (e) {
+//             setError(e.message);
+//             setStep('error');
+//             return;
+//         }
+
+//         if (!openaiKey) {
+//             // Show data without AI narrative
+//             setStep('done');
+//             return;
+//         }
+
+//         // ── Step 2: ask Sabrina ─────────────────────────────────────────────
+//         setStep('thinking');
+
+//         const fmt = (v, prefix = '$') =>
+//             v != null ? `${prefix}${typeof v === 'number' ? v.toFixed(2) : v}` : 'N/A';
+
+//         const fmtRev = (v) => {
+//             if (!v) return 'N/A';
+//             if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+//             if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+//             if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+//             return `$${v}`;
+//         };
+
+//         const histSummary = (data.historical || []).slice(0, 6).map((q, i) =>
+//             `Q-${i+1} (${q.date}): EPS ${fmt(q.epsActual)} vs est ${fmt(q.epsEstimate)} ` +
+//             `${q.surprisePct != null ? `(${q.surprisePct >= 0 ? '+' : ''}${q.surprisePct}% surprise)` : ''} ` +
+//             `→ ${q.beat === true ? 'BEAT' : q.beat === false ? 'MISS' : 'N/A'}`
+//         ).join('\n');
+
+//         const trendSummary = (data.earningsTrend || []).slice(0, 2).map(t =>
+//             `${t.period}: EPS est $${t.epsAvg?.toFixed(2) || 'N/A'} ` +
+//             `(was $${t.eps30dAgo?.toFixed(2) || 'N/A'} 30d ago, $${t.eps90dAgo?.toFixed(2) || 'N/A'} 90d ago) ` +
+//             `growth: ${t.growth != null ? (t.growth * 100).toFixed(1) + '%' : 'N/A'}`
+//         ).join('\n');
+
+//         const prompt = `You are Sabrina, a sharp AI stock analyst. Generate a comprehensive earnings preview report for ${ticker}.
+
+// STOCK CONTEXT:
+// Name: ${data.stockInfo?.name}
+// Price: ${fmt(data.stockInfo?.currentPrice)} | Market Cap: ${data.stockInfo?.marketCap ? fmtRev(data.stockInfo.marketCap) : 'N/A'}
+// Sector: ${data.stockInfo?.sector} | Industry: ${data.stockInfo?.industry}
+// P/E: ${data.stockInfo?.trailingPE?.toFixed(1) || 'N/A'} | Fwd P/E: ${data.stockInfo?.forwardPE?.toFixed(1) || 'N/A'}
+// Beta: ${data.stockInfo?.beta?.toFixed(2) || 'N/A'} | Short Ratio: ${data.stockInfo?.shortRatio?.toFixed(1) || 'N/A'}
+// 52W High: ${fmt(data.stockInfo?.fiftyTwoWeekHigh)} | 52W Low: ${fmt(data.stockInfo?.fiftyTwoWeekLow)}
+
+// UPCOMING EARNINGS:
+// Date: ${data.upcomingDate || 'Unknown'} (${data.daysUntil != null ? data.daysUntil + ' days away' : 'N/A'})
+// EPS Estimate: ${fmt(data.epsEstimate)}
+// Revenue Estimate: ${fmtRev(data.revenueEstimate)}
+
+// ESTIMATE REVISIONS (bullish if trending UP):
+// ${trendSummary || 'No revision data available'}
+
+// OPTIONS / MARKET POSITIONING:
+// Implied Move: ±${data.impliedMove || 'N/A'}% (what options market expects)
+// ATM IV: ${data.atmIV || 'N/A'}%
+// Historical Avg Move on Earnings Day: ±${data.avgHistMove || 'N/A'}%
+// ${data.impliedMove && data.avgHistMove
+//     ? `Options are ${data.impliedMove > data.avgHistMove ? 'EXPENSIVE' : 'CHEAP'} vs history`
+//     : ''}
+
+// HISTORICAL BEAT RATE:
+// Beat Rate: ${data.beatRate || 'N/A'}% (${data.beatCount}B / ${data.missCount}M over ${data.totalQuarters}Q)
+// Avg EPS Surprise: ${data.avgSurprise != null ? (data.avgSurprise >= 0 ? '+' : '') + data.avgSurprise + '%' : 'N/A'}
+
+// LAST 6 QUARTERS:
+// ${histSummary || 'No historical data'}
+
+// Return ONLY a JSON object (no markdown, no backticks):
+// {
+//   "verdict": "BEAT_LIKELY" | "MISS_LIKELY" | "IN_LINE" | "HIGH_UNCERTAINTY",
+//   "confidence": <0-100>,
+//   "tldr": "<one punchy sentence — the single most important thing to know>",
+//   "impliedMoveVerdict": "<are options cheap or expensive vs history — 1 sentence>",
+//   "estimateRevisionSignal": "<are estimates going up or down lately — 1 sentence>",
+//   "beatPatternSignal": "<what does beat history tell us — 1 sentence>",
+//   "keyThings": ["<thing to watch 1>", "<thing to watch 2>", "<thing to watch 3>"],
+//   "bullCase": "<why they beat and stock pops — 2 sentences>",
+//   "bearCase": "<why they miss and stock drops — 2 sentences>",
+//   "optionsPlay": "<how to think about positioning given the IV vs history data — 1-2 sentences>",
+//   "sabrinaQuote": "<Sabrina's personal punchy take in 1 sentence, first person, with personality>"
+// }`;
+
+//         try {
+//             const res  = await fetch('https://api.openai.com/v1/chat/completions', {
+//                 method:  'POST',
+//                 headers: {
+//                     'Content-Type':  'application/json',
+//                     'Authorization': `Bearer ${openaiKey}`,
+//                 },
+//                 body: JSON.stringify({
+//                     model:       'gpt-4o-mini',
+//                     messages:    [{ role: 'user', content: prompt }],
+//                     max_tokens:  900,
+//                     temperature: 0.65,
+//                 }),
+//             });
+//             const aiData = await res.json();
+//             const raw    = aiData.choices?.[0]?.message?.content || '';
+//             const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+//             setPreview(parsed);
+//         } catch (e) {
+//             console.error('[EarningsPreview] AI error:', e);
+//             // Still show data panel without narrative
+//         }
+//         setStep('done');
+//     };
+
+    // ── Verdict config ────────────────────────────────────────────────────────
+    const VERDICT = {
+        BEAT_LIKELY:      { color:'#10b981', bg:'#f0fdf4', border:'#bbf7d0', icon:'🚀', label:'Beat Likely'      },
+        MISS_LIKELY:      { color:'#ef4444', bg:'#fef2f2', border:'#fecaca', icon:'⚠️', label:'Miss Likely'      },
+        IN_LINE:          { color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', icon:'➡️', label:'In Line Expected'  },
+        HIGH_UNCERTAINTY: { color:'#8b5cf6', bg:'#faf5ff', border:'#ddd6fe', icon:'🎲', label:'High Uncertainty'  },
+    };
+
+    const fmtRev = (v) => {
+        if (!v) return null;
+        if (v >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+        if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
+
+    const vc = VERDICT[preview?.verdict] || VERDICT.HIGH_UNCERTAINTY;
+
+    return (
+        <div style={{
+            position:  'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            zIndex:    10010,
+            display:   'flex', alignItems: 'center', justifyContent: 'center',
+            padding:   '16px',
+            backdropFilter: 'blur(4px)',
+        }} onClick={onClose}>
+            <div onClick={e => e.stopPropagation()} style={{
+                width:           'min(720px, 100%)',
+                maxHeight:       '92vh',
+                borderRadius:    '18px',
+                overflow:        'hidden',
+                display:         'flex',
+                flexDirection:   'column',
+                backgroundColor: '#fff',
+                boxShadow:       '0 24px 80px rgba(0,0,0,0.22)',
+                fontFamily:      "'Segoe UI', system-ui, sans-serif",
+                animation:       'modalSlideUp 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
+
+                {/* ── Header ──────────────────────────────────────────────── */}
+                <div style={{
+                    padding:    '20px 24px 16px',
+                    background: 'linear-gradient(135deg, #7c3aed, #db2777)',
+                    flexShrink: 0,
+                }}>
+                    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px' }}>
+                        <div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'6px' }}>
+                                <span style={{ fontSize:'22px' }}>😼</span>
+                                <span style={{ fontSize:'13px', fontWeight:'700', color:'rgba(255,255,255,0.8)', letterSpacing:'0.06em' }}>
+                                    SABRINA'S EARNINGS PREVIEW
+                                </span>
+                            </div>
+                            <div style={{ fontSize:'22px', fontWeight:'800', color:'#fff', lineHeight:1.2 }}>
+                                {ticker} — {rawData?.stockInfo?.name || ticker}
+                            </div>
+                            {rawData?.upcomingDate && (
+                                <div style={{ marginTop:'6px', display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                                    <span style={{
+                                        backgroundColor:'rgba(255,255,255,0.15)',
+                                        color:'#fff', fontSize:'12px', fontWeight:'700',
+                                        padding:'3px 10px', borderRadius:'20px',
+                                    }}>
+                                        📅 {rawData.upcomingDate}
+                                    </span>
+                                    {rawData.daysUntil != null && (
+                                        <span style={{ color:'rgba(255,255,255,0.75)', fontSize:'12px' }}>
+                                            {rawData.daysUntil === 0 ? '🔴 Today!' :
+                                             rawData.daysUntil === 1 ? '🟡 Tomorrow' :
+                                             `${rawData.daysUntil} days away`}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={onClose} style={{
+                            background:'rgba(255,255,255,0.15)', border:'none',
+                            borderRadius:'50%', width:'34px', height:'34px',
+                            color:'#fff', fontSize:'18px', cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            flexShrink: 0,
+                        }}>×</button>
+                    </div>
+                </div>
+
+                {/* ── Body ────────────────────────────────────────────────── */}
+                <div style={{ flex:1, overflowY:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:'18px', backgroundColor:'#fff' }}>
+
+                    {/* Loading states */}
+                    {(step === 'fetching' || step === 'thinking') && (
+                        <div style={{ padding:'40px 0', textAlign:'center' }}>
+                            <div style={{ fontSize:'32px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'12px' }}>
+                                {step === 'fetching' ? '📡' : '🧠'}
+                            </div>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#333', marginBottom:'4px' }}>
+                                {step === 'fetching' ? 'Gathering earnings data...' : 'Sabrina is thinking...'}
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#999' }}>
+                                {step === 'fetching'
+                                    ? 'Pulling estimates, options IV, and beat history'
+                                    : 'Synthesising estimates, options pricing, and patterns'}
+                            </div>
+                            {/* Animated dots */}
+                            <div style={{ display:'flex', justifyContent:'center', gap:'6px', marginTop:'16px' }}>
+                                {[0,1,2].map(i => (
+                                    <div key={i} style={{
+                                        width:'8px', height:'8px', borderRadius:'50%',
+                                        backgroundColor:'#7c3aed',
+                                        animation:`sabrnaTyping 1.2s ${i*0.2}s infinite`,
+                                    }}/>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {step === 'error' && (
+                        <div style={{ padding:'20px', backgroundColor:'#fef2f2', borderRadius:'12px', border:'1px solid #fecaca', color:'#b91c1c' }}>
+                            <div style={{ fontWeight:'700', marginBottom:'6px' }}>⚠️ Couldn't load preview</div>
+                            <div style={{ fontSize:'13px' }}>{error}</div>
+                        </div>
+                    )}
+
+                    {step === 'done' && rawData && (
+                        <>
+                            {/* ── Verdict banner ── */}
+                            {preview && (
+                                <div style={{
+                                    backgroundColor: vc.bg,
+                                    border:`2px solid ${vc.border}`,
+                                    borderLeft:`5px solid ${vc.color}`,
+                                    borderRadius:'12px',
+                                    padding:'16px 18px',
+                                }}>
+                                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'24px' }}>{vc.icon}</span>
+                                        <span style={{ fontSize:'18px', fontWeight:'800', color:vc.color }}>{vc.label}</span>
+                                        <span style={{
+                                            backgroundColor:vc.color, color:'#fff',
+                                            fontSize:'12px', fontWeight:'700',
+                                            padding:'3px 10px', borderRadius:'20px',
+                                        }}>{preview.confidence}% confidence</span>
+                                    </div>
+                                    <div style={{ fontSize:'15px', color:'#1a1a1a', fontWeight:'600', lineHeight:1.55, marginBottom:'10px' }}>
+                                        {preview.tldr}
+                                    </div>
+                                    {/* Sabrina quote */}
+                                    <div style={{
+                                        padding:'10px 14px',
+                                        backgroundColor:'rgba(124,58,237,0.06)',
+                                        borderLeft:'3px solid #7c3aed',
+                                        borderRadius:'6px',
+                                        display:'flex', gap:'8px', alignItems:'flex-start',
+                                    }}>
+                                        <span style={{ fontSize:'16px', flexShrink:0 }}>😼</span>
+                                        <div style={{ fontSize:'13px', color:'#4c1d95', fontStyle:'italic', lineHeight:1.55 }}>
+                                            "{preview.sabrinaQuote}"
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Key numbers strip ── */}
+                            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))', gap:'10px' }}>
+                                {[
+                                    {
+                                        label: 'EPS Estimate',
+                                        value: rawData.epsEstimate != null ? `$${rawData.epsEstimate}` : 'N/A',
+                                        color: '#2563eb',
+                                        sub:   'consensus',
+                                    },
+                                    {
+                                        label: 'Rev Estimate',
+                                        value: fmtRev(rawData.revenueEstimate) || 'N/A',
+                                        color: '#2563eb',
+                                        sub:   'consensus',
+                                    },
+                                    {
+                                        label: 'Implied Move',
+                                        value: rawData.impliedMove != null ? `±${rawData.impliedMove}%` : 'N/A',
+                                        color: '#8b5cf6',
+                                        sub:   'options market',
+                                    },
+                                    {
+                                        label: 'Hist Avg Move',
+                                        value: rawData.avgHistMove != null ? `±${rawData.avgHistMove}%` : 'N/A',
+                                        color: '#64748b',
+                                        sub:   `last ${rawData.histMoves?.length || 0} qtrs`,
+                                    },
+                                    {
+                                        label: 'Beat Rate',
+                                        value: rawData.beatRate != null ? `${rawData.beatRate}%` : 'N/A',
+                                        color: rawData.beatRate >= 70 ? '#10b981' : rawData.beatRate >= 50 ? '#f59e0b' : '#ef4444',
+                                        sub:   `${rawData.beatCount}B / ${rawData.missCount}M`,
+                                    },
+                                    {
+                                        label: 'Avg Surprise',
+                                        value: rawData.avgSurprise != null ? `${rawData.avgSurprise >= 0 ? '+' : ''}${rawData.avgSurprise}%` : 'N/A',
+                                        color: rawData.avgSurprise >= 0 ? '#10b981' : '#ef4444',
+                                        sub:   `${rawData.totalQuarters} quarters`,
+                                    },
+                                ].map((item, i) => (
+                                    <div key={i} style={{
+                                        padding:'12px 14px',
+                                        backgroundColor:'#f8fafc',
+                                        borderRadius:'10px',
+                                        borderLeft:`3px solid ${item.color}`,
+                                    }}>
+                                        <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'4px' }}>
+                                            {item.label.toUpperCase()}
+                                        </div>
+                                        <div style={{ fontSize:'18px', fontWeight:'800', color:item.color }}>
+                                            {item.value}
+                                        </div>
+                                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>{item.sub}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ── Options vs history comparison bar ── */}
+                            {rawData.impliedMove != null && rawData.avgHistMove != null && (
+                                <div style={{
+                                    padding:'14px 16px',
+                                    backgroundColor:'#faf5ff',
+                                    borderRadius:'10px',
+                                    border:'1px solid #ddd6fe',
+                                }}>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#7c3aed', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        OPTIONS PRICING vs HISTORY
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                        {[
+                                            { label:`Implied Move (options)`, val:rawData.impliedMove,  color:'#8b5cf6' },
+                                            { label:`Hist Avg Move`,          val:rawData.avgHistMove,  color:'#64748b' },
+                                        ].map((item, i) => {
+                                            const max = Math.max(rawData.impliedMove, rawData.avgHistMove, 1);
+                                            return (
+                                                <div key={i}>
+                                                    <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'3px' }}>
+                                                        <span style={{ color:'#555', fontWeight:'600' }}>{item.label}</span>
+                                                        <span style={{ color:item.color, fontWeight:'700' }}>±{item.val}%</span>
+                                                    </div>
+                                                    <div style={{ height:'6px', backgroundColor:'#ede9fe', borderRadius:'3px', overflow:'hidden' }}>
+                                                        <div style={{
+                                                            height:'100%',
+                                                            width:`${(item.val / max) * 100}%`,
+                                                            backgroundColor:item.color,
+                                                            borderRadius:'3px',
+                                                            transition:'width 0.8s ease',
+                                                        }}/>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {preview?.impliedMoveVerdict && (
+                                        <div style={{ marginTop:'10px', fontSize:'13px', color:'#5b21b6', fontStyle:'italic' }}>
+                                            {preview.impliedMoveVerdict}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── AI signal cards ── */}
+                            {preview && (
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'10px' }}>
+                                    {[
+                                        { label:'📊 ESTIMATE REVISIONS', text:preview.estimateRevisionSignal, borderColor:'#3b82f6' },
+                                        { label:'🏆 BEAT PATTERN',        text:preview.beatPatternSignal,       borderColor:'#10b981' },
+                                        { label:'🎯 OPTIONS PLAY',         text:preview.optionsPlay,             borderColor:'#8b5cf6' },
+                                    ].filter(c => c.text).map((card, i) => (
+                                        <div key={i} style={{
+                                            padding:'12px 14px',
+                                            backgroundColor:'#f8fafc',
+                                            borderRadius:'10px',
+                                            borderLeft:`3px solid ${card.borderColor}`,
+                                        }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'6px' }}>
+                                                {card.label}
+                                            </div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>
+                                                {card.text}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* ── Bull / Bear ── */}
+                            {preview && (preview.bullCase || preview.bearCase) && (
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:'10px' }}>
+                                    {preview.bullCase && (
+                                        <div style={{ padding:'12px 14px', backgroundColor:'rgba(16,185,129,0.06)', borderRadius:'10px', border:'1px solid rgba(16,185,129,0.2)' }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#10b981', letterSpacing:'0.07em', marginBottom:'6px' }}>🐂 BULL CASE</div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>{preview.bullCase}</div>
+                                        </div>
+                                    )}
+                                    {preview.bearCase && (
+                                        <div style={{ padding:'12px 14px', backgroundColor:'rgba(239,68,68,0.06)', borderRadius:'10px', border:'1px solid rgba(239,68,68,0.18)' }}>
+                                            <div style={{ fontSize:'10px', fontWeight:'700', color:'#ef4444', letterSpacing:'0.07em', marginBottom:'6px' }}>🐻 BEAR CASE</div>
+                                            <div style={{ fontSize:'13px', color:'#333', lineHeight:1.55 }}>{preview.bearCase}</div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* ── Things to watch ── */}
+                            {preview?.keyThings?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        👁 KEY THINGS TO WATCH
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'7px' }}>
+                                        {preview.keyThings.map((item, i) => (
+                                            <div key={i} style={{
+                                                display:'flex', gap:'10px', alignItems:'flex-start',
+                                                padding:'10px 14px',
+                                                backgroundColor:'#f8fafc',
+                                                borderRadius:'8px',
+                                                border:'1px solid #e2e8f0',
+                                            }}>
+                                                <div style={{
+                                                    width:'20px', height:'20px', borderRadius:'50%',
+                                                    backgroundColor:'#7c3aed',
+                                                    color:'#fff', fontSize:'11px', fontWeight:'800',
+                                                    display:'flex', alignItems:'center', justifyContent:'center',
+                                                    flexShrink:0, marginTop:'1px',
+                                                }}>{i+1}</div>
+                                                <div style={{ fontSize:'13px', color:'#333', lineHeight:1.5 }}>{item}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── Historical quarters mini-table ── */}
+                            {rawData.historical?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize:'11px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.07em', marginBottom:'10px' }}>
+                                        📜 LAST {rawData.historical.length} QUARTERS
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'5px' }}>
+                                        {rawData.historical.map((q, i) => (
+                                            <div key={i} style={{
+                                                display:'flex', alignItems:'center', gap:'10px',
+                                                padding:'8px 12px', borderRadius:'8px',
+                                                backgroundColor: q.beat === true ? 'rgba(16,185,129,0.05)' : q.beat === false ? 'rgba(239,68,68,0.05)' : '#f8fafc',
+                                                border:`1px solid ${q.beat === true ? 'rgba(16,185,129,0.2)' : q.beat === false ? 'rgba(239,68,68,0.15)' : '#e2e8f0'}`,
+                                                flexWrap:'wrap',
+                                            }}>
+                                                <span style={{ fontSize:'11px', color:'#64748b', minWidth:'75px', fontWeight:'600' }}>
+                                                    {q.date}
+                                                </span>
+                                                <span style={{ fontSize:'12px', fontWeight:'800',
+                                                    color: q.beat === true ? '#10b981' : q.beat === false ? '#ef4444' : '#94a3b8' }}>
+                                                    {q.epsActual != null ? `$${q.epsActual}` : '—'}
+                                                </span>
+                                                <span style={{ fontSize:'11px', color:'#94a3b8' }}>
+                                                    {q.epsEstimate != null ? `est $${q.epsEstimate}` : ''}
+                                                </span>
+                                                {q.surprisePct != null && (
+                                                    <span style={{
+                                                        fontSize:'11px', fontWeight:'700',
+                                                        padding:'1px 7px', borderRadius:'10px',
+                                                        backgroundColor: q.surprisePct >= 0 ? '#f0fdf4' : '#fef2f2',
+                                                        color: q.surprisePct >= 0 ? '#10b981' : '#ef4444',
+                                                        border:`1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}`,
+                                                    }}>
+                                                        {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
+                                                    </span>
+                                                )}
+                                                <span style={{ marginLeft:'auto', fontSize:'11px', fontWeight:'800',
+                                                    color: q.beat === true ? '#10b981' : q.beat === false ? '#ef4444' : '#94a3b8' }}>
+                                                    {q.beat === true ? '✓ Beat' : q.beat === false ? '✗ Miss' : '—'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Re-run */}
+                            <button onClick={run} style={{
+                                padding:'11px', borderRadius:'10px',
+                                background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                color:'#fff', border:'none',
+                                fontWeight:'700', fontSize:'14px', cursor:'pointer',
+                                display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
+                            }}>
+                                🔄 Re-run Preview
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            <style>{`
+                @keyframes modalSlideUp {
+                    from { opacity:0; transform:translateY(24px) scale(0.97); }
+                    to   { opacity:1; transform:translateY(0)     scale(1);    }
+                }
+                @keyframes spin         { from { transform:rotate(0deg);   } to { transform:rotate(360deg); } }
+                @keyframes sabrnaTyping { 0%,60%,100% { transform:translateY(0);    opacity:0.4; }
+                                          30%          { transform:translateY(-4px); opacity:1;   } }
+            `}</style>
+        </div>
+    );
+}
+
+    const fmtCap = (v) => {
+        if (!v) return '--';
+        if (v >= 1e12) return `$${(v/1e12).toFixed(1)}T`;
+        if (v >= 1e9)  return `$${(v/1e9).toFixed(1)}B`;
+        if (v >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
+
+    const fetchReaction = async (ticker, earningsDate) => {
+        setReactionTicker(ticker);
+        setReactionLoading(true);
+        setReactionData(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ ticker, earningsDate }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `${res.status}`);
+            setReactionData({ ...json, ticker, earningsDate });
+        } catch(e) {
+            setReactionData({ error: e.message, ticker, earningsDate });
+        } finally {
+            setReactionLoading(false);
+        }
+    };
+
+    const searchEarnings = async (sym) => {
+        if (!sym?.trim()) return;
+        setSearchLoading(true);
+        setSearchError(null);
+        setSearchResults(null);
+        setShowSearchPanel(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_search_vault/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ ticker: sym.trim().toUpperCase() }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setSearchResults(json);
+        } catch (e) {
+            setSearchError(e.message);
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const fetchBulkReaction = async () => {
+        const pastItems = earnings
+            .filter(e => !e.isUpcoming && e.earningsDate)
+            .map(e => ({ ticker: e.ticker, earningsDate: e.earningsDate }))
+            .slice(0, 40);
+        if (!pastItems.length) return;
+        setBulkLoading(true);
+        setBulkReaction(null);
+        setShowBulk(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ tickers: pastItems }),
+            });
+            const json = await res.json();
+            setBulkReaction(json.results || []);
+        } catch(e) {
+            setBulkReaction([]);
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const SENTIMENT_CONFIG = {
+        strongly_bullish: { label:'Strongly Bullish', icon:'🚀', bg:'#f0fdf4', border:'#10b981', text:'#065f46' },
+        bullish:          { label:'Bullish',           icon:'📈', bg:'#f0fdf4', border:'#34d399', text:'#065f46' },
+        in_line:          { label:'In Line',           icon:'➡️', bg:'#f8fafc', border:'#94a3b8', text:'#334155' },
+        bearish:          { label:'Bearish',           icon:'📉', bg:'#fef2f2', border:'#fca5a5', text:'#9f1239' },
+        strongly_bearish: { label:'Strongly Bearish',  icon:'🔻', bg:'#fef2f2', border:'#ef4444', text:'#7f1d1d' },
+    };
+
+    const SentimentBadge = ({ e, compact }) => {
+        if (!e.isUpcoming || !e.epsSentiment || !(e.pastActuals?.length >= 2)) return null;
+        const cfg = SENTIMENT_CONFIG[e.epsSentiment] || SENTIMENT_CONFIG.in_line;
+        return (
+            <div style={{ marginTop: compact ? '3px' : '6px' }}>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', padding:'3px 9px', borderRadius:'12px',
+                    backgroundColor:cfg.bg, border:`1px solid ${cfg.border}`, color:cfg.text, fontSize:'11px', fontWeight:'800' }}>
+                    {cfg.icon} {cfg.label}
+                    {e.epsVsTrendPct != null && (
+                        <span style={{ fontWeight:'500', opacity:0.8, marginLeft:'2px' }}>
+                            ({e.epsVsTrendPct >= 0 ? '+' : ''}{e.epsVsTrendPct}% vs trend)
+                        </span>
+                    )}
+                </div>
+                {!compact && e.epsTrendAvg != null && (
+                    <div style={{ marginTop:'4px', fontSize:'11px', color:'#64748b', lineHeight:'1.6' }}>
+                        Est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong> vs {e.pastActuals?.length}Q weighted avg <strong>${e.epsTrendAvg}</strong>
+                        {e.pastSurprises?.length > 0 && (
+                            <span style={{ marginLeft:'6px', color: (e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length) >= 0 ? '#10b981':'#ef4444' }}>
+                                . Avg beat {(e.pastSurprises.reduce((a,b)=>a+b,0)/e.pastSurprises.length).toFixed(1)}%
+                            </span>
+                        )}
+                    </div>
+                )}
+                {!compact && e.pastActuals?.length >= 2 && (() => {
+                    const allVals = [...e.pastActuals, e.epsEstimate || 0];
+                    const maxAbs  = Math.max(...allVals.map(Math.abs), 0.01);
+                    return (
+                        <div style={{ marginTop:'6px' }}>
+                            <div style={{ display:'flex', gap:'3px', alignItems:'flex-end', height:'32px' }}>
+                                {e.pastActuals.map((v, i) => (
+                                    <div key={i} title={`Q-${e.pastActuals.length - i}: $${v}`}
+                                        style={{ flex:1, minWidth:'8px', borderRadius:'3px 3px 0 0',
+                                            height:`${Math.max(15, (Math.abs(v)/maxAbs)*100)}%`,
+                                            backgroundColor: v >= 0 ? '#93c5fd' : '#fca5a5' }} />
+                                ))}
+                                <div title={`Upcoming est: $${e.epsEstimate}`}
+                                    style={{ flex:1, minWidth:'8px', borderRadius:'3px 3px 0 0',
+                                        height:`${Math.max(15, (Math.abs(e.epsEstimate||0)/maxAbs)*100)}%`,
+                                        backgroundColor:cfg.border, border:`1.5px dashed ${cfg.text}` }} />
+                            </div>
+                            <div style={{ display:'flex', gap:'3px', marginTop:'2px' }}>
+                                {e.pastActuals.map((_, i) => (
+                                    <div key={i} style={{ flex:1, fontSize:'8px', color:'#94a3b8', textAlign:'center' }}>
+                                        Q-{e.pastActuals.length - i}
+                                    </div>
+                                ))}
+                                <div style={{ flex:1, fontSize:'8px', color:cfg.text, textAlign:'center', fontWeight:'800' }}>Est</div>
+                            </div>
+                        </div>
+                    );
+                })()}
+            </div>
+        );
+    };
+
+    const fmtRev = (v) => {
+        if (!v) return '--';
+        if (Math.abs(v) >= 1e12) return `$${(v/1e12).toFixed(2)}T`;
+        if (Math.abs(v) >= 1e9)  return `$${(v/1e9).toFixed(2)}B`;
+        if (Math.abs(v) >= 1e6)  return `$${(v/1e6).toFixed(0)}M`;
+        return `$${v}`;
+    };
+
+    
+
+    const ReactionPanel = ({ data, onClose }) => {
+        if (!data) return null;
+        if (data.error) return (
+            <div style={{ padding:'16px 20px', backgroundColor:'#fef2f2', borderRadius:'10px', border:'1px solid #fecaca', color:'#b91c1c', fontSize:'13px', marginTop:'10px' }}>
+                ⚠️ {data.error}
+                <button onClick={onClose} style={{ float:'right', background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'700' }}>×</button>
+            </div>
+        );
+
+        const sp = data.sparkline || [];
+        const closes = sp.map(p => p.close).filter(Boolean);
+        const minC = Math.min(...closes);
+        const maxC = Math.max(...closes);
+        const norm = v => maxC > minC ? ((v - minC) / (maxC - minC)) : 0.5;
+        const W = 320, H = 80;
+        const pts = sp.map((p, i) => `${(i/(sp.length-1||1))*W},${H - norm(p.close)*H}`).join(' ');
+        const area = `M0,${H} L${pts.split(' ').map((p,i) => i===0 ? `${p}` : p).join(' L')} L${W},${H} Z`;
+
+        const col = v => !v ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+        const fmt = v => v == null ? '--' : `${v >= 0 ? '+' : ''}${v}%`;
+        const earnIdx = sp.findIndex(p => p.dayN === 0);
+
+        return (
+            <div style={{ backgroundColor:'#fff', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'hidden', marginTop:'10px', boxShadow:'0 4px 16px rgba(0,0,0,0.08)' }}>
+                <div style={{ padding:'12px 16px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                        <span style={{ fontSize:'14px', fontWeight:'800', color:'#fff' }}>📊 {data.ticker} -- Post-Earnings Reaction</span>
+                        <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'1px' }}>Earnings: {data.earningsDate}</div>
+                    </div>
+                    <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer', lineHeight:1 }}>×</button>
+                </div>
+
+                <div style={{ backgroundColor:'#0f172a', padding:'12px 16px 8px', position:'relative' }}>
+                    <svg width="100%" viewBox={`0 0 ${W} ${H+4}`} style={{ display:'block' }}>
+                        <defs>
+                            <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3"/>
+                                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02"/>
+                            </linearGradient>
+                        </defs>
+                        <path d={`M${area}`} fill="url(#rg)" />
+                        <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinejoin="round"/>
+                        {earnIdx >= 0 && (
+                            <line
+                                x1={(earnIdx/(sp.length-1||1))*W} y1="0"
+                                x2={(earnIdx/(sp.length-1||1))*W} y2={H}
+                                stroke="#f59e0b" strokeWidth="1" strokeDasharray="3,2" />
+                        )}
+                        {sp.filter(p => [-1,0,1,3,5,10].includes(p.dayN)).map((p, i) => {
+                            const xi = sp.indexOf(p);
+                            const x  = (xi/(sp.length-1||1))*W;
+                            const y  = H - norm(p.close)*H;
+                            return <circle key={i} cx={x} cy={y} r="3" fill="#fff" stroke="#3b82f6" strokeWidth="1.5"/>;
+                        })}
+                    </svg>
+                    <div style={{ fontSize:'9px', color:'#f59e0b', textAlign:'center', marginTop:'2px' }}>^ earnings day</div>
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'0', borderTop:'1px solid #f1f5f9' }}>
+                    {[
+                        { label:'Earn Day', val:data.pctEarnDay },
+                        { label:'D+1',      val:data.pctD1 },
+                        { label:'D+3',      val:data.pctD3 },
+                        { label:'D+5',      val:data.pctD5 },
+                        { label:'D+10',     val:data.pctD10 },
+                    ].map(({ label, val }, i) => (
+                        <div key={i} style={{ padding:'10px 6px', textAlign:'center', borderRight: i < 4 ? '1px solid #f1f5f9' : 'none' }}>
+                            <div style={{ fontSize:'10px', color:'#94a3b8', fontWeight:'600', marginBottom:'3px' }}>{label}</div>
+                            <div style={{ fontSize:'13px', fontWeight:'800', color:col(val) }}>{fmt(val)}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{ padding:'8px 16px', backgroundColor:'#f8fafc', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#64748b' }}>
+                    Pre-earnings close: <strong>${data.preClose}</strong> . All % relative to that price
+                </div>
+            </div>
+        );
+    };
+
+    const fmtDate = (d) => {
+        if (!d) return '--';
+        const dt = new Date(d + 'T12:00:00');
+        return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    };
+
+    const isPast    = (d) => d < today;
+    const isToday   = (d) => d === today;
+    const isThisMonth = (d) => d?.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
+
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const monthKey      = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const monthEarnings = earnings.filter(e => e.earningsDate?.startsWith(monthKey));
+
+    return (
+        <div style={{ fontFamily:"'Segoe UI',system-ui,sans-serif", backgroundColor:'#f8fafc', borderRadius:'16px', border:'1px solid #e2e8f0', overflow:'hidden', marginBottom:'24px' }}>
+            {/* Header */}
+            <div style={{ padding:'20px 24px', background:'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'12px' }}>
+                <div>
+                    <div style={{ fontSize:'18px', fontWeight:'800', color:'#fff' }}>📅 Earnings Calendar</div>
+                    <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>
+                        {earnings.length} upcoming reports tracked across {Object.keys(SECTOR_MAP).length} stocks
+                    </div>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px', flexWrap:'wrap' }}>
+                    <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()-1, 1))}
+                        style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>‹</button>
+                    <span style={{ fontSize:'15px', fontWeight:'700', color:'#fff', minWidth: isMobile ? '110px' : '160px', textAlign:'center' }}>{monthLabel}</span>
+                    <button onClick={() => setCurrentMonth(m => new Date(m.getFullYear(), m.getMonth()+1, 1))}
+                        style={{ width:'32px', height:'32px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>›</button>
+                    <button onClick={fetchEarnings} disabled={loading}
+                        style={{ padding:'6px 14px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', backgroundColor:'rgba(255,255,255,0.1)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
+                        {loading ? '⏳' : '↻ Refresh'}
+                    </button>
+                                        <button onClick={() => setShowMonthAI(true)} disabled={monthEarnings.length === 0}
+                        title="Ask an AI to scan this month's reporters and rank the best opportunities"
+                        style={{ padding:'6px 14px', borderRadius:'8px', border:'1px solid rgba(255,255,255,0.3)', background: monthEarnings.length === 0 ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff', fontSize:'12px', fontWeight:'700', cursor: monthEarnings.length === 0 ? 'not-allowed' : 'pointer', whiteSpace:'nowrap' }}>
+                        🤖 AI Month Scan ({monthEarnings.length})
+                    </button>
+                </div>
+            </div>
+
+            {error && (
+                <div style={{ padding:'12px 20px', backgroundColor:'#fef2f2', color:'#ef4444', fontSize:'13px', borderBottom:'1px solid #fecaca' }}>
+                    ⚠️ {error} -- <button onClick={fetchEarnings} style={{ background:'none', border:'none', color:'#ef4444', textDecoration:'underline', cursor:'pointer' }}>retry</button>
+                </div>
+            )}
+
+            {/* ── Earnings Search Bar ─────────────────────────────────────────── */}
+            <div style={{
+                padding: '12px 20px',
+                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap',
+            }}>
+                <div style={{ display: 'flex', gap: '8px', flex: 1, minWidth: '240px' }}>
+                    <input
+                        type="text"
+                        value={searchTicker}
+                        onChange={e => setSearchTicker(e.target.value.toUpperCase())}
+                        onKeyDown={e => e.key === 'Enter' && searchEarnings(searchTicker)}
+                        placeholder="Search any ticker earnings history... e.g. AAPL"
+                        style={{
+                            flex: 1, padding: '9px 14px',
+                            borderRadius: '9px',
+                            border: '2px solid #e2e8f0',
+                            fontSize: '14px', fontWeight: '600',
+                            outline: 'none', color: '#1a1a1a',
+                            backgroundColor: '#fff',
+                        }}
+                        onFocus={e  => e.target.style.borderColor = '#3b82f6'}
+                        onBlur={e   => e.target.style.borderColor = '#e2e8f0'}
+                    />
+                    <button
+                        onClick={() => searchEarnings(searchTicker)}
+                        disabled={searchLoading || !searchTicker.trim()}
+                        style={{
+                            padding: '9px 20px', borderRadius: '9px',
+                            background: searchLoading ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                            color: '#fff', border: 'none',
+                            fontWeight: '700', fontSize: '14px',
+                            cursor: searchLoading ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {searchLoading
+                            ? <><span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span> Loading...</>
+                            : '🔍 Search'}
+                    </button>
+                    {showSearchPanel && (
+                        <button
+                            onClick={() => { setShowSearchPanel(false); setSearchResults(null); setSearchError(null); }}
+                            style={{
+                                padding: '9px 14px', borderRadius: '9px',
+                                backgroundColor: '#fff', border: '1px solid #e2e8f0',
+                                color: '#666', fontWeight: '600', fontSize: '13px', cursor: 'pointer',
+                            }}
+                        >✕ Close</button>
+                    )}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    Search any stock for full earnings history — past & upcoming
+                </div>
+            </div>
+
+            {/* ── Search Results Panel ────────────────────────────────────────── */}
+            {showSearchPanel && (
+                <div style={{
+                    margin: '0',
+                    backgroundColor: '#fff',
+                    borderBottom: '2px solid #e2e8f0',
+                }}>
+                    {searchError && (
+                        <div style={{
+                            padding: '16px 20px',
+                            backgroundColor: '#fef2f2',
+                            color: '#b91c1c',
+                            fontSize: '14px',
+                            display: 'flex', gap: '10px', alignItems: 'center',
+                        }}>
+                            <span>⚠️</span> {searchError}
+                        </div>
+                    )}
+
+                    {searchLoading && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                            <div style={{ fontSize: '28px', animation: 'spin 1s linear infinite', display: 'inline-block', marginBottom: '10px' }}>⏳</div>
+                            <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                                Fetching full earnings history for {searchTicker}...
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                                Pulling up to 10 years of quarterly data
+                            </div>
+                        </div>
+                    )}
+
+                    {searchResults && !searchLoading && (() => {
+                        const r        = searchResults;
+                        const stats    = r.stats || {};
+                        const info     = r.stockInfo || {};
+                        const past     = r.past     || [];
+                        const upcoming = r.upcoming || [];
+                        const trend    = r.epsTrend || [];
+
+                        const beatColor = '#10b981';
+                        const missColor = '#ef4444';
+                        const neutColor = '#f59e0b';
+
+                        // Mini sparkline dimensions
+                        const SW = 200, SH = 48;
+                        const epsVals  = trend.map(t => t.eps).filter(v => v != null);
+                        const minEPS   = Math.min(...epsVals);
+                        const maxEPS   = Math.max(...epsVals);
+                        const rangeEPS = maxEPS - minEPS || 1;
+                        const normEPS  = v => SH - ((v - minEPS) / rangeEPS) * (SH - 4) - 2;
+                        const sparkPts = trend.map((t, i) =>
+                            `${(i / Math.max(trend.length - 1, 1)) * SW},${normEPS(t.eps)}`
+                        ).join(' ');
+
+                        return (
+                            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                                {/* ── Stock header ── */}
+                                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+                                        <div style={{ fontSize: isMobile ? '17px' : '20px', fontWeight: '800', color: '#1a1a1a', wordBreak: 'break-word' }}>
+                                            {r.ticker} — {info.name || r.ticker}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '3px' }}>
+                                            {info.sector}{info.industry ? ` · ${info.industry}` : ''}
+                                            {info.currentPrice ? ` · $${info.currentPrice?.toFixed(2)}` : ''}
+                                            {info.pe ? ` · P/E ${info.pe?.toFixed(1)}` : ''}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setPreviewTicker(r.ticker)}
+                                        style={{
+                                            padding:'10px 18px', borderRadius:'10px',
+                                            background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                            color:'#fff', border:'none',
+                                            fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'7px',
+                                            alignSelf:'flex-start', flexShrink: 0,
+                                        }}
+                                    >
+                                        😼 Sabrina's Earnings Preview
+                                    </button>
+                                    <button
+                                        onClick={() => setEarningsAIModal({ ticker: r.ticker, prompt: buildEarningsAIPrompt(r.ticker, r) })}
+                                        style={{
+                                            padding:'10px 18px', borderRadius:'10px',
+                                            background:'linear-gradient(135deg,#0891b2,#7c3aed)',
+                                            color:'#fff', border:'none', fontWeight:'700', fontSize:'13px', cursor:'pointer',
+                                            display:'flex', alignItems:'center', gap:'7px', alignSelf:'flex-start', flexShrink: 0,
+                                        }}
+                                    >
+                                        🤖 Earnings AI Analysis
+                                    </button>
+
+                                    {/* Beat rate badge */}
+                                    {stats.beatRate != null && (
+                                        <div style={{
+                                            padding: '10px 18px',
+                                            borderRadius: '12px',
+                                            backgroundColor: stats.beatRate >= 70 ? '#f0fdf4' : stats.beatRate >= 50 ? '#fffbeb' : '#fef2f2',
+                                            border: `2px solid ${stats.beatRate >= 70 ? '#10b981' : stats.beatRate >= 50 ? '#f59e0b' : '#ef4444'}`,
+                                            textAlign: 'center',
+                                            flexShrink: 0,
+                                        }}>
+                                            <div style={{
+                                                fontSize: '24px', fontWeight: '800',
+                                                color: stats.beatRate >= 70 ? beatColor : stats.beatRate >= 50 ? neutColor : missColor,
+                                            }}>
+                                                {stats.beatRate}%
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                                BEAT RATE
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                                                {stats.beatCount}B / {stats.missCount}M / {stats.totalQuarters}Q
+                                            </div>
+                                        </div>
+                                    )}
+                                    {stats.avgSurprise != null && (
+                                        <div style={{
+                                            padding: '10px 18px', borderRadius: '12px',
+                                            backgroundColor: stats.avgSurprise >= 0 ? '#f0fdf4' : '#fef2f2',
+                                            border: `2px solid ${stats.avgSurprise >= 0 ? '#10b981' : '#ef4444'}`,
+                                            textAlign: 'center', flexShrink: 0,
+                                        }}>
+                                            <div style={{
+                                                fontSize: '24px', fontWeight: '800',
+                                                color: stats.avgSurprise >= 0 ? beatColor : missColor,
+                                            }}>
+                                                {stats.avgSurprise >= 0 ? '+' : ''}{stats.avgSurprise}%
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>
+                                                AVG SURPRISE
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                                                {stats.totalQuarters} quarters
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {SnowEarningsAIStore.get(r.ticker) && (
+                                    <EarningsAIResultCard
+                                        analysis={SnowEarningsAIStore.get(r.ticker)}
+                                        onReask={() => setEarningsAIModal({ ticker: r.ticker, prompt: buildEarningsAIPrompt(r.ticker, r) })}
+                                        onRemove={() => SnowEarningsAIStore.remove(r.ticker)}
+                                    />
+                                )}
+
+                                {/* ── EPS trend sparkline ── */}
+                                {trend.length >= 3 && (
+                                    <div style={{
+                                        padding: '14px 16px',
+                                        backgroundColor: '#0f172a',
+                                        borderRadius: '12px',
+                                        border: '1px solid #1e3a5f',
+                                    }}>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700',
+                                            color: '#64748b', letterSpacing: '0.07em',
+                                            marginBottom: '10px',
+                                        }}>
+                                            EPS TREND — LAST {trend.length} QUARTERS
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <svg width="100%" viewBox={`0 0 ${SW} ${SH}`} style={{ flex: 1, maxHeight: `${SH}px` }}>
+                                                <defs>
+                                                    <linearGradient id={`epsg_${r.ticker}`} x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25"/>
+                                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.02"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                {/* Fill area */}
+                                                {trend.length > 1 && (
+                                                    <path
+                                                        d={`M0,${SH} ${trend.map((t, i) =>
+                                                            `L${(i / (trend.length - 1)) * SW},${normEPS(t.eps)}`
+                                                        ).join(' ')} L${SW},${SH} Z`}
+                                                        fill={`url(#epsg_${r.ticker})`}
+                                                    />
+                                                )}
+                                                {/* Line */}
+                                                <polyline
+                                                    points={sparkPts}
+                                                    fill="none"
+                                                    stroke="#3b82f6"
+                                                    strokeWidth="1.5"
+                                                    strokeLinejoin="round"
+                                                />
+                                                {/* Beat/miss dots */}
+                                                {trend.map((t, i) => {
+                                                    const x = (i / Math.max(trend.length - 1, 1)) * SW;
+                                                    const y = normEPS(t.eps);
+                                                    return (
+                                                        <circle
+                                                            key={i}
+                                                            cx={x} cy={y} r="3"
+                                                            fill={t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#f59e0b'}
+                                                            stroke="#0f172a"
+                                                            strokeWidth="1"
+                                                        />
+                                                    );
+                                                })}
+                                            </svg>
+                                            {/* Quarter labels below */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+                                                {trend.slice(-3).reverse().map((t, i) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{
+                                                            width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+                                                            backgroundColor: t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#f59e0b',
+                                                        }}/>
+                                                        <span style={{ fontSize: '11px', color: '#64748b' }}>{t.date}</span>
+                                                        <span style={{
+                                                            fontSize: '11px', fontWeight: '700',
+                                                            color: t.beat === true ? '#10b981' : t.beat === false ? '#ef4444' : '#94a3b8',
+                                                        }}>${t.eps}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Upcoming earnings ── */}
+                                {upcoming.length > 0 && (
+                                    <div>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700', color: '#3b82f6',
+                                            letterSpacing: '0.08em', marginBottom: '8px',
+                                        }}>
+                                            📅 UPCOMING ({upcoming.length})
+                                        </div>
+                                        {upcoming.map((q, i) => (
+                                            <div key={i} style={{
+                                                padding: '10px 14px', borderRadius: '10px',
+                                                backgroundColor: '#eff6ff',
+                                                border: '1px solid #bfdbfe',
+                                                marginBottom: '6px',
+                                                display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap',
+                                            }}>
+                                                <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af', minWidth: '90px' }}>
+                                                    {q.date}
+                                                </span>
+                                                {q.epsEstimate != null && (
+                                                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                                                        EPS est <strong>${q.epsEstimate}</strong>
+                                                    </span>
+                                                )}
+                                                {q.revenueFmt && (
+                                                    <span style={{ fontSize: '12px', color: '#3b82f6' }}>
+                                                        Rev est <strong>{q.revenueFmt}</strong>
+                                                    </span>
+                                                )}
+                                                <span style={{
+                                                    marginLeft: 'auto', fontSize: '11px', fontWeight: '700',
+                                                    backgroundColor: '#dbeafe', color: '#1d4ed8',
+                                                    padding: '2px 8px', borderRadius: '10px',
+                                                }}>Upcoming</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* ── Past earnings table ── */}
+                                {past.length > 0 && (
+                                    <div>
+                                        <div style={{
+                                            fontSize: '11px', fontWeight: '700', color: '#64748b',
+                                            letterSpacing: '0.08em', marginBottom: '8px',
+                                        }}>
+                                            📊 PAST EARNINGS ({past.length} quarters)
+                                        </div>
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                                <thead>
+                                                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                                                        {['Date', 'EPS Actual', 'EPS Est', 'Surprise', 'Revenue', 'Result'].map(h => (
+                                                            <th key={h} style={{
+                                                                padding: '8px 12px', textAlign: 'left',
+                                                                fontWeight: '700', color: '#64748b',
+                                                                borderBottom: '2px solid #e2e8f0',
+                                                                whiteSpace: 'nowrap',
+                                                            }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {past.map((q, i) => (
+                                                        <tr key={i}
+                                                            style={{ borderBottom: '1px solid #f1f5f9' }}
+                                                            onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                            onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
+                                                        >
+                                                            <td style={{ padding: '9px 12px', fontWeight: '600', color: '#475569', whiteSpace: 'nowrap' }}>
+                                                                {q.date}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', fontWeight: '800',
+                                                                color: q.beat === true ? beatColor : q.beat === false ? missColor : '#94a3b8' }}>
+                                                                {q.epsActual != null ? `$${q.epsActual}` : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', color: '#64748b' }}>
+                                                                {q.epsEstimate != null ? `$${q.epsEstimate}` : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px' }}>
+                                                                {q.surprisePct != null ? (
+                                                                    <span style={{
+                                                                        padding: '2px 8px', borderRadius: '10px', fontWeight: '700',
+                                                                        fontSize: '12px',
+                                                                        backgroundColor: q.surprisePct >= 0 ? '#f0fdf4' : '#fef2f2',
+                                                                        color: q.surprisePct >= 0 ? beatColor : missColor,
+                                                                        border: `1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}`,
+                                                                    }}>
+                                                                        {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
+                                                                    </span>
+                                                                ) : '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px', color: '#475569' }}>
+                                                                {q.revenueFmt || '—'}
+                                                            </td>
+                                                            <td style={{ padding: '9px 12px' }}>
+                                                                {q.beat === true  && <span style={{ fontSize: '12px', fontWeight: '800', color: beatColor }}>✓ Beat</span>}
+                                                                {q.beat === false && <span style={{ fontSize: '12px', fontWeight: '800', color: missColor }}>✗ Miss</span>}
+                                                                {q.beat === null  && <span style={{ fontSize: '12px', color: '#94a3b8' }}>—</span>}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {past.length === 0 && upcoming.length === 0 && (
+                                    <div style={{
+                                        padding: '40px', textAlign: 'center',
+                                        backgroundColor: '#f8fafc', borderRadius: '12px',
+                                        border: '2px dashed #e2e8f0',
+                                    }}>
+                                        <div style={{ fontSize: '32px', marginBottom: '10px' }}>📭</div>
+                                        <div style={{ color: '#64748b', fontSize: '14px' }}>
+                                            No earnings data found for {r.ticker}.
+                                            This may be an ETF, index, or newly listed stock.
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Open in screener CTA */}
+                                <button
+                                    onClick={() => { if (onSelectTicker) onSelectTicker(r.ticker); }}
+                                    style={{
+                                        padding: '12px', borderRadius: '10px',
+                                        background: 'linear-gradient(135deg,#1e3a5f,#2563eb)',
+                                        color: '#fff', border: 'none',
+                                        fontWeight: '700', fontSize: '14px',
+                                        cursor: 'pointer', width: '100%',
+                                        display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', gap: '8px',
+                                    }}
+                                >
+                                    → Open {r.ticker} in Full Stock Screener
+                                </button>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {loading && !earnings.length && (
+                <div style={{ padding:'60px', textAlign:'center', color:'#64748b' }}>
+                    <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'12px' }}>⏳</div>
+                    <div style={{ fontSize:'14px' }}>Fetching earnings dates for {ALL_CALENDAR_TICKERS.length} stocks...</div>
+                    <div style={{ fontSize:'12px', color:'#94a3b8', marginTop:'4px' }}>This takes ~15-30s the first time</div>
+                </div>
+            )}
+
+            {(!loading || earnings.length > 0) && (
+                <div style={{ padding:'0' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid #e2e8f0' }}>
+                        {DAYS.map(d => (
+                            <div key={d} style={{ padding:'10px 0', textAlign:'center', fontSize:'11px', fontWeight:'700', color:'#64748b', letterSpacing:'0.07em', backgroundColor:'#f8fafc' }}>{d}</div>
+                        ))}
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+                        {cells.map((day, idx) => {
+                            if (!day) return <div key={`empty-${idx}`} style={{ minHeight: isMobile ? '64px' : '90px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9', backgroundColor:'#fafbfc' }} />;
+                            const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                            const top = top5(dateStr);
+                            const total = (byDate[dateStr]||[]).length;
+                            const isWknd = idx % 7 === 0 || idx % 7 === 6;
+                            const past = isPast(dateStr);
+                            const todayCell = isToday(dateStr);
+                            return (
+                                <div key={dateStr}
+                                    onClick={() => top.length > 0 && openDay(dateStr)}
+                                    style={{
+                                        minHeight: isMobile ? '64px' : '90px', padding:'6px', borderRight:'1px solid #f1f5f9', borderBottom:'1px solid #f1f5f9',
+                                        backgroundColor: todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff',
+                                        cursor: top.length > 0 ? 'pointer' : 'default',
+                                        position:'relative',
+                                        outline: todayCell ? '2px solid #3b82f6' : 'none',
+                                        outlineOffset:'-1px',
+                                        opacity: past && !todayCell ? 0.6 : 1,
+                                        transition:'background 0.1s',
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (top.length > 0) {
+                                            e.currentTarget.style.backgroundColor = todayCell ? '#dbeafe' : '#f0f9ff';
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            setHoveredCell({ dateStr, rect });
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        e.currentTarget.style.backgroundColor = todayCell ? '#eff6ff' : isWknd ? '#fafafa' : '#fff';
+                                        setHoveredCell(null);
+                                    }}
+                                >
+                                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'4px' }}>
+                                        <span style={{ fontSize:'12px', fontWeight: todayCell ? '800' : '500', color: todayCell ? '#2563eb' : isWknd ? '#94a3b8' : '#374151' }}>
+                                            {day}
+                                        </span>
+                                        {total > (isMobile ? 2 : 5) && (
+                                            <span style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', backgroundColor:'#e2e8f0', borderRadius:'10px', padding:'1px 5px' }}>
+                                                +{total - (isMobile ? 2 : 5)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ display:'flex', flexDirection:'column', gap:'2px' }}>
+                                        {top.map(e => {
+                                            const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                            return (
+                                                <div key={e.ticker} style={{ fontSize:'10px', fontWeight:'700', padding:'1px 5px', borderRadius:'4px', backgroundColor:sc.bg, border:`1px solid ${sc.border}40`, color:sc.text, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%' }}>
+                                                    {e.ticker}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {!isMobile && hoveredCell && (() => {
+                        const dayData = (byDate[hoveredCell.dateStr] || [])
+                            .sort((a, b) => (b.marketCap||0) - (a.marketCap||0));
+                        if (!dayData.length) return null;
+                        const today2 = new Date().toISOString().slice(0, 10);
+                        const isPastDay = hoveredCell.dateStr < today2;
+                        return (
+                            <div style={{
+                                position:'fixed',
+                                top: Math.min(hoveredCell.rect.bottom + 6, window.innerHeight - 320),
+                                left: Math.min(hoveredCell.rect.left, window.innerWidth - 320),
+                                width:'300px', zIndex:9800,
+                                backgroundColor:'#fff', borderRadius:'12px',
+                                boxShadow:'0 8px 40px rgba(0,0,0,0.18)',
+                                border:'1px solid #e2e8f0', overflow:'hidden',
+                                pointerEvents:'none',
+                            }}>
+                                <div style={{ padding:'10px 14px', backgroundColor:'#1e3a5f', color:'#fff' }}>
+                                    <div style={{ fontSize:'12px', fontWeight:'800' }}>{fmtDate(hoveredCell.dateStr)}</div>
+                                    <div style={{ fontSize:'11px', opacity:0.7, marginTop:'2px' }}>{dayData.length} companies reporting</div>
+                                </div>
+                                <div style={{ maxHeight:'260px', overflowY:'auto' }}>
+                                    {dayData.slice(0, 8).map(e => {
+                                        const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        const beat = e.beat;
+                                        const hasPastData = !e.isUpcoming && (e.epsActual != null || e.revenueActual != null);
+                                        return (
+                                            <div key={e.ticker} style={{ padding:'8px 14px', borderBottom:'1px solid #f1f5f9' }}>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'6px', marginBottom: hasPastData ? '5px' : 0 }}>
+                                                    <span style={{ fontSize:'13px', fontWeight:'800', color:'#1a1a1a' }}>{e.ticker}</span>
+                                                    <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'10px', backgroundColor:sc.bg, color:sc.text, fontWeight:'700', border:`1px solid ${sc.border}40` }}>{SECTOR_MAP[e.ticker]}</span>
+                                                    {!e.isUpcoming && beat != null && (
+                                                        <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px',
+                                                            backgroundColor: beat ? '#f0fdf4' : '#fef2f2',
+                                                            color: beat ? '#10b981' : '#ef4444',
+                                                            border: `1px solid ${beat ? '#bbf7d0' : '#fecaca'}` }}>
+                                                            {beat ? '✓ Beat' : '✗ Miss'}
+                                                        </span>
+                                                    )}
+                                                    {e.isUpcoming && (
+                                                        <span style={{ marginLeft:'auto', fontSize:'10px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', backgroundColor:'#eff6ff', color:'#3b82f6', border:'1px solid #bfdbfe' }}>Upcoming</span>
+                                                    )}
+                                                </div>
+                                                {hasPastData && (
+                                                    <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' }}>
+                                                        {e.epsActual != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>
+                                                                EPS <strong style={{ color: beat ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                                {e.epsEstimate != null && <span style={{ color:'#94a3b8' }}> vs est ${e.epsEstimate}</span>}
+                                                                {e.surprisePct != null && (
+                                                                    <span style={{ fontWeight:'700', color: e.surprisePct >= 0 ? '#10b981' : '#ef4444', marginLeft:'3px' }}>
+                                                                        ({e.surprisePct >= 0 ? '+' : ''}{e.surprisePct}%)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {e.revenueActual != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>
+                                                                Rev <strong style={{ color:'#1e40af' }}>{fmtRev(e.revenueActual)}</strong>
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> vs est {fmtRev(e.revenueEstimate)}</span>}
+                                                            </div>
+                                                        )}
+                                                        {e.epsEstimate != null && e.epsActual == null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569' }}>EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
+                                                        )}
+
+                                                        {!e.isUpcoming && e.historicalQuarters?.length > 0 && (
+                                                            <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                                                                <div style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                                                                    RECENT QUARTERS
+                                                                </div>
+                                                                {e.historicalQuarters.slice(0, 3).map((q, qi) => (
+                                                                    <div key={qi} style={{ fontSize: '10px', color: '#475569', marginBottom: '2px', display: 'flex', gap: '6px' }}>
+                                                                        <span style={{ color: '#94a3b8', minWidth: '70px' }}>{q.date?.slice(0, 7)}</span>
+                                                                        {q.epsActual != null && (
+                                                                            <span>EPS <strong style={{ color: q.beat ? '#10b981' : '#ef4444' }}>${q.epsActual}</strong></span>
+                                                                        )}
+                                                                        {q.surprisePct != null && (
+                                                                            <span style={{ color: q.surprisePct >= 0 ? '#10b981' : '#ef4444', fontWeight: '700' }}>
+                                                                                ({q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                    </div>
+                                                )}
+                                                {e.isUpcoming && (
+                                                    <div style={{ marginTop:'4px' }}>
+                                                        {e.epsEstimate != null && (
+                                                            <div style={{ fontSize:'11px', color:'#475569', marginBottom:'3px' }}>
+                                                                EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong>
+                                                                {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> . Rev est {fmtRev(e.revenueEstimate)}</span>}
+                                                            </div>
+                                                        )}
+                                                        <SentimentBadge e={e} compact={false} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    <div style={{ padding:'12px 20px', borderTop:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'6px', backgroundColor:'#f8fafc' }}>
+                        {Object.entries(SECTOR_COLORS).map(([sector, c]) => (
+                            <div key={sector} style={{ display:'flex', alignItems:'center', gap:'4px', padding:'2px 8px', borderRadius:'12px', backgroundColor:c.bg, border:`1px solid ${c.border}40`, fontSize:'10px', fontWeight:'700', color:c.text }}>
+                                <div style={{ width:'6px', height:'6px', borderRadius:'50%', backgroundColor:c.border }} />
+                                {sector}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Day detail modal */}
+            {showModal && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9600, display:'flex', alignItems:'center', justifyContent:'center', padding:'16px' }}
+                    onClick={e => { if (e.target===e.currentTarget) setShowModal(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'16px', width:'100%', maxWidth:'740px', maxHeight:'90vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.3)', overflow:'hidden' }}>
+                        {/* Modal header */}
+                        <div style={{ padding:'18px 24px', background:'linear-gradient(135deg,#1e3a5f,#2563eb)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#fff' }}>📅 {fmtDate(selectedDay)}</div>
+                                <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>{modalEarnings.length} companies reporting</div>
+                            </div>
+                            <button onClick={() => setShowModal(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'24px', cursor:'pointer', lineHeight:1 }}>×</button>
+                        </div>
+
+                        {/* Controls */}
+                        <div style={{ padding:'12px 20px', borderBottom:'1px solid #e2e8f0', display:'flex', flexWrap:'wrap', gap:'8px', alignItems:'center', flexShrink:0 }}>
+                            <input type="text" placeholder="Search ticker or name..."
+                                value={search} onChange={e => setSearch(e.target.value)}
+                                style={{ flex:1, minWidth:'160px', padding:'7px 12px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', outline:'none' }} />
+                            <select value={sectorFilter} onChange={e => setSectorFilter(e.target.value)}
+                                style={{ padding:'7px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', color:'#333', outline:'none' }}>
+                                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                                style={{ padding:'7px 10px', borderRadius:'8px', border:'1px solid #e0e0e0', fontSize:'13px', color:'#333', outline:'none' }}>
+                                <option value="marketcap">Sort: Market Cap</option>
+                                <option value="sector">Sort: Sector</option>
+                                <option value="date">Sort: Date</option>
+                            </select>
+                        </div>
+
+                        {/* Results */}
+                        <div style={{ overflowY:'auto', flex:1, padding:'8px 12px' }}>
+                            {filtered.length === 0 ? (
+                                <div style={{ padding:'40px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No results match your filters</div>
+                            ) : (
+                                <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
+                                    {filtered.map(e => {
+                                        const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        const past = e.earningsDate < today;
+                                        return (
+                                            <div key={e.ticker}
+                                                onClick={() => setSelectedEarningsStock(e)}
+                                                style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px 14px', borderRadius:'10px', backgroundColor:'#f8fafc', border:'1px solid #e2e8f0', cursor:'pointer', transition:'all 0.1s' }}
+                                                onMouseEnter={e2 => { e2.currentTarget.style.backgroundColor='#eff6ff'; e2.currentTarget.style.borderColor='#bfdbfe'; }}
+                                                onMouseLeave={e2 => { e2.currentTarget.style.backgroundColor='#f8fafc'; e2.currentTarget.style.borderColor='#e2e8f0'; }}
+                                            >
+                                                <div style={{ minWidth:'55px' }}>
+                                                    <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>{e.ticker}</div>
+                                                    <div style={{ fontSize:'10px', color:'#64748b', marginTop:'1px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'120px' }}>{e.name}</div>
+                                                </div>
+                                                <div style={{ padding:'3px 8px', borderRadius:'12px', fontSize:'10px', fontWeight:'700', backgroundColor:sc.bg, border:`1px solid ${sc.border}40`, color:sc.text, whiteSpace:'nowrap', flexShrink:0 }}>
+                                                    {SECTOR_MAP[e.ticker] || '--'}
+                                                </div>
+                                                <div style={{ fontSize:'12px', color:'#475569', fontWeight:'600', minWidth:'60px', textAlign:'right' }}>{fmtCap(e.marketCap)}</div>
+                                                <div style={{ marginLeft:'auto', textAlign:'right', flexShrink:0 }}>
+                                                    {e.epsActual != null && e.beat != null && (
+                                                        <div style={{ fontSize:'11px', fontWeight:'800', padding:'1px 7px', borderRadius:'10px', marginBottom:'2px',
+                                                            backgroundColor: e.beat ? '#f0fdf4' : '#fef2f2',
+                                                            color: e.beat ? '#10b981' : '#ef4444',
+                                                            border:`1px solid ${e.beat ? '#bbf7d0':'#fecaca'}` }}>
+                                                            {e.beat ? '✓ Beat' : '✗ Missed'}
+                                                        </div>
+                                                    )}
+                                                    {e.epsEstimate != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>EPS est <strong style={{ color:'#1e40af' }}>${e.epsEstimate}</strong></div>
+                                                    )}
+                                                    {e.epsActual != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>
+                                                            Act. <strong style={{ color: e.beat ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                            {e.surprisePct != null && <span style={{ marginLeft:'4px', fontSize:'10px', color: e.surprisePct>=0?'#10b981':'#ef4444', fontWeight:'700' }}>({e.surprisePct>=0?'+':''}{e.surprisePct}%)</span>}
+                                                        </div>
+                                                    )}
+                                                    {e.revenueActual != null && (
+                                                        <div style={{ fontSize:'11px', color:'#64748b' }}>Rev <strong style={{ color:'#1e40af' }}>{fmtRev(e.revenueActual)}</strong>
+                                                            {e.revenueEstimate != null && <span style={{ color:'#94a3b8' }}> vs {fmtRev(e.revenueEstimate)}</span>}
+                                                        </div>
+                                                    )}
+                                                    {/* ADD: Historical quarters mini-chart for past earnings */}
+                                                    {!e.isUpcoming && e.historicalQuarters?.length >= 2 && (() => {
+                                                        const recent = e.historicalQuarters.slice(0, 4).reverse();
+                                                        const maxAbs = Math.max(...recent.map(q => Math.abs(q.epsActual || 0)), 0.01);
+                                                        return (
+                                                            <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '24px', marginTop: '4px' }}>
+                                                                {recent.map((q, i) => (
+                                                                    <div key={i}
+                                                                        title={`${q.date?.slice(0,7)}: $${q.epsActual} (${q.surprisePct >= 0 ? '+' : ''}${q.surprisePct}%)`}
+                                                                        style={{
+                                                                            width: '10px',
+                                                                            height: `${Math.max(20, (Math.abs(q.epsActual || 0) / maxAbs) * 100)}%`,
+                                                                            backgroundColor: q.beat ? '#10b981' : '#ef4444',
+                                                                            borderRadius: '2px 2px 0 0',
+                                                                            opacity: 0.7 + (i / recent.length) * 0.3,
+                                                                        }}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                </div>
+                                                <div style={{ flexShrink:0 }}>
+                                                    {past
+                                                        ? <span style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', backgroundColor:'#f1f5f9', padding:'2px 6px', borderRadius:'6px' }}>Reported</span>
+                                                        : <span style={{ fontSize:'10px', fontWeight:'700', color:'#2563eb', backgroundColor:'#eff6ff', padding:'2px 6px', borderRadius:'6px' }}>Upcoming</span>
+                                                    }
+                                                </div>
+                                                <div style={{ display:'flex', alignItems:'center', gap:'6px', flexShrink:0 }}>
+                                                    {e.isUpcoming && (
+                                                        <button
+                                                            onClick={ev => { ev.stopPropagation(); setPreviewTicker(e.ticker); }}
+                                                            style={{
+                                                                padding:'3px 8px', borderRadius:'6px', fontSize:'11px',
+                                                                fontWeight:'700', border:'none',
+                                                                background:'linear-gradient(135deg,#7c3aed,#db2777)',
+                                                                color:'#fff', cursor:'pointer',
+                                                            }}
+                                                        >😼</button>
+                                                    )}
+                                                    <div style={{ fontSize:'11px', color:'#2563eb' }}>→</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {selectedEarningsStock && (() => {
+                                        const e = selectedEarningsStock;
+                                        const sc = SECTOR_COLORS[SECTOR_MAP[e.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                        
+                                        // Consistency score: % of past quarters that beat
+                                        const hq = e.historicalQuarters || [];
+                                        const beatCount = hq.filter(q => q.beat === true).length;
+                                        const consistency = hq.length > 0 ? Math.round((beatCount / hq.length) * 100) : null;
+                                        const avgSurprise = hq.length > 0 
+                                            ? (hq.reduce((a, q) => a + (q.surprisePct || 0), 0) / hq.length).toFixed(1)
+                                            : null;
+                                        
+                                        // Simple recommendation logic
+                                        let rec = 'NEUTRAL', recColor = '#f59e0b', recIcon = '➡️';
+                                        if (e.isUpcoming) {
+                                            if (consistency >= 70 && parseFloat(avgSurprise) >= 3) {
+                                                rec = 'POSITIVE SETUP'; recColor = '#10b981'; recIcon = '📈';
+                                            } else if (consistency <= 40 || parseFloat(avgSurprise) < -2) {
+                                                rec = 'CAUTIOUS'; recColor = '#ef4444'; recIcon = '⚠️';
+                                            }
+                                        } else {
+                                            if (e.beat && e.surprisePct >= 5) {
+                                                rec = 'BEAT — STRONG'; recColor = '#10b981'; recIcon = '🚀';
+                                            } else if (e.beat) {
+                                                rec = 'BEAT'; recColor = '#10b981'; recIcon = '📈';
+                                            } else if (e.beat === false && e.surprisePct <= -5) {
+                                                rec = 'MISS — WEAK'; recColor = '#ef4444'; recIcon = '🔻';
+                                            } else if (e.beat === false) {
+                                                rec = 'MISS'; recColor = '#ef4444'; recIcon = '📉';
+                                            }
+                                        }
+
+                                        return (
+                                            <div style={{
+                                                position: 'absolute', right: 0, top: 0, bottom: 0,
+                                                width: 'min(300px, 88vw)', backgroundColor: '#fff',
+                                                borderLeft: '1px solid #e2e8f0',
+                                                display: 'flex', flexDirection: 'column',
+                                                overflow: 'hidden', zIndex: 10,
+                                            }}>
+                                                {/* Header */}
+                                                <div style={{ padding: '14px 16px', background: 'linear-gradient(135deg, #1e3a5f, #2563eb)', flexShrink: 0 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>{e.ticker}</div>
+                                                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>{e.name}</div>
+                                                        </div>
+                                                        <button onClick={() => setSelectedEarningsStock(null)}
+                                                            style={{ background: 'none', border: 'none', color: '#fff', fontSize: '18px', cursor: 'pointer' }}>×</button>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '6px', marginTop: '10px', flexWrap: 'wrap' }}>
+                                                        <span style={{ padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
+                                                            backgroundColor: sc.bg, color: sc.text, border: `1px solid ${sc.border}40` }}>
+                                                            {SECTOR_MAP[e.ticker]}
+                                                        </span>
+                                                        <span style={{ padding: '3px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '700',
+                                                            backgroundColor: recColor + '22', color: recColor, border: `1px solid ${recColor}40` }}>
+                                                            {recIcon} {rec}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                                    
+                                                    {/* Current earnings */}
+                                                    <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px' }}>
+                                                        <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.07em', marginBottom: '8px' }}>
+                                                            {e.isUpcoming ? 'UPCOMING REPORT' : 'LATEST REPORT'} — {e.earningsDate}
+                                                        </div>
+                                                        {e.epsEstimate != null && (
+                                                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '4px' }}>
+                                                                EPS Est: <strong style={{ color: '#1e40af' }}>${e.epsEstimate}</strong>
+                                                            </div>
+                                                        )}
+                                                        {e.epsActual != null && (
+                                                            <div style={{ fontSize: '12px', color: '#475569', marginBottom: '4px' }}>
+                                                                EPS Actual: <strong style={{ color: e.beat ? '#10b981' : '#ef4444' }}>${e.epsActual}</strong>
+                                                                {e.surprisePct != null && (
+                                                                    <span style={{ marginLeft: '6px', fontWeight: '700', color: e.surprisePct >= 0 ? '#10b981' : '#ef4444' }}>
+                                                                        ({e.surprisePct >= 0 ? '+' : ''}{e.surprisePct}%)
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {e.revenueActual != null && (
+                                                            <div style={{ fontSize: '12px', color: '#475569' }}>
+                                                                Revenue: <strong style={{ color: '#1e40af' }}>{fmtRev(e.revenueActual)}</strong>
+                                                                {e.revenueBeat != null && (
+                                                                    <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700',
+                                                                        color: e.revenueBeat ? '#10b981' : '#ef4444' }}>
+                                                                        {e.revenueBeat ? '✓ Beat' : '✗ Miss'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {e.isUpcoming && e.epsSentiment && (
+                                                            <div style={{ marginTop: '8px' }}>
+                                                                {/* Reuse existing SentimentBadge component */}
+                                                                <SentimentBadge e={e} compact={false} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Consistency score */}
+                                                    {hq.length >= 2 && (
+                                                        <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px' }}>
+                                                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.07em', marginBottom: '8px' }}>
+                                                                BEAT CONSISTENCY ({hq.length} quarters)
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                                                <div style={{ fontSize: '24px', fontWeight: '800',
+                                                                    color: consistency >= 70 ? '#10b981' : consistency >= 50 ? '#f59e0b' : '#ef4444' }}>
+                                                                    {consistency}%
+                                                                </div>
+                                                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                                                    {beatCount}/{hq.length} beats<br/>
+                                                                    {avgSurprise && <span>Avg surprise: <strong style={{ color: parseFloat(avgSurprise) >= 0 ? '#10b981' : '#ef4444' }}>{parseFloat(avgSurprise) >= 0 ? '+' : ''}{avgSurprise}%</strong></span>}
+                                                                </div>
+                                                            </div>
+                                                            {/* Consistency bar */}
+                                                            <div style={{ height: '5px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                                                <div style={{ height: '100%', width: `${consistency}%`,
+                                                                    backgroundColor: consistency >= 70 ? '#10b981' : consistency >= 50 ? '#f59e0b' : '#ef4444',
+                                                                    borderRadius: '3px', transition: 'width 0.6s ease' }} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Historical quarters table */}
+                                                    {hq.length > 0 && (
+                                                        <div>
+                                                            <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.07em', marginBottom: '8px' }}>
+                                                                EARNINGS HISTORY
+                                                            </div>
+                                                            {hq.map((q, i) => (
+                                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between',
+                                                                    alignItems: 'center', padding: '6px 0',
+                                                                    borderBottom: i < hq.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                                                    <span style={{ fontSize: '11px', color: '#64748b', minWidth: '65px' }}>
+                                                                        {q.date?.slice(0, 7)}
+                                                                    </span>
+                                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                        {q.epsActual != null && (
+                                                                            <span style={{ fontSize: '12px', fontWeight: '700',
+                                                                                color: q.beat ? '#10b981' : '#ef4444' }}>
+                                                                                ${q.epsActual}
+                                                                            </span>
+                                                                        )}
+                                                                        {q.surprisePct != null && (
+                                                                            <span style={{ fontSize: '10px', fontWeight: '700', padding: '1px 5px',
+                                                                                borderRadius: '8px',
+                                                                                backgroundColor: q.surprisePct >= 0 ? '#f0fdf4' : '#fef2f2',
+                                                                                color: q.surprisePct >= 0 ? '#10b981' : '#ef4444',
+                                                                                border: `1px solid ${q.surprisePct >= 0 ? '#bbf7d0' : '#fecaca'}` }}>
+                                                                                {q.surprisePct >= 0 ? '+' : ''}{q.surprisePct}%
+                                                                            </span>
+                                                                        )}
+                                                                        {q.beat != null && (
+                                                                            <span style={{ fontSize: '10px' }}>{q.beat ? '✓' : '✗'}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Post-earnings reaction (fetch on demand) */}
+                                                    {!e.isUpcoming && (
+                                                        <div>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    setReactionLoading2(true);
+                                                                    setStockReaction(null);
+                                                                    const res = await fetch(`${BACKEND}/api/snowai_earnings_reaction_vault/`, {
+                                                                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ ticker: e.ticker, earningsDate: e.earningsDate }),
+                                                                    });
+                                                                    const json = await res.json();
+                                                                    setStockReaction(json);
+                                                                    setReactionLoading2(false);
+                                                                }}
+                                                                style={{ width: '100%', padding: '9px', borderRadius: '9px',
+                                                                    backgroundColor: '#0f172a', color: '#60a5fa', border: '1px solid #1e3a5f',
+                                                                    fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}>
+                                                                📊 Load Price Reaction
+                                                            </button>
+                                                            {reactionLoading2 && (
+                                                                <div style={{ textAlign: 'center', padding: '12px', color: '#60a5fa', fontSize: '12px' }}>
+                                                                    <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span> Fetching...
+                                                                </div>
+                                                            )}
+                                                            {stockReaction && !reactionLoading2 && (
+                                                                <ReactionPanel data={stockReaction} onClose={() => setStockReaction(null)} />
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Footer CTA */}
+                                                <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', flexShrink: 0 }}>
+                                                    <button
+                                                        onClick={() => { setShowModal(false); if (onSelectTicker) onSelectTicker(e.ticker); }}
+                                                        style={{ width: '100%', padding: '10px', borderRadius: '9px',
+                                                            background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
+                                                            color: '#fff', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
+                                                        → Open Full Screener for {e.ticker}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Reaction panel */}
+                        {(reactionLoading || reactionData) && (
+                            <div style={{ padding:'0 20px 16px' }}>
+                                {reactionLoading && (
+                                    <div style={{ padding:'20px', textAlign:'center', color:'#2563eb', backgroundColor:'#eff6ff', borderRadius:'12px', marginTop:'10px', fontSize:'13px' }}>
+                                        <div style={{ fontSize:'22px', animation:'spin 0.8s linear infinite', display:'inline-block', marginBottom:'6px' }}>⏳</div>
+                                        <div>Fetching post-earnings reaction for <strong>{reactionTicker}</strong>...</div>
+                                        <div style={{ fontSize:'11px', color:'#64748b', marginTop:'3px' }}>Pulling ~2 weeks of price data around the earnings date</div>
+                                    </div>
+                                )}
+                                {!reactionLoading && reactionData && (
+                                    <ReactionPanel data={reactionData} onClose={() => setReactionData(null)} />
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk reaction results */}
+            {showBulk && (
+                <div style={{ margin:'0 0 20px', backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e2e8f0', overflow:'hidden' }}>
+                    <div style={{ padding:'14px 20px', background:'linear-gradient(135deg,#4c1d95,#7c3aed)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>⚡ Bulk Earnings Reaction</div>
+                            <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.7)', marginTop:'2px' }}>Sorted by biggest D+1 move -- all % from pre-earnings close</div>
+                        </div>
+                        <button onClick={() => setShowBulk(false)} style={{ background:'none', border:'none', color:'#fff', fontSize:'20px', cursor:'pointer' }}>×</button>
+                    </div>
+                    {bulkLoading && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'13px' }}>
+                            <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
+                            <div>Fetching post-earnings data for multiple stocks...</div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>~15-20s</div>
+                        </div>
+                    )}
+                    {!bulkLoading && bulkReaction?.length > 0 && (
+                        <>
+                            <div style={{ overflowX:'auto' }}>
+                                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor:'#f8fafc' }}>
+                                            {['Ticker','Sector','Earnings Date','Earn Day','D+1','D+3','D+5','D+10'].map(h => (
+                                                <th key={h} style={{ padding:'9px 12px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'1px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bulkReaction.map((r, i) => {
+                                            const col = v => v == null ? '#94a3b8' : v > 0 ? '#10b981' : '#ef4444';
+                                            const bg  = v => v == null ? 'transparent' : v > 2 ? 'rgba(16,185,129,0.07)' : v < -2 ? 'rgba(239,68,68,0.07)' : 'transparent';
+                                            const fmt = v => v == null ? '--' : `${v >= 0 ? '+' : ''}${v}%`;
+                                            const sc  = SECTOR_COLORS[SECTOR_MAP[r.ticker]] || { bg:'#f1f5f9', border:'#94a3b8', text:'#334155' };
+                                            return (
+                                                <tr key={i} style={{ borderBottom:'1px solid #f8fafc' }}
+                                                    onMouseEnter={e2=>e2.currentTarget.style.backgroundColor='#f8fafc'}
+                                                    onMouseLeave={e2=>e2.currentTarget.style.backgroundColor=''}>
+                                                    <td style={{ padding:'9px 12px', fontWeight:'800', color:'#1a1a1a' }}>{r.ticker}</td>
+                                                    <td style={{ padding:'9px 12px' }}>
+                                                        <span style={{ fontSize:'10px', padding:'1px 6px', borderRadius:'8px', backgroundColor:sc.bg, color:sc.text, border:`1px solid ${sc.border}40`, fontWeight:'700' }}>
+                                                            {SECTOR_MAP[r.ticker]||'--'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding:'9px 12px', color:'#475569', whiteSpace:'nowrap' }}>{r.earningsDate}</td>
+                                                    {[r.pctEarnDay, r.pctD1, r.pctD3, r.pctD5, r.pctD10].map((v, j) => (
+                                                        <td key={j} style={{ padding:'9px 12px', fontWeight:'700', color:col(v), backgroundColor:bg(v), textAlign:'center' }}>{fmt(v)}</td>
+                                                    ))}
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {bulkReaction.length > 2 && (() => {
+                                const d1s = bulkReaction.filter(r=>r.pctD1!=null).map(r=>r.pctD1);
+                                const d5s = bulkReaction.filter(r=>r.pctD5!=null).map(r=>r.pctD5);
+                                const mean = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2) : '--';
+                                const up   = bulkReaction.filter(r=>r.pctD1>0).length;
+                                return (
+                                    <div style={{ padding:'12px 20px', backgroundColor:'#f8fafc', borderTop:'1px solid #e2e8f0', display:'flex', gap:'20px', flexWrap:'wrap' }}>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+1: <strong style={{ color: parseFloat(mean(d1s))>=0?'#10b981':'#ef4444' }}>{mean(d1s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Avg D+5: <strong style={{ color: parseFloat(mean(d5s))>=0?'#10b981':'#ef4444' }}>{mean(d5s)}%</strong></span>
+                                        <span style={{ fontSize:'12px', color:'#475569' }}>Positive D+1: <strong style={{ color:'#10b981' }}>{up}/{bulkReaction.length}</strong> ({((up/bulkReaction.length)*100).toFixed(0)}%)</span>
+                                    </div>
+                                );
+                            })()}
+                        </>
+                    )}
+                    {!bulkLoading && bulkReaction?.length === 0 && (
+                        <div style={{ padding:'32px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No past earnings data found for the current calendar view</div>
+                    )}
+                </div>
+            )}
+
+            {/* Bulk reaction footer */}
+            <div style={{ padding:'12px 20px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0, backgroundColor:'#f8fafc' }}>
+                <div style={{ flex:1, fontSize:'11px', color:'#64748b' }}>
+                    <strong style={{ color:'#4c1d95' }}>⚡ Bulk Calculator</strong> -- see how every stock here reacted post-earnings vs its pre-report price
+                </div>
+                <button onClick={fetchBulkReaction} disabled={bulkLoading}
+                    style={{ padding:'7px 14px', borderRadius:'9px', backgroundColor:'#7c3aed', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor: bulkLoading?'not-allowed':'pointer', display:'flex', alignItems:'center', gap:'5px', flexShrink:0 }}>
+                    {bulkLoading
+                        ? <><span style={{ animation:'spin 0.8s linear infinite', display:'inline-block' }}>⏳</span> Calculating...</>
+                        : '⚡ Bulk Reaction'}
+                </button>
+            </div>
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            `}</style>
+
+                        <ExternalAIModal
+                isOpen={!!earningsAIModal}
+                onClose={() => setEarningsAIModal(null)}
+                title={earningsAIModal ? `Earnings AI — ${earningsAIModal.ticker}` : ''}
+                promptText={earningsAIModal ? earningsAIModal.prompt : ''}
+                onParsed={(parsed, source) => saveEarningsAIResponse(earningsAIModal.ticker, parsed, source)}
+            />
+            <EarningsMonthAIModal
+                isOpen={showMonthAI}
+                onClose={() => setShowMonthAI(false)}
+                monthKey={monthKey}
+                monthLabel={monthLabel}
+                items={monthEarnings}
+                onPickTicker={(sym) => { setShowMonthAI(false); setSearchTicker(sym); searchEarnings(sym); }}
+            />
+
+            {previewTicker && (
+                <SabrinaEarningsPreview
+                    ticker={previewTicker}
+                    openaiKey={openaiKey}  // pass this prop into EarningsCalendar
+                    onClose={() => setPreviewTicker(null)}
+                />
+            )}
+
+        </div>
+    );
+}
+
+
+// --- Chart & Insights Tab -----------------------------------------------------
+function ChartInsightsTab({ ticker, stockData, earnings, news, marketauxNews, openaiKey, cachedNewsAnalysis, compactMode = false }) {
+    const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+    const chartContainerRef = useRef(null);
+    const chartRef = useRef(null);
+    const seriesRef = useRef(null);
+    const [chartLoaded, setChartLoaded] = useState(false);
+    const [chartError, setChartError] = useState(null);
+    const [chartInterval, setChartInterval] = useState('1D');
+    const [chartTheme, setChartTheme] = useState('light'); // 'light' | 'dark' | 'hud'
+    const [chartType, setChartType] = useState('candlestick'); // 'candlestick' | 'line' | 'area'
+    const [loadingChart, setLoadingChart] = useState(false);
+    const [sabrinaLoading, setSabrinaLoading] = useState(false);
+    const [sabrinaRec, setSabrinaRec] = useState(null); // persisted rec per ticker
+    const [recError, setRecError] = useState(null);
+    const [screenshotting, setScreenshotting] = useState(false);
+    const [refreshTick, setRefreshTick] = useState(0);      // manual refresh trigger
+    const [autoRefresh, setAutoRefresh] = useState(false);   // auto-refresh toggle
+    const [refreshing, setRefreshing] = useState(false);     // spinner for refresh
+    const [lastRefreshed, setLastRefreshed] = useState(null);
+    const autoRefreshRef = useRef(null);
+    const twapSeriesRef  = useRef(null); // TWAP line series
+    const bandTopRef     = useRef(null); // deviation band top
+    const bandBotRef     = useRef(null); // deviation band bottom
+    const [showTWAP, setShowTWAP]   = useState(false);
+    const [twapStats, setTwapStats] = useState(null);
+    // -- Extra indicator refs (backend-computed) --
+    const rsiSeriesRef  = useRef(null);
+    const bbMidRef      = useRef(null);
+    const bbTopRef      = useRef(null);
+    const bbBotRef      = useRef(null);
+    const ema20Ref      = useRef(null);
+    const ema50Ref      = useRef(null);
+    const ema200Ref     = useRef(null);
+    const rsiChartRef   = useRef(null);  // separate pane chart for RSI
+    const rsiPaneRef    = useRef(null);  // DOM container for RSI pane
+    const [showBB,    setShowBB]    = useState(false);
+    const [showRSI,   setShowRSI]   = useState(false);
+    const [showEMA,   setShowEMA]   = useState(false);
+    const [rsiVal,    setRsiVal]    = useState(null);
+    const [prePost,   setPrePost]   = useState(false);  // pre/post market toggle
+    const [sessionNow, setSessionNow] = useState(null); // live session state
+    // -- Analyst ratings --
+    const [analystData,        setAnalystData]        = useState(null);
+    const [analystLoading,     setAnalystLoading]     = useState(false);
+    const [analystError,       setAnalystError]       = useState(null);
+    const [showAnalystPanel,   setShowAnalystPanel]   = useState(false);
+    // -- Earnings markers on chart --
+    const [showEarningsMarkers, setShowEarningsMarkers] = useState(true);
+    const earningsMarkersRef       = useRef([]); // cached for re-apply on refresh
+    const showEarningsMarkersRef    = useRef(true); // ref mirror for closure safety
+
+    // -- Drawing tools --
+    const LINE_COLORS = [
+        { id:'amber',  hex:'#f59e0b', label:'Amber'  },
+        { id:'red',    hex:'#ef4444', label:'Red'    },
+        { id:'green',  hex:'#10b981', label:'Green'  },
+        { id:'blue',   hex:'#3b82f6', label:'Blue'   },
+        { id:'purple', hex:'#8b5cf6', label:'Purple' },
+        { id:'white',  hex:'#e5e7eb', label:'White'  },
+    ];
+    const drawingModeRef       = useRef(false);
+    const [drawingMode,        setDrawingMode]        = useState(false);
+    const [selectedLineColor,  setSelectedLineColor]  = useState('#f59e0b');
+    const selectedLineColorRef = useRef('#f59e0b');
+    const drawnLinesRef        = useRef([]);
+    const [drawnLines,         setDrawnLines]         = useState([]);
+    const [manualPrice,        setManualPrice]        = useState('');
+    const [manualLabel,        setManualLabel]        = useState('');
+    // -- Video recording --
+    const [isRecording,        setIsRecording]        = useState(false);
+    const [videoBlob,          setVideoBlob]          = useState(null);
+    const [videoUrl,           setVideoUrl]           = useState(null);
+    const [recordingProgress,  setRecordingProgress]  = useState(0); // 0-100
+    const mediaRecorderRef     = useRef(null);
+    const videoChunksRef       = useRef([]);
+    // -- Price alerts --
+    const [alerts,             setAlerts]             = useState([]);
+    const [showAlertForm,      setShowAlertForm]      = useState(false);
+    const [alertPrice,         setAlertPrice]         = useState('');
+    const [alertDir,           setAlertDir]           = useState('above');
+    const [firedAlerts,        setFiredAlerts]        = useState([]);
+    // -- Annotations --
+    const [annotations,        setAnnotations]        = useState({});
+    // -- Compare mode --
+    const [compareTicker,      setCompareTicker]      = useState(null);   // active compare ticker
+    const [showComparePicker,  setShowComparePicker]  = useState(false);  // modal open
+    const [compareSearch,      setCompareSearch]      = useState('');     // search input
+    const [compareCategory,    setCompareCategory]    = useState('stocks');
+    const [compareMode,        setCompareMode]        = useState('side'); // 'side' | 'stack'
+    // -- Options flow --
+    const [optionsData,        setOptionsData]        = useState(null);
+    const [optionsLoading,     setOptionsLoading]     = useState(false);
+    const [optionsError,       setOptionsError]       = useState(null);
+    const [showOptionsPanel,   setShowOptionsPanel]   = useState(false);
+    const [optionsExpiry,      setOptionsExpiry]      = useState(null);
+
+    const [positions,         setPositions]         = useState([]);
+    const [positionsLoading,  setPositionsLoading]  = useState(false);
+    const [showPositions,     setShowPositions]      = useState(true);
+    const positionLinesRef    = useRef({}); 
+    // { [positionId]: { entry, sl, tp, current } } — holds priceLine refs per position
+
+    useEffect(() => { drawingModeRef.current = drawingMode; }, [drawingMode]);
+    useEffect(() => { showEarningsMarkersRef.current = showEarningsMarkers; }, [showEarningsMarkers]);
+    useEffect(() => { selectedLineColorRef.current = selectedLineColor; }, [selectedLineColor]);
+
+    // Lower -> Higher timeframes with smart default lookbacks
+    const intervalConfig = {
+        '1m':  { label: '1m',  group: 'Intraday' },
+        '5m':  { label: '5m',  group: 'Intraday' },
+        '15m': { label: '15m', group: 'Intraday' },
+        '30m': { label: '30m', group: 'Intraday' },
+        '1h':  { label: '1H',  group: 'Intraday' },
+        '4h':  { label: '4H',  group: 'Intraday' },
+        '1D':  { label: '1D',  group: 'Daily+'   },
+        '1W':  { label: '1W',  group: 'Daily+'   },
+        '1M':  { label: '1M',  group: 'Daily+'   },
+        '3M':  { label: '3M',  group: 'Daily+'   },
+        '6M':  { label: '6M',  group: 'Daily+'   },
+        '1Y':  { label: '1Y',  group: 'Daily+'   },
+        '2Y':  { label: '2Y',  group: 'Daily+'   },
+    };
+    const intervals = Object.keys(intervalConfig);
+
+    // -- Load TradingView Lightweight Charts from CDN --
+    useEffect(() => {
+        if (window.LightweightCharts) { setChartLoaded(true); return; }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+        script.onload = () => setChartLoaded(true);
+        script.onerror = () => setChartError('Failed to load chart library.');
+        document.head.appendChild(script);
+    }, []);
+
+    // -- TWAP + Deviation Band computation --------------------------------------
+    // Uses trapezoidal integration of close price over time (unix seconds)
+    // TWAP(i) = integral[0..i](price dt) / (t_i - t_0)
+    // Band = TWAP +/- 1 stddev of (price - TWAP) over the whole dataset
+    // -- Live session tracker -----------------------------------------------------
+    // Uses Intl.DateTimeFormat with America/New_York -- handles DST automatically
+    // regardless of where the user's browser is located (e.g. South Africa, UTC+2).
+    // This is the ONLY correct way to get NYC time -- manual offset math breaks on
+    // DST transitions since getTimezoneOffset() reflects the LOCAL browser timezone.
+    const getSessionState = () => {
+        const now = new Date();
+
+        // Extract NYC time parts directly from the IANA tz database
+        const nyParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour:     'numeric',
+            minute:   'numeric',
+            second:   'numeric',
+            weekday:  'short',
+            hour12:   false,
+        }).formatToParts(now);
+
+        const part = (type) => parseInt(nyParts.find(p => p.type === type)?.value ?? '0', 10);
+        const weekday = nyParts.find(p => p.type === 'weekday')?.value; // 'Mon','Tue'...
+        const h    = part('hour') % 24;   // formatToParts can return 24 for midnight
+        const m    = part('minute');
+        const mins = h * 60 + m;
+
+        // Build a Date object representing NYC "now" for display (toLocaleTimeString)
+        // We need this so the session widget shows actual NYC clock time
+        const nyTimeStr = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false,
+        }).format(now);
+
+        // Determine if NYC is currently on EDT (UTC-4) or EST (UTC-5)
+        // by comparing UTC offset -- Intl handles the DST boundary precisely
+        const nyOffsetMins = (() => {
+            // Trick: format the same instant in UTC and NYC, diff them
+            const utcH = parseInt(new Intl.DateTimeFormat('en-US', { timeZone:'UTC', hour:'numeric', hour12:false }).format(now), 10) % 24;
+            const diff = ((h - utcH + 24) % 24);
+            // diff will be 20 (= -4 mod 24) for EDT, 19 (= -5 mod 24) for EST
+            return diff >= 12 ? diff - 24 : diff; // -> -4 or -5
+        })();
+        const tzLabel = nyOffsetMins === -4 ? 'EDT' : 'EST';
+
+        const isWeekend = weekday === 'Sun' || weekday === 'Sat';
+        if (isWeekend) return { session:'closed', label:'Market Closed', sub:'Weekend', color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+
+        // NYSE session windows (minutes from midnight NYC)
+        const PRE_OPEN   = 4  * 60;       // 04:00
+        const MKT_OPEN   = 9  * 60 + 30;  // 09:30
+        const MKT_CLOSE  = 16 * 60;       // 16:00
+        const POST_CLOSE = 20 * 60;       // 20:00
+
+        const minsUntil = (t) => t - mins;
+        const fmt = (d) => {
+            const abs = Math.abs(d);
+            return `${Math.floor(abs/60).toString().padStart(2,'0')}:${(abs%60).toString().padStart(2,'0')}`;
+        };
+
+        if (mins < PRE_OPEN)   return { session:'closed',   label:'Market Closed', sub:`Pre-market opens in ${fmt(minsUntil(PRE_OPEN))}`,    color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+        if (mins < MKT_OPEN)   return { session:'pre',      label:'Pre-Market',    sub:`Regular opens in ${fmt(minsUntil(MKT_OPEN))}`,        color:'#f59e0b', dot:'#f59e0b', nyTimeStr, tzLabel };
+        if (mins < MKT_CLOSE)  return { session:'regular',  label:'Market Open',   sub:`Closes in ${fmt(minsUntil(MKT_CLOSE))}`,              color:'#10b981', dot:'#10b981', nyTimeStr, tzLabel };
+        if (mins < POST_CLOSE) return { session:'post',     label:'After Hours',   sub:`Post-market closes in ${fmt(minsUntil(POST_CLOSE))}`,  color:'#60a5fa', dot:'#60a5fa', nyTimeStr, tzLabel };
+        return                         { session:'closed',   label:'Market Closed', sub:'After-hours ended',                                   color:'#6b7280', dot:'#6b7280', nyTimeStr, tzLabel };
+    };
+
+    useEffect(() => {
+        const tick = () => setSessionNow(getSessionState());
+        tick();
+        const id = setInterval(tick, 1000); // every second -- live NYC clock
+        return () => clearInterval(id);
+    }, []);
+
+    // -- Alerts persistence -------------------------------------------------------
+    useEffect(() => {
+        (async () => {
+            try {
+                const ra = await window.storage.get('snowai-alerts');
+                if (ra?.value) setAlerts(JSON.parse(ra.value));
+            } catch {}
+        })();
+    }, []);
+
+    const saveAlerts = async (al) => {
+        setAlerts(al);
+        try { await window.storage.set('snowai-alerts', JSON.stringify(al)); } catch {}
+    };
+
+    // Check price alerts on each refresh
+    const checkAlerts = (candles) => {
+        if (!alerts.length || !candles?.length) return;
+        const latest = candles[candles.length - 1]?.close;
+        if (!latest) return;
+        const fired = []; const remaining = [];
+        alerts.forEach(al => {
+            if (al.ticker !== ticker) { remaining.push(al); return; }
+            const hit = al.dir === 'above' ? latest >= al.price : latest <= al.price;
+            if (hit) {
+                fired.push(al);
+                if (Notification.permission === 'granted')
+                    new Notification(`🔔 ${al.ticker} Alert`, { body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price} -- now $${latest.toFixed(2)}` });
+            } else { remaining.push(al); }
+        });
+        if (fired.length) {
+            setFiredAlerts(prev => [...prev, ...fired]);
+            saveAlerts(remaining);
+            // Browser notification -- works if user previously granted permission.
+            // We don't ask for permission here; the toast is the primary alert.
+            fired.forEach(al => {
+                try {
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                        new Notification(`🔔 ${al.ticker} price alert`, {
+                            body: `Price ${al.dir==='above'?'crossed above':'dropped below'} $${al.price.toFixed(2)}`,
+                            tag:  `snowai-alert-${al.id}`,
+                        });
+                    }
+                } catch {}
+            });
+        }
+    };
+
+    // -- Add a line at an exact price input --------------------------------------
+    const addManualLine = (priceStr, label, color) => {
+        const price = parseFloat(priceStr);
+        if (!price || isNaN(price) || !seriesRef.current) return;
+        const id = Date.now();
+        try {
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color: color || selectedLineColor,
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: label ? `${label} $${price.toFixed(2)}` : `$${price.toFixed(2)}`,
+            });
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color: color || selectedLineColor, label });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color: color || selectedLineColor, label }]);
+        } catch(e) { console.error('[Draw] addManualLine failed', e); }
+    };
+
+    // -- Chart Video Recording ----------------------------------------------------
+    // Strategy: grab the chart container's canvas element, attach MediaRecorder to
+    // its captureStream(), then animate the chart by scrolling through logical range.
+    // Each "frame" is the live canvas -- all styling/theme/indicators preserved.
+    const recordChartVideo = async (targetDurationSec = 30) => {
+        if (!chartRef.current || !seriesRef.current) return;
+        setIsRecording(true);
+        setVideoBlob(null);
+        setVideoUrl(null);
+        setRecordingProgress(0);
+        videoChunksRef.current = [];
+
+        try {
+            const canvas = chartContainerRef.current?.querySelector('canvas');
+            if (!canvas) throw new Error('Chart canvas not found');
+
+            // -- Key insight: record at 24fps, control how long we WAIT per frame --
+            // frameDelay = targetDuration / totalBars  (ms per candle step)
+            // This makes the recording take targetDuration seconds in real time.
+            // Since we capture the canvas stream at 24fps, the resulting video
+            // naturally plays back at ~24fps and lasts ~targetDuration seconds.
+            const PLAYBACK_FPS    = 24;
+            const stream = canvas.captureStream(PLAYBACK_FPS);
+            const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+                ? 'video/webm;codecs=vp9'
+                : MediaRecorder.isTypeSupported('video/webm')
+                ? 'video/webm' : 'video/mp4';
+
+            const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 4_000_000 });
+            mediaRecorderRef.current = recorder;
+
+            recorder.ondataavailable = e => { if (e.data.size > 0) videoChunksRef.current.push(e.data); };
+            recorder.onstop = () => {
+                const blob = new Blob(videoChunksRef.current, { type: mimeType });
+                const url  = URL.createObjectURL(blob);
+                setVideoBlob(blob);
+                setVideoUrl(url);
+                setIsRecording(false);
+                setRecordingProgress(100);
+            };
+
+            recorder.start(200);
+
+            const allData    = seriesRef.current.data?.() ?? [];
+            const totalBars  = allData.length;
+            if (totalBars === 0) { recorder.stop(); return; }
+
+            // Window size = how many bars are visible at once during recording.
+            // Want ~120-150 bars -- enough context to read structure/trends without
+            // being so zoomed out candles become invisible.
+            // Cap at 60% of total so we don't show the whole dataset at once.
+            const windowSize = Math.min(150, Math.max(80, Math.round(totalBars * 0.60)));
+            const rightPad   = Math.round(windowSize * 0.15); // small right-side breathing room
+
+            const frameDelay     = Math.max(50, Math.round((targetDurationSec * 1000) / totalBars));
+            const barsPerStep    = frameDelay < 60 ? 2 : 1;
+            const effectiveDelay = frameDelay * barsPerStep;
+
+            console.log(`[Video] totalBars=${totalBars} windowSize=${windowSize} rightPad=${rightPad} frameDelay=${frameDelay}ms -> est. ${((totalBars/barsPerStep)*effectiveDelay/1000).toFixed(1)}s`);
+
+            // -- Hard reset to bar 0 regardless of where user navigated ----------
+            // scrollToPosition(0) alone isn't enough -- setVisibleLogicalRange is authoritative
+            chartRef.current.timeScale().setVisibleLogicalRange({ from: 0, to: windowSize + rightPad });
+
+            // Small delay so the chart actually renders frame 0 before recorder starts
+            await new Promise(r => setTimeout(r, 400));
+
+            let bar = 0;
+            const animate = () => {
+                if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
+                if (bar >= totalBars) {
+                    setTimeout(() => { try { recorder.stop(); } catch {} }, 1500);
+                    return;
+                }
+                chartRef.current.timeScale().setVisibleLogicalRange({
+                    from: Math.max(0, bar - Math.round(windowSize * 0.65)),
+                    to:   bar + rightPad,
+                });
+                setRecordingProgress(Math.round((bar / totalBars) * 95));
+                bar += barsPerStep;
+                setTimeout(animate, effectiveDelay);
+            };
+
+            animate();
+
+        } catch(e) {
+            console.error('[Video] Recording failed:', e);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = () => {
+        try { mediaRecorderRef.current?.stop(); } catch {}
+        setIsRecording(false);
+    };
+
+    const downloadVideo = () => {
+        if (!videoBlob) return;
+        const a = document.createElement('a');
+        a.href = videoUrl;
+        a.download = `${ticker}_${chartInterval}_${new Date().toISOString().slice(0,10)}.webm`;
+        a.click();
+    };
+
+    // Options fetch
+    const fetchOptions = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        console.log('[Options] fetchOptions called for', sym, 'expiry:', optionsExpiry);
+        setOptionsLoading(true);
+        setOptionsError(null);
+        setOptionsData(null);
+        try {
+            const url = `${BACKEND}/api/snowai_options_flow_vault/`;
+            const body = JSON.stringify({ ticker: sym, expiry: optionsExpiry });
+            console.log('[Options] POST', url, body);
+            const res  = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body });
+            console.log('[Options] Response status:', res.status);
+            const json = await res.json();
+            console.log('[Options] Response body:', json);
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setOptionsData(json);
+        } catch (e) {
+            console.error('[Options] Error:', e);
+            setOptionsError(e.message);
+        } finally {
+            setOptionsLoading(false);
+        }
+    };
+
+    // -- Fetch OHLCV + backend-computed indicators in one call ------------------
+    const fetchChartData = async (sym, interval, activeIndicators, includePrePost = false) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        const res = await fetch(`${BACKEND}/api/snowai_thundervault_ohlcv_chart_stream/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticker: sym, interval, indicators: activeIndicators, prePost: includePrePost }),
+        });
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const json = await res.json();
+        if (!json.candles?.length) throw new Error('No data returned for ' + sym);
+        // Add value alias (needed for line/area series)
+        json.candles = json.candles.map(c => ({ ...c, value: c.close }));
+        return json;
+    };
+
+    // -- Fetch analyst ratings (separate endpoint) ----------------------------
+    const fetchAnalystRatings = async (sym) => {
+        const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+        setAnalystLoading(true);
+        setAnalystError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowai_vortex_analyst_ratings_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed');
+            setAnalystData(json);
+            setShowAnalystPanel(true);
+        } catch (e) {
+            setAnalystError(e.message);
+        } finally {
+            setAnalystLoading(false);
+        }
+    };
+
+    const fetchPositions = async (sym) => {
+        if (!sym) return;
+        setPositionsLoading(true);
+        try {
+            const res  = await fetch(`${BACKEND}/api/positions/?asset=${sym}`);
+            const json = await res.json();
+            setPositions(json.positions || []);
+        } catch (e) {
+            console.error('[Positions]', e);
+        } finally {
+            setPositionsLoading(false);
+        }
+    };
+
+    const clearPositionLines = () => {
+    if (!seriesRef.current) return;
+    Object.values(positionLinesRef.current).forEach(group => {
+        Object.values(group).forEach(pl => {
+            try { seriesRef.current.removePriceLine(pl); } catch (_) {}
+        });
+    });
+    positionLinesRef.current = {};
+};
+
+    const drawPositionLines = (positionList) => {
+        if (!seriesRef.current || !showPositions) return;
+        clearPositionLines();
+
+        positionList.forEach(pos => {
+            const isLong = pos.direction === 'long';
+            const lines  = {};
+
+            // Entry line — blue/white
+            if (pos.entry_price) {
+                lines.entry = seriesRef.current.createPriceLine({
+                    price:            pos.entry_price,
+                    color:            '#3b82f6',
+                    lineWidth:        2,
+                    lineStyle:        0, // solid
+                    axisLabelVisible: true,
+                    title:            `${pos.asset} Entry${pos.direction === 'short' ? ' (S)' : ' (L)'}  $${pos.entry_price}`,
+                });
+            }
+
+            // SL line — always red
+            if (pos.sl_price) {
+                const slLabel = pos.sl_dollars
+                    ? `SL  $${pos.sl_price}  (-$${Math.abs(pos.sl_dollars).toFixed(2)})`
+                    : `SL  $${pos.sl_price}`;
+                lines.sl = seriesRef.current.createPriceLine({
+                    price:            pos.sl_price,
+                    color:            '#ef4444',
+                    lineWidth:        1,
+                    lineStyle:        2, // dashed
+                    axisLabelVisible: true,
+                    title:            slLabel,
+                });
+            }
+
+            // TP line — always green
+            if (pos.tp_price) {
+                const tpLabel = pos.tp_dollars
+                    ? `TP  $${pos.tp_price}  (+$${Math.abs(pos.tp_dollars).toFixed(2)})`
+                    : `TP  $${pos.tp_price}`;
+                lines.tp = seriesRef.current.createPriceLine({
+                    price:            pos.tp_price,
+                    color:            '#10b981',
+                    lineWidth:        1,
+                    lineStyle:        2,
+                    axisLabelVisible: true,
+                    title:            tpLabel,
+                });
+            }
+
+            // Current price line — amber, only if different from entry
+            if (pos.current_price && Math.abs(pos.current_price - pos.entry_price) > 0.001) {
+                const pnl = isLong
+                    ? pos.current_price - pos.entry_price
+                    : pos.entry_price  - pos.current_price;
+                const pnlLabel = `${pnl >= 0 ? '▲' : '▼'} Now  $${pos.current_price}  (${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)})`;
+                lines.current = seriesRef.current.createPriceLine({
+                    price:            pos.current_price,
+                    color:            pnl >= 0 ? '#f59e0b' : '#fb923c',
+                    lineWidth:        1,
+                    lineStyle:        1, // dotted
+                    axisLabelVisible: true,
+                    title:            pnlLabel,
+                });
+            }
+
+            positionLinesRef.current[pos.id] = lines;
+        });
+    };
+
+    // -- Helper: remove a series safely --------------------------------------
+    const removeSeries = (chart, ref) => {
+        if (ref.current && chart) { try { chart.removeSeries(ref.current); } catch {} ref.current = null; }
+    };
+
+    
+    // Replace the existing applyEarningsMarkers function:
+    const applyEarningsMarkers = (series, candles, markersOverride) => {
+        if (!series || !candles?.length) return;
+        const markerDates = markersOverride ?? earningsMarkersRef.current;
+
+        if (!showEarningsMarkersRef.current || !markerDates.length) {
+            try { series.setMarkers([]); } catch {}
+            return;
+        }
+
+        const unixToDate = (t) => {
+            if (typeof t === 'number') {
+                const d = new Date(t * 1000);
+                return [
+                    d.getUTCFullYear(),
+                    String(d.getUTCMonth() + 1).padStart(2, '0'),
+                    String(d.getUTCDate()).padStart(2, '0'),
+                ].join('-');
+            }
+            return String(t).slice(0, 10);
+        };
+
+        // Build date -> candle map — for intraday charts multiple candles
+        // share the same date, so we pick the LAST candle of that day
+        // (closing candle) which is the most meaningful anchor for earnings.
+        const dateToCandle = {};
+        candles.forEach(c => {
+            dateToCandle[unixToDate(c.time)] = c; // later candles overwrite earlier ones = last of day
+        });
+
+        const markers = [];
+        markerDates.forEach(({ date, label, upcoming, beat }) => {
+            // For past earnings on daily+ charts: exact match.
+            // For intraday: walk forward up to 5 trading days to find a candle
+            // (earnings are often reported AH so the reaction shows next day).
+            let candle = dateToCandle[date];
+            if (!candle) {
+                // Try next 5 calendar days — handles weekends / holidays
+                for (let offset = 1; offset <= 5; offset++) {
+                    const d  = new Date(date + 'T12:00:00Z');
+                    d.setUTCDate(d.getUTCDate() + offset);
+                    const ds = d.toISOString().slice(0, 10);
+                    if (dateToCandle[ds]) { candle = dateToCandle[ds]; break; }
+                }
+            }
+            if (!candle) return;
+
+            // Colour logic:
+            // upcoming  → blue  arrow down (from above)
+            // beat      → green arrow up   (from below)
+            // miss      → red   arrow up
+            // unknown   → amber arrow up
+            let color, shape, position;
+            if (upcoming) {
+                color    = '#3b82f6';
+                shape    = 'arrowDown';
+                position = 'aboveBar';
+            } else if (beat === true) {
+                color    = '#10b981';   // green = beat
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else if (beat === false) {
+                color    = '#ef4444';   // red = miss
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            } else {
+                color    = '#f59e0b';   // amber = no data
+                shape    = 'arrowUp';
+                position = 'belowBar';
+            }
+
+            markers.push({
+                time:     candle.time,
+                position,
+                color,
+                shape,
+                text:     label || 'E',
+                size:     2,
+            });
+        });
+
+        // LightweightCharts requires markers sorted by time ascending
+        markers.sort((a, b) => a.time - b.time);
+        console.log('[Markers] placing', markers.length, 'markers');
+        try { series.setMarkers(markers); } catch (e) { console.error('[Markers] setMarkers failed:', e); }
+    };
+
+    
+    // Replace the existing fetchAndCacheEarningsDate function with this:
+    const fetchAndCacheEarningsDate = async (sym, candles) => {
+        console.log('🔔 fetchAndCacheEarningsDate CALLED for', sym, 'candles:', candles?.length);
+        try {
+            const BACKEND = 'https://backend-production-c0ab.up.railway.app';
+            const res  = await fetch(`${BACKEND}/api/snowai_earnings_history_chart_vault/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker: sym }),
+            });
+            const json = await res.json();
+            console.log('[EarningsHistory] raw response:', json);
+
+            const allMarkers = [
+                // Past earnings — colour by beat/miss
+                ...(json.markers || []).map(m => ({
+                    date:     m.date,
+                    label:    buildMarkerLabel(m),
+                    upcoming: false,
+                    beat:     m.beat,
+                    eps:      m.epsActual,
+                    surprise: m.surprisePct,
+                })),
+                // Upcoming earnings
+                ...(json.upcoming || []).map(m => ({
+                    date:     m.date,
+                    label:    `📅 E${m.epsEstimate != null ? ' est $' + m.epsEstimate : ''}`,
+                    upcoming: true,
+                    beat:     null,
+                    eps:      null,
+                    surprise: null,
+                })),
+            ];
+
+            console.log('[EarningsHistory] total markers:', allMarkers.length);
+            earningsMarkersRef.current = allMarkers;
+
+            if (seriesRef.current && candles) {
+                applyEarningsMarkers(seriesRef.current, candles, allMarkers);
+            }
+        } catch (e) {
+            console.error('[EarningsHistory] fetch failed:', e);
+            earningsMarkersRef.current = [];
+        }
+    };
+
+    // Add this helper near the top of ChartInsightsTab (outside the component or inside before fetchAndCacheEarningsDate):
+    const buildMarkerLabel = (m) => {
+        const parts = ['E'];
+        if (m.epsActual != null) {
+            parts.push(`$${m.epsActual}`);
+        }
+        if (m.surprisePct != null) {
+            parts.push(`(${m.surprisePct >= 0 ? '+' : ''}${m.surprisePct}%)`);
+        }
+        return parts.join(' ');
+    };
+
+    const applyIndicators = (chart, json, th) => {
+        // clear old overlay series
+        removeSeries(chart, twapSeriesRef);
+        removeSeries(chart, bandTopRef);
+        removeSeries(chart, bandBotRef);
+        removeSeries(chart, bbMidRef);
+        removeSeries(chart, bbTopRef);
+        removeSeries(chart, bbBotRef);
+        removeSeries(chart, ema20Ref);
+        removeSeries(chart, ema50Ref);
+        removeSeries(chart, ema200Ref);
+
+        if (json.twap?.length) {
+            const twapLine = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, lineStyle: 1, title: 'TWAP', lastValueVisible: true, priceLineVisible: false });
+            twapLine.setData(json.twap);
+            twapSeriesRef.current = twapLine;
+            const bTop = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bTop.setData(json.twapBandTop);
+            bandTopRef.current = bTop;
+            const bBot = chart.addLineSeries({ color: 'rgba(245,158,11,0.25)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bBot.setData(json.twapBandBot);
+            bandBotRef.current = bBot;
+            setTwapStats(json.twapStats);
+        } else { setTwapStats(null); }
+
+        if (json.bbMid?.length) {
+            const mid = chart.addLineSeries({ color: 'rgba(139,92,246,0.7)', lineWidth: 1, title: 'BB Mid', lastValueVisible: false, priceLineVisible: false });
+            mid.setData(json.bbMid);
+            bbMidRef.current = mid;
+            const top = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            top.setData(json.bbTop);
+            bbTopRef.current = top;
+            const bot = chart.addLineSeries({ color: 'rgba(139,92,246,0.4)', lineWidth: 1, lineStyle: 2, lastValueVisible: false, priceLineVisible: false });
+            bot.setData(json.bbBot);
+            bbBotRef.current = bot;
+        }
+
+        if (json.ema20?.length) {
+            const e20 = chart.addLineSeries({ color: '#10b981', lineWidth: 1, title: 'EMA20', lastValueVisible: false, priceLineVisible: false });
+            e20.setData(json.ema20);
+            ema20Ref.current = e20;
+        }
+        if (json.ema50?.length) {
+            const e50 = chart.addLineSeries({ color: '#3b82f6', lineWidth: 1, title: 'EMA50', lastValueVisible: false, priceLineVisible: false });
+            e50.setData(json.ema50);
+            ema50Ref.current = e50;
+        }
+        if (json.ema200?.length) {
+            const e200 = chart.addLineSeries({ color: '#ef4444', lineWidth: 1, title: 'EMA200', lastValueVisible: false, priceLineVisible: false });
+            e200.setData(json.ema200);
+            ema200Ref.current = e200;
+        }
+
+        // RSI badge (latest value)
+        if (json.rsi?.length) {
+            setRsiVal(json.rsi[json.rsi.length - 1]?.value ?? null);
+        } else { setRsiVal(null); }
+    };
+
+    // Theme config lookup
+    const getThemeConfig = (theme) => {
+        if (theme === 'dark') return {
+            bg: '#0f0f14', text: '#e0e0e0', grid: '#1e1e2e',
+            border: '#2a2a3a', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#60a5fa', areaTop: 'rgba(96,165,250,0.25)', areaBot: 'rgba(96,165,250,0.02)',
+        };
+        if (theme === 'hud') return {
+            bg: '#020b18', text: '#00d4ff', grid: '#0a2540',
+            border: '#0d3a5c', upColor: '#00ffcc', downColor: '#ff4d6a',
+            lineColor: '#00d4ff', areaTop: 'rgba(0,212,255,0.2)', areaBot: 'rgba(0,212,255,0.02)',
+        };
+        // light (default)
+        return {
+            bg: '#ffffff', text: '#333333', grid: '#f0f0f0',
+            border: '#e0e0e0', upColor: '#10b981', downColor: '#ef4444',
+            lineColor: '#2563eb', areaTop: 'rgba(37,99,235,0.2)', areaBot: 'rgba(37,99,235,0.02)',
+        };
+    };
+
+    // -- Effect A: Create/recreate chart instance (ticker . theme . chartType change) --
+    // Destroys old chart, builds fresh, fits content on first load
+    useEffect(() => {
+        if (!chartLoaded || !chartContainerRef.current || !ticker) return;
+        const LC = window.LightweightCharts;
+
+        if (chartRef.current) { try { chartRef.current.remove(); } catch {} chartRef.current = null; seriesRef.current = null; }
+
+        const container = chartContainerRef.current;
+        const th = getThemeConfig(chartTheme);
+        const chart = LC.createChart(container, {
+            width: container.clientWidth,
+            height: container.clientHeight || 360,
+            layout: { background: { color: th.bg }, textColor: th.text },
+            grid: { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
+            crosshair: { mode: LC.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: th.border },
+            timeScale: { borderColor: th.border, timeVisible: true, secondsVisible: false },
+            watermark: { visible: false },
+        });
+        chartRef.current = chart;
+
+        const ro = new ResizeObserver(() => {
+            if (chartRef.current && container.clientWidth > 0)
+                chartRef.current.applyOptions({ width: container.clientWidth });
+        });
+        ro.observe(container);
+
+        // Initial data load -- fitContent on first load
+        const activeIndicators = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
+        const initialLoad = async () => {
+            setLoadingChart(true);
+            setChartError(null);
+            try {
+                const json = await fetchChartData(ticker, chartInterval, activeIndicators, prePost);
+                if (!chartRef.current) return;
+                const th2 = getThemeConfig(chartTheme);
+                let series;
+                if (chartType === 'candlestick') {
+                    series = chart.addCandlestickSeries({ upColor: th2.upColor, downColor: th2.downColor, borderUpColor: th2.upColor, borderDownColor: th2.downColor, wickUpColor: th2.upColor, wickDownColor: th2.downColor });
+                    series.setData(json.candles);
+                } else if (chartType === 'area') {
+                    series = chart.addAreaSeries({ lineColor: th2.lineColor, topColor: th2.areaTop, bottomColor: th2.areaBot, lineWidth: 2 });
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
+                } else {
+                    series = chart.addLineSeries({ color: th2.lineColor, lineWidth: 2 });
+                    series.setData(json.candles.map(d => ({ time: d.time, value: d.value })));
+                }
+                seriesRef.current = series;
+                applyIndicators(chart, json, th2);
+                // Fetch upcoming earnings date async then re-apply markers
+                // Pass candles directly so fetchAndCacheEarningsDate can paint
+                // markers immediately when the async response comes back
+                console.log('🔔 About to call fetchAndCacheEarningsDate for', ticker, 'candles:', json.candles?.length);
+                fetchAndCacheEarningsDate(ticker, json.candles);
+                // First paint with whatever is already cached (empty on first load)
+                console.log('🔔 About to applyEarningsMarkers, series:', !!series, 'candles:', json.candles?.length);
+                applyEarningsMarkers(series, json.candles);
+                chart.timeScale().fitContent();
+                setLastRefreshed(new Date());
+            } catch (e) {
+                setChartError('Could not load chart data. Check ticker or try again.');
+            } finally {
+                setLoadingChart(false);
+            }
+        };
+        // -- Drawing mode click handler ----------------------------------------
+        const handleChartClick = (param) => {
+            if (!drawingModeRef.current || !param.point || !seriesRef.current) return;
+            // coordinateToPrice lives on the series in LWC v4, not on priceScale
+            const price = seriesRef.current.coordinateToPrice(param.point.y);
+            if (price === null || price === undefined || isNaN(price)) return;
+            const id = Date.now();
+            const color = selectedLineColorRef.current;
+            const pl = seriesRef.current.createPriceLine({
+                price,
+                color,
+                lineWidth: 1,
+                lineStyle: 2,
+                axisLabelVisible: true,
+                title: `$${price.toFixed(2)}`,
+            });
+            drawnLinesRef.current.push({ id, price, priceLine: pl, color });
+            setDrawnLines(prev => [...prev, { id, price: price.toFixed(2), color }]);
+        };
+        chart.subscribeClick(handleChartClick);
+
+        initialLoad();
+        return () => { ro.disconnect(); chart.unsubscribeClick(handleChartClick); };
+    }, [chartLoaded, ticker, chartType, chartTheme, showTWAP, showBB, showRSI, showEMA, prePost]); // < NO chartInterval here
+
+    // -- Effect B: Refresh data only (interval change . manual refresh . auto-refresh) --
+    // Preserves scroll/zoom position -- does NOT recreate the chart instance
+    useEffect(() => {
+        if (!chartRef.current || !seriesRef.current || !ticker) return;
+
+        const refreshData = async () => {
+            setRefreshing(true);
+            setChartError(null);
+            try {
+                const activeInd = [...(showTWAP?['twap']:[]), ...(showBB?['bb']:[]), ...(showRSI?['rsi']:[]), ...(showEMA?['ema']:[])];
+                const json = await fetchChartData(ticker, chartInterval, activeInd, prePost);
+                if (!seriesRef.current || !chartRef.current) return;
+
+                // -- Viewport preservation ------------------------------------
+                // We use getVisibleLogicalRange() (bar-index based) NOT
+                // getVisibleRange() (time based). Reason: setData() triggers an
+                // internal fitContent() inside LightweightCharts which resets the
+                // time-based range before we can restore it. Logical range survives
+                // this because it's index-relative and is re-applied AFTER the
+                // internal fit completes.
+                const logicalRange = chartRef.current.timeScale().getVisibleLogicalRange();
+
+                // Update price series in-place -- triggers LWC internal fitContent
+                const mapData = (d) => chartType === 'candlestick' ? d : { time: d.time, value: d.value };
+                seriesRef.current.setData(json.candles.map(mapData));
+
+                // Update all indicator overlays in-place
+                applyIndicators(chartRef.current, json, getThemeConfig(chartTheme));
+                applyEarningsMarkers(seriesRef.current, json.candles);
+                checkAlerts(json.candles);
+                // After checkAlerts in refreshData():
+                const latestClose = json.candles?.[json.candles.length - 1]?.close;
+                if (latestClose && positions.length > 0) {
+                    setPositions(prev => prev.map(pos => {
+                        const isLong = pos.direction === 'long';
+                        const pnl    = isLong
+                            ? latestClose - pos.entry_price
+                            : pos.entry_price - latestClose;
+                        // Recalculate dollar distances live — these don't change, 
+                        // but current_price drives the floating P&L line
+                        return { ...pos, current_price: latestClose };
+                    }));
+                    // PATCH the backend for persistence
+                    positions.forEach(pos => {
+                        fetch(`${BACKEND}/api/positions/${pos.id}/price/`, {
+                            method:  'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body:    JSON.stringify({ current_price: latestClose }),
+                        }).catch(() => {});
+                    });
+                }
+
+                // Restore logical position -- this runs AFTER the internal fit
+                // so it wins. Only skip if we have no prior range (first load).
+                if (logicalRange && logicalRange.from != null && logicalRange.to != null) {
+                    chartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
+                }
+                // If no prior range, leave whatever LWC fitted -- it's correct for first load
+                setLastRefreshed(new Date());
+                // End of refreshData() in Effect B, after setLastRefreshed:
+                if (positions.length > 0 && showPositions) {
+                    setTimeout(() => drawPositionLines(positions), 50);
+                }
+            } catch (e) {
+                setChartError('Refresh failed. Check connection.');
+            } finally {
+                setRefreshing(false);
+            }
+        };
+
+        refreshData();
+    }, [chartInterval, refreshTick, prePost]); // < interval . manual refresh . prePost toggle
+
+    useEffect(() => {
+        if (ticker) fetchPositions(ticker);
+    }, [ticker]);
+
+    useEffect(() => {
+        if (!positions.length) { clearPositionLines(); return; }
+        if (showPositions && seriesRef.current) {
+            drawPositionLines(positions);
+        } else {
+            clearPositionLines();
+        }
+    }, [positions, showPositions]);
+
+    // -- Auto-refresh interval (30s) --
+    useEffect(() => {
+        if (autoRefreshRef.current) { clearInterval(autoRefreshRef.current); autoRefreshRef.current = null; }
+        if (autoRefresh && ticker) {
+            autoRefreshRef.current = setInterval(() => {
+                setRefreshTick(t => t + 1); // nudges Effect B without rebuilding chart
+            }, 30000);
+        }
+        return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+    }, [autoRefresh, ticker]);
+
+    // -- Ask Sabrina for a full recommendation --
+    const askSabrinaForRec = async (imageDataUrl = null) => {
+        if (!openaiKey) { setRecError('OpenAI key not loaded yet.'); return; }
+        setSabrinaLoading(true);
+        setRecError(null);
+
+        const priceInfo = stockData ? `
+Ticker: ${ticker} | Name: ${stockData.longName || ticker}
+Price: $${stockData.currentPrice?.toFixed(2) || 'N/A'} | Market Cap: ${stockData.marketCap ? '$' + (stockData.marketCap / 1e9).toFixed(2) + 'B' : 'N/A'}
+P/E: ${stockData.trailingPE?.toFixed(2) || 'N/A'} | 52W High: $${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'} | 52W Low: $${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}
+Sector: ${stockData.sector || 'N/A'} | Industry: ${stockData.industry || 'N/A'}` : `Ticker: ${ticker}`;
+
+        const earningsInfo = earnings?.length ? `\nRecent Earnings (last 4Q):\n` + earnings.slice(0, 4).map(e =>
+            `  ${e.quarter}: Rev $${e.revenue ? (e.revenue / 1e9).toFixed(2) + 'B' : 'N/A'}, EPS $${e.earnings ? (e.earnings / 1e9).toFixed(2) + 'B' : 'N/A'}`
+        ).join('\n') : '';
+
+        const yahooArticles = (news?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  * ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            return parts.join('\n');
+        });
+        const mktxArticles = (marketauxNews?.filter(n => n?.title) || []).slice(0, 4).map(n => {
+            const parts = [`  * [Marketaux] ${n.title}`];
+            if (n.description) parts.push(`    ${n.description.substring(0, 180).trim()}`);
+            if (n.highlights && typeof n.highlights === 'string' && n.highlights.length > 10) {
+                parts.push(`    KEY QUOTE: "${n.highlights.substring(0, 200).trim()}"`);
+            }
+            return parts.join('\n');
+        });
+        const allArticles = [...yahooArticles, ...mktxArticles];
+        const newsInfo = allArticles.length
+            ? `\nNews Articles (${allArticles.length} total):\n` + allArticles.join('\n\n')
+            : '';
+
+        const aiInsightsInfo = cachedNewsAnalysis ? `\nNews AI Analysis: ${cachedNewsAnalysis.bias} bias (${cachedNewsAnalysis.confidence}% confidence)\nTL;DR: ${cachedNewsAnalysis.tldr}` : '';
+
+        const twapInfo = twapStats ? `\nTWAP Analysis (time-weighted avg price via integral):
+  TWAP: $${twapStats.twap} | Current: $${twapStats.current}
+  Deviation from TWAP: ${twapStats.deviation > 0 ? '+' : ''}${twapStats.deviation}% (+/-1sigma = $${twapStats.std})
+  Signal: ${twapStats.signal === 'EXTENDED_ABOVE' ? 'Price is EXTENDED above TWAP -- mean reversion risk downward' : twapStats.signal === 'EXTENDED_BELOW' ? 'Price is EXTENDED below TWAP -- potential mean reversion bounce' : 'Price is NEAR TWAP -- no strong mean reversion pressure'}` : '';
+
+        const textPrompt = `You are Sabrina, a sharp AI stock analyst. Give me a comprehensive trading recommendation for ${ticker}.
+
+AVAILABLE DATA:
+${priceInfo}${earningsInfo}${newsInfo}${aiInsightsInfo}${twapInfo}
+${imageDataUrl ? '\nA chart screenshot has been attached. Analyse the price action, trend, support/resistance levels, and any patterns visible.' : '\nNo chart image provided -- base analysis on the fundamental data above.'}
+
+Respond ONLY with a JSON object (no markdown, no backticks):
+{
+  "verdict": "BUY" | "SELL" | "HOLD" | "WATCH",
+  "confidence": <0-100>,
+  "priceTarget": "<e.g. $195-210 in 3-6 months or N/A>",
+  "timeframe": "<e.g. Short-term (1-3 months)>",
+  "summary": "<2-3 sentences, sharp and direct>",
+  "bullCase": "<1-2 sentences>",
+  "bearCase": "<1-2 sentences>",
+  "keyLevels": "<support and resistance if chart provided, else N/A>",
+  "catalysts": ["<catalyst 1>", "<catalyst 2>"],
+  "risks": ["<risk 1>", "<risk 2>"],
+  "sabrinaQuote": "<one punchy first-person take, 1 sentence, with personality>"
+}`;
+
+        try {
+            const messages = imageDataUrl ? [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: imageDataUrl } },
+                        { type: 'text', text: textPrompt }
+                    ]
+                }
+            ] : [{ role: 'user', content: textPrompt }];
+
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages, max_tokens: 900, temperature: 0.65 })
+            });
+            const data = await res.json();
+            const raw = data.choices?.[0]?.message?.content || '';
+            const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+            setSabrinaRec({ ...parsed, generatedAt: new Date().toLocaleString(), hadChart: !!imageDataUrl });
+        } catch (e) {
+            setRecError('Sabrina hit a snag. Try again 😼');
+        } finally {
+            setSabrinaLoading(false);
+        }
+    };
+
+    // -- Capture chart as image then send to Sabrina --
+    const captureAndAnalyse = async () => {
+        setScreenshotting(true);
+        try {
+            // TradingView Lightweight Charts has a built-in screenshot method
+            if (chartRef.current) {
+                const canvas = chartRef.current.takeScreenshot();
+                const dataUrl = canvas.toDataURL('image/png');
+                await askSabrinaForRec(dataUrl);
+            } else {
+                await askSabrinaForRec(null);
+            }
+        } catch {
+            await askSabrinaForRec(null);
+        } finally {
+            setScreenshotting(false);
+        }
+    };
+
+    const verdictConfig = {
+        BUY:   { color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', icon: '📈', label: 'BUY' },
+        SELL:  { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', icon: '📉', label: 'SELL' },
+        HOLD:  { color: '#f59e0b', bg: '#fffbeb', border: '#fde68a', icon: '|', label: 'HOLD' },
+        WATCH: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '👁', label: 'WATCH' },
+    };
+    const vc = verdictConfig[sabrinaRec?.verdict] || verdictConfig.WATCH;
+
+    const recentEarnings = earnings?.slice(0, 6).filter(e => e.revenue || e.earnings) || [];
+
+    return (
+        <div style={{ width: '100%', boxSizing: 'border-box', fontFamily: "'Segoe UI', system-ui, sans-serif", backgroundColor: 'transparent' }}>
+
+            {/* -- Chart Card -- */}
+            {(() => {
+            const th = getThemeConfig(chartTheme);
+            const cardBg     = th.bg;
+            const cardBorder = chartTheme === 'light' ? '#e8e8e8' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+            const cardShadow = chartTheme === 'hud'   ? '0 2px 16px rgba(0,212,255,0.12)' : chartTheme === 'dark' ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.06)';
+            return (
+            <div style={{ backgroundColor: cardBg, borderRadius: '12px', border: `1px solid ${cardBorder}`, boxShadow: cardShadow, marginBottom: '20px' }}>
+
+                {/* Chart toolbar -- theme-aware, grouped intervals */}
+                {(() => {
+                    const th = getThemeConfig(chartTheme);
+                    const toolbarBg     = chartTheme === 'light' ? '#fafafa' : chartTheme === 'dark' ? '#1a1a2e' : '#020f1f';
+                    const toolbarBorder = chartTheme === 'light' ? '#f0f0f0' : chartTheme === 'dark' ? '#2a2a3a' : '#0d3a5c';
+                    const titleColor    = chartTheme === 'hud'   ? '#00d4ff' : chartTheme === 'dark' ? '#e0e0e0' : '#1a1a1a';
+                    const btnBase       = chartTheme === 'light' ? { bg: '#fff', text: '#555', border: '#e0e0e0' }
+                                       : chartTheme === 'dark'  ? { bg: '#1e1e2e', text: '#aaa', border: '#2a2a3a' }
+                                       :                          { bg: '#0a1f35', text: '#00aacc', border: '#0d3a5c' };
+                    const btnActive     = chartTheme === 'hud'   ? { bg: '#00d4ff', text: '#020b18', border: '#00d4ff' }
+                                       :                          { bg: '#2563eb',  text: '#fff',    border: '#2563eb' };
+                    const intraday  = intervals.filter(iv => intervalConfig[iv].group === 'Intraday');
+                    const daily     = intervals.filter(iv => intervalConfig[iv].group === 'Daily+');
+                    return (
+                        <div style={{ padding: '12px 14px', borderBottom: `1px solid ${toolbarBorder}`, backgroundColor: toolbarBg, borderRadius: '12px 12px 0 0' }}>
+                            {/* Row 1: title + chart type + theme */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: '15px', fontWeight: '700', color: titleColor, marginRight: '4px' }}>
+                                    {chartTheme === 'hud' ? 'HUD' : '📊'} {ticker}
+                                </div>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {[['candlestick','🕯 Candle'],['area','📉 Area'],['line','~ Line']].map(([t, lbl]) => {
+                                        const active = chartType === t;
+                                        return <button key={t} onClick={() => setChartType(t)} style={{
+                                            padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                                {/* Indicator toggles */}
+                                {[
+                                    { key: 'twap', label: 'TWAP TWAP',   active: showTWAP, toggle: () => setShowTWAP(s=>!s), color: '#f59e0b' },
+                                    { key: 'bb',   label: 'BB',       active: showBB,   toggle: () => setShowBB(s=>!s),   color: '#8b5cf6' },
+                                    { key: 'ema',  label: 'EMA',      active: showEMA,  toggle: () => setShowEMA(s=>!s),  color: '#10b981' },
+                                    { key: 'rsi',  label: `RSI${rsiVal !== null ? ' ' + rsiVal.toFixed(0) : ''}`, active: showRSI, toggle: () => setShowRSI(s=>!s), color: rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa' },
+                                ].map(({ key, label, active, toggle, color }) => (
+                                    <button key={key} onClick={toggle} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? color : btnBase.border}`,
+                                        backgroundColor: active ? color + '1a' : btnBase.bg,
+                                        color: active ? color : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                    }}>{label}</button>
+                                ))}
+
+                                {/* Session tracker widget */}
+                                {sessionNow && (() => {
+                                    const s = sessionNow;
+                                    return (
+                                        <div style={{ display:'flex', alignItems:'center', gap:'6px', padding:'4px 10px', borderRadius:'8px', backgroundColor: s.color+'14', border:`1px solid ${s.color}30`, marginLeft:'auto' }}>
+                                            <span style={{ width:'7px', height:'7px', borderRadius:'50%', backgroundColor:s.dot, flexShrink:0,
+                                                boxShadow: s.session === 'regular' ? `0 0 0 2px ${s.dot}30` : 'none',
+                                                animation: s.session === 'regular' ? 'sessionPulse 2s ease-in-out infinite' : 'none',
+                                            }} />
+                                            <span style={{ fontSize:'11px', fontWeight:'700', color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>
+                                            <span style={{ fontSize:'10px', color:s.color, opacity:0.7, whiteSpace:'nowrap' }}>{s.nyTimeStr} {s.tzLabel}</span>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Theme switcher */}
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    {[['light','Sun️'],['dark','🌙'],['hud','HUD HUD']].map(([t, lbl]) => {
+                                        const active = chartTheme === t;
+                                        return <button key={t} onClick={() => setChartTheme(t)} style={{
+                                            padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                            border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                            backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                            color: active ? btnActive.text : btnBase.text,
+                                            cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                        }}>{lbl}</button>;
+                                    })}
+                                </div>
+                            </div>
+                            {/* Row 2: interval groups */}
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>INTRADAY</span>
+                                {intraday.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                                <div style={{ width: '1px', height: '18px', backgroundColor: toolbarBorder, flexShrink: 0 }} />
+                                <span style={{ fontSize: '10px', fontWeight: '700', color: btnBase.text, opacity: 0.6, letterSpacing: '0.07em', flexShrink: 0 }}>DAILY+</span>
+                                {daily.map(iv => {
+                                    const active = chartInterval === iv;
+                                    return <button key={iv} onClick={() => setChartInterval(iv)} style={{
+                                        padding: '4px 9px', fontSize: '11px', fontWeight: '700', borderRadius: '6px',
+                                        border: `1px solid ${active ? btnActive.border : btnBase.border}`,
+                                        backgroundColor: active ? btnActive.bg : btnBase.bg,
+                                        color: active ? btnActive.text : btnBase.text,
+                                        cursor: 'pointer', transition: 'all 0.15s',
+                                    }}>{intervalConfig[iv].label}</button>;
+                                })}
+                                <div style={{ width:'1px', height:'16px', backgroundColor:toolbarBorder, flexShrink:0, alignSelf:'center' }} />
+                                {/* Pre/Post market toggle -- intraday only */}
+                                {(() => {
+                                    const isIntraday = intervalConfig[chartInterval]?.group === 'Intraday';
+                                    const active = prePost && isIntraday;
+                                    return (
+                                        <button
+                                            onClick={() => isIntraday && setPrePost(p => !p)}
+                                            title={isIntraday ? 'Toggle pre/post market data' : 'Pre/post only available on intraday timeframes'}
+                                            style={{
+                                                padding:'4px 10px', fontSize:'11px', fontWeight:'700', borderRadius:'6px',
+                                                border:`1px solid ${active ? '#f59e0b' : btnBase.border}`,
+                                                backgroundColor: active ? 'rgba(245,158,11,0.14)' : btnBase.bg,
+                                                color: active ? '#f59e0b' : isIntraday ? btnBase.text : (btnBase.text + '50'),
+                                                cursor: isIntraday ? 'pointer' : 'not-allowed',
+                                                transition:'all 0.15s', whiteSpace:'nowrap', opacity: isIntraday ? 1 : 0.45,
+                                            }}
+                                        >🌅 Pre/Post</button>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Chart container -- explicit height so LightweightCharts renders correctly */}
+                <div style={{ position: 'relative', width: '100%', height: '360px' }}>
+                    {(loadingChart || !chartLoaded) && (() => {
+                        const th2 = getThemeConfig(chartTheme);
+                        const overlayBg   = chartTheme === 'dark' ? 'rgba(15,15,20,0.88)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.88)' : 'rgba(255,255,255,0.9)';
+                        const overlayText = chartTheme === 'hud' ? '#00d4ff' : chartTheme === 'dark' ? '#aaa' : '#666';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: overlayBg, zIndex: 2 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '28px', marginBottom: '8px', animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</div>
+                                <div style={{ color: overlayText, fontSize: '14px' }}>{!chartLoaded ? 'Loading chart library...' : 'Fetching data...'}</div>
+                            </div>
+                        </div>
+                        );
+                    })()}
+                    {chartError && !loadingChart && (() => {
+                        const th3 = getThemeConfig(chartTheme);
+                        const errBg = chartTheme === 'dark' ? 'rgba(15,15,20,0.95)' : chartTheme === 'hud' ? 'rgba(2,11,24,0.95)' : 'rgba(255,255,255,0.97)';
+                        return (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px', backgroundColor: errBg }}>
+                            <div style={{ fontSize: '32px' }}>!️</div>
+                            <div style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', padding: '0 20px' }}>{chartError}</div>
+                            <button onClick={() => { setChartError(null); setChartInterval(chartInterval); }} style={{ marginTop: '8px', padding: '6px 14px', backgroundColor: chartTheme==='hud'?'#00d4ff':'#2563eb', color: chartTheme==='hud'?'#020b18':'#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Retry</button>
+                        </div>
+                        );
+                    })()}
+                    <div ref={chartContainerRef} style={{ width: '100%', height: '100%', cursor: drawingMode ? 'crosshair' : 'default' }} />
+                    {drawingMode && (
+                        <div style={{ position:'absolute', top:'8px', left:'50%', transform:'translateX(-50%)', backgroundColor:'rgba(245,158,11,0.9)', color:'#fff', fontSize:'11px', fontWeight:'700', padding:'4px 12px', borderRadius:'20px', pointerEvents:'none', whiteSpace:'nowrap', zIndex:10 }}>
+                            Edit️ Click on chart to drop a level line
+                        </div>
+                    )}
+                </div>
+
+                {/* TWAP stats strip */}
+                {showTWAP && twapStats && (() => {
+                    const stripBg  = chartTheme === 'hud' ? '#020f1f' : chartTheme === 'dark' ? '#141420' : '#fffbeb';
+                    const stripBdr = chartTheme === 'hud' ? '#0d3a5c' : chartTheme === 'dark' ? '#2a2a3a' : '#fde68a';
+                    const isAbove  = twapStats.signal === 'EXTENDED_ABOVE';
+                    const isBelow  = twapStats.signal === 'EXTENDED_BELOW';
+                    const sigColor = isAbove ? '#ef4444' : isBelow ? '#10b981' : '#f59e0b';
+                    const sigLabel = isAbove ? '^ Extended Above -- mean reversion risk v'
+                                   : isBelow ? 'v Extended Below -- potential bounce ^'
+                                   : '<-> Near TWAP -- balanced';
+                    return (
+                        <div style={{ padding: '9px 16px', borderTop: `1px solid ${stripBdr}`, backgroundColor: stripBg, display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.06em' }}>TWAP TWAP</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: chartTheme === 'light' ? '#333' : '#e0e0e0' }}>${twapStats.twap}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>Deviation</span>
+                                <span style={{ fontSize: '13px', fontWeight: '700', color: twapStats.deviation > 0 ? '#ef4444' : '#10b981' }}>
+                                    {twapStats.deviation > 0 ? '+' : ''}{twapStats.deviation}%
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#aaa' }}>+/-1sigma</span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: chartTheme === 'light' ? '#555' : '#aaa' }}>${twapStats.std}</span>
+                            </div>
+                            <div style={{ padding: '3px 10px', borderRadius: '20px', backgroundColor: sigColor + '18', border: `1px solid ${sigColor}40`, fontSize: '11px', fontWeight: '700', color: sigColor }}>
+                                {sigLabel}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Position detail panel */}
+                {showPositions && positions.length > 0 && (
+                    <div style={{
+                        padding:         '12px 16px',
+                        borderTop:       `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e2e8f0'}`,
+                        backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#fffbeb',
+                        display:         'flex', flexDirection: 'column', gap: '10px',
+                    }}>
+                        <div style={{
+                            fontSize: '10px', fontWeight: '700',
+                            color: '#f59e0b', letterSpacing: '0.08em',
+                        }}>
+                            📌 OPEN POSITIONS — {ticker}
+                        </div>
+
+                        {positions.map(pos => {
+                            const isLong   = pos.direction === 'long';
+                            const pnl      = pos.current_price
+                                ? (isLong
+                                    ? pos.current_price - pos.entry_price
+                                    : pos.entry_price   - pos.current_price)
+                                : null;
+                            const pnlPct   = pnl != null
+                                ? (pnl / pos.entry_price * 100).toFixed(2)
+                                : null;
+                            const rr = pos.sl_dollars && pos.tp_dollars
+                                ? (Math.abs(pos.tp_dollars) / Math.abs(pos.sl_dollars)).toFixed(2)
+                                : null;
+
+                            return (
+                                <div key={pos.id} style={{
+                                    display:         'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                                    gap:             '8px',
+                                    padding:         '10px 12px',
+                                    backgroundColor: chartTheme==='dark'||chartTheme==='hud' ? '#1e1e2e' : '#fff',
+                                    borderRadius:    '8px',
+                                    border:          `1px solid ${isLong ? '#3b82f630' : '#f8717130'}`,
+                                    borderLeft:      `3px solid ${isLong ? '#3b82f6' : '#f87171'}`,
+                                }}>
+                                    {/* Asset + direction */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>
+                                            POSITION
+                                        </div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: isLong ? '#3b82f6' : '#f87171' }}>
+                                            {isLong ? '▲ LONG' : '▼ SHORT'}
+                                        </div>
+                                        {pos.notes && (
+                                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                                                {pos.notes.slice(0, 30)}{pos.notes.length > 30 ? '…' : ''}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Entry */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>ENTRY</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#3b82f6', fontFamily: 'monospace' }}>
+                                            ${pos.entry_price}
+                                        </div>
+                                    </div>
+
+                                    {/* SL */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>STOP LOSS</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#ef4444', fontFamily: 'monospace' }}>
+                                            ${pos.sl_price ?? '—'}
+                                        </div>
+                                        {pos.sl_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '1px' }}>
+                                                -${Math.abs(pos.sl_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* TP */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>TAKE PROFIT</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#10b981', fontFamily: 'monospace' }}>
+                                            ${pos.tp_price ?? '—'}
+                                        </div>
+                                        {pos.tp_dollars != null && (
+                                            <div style={{ fontSize: '10px', color: '#10b981', marginTop: '1px' }}>
+                                                +${Math.abs(pos.tp_dollars).toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Current price + live P&L */}
+                                    <div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>NOW</div>
+                                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#f59e0b', fontFamily: 'monospace' }}>
+                                            ${pos.current_price?.toFixed(2) ?? '—'}
+                                        </div>
+                                        {pnl != null && (
+                                            <div style={{ fontSize: '10px', color: pnl >= 0 ? '#10b981' : '#ef4444', marginTop: '1px', fontWeight: '700' }}>
+                                                {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)} ({pnl >= 0 ? '+' : ''}{pnlPct}%)
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* R:R */}
+                                    {rr && (
+                                        <div>
+                                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700', marginBottom: '3px' }}>R:R</div>
+                                            <div style={{ fontSize: '13px', fontWeight: '800', color: parseFloat(rr) >= 2 ? '#10b981' : parseFloat(rr) >= 1 ? '#f59e0b' : '#ef4444', fontFamily: 'monospace' }}>
+                                                1:{rr}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Indicator legend strip */}
+                {(showEMA || showBB || (showRSI && rsiVal !== null)) && (() => {
+                    const stripBg  = chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#141420':'#f8f8ff';
+                    const stripBdr = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#ede9fe';
+                    const textC    = chartTheme==='light'?'#555':'#aaa';
+                    const rsiColor = rsiVal > 70 ? '#ef4444' : rsiVal < 30 ? '#10b981' : '#60a5fa';
+                    return (
+                        <div style={{ padding: '7px 16px', borderTop:`1px solid ${stripBdr}`, backgroundColor: stripBg, display:'flex', gap:'16px', flexWrap:'wrap', alignItems:'center' }}>
+                            {showEMA && <span style={{ fontSize:'11px', color: textC }}>
+                                <span style={{ color:'#10b981', fontWeight:'700' }}>- EMA20</span>
+                                {'  '}<span style={{ color:'#3b82f6', fontWeight:'700' }}>- EMA50</span>
+                                {'  '}<span style={{ color:'#ef4444', fontWeight:'700' }}>- EMA200</span>
+                            </span>}
+                            {showBB && <span style={{ fontSize:'11px', color:'#8b5cf6', fontWeight:'700' }}>
+                                -- BB(20,2)
+                            </span>}
+                            {showRSI && rsiVal !== null && (
+                                <span style={{ fontSize:'11px', display:'flex', alignItems:'center', gap:'6px' }}>
+                                    <span style={{ color: textC }}>RSI(14)</span>
+                                    <span style={{ fontWeight:'800', fontSize:'13px', color: rsiColor }}>{rsiVal.toFixed(1)}</span>
+                                    <span style={{ padding:'2px 8px', borderRadius:'20px', backgroundColor: rsiColor+'18', border:`1px solid ${rsiColor}40`, color: rsiColor, fontSize:'10px', fontWeight:'700' }}>
+                                        {rsiVal > 70 ? 'OVERBOUGHT' : rsiVal < 30 ? 'OVERSOLD' : 'NEUTRAL'}
+                                    </span>
+                                </span>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {/* Chart action bar -- theme-aware */}
+                <div style={{ padding: '12px 16px', borderTop: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#f0f0f0'}`, backgroundColor: chartTheme==='hud'?'#020f1f':chartTheme==='dark'?'#1a1a2e':'#fafafa', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
+                    {/* Manual refresh */}
+                    <button
+                        onClick={() => setRefreshTick(t => t + 1)}
+                        disabled={refreshing || loadingChart}
+                        title="Refresh chart data"
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '13px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: refreshing ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ display: 'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span>
+                    </button>
+                    {/* Auto-refresh toggle */}
+                    <button
+                        onClick={() => setAutoRefresh(a => !a)}
+                        title={autoRefresh ? 'Auto-refresh ON (30s) -- click to disable' : 'Enable auto-refresh every 30s'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0')}`,
+                            backgroundColor: autoRefresh ? (chartTheme==='hud'?'rgba(0,212,255,0.12)':'rgba(16,185,129,0.1)') : (chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff'),
+                            color: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : (chartTheme==='hud'?'rgba(0,212,255,0.4)':chartTheme==='dark'?'#555':'#aaa'),
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s',
+                        }}
+                    >
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: autoRefresh ? (chartTheme==='hud'?'#00d4ff':'#10b981') : 'currentColor', display: 'inline-block', opacity: autoRefresh ? 1 : 0.35 }} />
+                        {autoRefresh ? '30s' : 'Auto'}
+                    </button>
+                    {/* Last refreshed */}
+                    {lastRefreshed && (
+                        <span style={{ fontSize: '11px', color: chartTheme==='hud'?'rgba(0,212,255,0.35)':chartTheme==='dark'?'#3a3a4a':'#ccc' }}>
+                            {lastRefreshed.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'})}
+                        </span>
+                    )}
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Analyst ratings button */}
+                    <button
+                        onClick={() => analystData ? setShowAnalystPanel(p=>!p) : fetchAnalystRatings(ticker)}
+                        disabled={analystLoading}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showAnalystPanel && analystData ? 'rgba(16,185,129,0.1)' : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showAnalystPanel && analystData ? '#10b981' : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: analystLoading ? 'wait' : 'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s',
+                        }}
+                    >
+                        {analystLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🏦'} Analyst Ratings
+                    </button>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* TradingView link */}
+                    <a
+                        href={`https://www.tradingview.com/chart/?symbol=${ticker}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Open ${ticker} on TradingView`}
+                        style={{
+                            padding: '8px 13px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff',
+                            textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#2962ff'; e.currentTarget.style.color = '#2962ff'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'; e.currentTarget.style.color = chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#2962ff'; }}
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h7v2H5v14h14v-5h2v7H3V3zm11 0h7v7h-2V6.414l-9.293 9.293-1.414-1.414L17.586 5H14V3z"/></svg>
+                        TradingView
+                    </a>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Earnings markers toggle */}
+                    <button onClick={() => {
+                        setShowEarningsMarkers(v => {
+                            const next = !v;
+                            // re-apply immediately using current candle data
+                            if (seriesRef.current) {
+                                if (!next) { try { seriesRef.current.setMarkers([]); } catch {} }
+                                else { setRefreshTick(t => t + 1); }
+                            }
+                            return next;
+                        });
+                    }} title="Toggle earnings date markers on chart"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showEarningsMarkers?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showEarningsMarkers?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        💰 {showEarningsMarkers ? 'Earnings v' : 'Earnings'}
+                    </button>
+                    {/* Drawing tools toggle */}
+                    <button onClick={() => setDrawingMode(m => !m)} title={drawingMode ? 'Drawing mode ON -- click chart to drop a line' : 'Enable drawing mode'}
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${drawingMode?'#f59e0b':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: drawingMode?'rgba(245,158,11,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: drawingMode?'#f59e0b':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        Edit️ {drawingMode ? 'Drawing' : 'Draw'}
+                    </button>
+
+                    {/* Compare */}
+                    <button onClick={() => setShowComparePicker(true)}
+                        title="Compare with another asset"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${compareTicker?'#3b82f6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: compareTicker?'rgba(59,130,246,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: compareTicker?'#3b82f6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        + {compareTicker ? `vs ${compareTicker}` : 'Compare'}
+                    </button>
+                    {/* Video record */}
+                    <button
+                        onClick={() => isRecording ? stopRecording() : recordChartVideo(45)}
+                        title={isRecording ? 'Stop recording' : 'Record chart playback video'}
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${isRecording?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: isRecording?'rgba(239,68,68,0.12)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: isRecording?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {isRecording
+                            ? <><span style={{ width:'8px', height:'8px', borderRadius:'2px', backgroundColor:'#ef4444', display:'inline-block', animation:'pulse 1s ease-in-out infinite' }} /> Stop ({recordingProgress}%)</>
+                            : <>🎬 Record</>}
+                    </button>
+                    {/* Price alert */}
+                    <button onClick={() => { console.log('[Alert] opening modal for', ticker); setShowAlertForm(true); }} title="Set price alert"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: alerts.filter(a=>a.ticker===ticker).length?'rgba(239,68,68,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: alerts.filter(a=>a.ticker===ticker).length?'#ef4444':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        🔔 {alerts.filter(a=>a.ticker===ticker).length > 0 ? `Alert (${alerts.filter(a=>a.ticker===ticker).length})` : 'Alert'}
+                    </button>
+
+                    {/* Options flow */}
+                    <button onClick={() => { console.log('[Options] clicked, ticker:', ticker); setShowOptionsPanel(true); fetchOptions(ticker); }} disabled={optionsLoading}
+                        title="Options flow -- put/call ratio, key strikes"
+                        style={{ padding:'8px 12px', borderRadius:'9px', fontSize:'12px', fontWeight:'700',
+                            border:`1px solid ${showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showOptionsPanel&&optionsData?'rgba(139,92,246,0.1)':chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showOptionsPanel&&optionsData?'#8b5cf6':chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: optionsLoading?'wait':'pointer', display:'flex', alignItems:'center', gap:'5px', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                        {optionsLoading ? <span style={{animation:'spin 0.8s linear infinite',display:'inline-block'}}>⏳</span> : '🎯'} Options
+                    </button>
+                    <div style={{ width: '1px', height: '20px', backgroundColor: chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e8e8e8', flexShrink: 0 }} />
+                    {/* Position lines toggle */}
+                    <button
+                        onClick={() => setShowPositions(p => !p)}
+                        title={positions.length > 0 ? `${positions.length} position(s) for ${ticker}` : 'No positions for this ticker'}
+                        style={{
+                            padding: '8px 12px', borderRadius: '9px', fontSize: '12px', fontWeight: '700',
+                            border: `1px solid ${showPositions && positions.length > 0 ? '#3b82f6' : chartTheme==='hud'?'#0d3a5c':chartTheme==='dark'?'#2a2a3a':'#e0e0e0'}`,
+                            backgroundColor: showPositions && positions.length > 0
+                                ? 'rgba(59,130,246,0.12)'
+                                : chartTheme==='hud'?'#0a1f35':chartTheme==='dark'?'#1e1e2e':'#fff',
+                            color: showPositions && positions.length > 0
+                                ? '#3b82f6'
+                                : chartTheme==='hud'?'#00d4ff':chartTheme==='dark'?'#aaa':'#555',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '5px',
+                            transition: 'all 0.15s', whiteSpace: 'nowrap',
+                            opacity: positionsLoading ? 0.6 : 1,
+                        }}
+                    >
+                        {positionsLoading
+                            ? <span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span>
+                            : '📌'}
+                        {positions.length > 0 ? `${positions.length} Position${positions.length > 1 ? 's' : ''}` : 'Positions'}
+                    </button>
+                    <button
+                        onClick={captureAndAnalyse}
+                        disabled={sabrinaLoading || screenshotting || !chartLoaded}
+                        style={{
+                            padding: '9px 18px', borderRadius: '10px',
+                            background: sabrinaLoading || screenshotting ? 'rgba(124,58,237,0.3)' : 'linear-gradient(135deg, #7c3aed, #db2777)',
+                            border: 'none', color: '#fff', fontSize: '13px', fontWeight: '700',
+                            cursor: sabrinaLoading || screenshotting ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            transition: 'opacity 0.2s',
+                        }}
+                    >
+                        {screenshotting ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>📸</span> Capturing...</> :
+                         sabrinaLoading ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span> Analysing...</> :
+                         <>😼 Send Chart to Sabrina</>}
+                    </button>
+
+                    <button
+                        onClick={() => askSabrinaForRec(null)}
+                        disabled={sabrinaLoading}
+                        style={{
+                            padding: '9px 16px', borderRadius: '10px',
+                            backgroundColor: '#fff', border: '1px solid #e0e0e0',
+                            color: '#555', fontSize: '13px', fontWeight: '600',
+                            cursor: sabrinaLoading ? 'wait' : 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                        }}
+                    >
+                        📋 Fundamentals Only
+                    </button>
+
+                    {sabrinaRec && (
+                        <div style={{ marginLeft: 'auto', fontSize: '12px', color: chartTheme==='hud'?'rgba(0,212,255,0.5)':chartTheme==='dark'?'#555':'#aaa' }}>
+                            Last rec: {sabrinaRec.generatedAt} {sabrinaRec.hadChart ? '. 📸 with chart' : '. 📋 fundamentals only'}
+                        </div>
+                    )}
+                </div>
+            </div>
+            ); })()}
+
+            {/* == ALERT MODAL ================================================== */}
+            {showAlertForm && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.5)', zIndex:9000, display:'flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => { if (e.target === e.currentTarget) setShowAlertForm(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'16px', padding:'28px', width:'360px', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ fontSize:'18px', fontWeight:'800', marginBottom:'6px' }}>🔔 Price Alert -- {ticker}</div>
+                        <div style={{ fontSize:'12px', color:'#999', marginBottom:'20px' }}>
+                            Auto-checks every 30s. Toast fires when level is breached.
+                        </div>
+                        <div style={{ marginBottom:'12px' }}>
+                            <label style={{ fontSize:'12px', fontWeight:'700', color:'#555', display:'block', marginBottom:'6px' }}>DIRECTION</label>
+                            <div style={{ display:'flex', gap:'8px' }}>
+                                {['above','below'].map(d => (
+                                    <button key={d} onClick={() => setAlertDir(d)}
+                                        style={{ flex:1, padding:'9px', borderRadius:'8px', border:`2px solid ${alertDir===d?'#ef4444':'#e0e0e0'}`,
+                                            backgroundColor: alertDir===d?'#fef2f2':'#fff',
+                                            color: alertDir===d?'#ef4444':'#555', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>
+                                        {d === 'above' ? '^ Goes above' : 'v Drops below'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ marginBottom:'20px' }}>
+                            <label style={{ fontSize:'12px', fontWeight:'700', color:'#555', display:'block', marginBottom:'6px' }}>TARGET PRICE</label>
+                            <input type="number" step="0.01" placeholder={`e.g. ${stockData?.currentPrice?.toFixed(2) || '195.00'}`}
+                                value={alertPrice} onChange={e => setAlertPrice(e.target.value)}
+                                style={{ width:'100%', padding:'10px 12px', borderRadius:'8px', border:'2px solid #e0e0e0', fontSize:'15px', fontWeight:'700', boxSizing:'border-box', outline:'none' }} />
+                        </div>
+                        {/* Existing alerts for this ticker */}
+                        {alerts.filter(a => a.ticker === ticker).length > 0 && (
+                            <div style={{ marginBottom:'16px' }}>
+                                <div style={{ fontSize:'11px', fontWeight:'700', color:'#999', marginBottom:'8px', letterSpacing:'0.07em' }}>ACTIVE ALERTS</div>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                                    {alerts.filter(a => a.ticker === ticker).map(a => (
+                                        <div key={a.id} style={{ display:'flex', alignItems:'center', gap:'5px', padding:'4px 10px', borderRadius:'20px', backgroundColor:'#fef2f2', border:'1px solid #fecaca', fontSize:'12px', color:'#b91c1c', fontWeight:'700' }}>
+                                            {a.dir === 'above' ? '^' : 'v'} ${a.price}
+                                            <button onClick={() => saveAlerts(alerts.filter(x => x.id !== a.id))}
+                                                style={{ background:'none', border:'none', cursor:'pointer', color:'#b91c1c', fontWeight:'900', fontSize:'14px', lineHeight:1, padding:0 }}>x</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div style={{ display:'flex', gap:'8px' }}>
+                            <button onClick={() => {
+                                if (!alertPrice) return;
+                                const newAlert = { id: Date.now(), ticker, price: parseFloat(alertPrice), dir: alertDir };
+                                console.log('[Alert] Saving alert:', newAlert);
+                                saveAlerts([...alerts, newAlert]);
+                                setAlertPrice('');
+                                setShowAlertForm(false);
+                            }} style={{ flex:1, padding:'11px', borderRadius:'9px', backgroundColor:'#ef4444', color:'#fff', border:'none', fontWeight:'800', fontSize:'14px', cursor:'pointer' }}>
+                                Set Alert
+                            </button>
+                            <button onClick={() => setShowAlertForm(false)}
+                                style={{ padding:'11px 16px', borderRadius:'9px', backgroundColor:'#f0f0f0', color:'#666', border:'none', fontSize:'14px', cursor:'pointer' }}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* == FIRED ALERT TOASTS ============================================ */}
+            {firedAlerts.length > 0 && (
+                <div style={{ position:'fixed', bottom:'90px', right:'24px', zIndex:9999, display:'flex', flexDirection:'column', gap:'8px' }}>
+                    {firedAlerts.slice(-4).map((a, i) => (
+                        <div key={a.id || i} style={{ padding:'14px 18px', backgroundColor:'#ef4444', color:'#fff', borderRadius:'12px', boxShadow:'0 4px 20px rgba(239,68,68,0.5)', fontSize:'13px', fontWeight:'700', display:'flex', gap:'12px', alignItems:'center', minWidth:'260px' }}>
+                            <span style={{ fontSize:'20px' }}>🔔</span>
+                            <div style={{ flex:1 }}>
+                                <div>{a.ticker} {a.dir==='above'?'crossed above':'dropped below'} ${a.price}</div>
+                                <div style={{ fontSize:'11px', opacity:0.8, marginTop:'2px' }}>{new Date().toLocaleTimeString()}</div>
+                            </div>
+                            <button onClick={() => setFiredAlerts(prev => prev.filter((_, j) => j !== i))}
+                                style={{ background:'none', border:'none', color:'#fff', cursor:'pointer', fontSize:'18px', fontWeight:'700', lineHeight:1 }}>x</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* == DRAWING TOOLKIT ============================================ */}
+            {(drawingMode || drawnLines.length > 0) && (
+                <div style={{ backgroundColor:'#fffbeb', borderRadius:'12px', border:'1px solid #fde68a', padding:'14px 16px', marginBottom:'16px' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
+                        <span style={{ fontSize:'13px', fontWeight:'700', color:'#92400e' }}>Edit️ Level Lines</span>
+                        {drawnLines.length > 0 && (
+                            <button onClick={() => {
+                                drawnLinesRef.current.forEach(l => { try { seriesRef.current?.removePriceLine(l.priceLine); } catch(e) { console.warn('[Draw]', e); } });
+                                drawnLinesRef.current = []; setDrawnLines([]);
+                            }} style={{ fontSize:'11px', color:'#b45309', background:'none', border:'1px solid #fcd34d', borderRadius:'6px', cursor:'pointer', padding:'2px 8px' }}>Clear all</button>
+                        )}
+                    </div>
+
+                    {/* Colour picker + manual input */}
+                    {drawingMode && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'10px', marginBottom:'12px', alignItems:'flex-end' }}>
+                            {/* Colour swatches */}
+                            <div>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>COLOUR</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    {LINE_COLORS.map(c => (
+                                        <button key={c.id} onClick={() => setSelectedLineColor(c.hex)} title={c.label}
+                                            style={{ width:'20px', height:'20px', borderRadius:'50%', backgroundColor:c.hex, border: selectedLineColor===c.hex ? '3px solid #1a1a1a' : '2px solid transparent', cursor:'pointer', flexShrink:0, transition:'border 0.1s' }} />
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Manual price input */}
+                            <div style={{ flex:1, minWidth:'160px' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'700', color:'#b45309', marginBottom:'5px', letterSpacing:'0.07em' }}>EXACT PRICE</div>
+                                <div style={{ display:'flex', gap:'5px' }}>
+                                    <input type="number" step="0.01" placeholder="e.g. 195.50"
+                                        value={manualPrice} onChange={e => setManualPrice(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'80px' }} />
+                                    <input type="text" placeholder="Label (optional)"
+                                        value={manualLabel} onChange={e => setManualLabel(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); } }}
+                                        style={{ flex:1, padding:'5px 8px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff', outline:'none', minWidth:'90px' }} />
+                                    <button onClick={() => { addManualLine(manualPrice, manualLabel, selectedLineColor); setManualPrice(''); setManualLabel(''); }}
+                                        style={{ padding:'5px 10px', borderRadius:'6px', backgroundColor:'#f59e0b', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {drawingMode && (
+                        <div style={{ fontSize:'11px', color:'#b45309', marginBottom: drawnLines.length > 0 ? '10px' : '0' }}>
+                            Click anywhere on the chart to drop a line . or type an exact price above
+                        </div>
+                    )}
+
+                    {/* Lines list */}
+                    {drawnLines.length > 0 && (
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:'6px' }}>
+                            {drawnLines.map(l => (
+                                <span key={l.id} style={{ padding:'4px 10px', borderRadius:'20px', backgroundColor: l.color + '18', border:`1px solid ${l.color}60`, fontSize:'12px', fontWeight:'700', display:'flex', alignItems:'center', gap:'5px', color: l.color === '#e5e7eb' ? '#555' : l.color }}>
+                                    <span style={{ width:'8px', height:'8px', borderRadius:'50%', backgroundColor:l.color, flexShrink:0 }} />
+                                    {l.label ? `${l.label} ` : ''}${l.price}
+                                    <button onClick={() => {
+                                        const found = drawnLinesRef.current.find(x => x.id === l.id);
+                                        if (found) { try { seriesRef.current?.removePriceLine(found.priceLine); } catch(e) { console.warn('[Draw]', e); } }
+                                        drawnLinesRef.current = drawnLinesRef.current.filter(x => x.id !== l.id);
+                                        setDrawnLines(prev => prev.filter(x => x.id !== l.id));
+                                    }} style={{ background:'none', border:'none', cursor:'pointer', fontWeight:'900', fontSize:'13px', padding:0, lineHeight:1, color:'inherit', opacity:0.7 }}>x</button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+
+            {/* == OPTIONS FLOW PANEL ============================================ */}
+            {showOptionsPanel && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    {optionsLoading && (
+                        <div style={{ padding:'40px', textAlign:'center', color:'#7c3aed', fontSize:'14px' }}>
+                            <div style={{ fontSize:'28px', animation:'spin 1s linear infinite', display:'inline-block', marginBottom:'8px' }}>⏳</div>
+                            <div>Fetching options chain...</div>
+                        </div>
+                    )}
+                    {optionsError && !optionsLoading && (
+                        <div style={{ padding:'24px 20px' }}>
+                            <div style={{ fontSize:'15px', fontWeight:'700', color:'#b91c1c', marginBottom:'8px' }}>!️ Options Error</div>
+                            <div style={{ fontSize:'13px', color:'#ef4444', backgroundColor:'#fef2f2', padding:'12px', borderRadius:'8px', fontFamily:'monospace' }}>{optionsError}</div>
+                            <div style={{ marginTop:'12px', display:'flex', gap:'8px' }}>
+                                <button onClick={() => fetchOptions(ticker)} style={{ padding:'8px 16px', borderRadius:'8px', backgroundColor:'#8b5cf6', color:'#fff', border:'none', fontWeight:'700', cursor:'pointer' }}>Retry</button>
+                                <button onClick={() => setShowOptionsPanel(false)} style={{ padding:'8px 16px', borderRadius:'8px', backgroundColor:'#f0f0f0', color:'#555', border:'none', cursor:'pointer' }}>Close</button>
+                            </div>
+                        </div>
+                    )}
+                    {optionsData && !optionsLoading && (() => {
+                        const o = optionsData;
+                        const pcr = o.putCallRatio;
+                        const pcrColor = !pcr ? '#aaa' : pcr > 1.2 ? '#ef4444' : pcr < 0.7 ? '#10b981' : '#f59e0b';
+                        const pcrLabel = !pcr ? 'N/A' : pcr > 1.2 ? 'Bearish -- more puts than calls' : pcr < 0.7 ? 'Bullish -- more calls than puts' : 'Neutral';
+                        return (
+                            <>
+                                <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#f5f3ff', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                                    <div>
+                                        <div style={{ fontWeight:'800', fontSize:'15px', color:'#4c1d95' }}>🎯 Options Flow -- {o.ticker} . {o.expiry}</div>
+                                        <div style={{ fontSize:'12px', color:'#7c3aed', marginTop:'2px' }}>What big money is positioning for</div>
+                                    </div>
+                                    <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                                        {o.expiryDates?.length > 1 && (
+                                            <select value={optionsExpiry || o.expiry} onChange={e => { setOptionsExpiry(e.target.value); fetchOptions(ticker); }}
+                                                style={{ padding:'5px 9px', borderRadius:'8px', border:'1px solid #ddd6fe', fontSize:'12px', color:'#4c1d95' }}>
+                                                {o.expiryDates.map(d => <option key={d} value={d}>{d}</option>)}
+                                            </select>
+                                        )}
+                                        <button onClick={() => setShowOptionsPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa' }}>x</button>
+                                    </div>
+                                </div>
+                                {/* Layman explainer */}
+                                <div style={{ padding:'10px 20px', backgroundColor:'#faf5ff', borderBottom:'1px solid #ede9fe', display:'flex', gap:'10px', alignItems:'flex-start' }}>
+                                    <span style={{ fontSize:'16px', flexShrink:0 }}>💡</span>
+                                    <div style={{ fontSize:'12px', color:'#6b21a8', lineHeight:'1.6' }}>
+                                        <strong>Calls</strong> = right to buy = bet the price goes up. <strong>Puts</strong> = right to sell = bet the price drops.
+                                        <strong> Put/call ratio</strong> below 0.7 = mostly calls = bullish. Above 1.2 = mostly puts = bearish.
+                                        <strong> Open interest</strong> = active contracts. High OI at a price = that level matters.
+                                        <strong> IV</strong> = expected volatility. High IV = big swing expected.
+                                    </div>
+                                </div>
+                                <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:'12px' }}>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:`4px solid ${pcrColor}` }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>PUT/CALL RATIO</div>
+                                        <div style={{ fontSize:'26px', fontWeight:'800', color:pcrColor }}>{pcr?.toFixed(2) ?? 'N/A'}</div>
+                                        <div style={{ fontSize:'11px', color:pcrColor, fontWeight:'600', marginTop:'3px' }}>{pcrLabel}</div>
+                                    </div>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #3b82f6' }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>VOLUME</div>
+                                        <div style={{ fontSize:'18px', fontWeight:'800', color:'#1e40af' }}>{o.totalVolume?.toLocaleString() ?? 'N/A'}</div>
+                                        <div style={{ fontSize:'11px', marginTop:'4px', display:'flex', gap:'8px' }}>
+                                            <span style={{ color:'#10b981' }}>📈 {o.callVolume?.toLocaleString()}</span>
+                                            <span style={{ color:'#ef4444' }}>📉 {o.putVolume?.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ padding:'14px', backgroundColor:'#f8f9fa', borderRadius:'10px', borderLeft:'4px solid #6b7280' }}>
+                                        <div style={{ fontSize:'11px', color:'#999', fontWeight:'700', letterSpacing:'0.07em', marginBottom:'6px' }}>CURRENT PRICE</div>
+                                        <div style={{ fontSize:'22px', fontWeight:'800', color:'#1a1a1a' }}>${o.currentPrice?.toFixed(2) ?? 'N/A'}</div>
+                                    </div>
+                                </div>
+                                {o.notableStrikes?.length > 0 && (
+                                    <div style={{ padding:'0 20px 20px' }}>
+                                        <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>TOP STRIKES BY OPEN INTEREST (within +/-25% of price)</div>
+                                        <div style={{ overflowX:'auto' }}>
+                                            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+                                                <thead>
+                                                    <tr style={{ backgroundColor:'#f8f9fa' }}>
+                                                        {['Type','Strike','OI','Volume','IV %','Delta from Price'].map(h => (
+                                                            <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:'700', color:'#555', borderBottom:'1px solid #f0f0f0' }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {o.notableStrikes.map((s, i) => {
+                                                        const delta = o.currentPrice ? ((s.strike - o.currentPrice) / o.currentPrice * 100).toFixed(1) : null;
+                                                        const isCall = s.type === 'call';
+                                                        return (
+                                                            <tr key={i} style={{ borderBottom:'1px solid #f8f8f8' }}>
+                                                                <td style={{ padding:'8px 10px' }}>
+                                                                    <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor:isCall?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)', color:isCall?'#10b981':'#ef4444' }}>
+                                                                        {isCall ? '📈 CALL' : '📉 PUT'}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding:'8px 10px', fontWeight:'700' }}>${s.strike}</td>
+                                                                <td style={{ padding:'8px 10px' }}>{s.openInterest?.toLocaleString()}</td>
+                                                                <td style={{ padding:'8px 10px' }}>{s.volume?.toLocaleString()}</td>
+                                                                <td style={{ padding:'8px 10px', color:s.impliedVolatility>0.6?'#ef4444':'#333' }}>{s.impliedVolatility?(s.impliedVolatility*100).toFixed(1):'-'}</td>
+                                                                <td style={{ padding:'8px 10px', fontWeight:'700', color:parseFloat(delta)>0?'#10b981':'#ef4444' }}>{delta!==null?`${parseFloat(delta)>0?'+':''}${delta}%`:'-'}</td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+
+            {/* == VIDEO PLAYER =============================================== */}
+            {(isRecording || videoUrl) && (
+                <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                    <div style={{ padding:'14px 20px', borderBottom:'1px solid #f0f0f0', backgroundColor:'#0f0f14', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div>
+                            <div style={{ fontWeight:'800', fontSize:'15px', color:'#fff' }}>🎬 Chart Replay -- {ticker} . {chartInterval}</div>
+                            <div style={{ fontSize:'12px', color:'#aaa', marginTop:'2px' }}>
+                                {isRecording ? `Recording... ${recordingProgress}% -- animating through data` : '> Playback ready . loops . download to keep'}
+                            </div>
+                        </div>
+                        <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+                            {videoUrl && !isRecording && (
+                                <button onClick={downloadVideo}
+                                    style={{ padding:'7px 14px', borderRadius:'8px', backgroundColor:'#2563eb', color:'#fff', border:'none', fontWeight:'700', fontSize:'12px', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px' }}>
+                                    v Download .webm
+                                </button>
+                            )}
+                            {videoUrl && (
+                                <button onClick={() => { URL.revokeObjectURL(videoUrl); setVideoUrl(null); setVideoBlob(null); setRecordingProgress(0); }}
+                                    style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#666' }}>x</button>
+                            )}
+                        </div>
+                    </div>
+                    {isRecording && (
+                        <div style={{ padding:'20px', backgroundColor:'#0f0f14' }}>
+                            <div style={{ height:'6px', backgroundColor:'#1e1e2e', borderRadius:'3px', overflow:'hidden', marginBottom:'10px' }}>
+                                <div style={{ height:'100%', width:`${recordingProgress}%`, backgroundColor:'#ef4444', borderRadius:'3px', transition:'width 0.3s ease' }} />
+                            </div>
+                            <div style={{ fontSize:'12px', color:'#ef4444', fontWeight:'700', textAlign:'center' }}>
+                                🔴 Recording chart replay... {recordingProgress}% -- chart is animating through {chartInterval} data
+                            </div>
+                        </div>
+                    )}
+                    {videoUrl && !isRecording && (
+                        <div style={{ backgroundColor:'#0f0f14', padding:'0' }}>
+                            <video
+                                src={videoUrl}
+                                controls
+                                autoPlay
+                                loop
+                                style={{ width:'100%', display:'block', maxHeight:'480px', backgroundColor:'#000' }}
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* == COMPARE PICKER MODAL ======================================== */}
+            {showComparePicker && (
+                <div style={{ position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.6)', zIndex:9500, display:'flex', alignItems:'center', justifyContent:'center' }}
+                    onClick={e => { if (e.target===e.currentTarget) setShowComparePicker(false); }}>
+                    <div style={{ backgroundColor:'#fff', borderRadius:'18px', width:'560px', maxWidth:'95vw', maxHeight:'85vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 80px rgba(0,0,0,0.25)' }}>
+                        <div style={{ padding:'20px 24px 0', flexShrink:0 }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'14px' }}>
+                                <div>
+                                    <div style={{ fontSize:'17px', fontWeight:'800', color:'#1a1a1a' }}>+ Compare with {ticker}</div>
+                                    <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>Pick any asset -- a full chart opens side by side</div>
+                                </div>
+                                <button onClick={()=>setShowComparePicker(false)} style={{ background:'none', border:'none', fontSize:'22px', cursor:'pointer', color:'#aaa' }}>x</button>
+                            </div>
+                            <input autoFocus type="text" placeholder="Search ticker or name... e.g. NVDA, Gold, EUR/USD"
+                                value={compareSearch} onChange={e => setCompareSearch(e.target.value.toUpperCase())}
+                                style={{ width:'100%', padding:'10px 14px', borderRadius:'10px', border:'2px solid #e0e0e0', fontSize:'14px', boxSizing:'border-box', outline:'none', marginBottom:'12px' }} />
+                            <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'12px' }}>
+                                {Object.keys(COMPARE_ASSETS).map(cat => (
+                                    <button key={cat} onClick={() => setCompareCategory(cat)}
+                                        style={{ padding:'5px 12px', borderRadius:'20px', fontSize:'12px', fontWeight:'700', cursor:'pointer', border:'none',
+                                            backgroundColor: compareCategory===cat ? '#3b82f6' : '#f0f0f0',
+                                            color: compareCategory===cat ? '#fff' : '#555', textTransform:'capitalize' }}>
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div style={{ overflowY:'auto', flex:1, padding:'0 24px 12px' }}>
+                            {compareTicker && (
+                                <div style={{ marginBottom:'10px', display:'flex', alignItems:'center', gap:'8px', padding:'8px 12px', backgroundColor:'#eff6ff', borderRadius:'8px', border:'1px solid #bfdbfe' }}>
+                                    <span style={{ fontSize:'12px', color:'#3b82f6', fontWeight:'700' }}>Comparing: {compareTicker}</span>
+                                    <button onClick={() => { setCompareTicker(null); setShowComparePicker(false); }}
+                                        style={{ marginLeft:'auto', fontSize:'11px', color:'#ef4444', background:'none', border:'1px solid #fecaca', borderRadius:'6px', padding:'2px 8px', cursor:'pointer' }}>Remove</button>
+                                </div>
+                            )}
+                            {(() => {
+                                const allInCat = COMPARE_ASSETS[compareCategory] || [];
+                                const filtered = compareSearch.length > 0
+                                    ? Object.values(COMPARE_ASSETS).flat().filter(a => a.s.includes(compareSearch) || a.n.toUpperCase().includes(compareSearch))
+                                    : allInCat;
+                                if (filtered.length === 0) return <div style={{ padding:'24px', textAlign:'center', color:'#aaa', fontSize:'13px' }}>No results for "{compareSearch}"</div>;
+                                return (
+                                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:'6px' }}>
+                                        {filtered.map(a => (
+                                            <button key={a.s} onClick={() => { setCompareTicker(a.s); setShowComparePicker(false); setCompareSearch(''); }}
+                                                style={{ padding:'8px 10px', borderRadius:'8px', border:`1px solid ${compareTicker===a.s?'#3b82f6':'#e8e8e8'}`,
+                                                    backgroundColor: compareTicker===a.s?'#eff6ff':'#fafafa',
+                                                    cursor:'pointer', textAlign:'left', transition:'all 0.1s' }}>
+                                                <div style={{ fontSize:'12px', fontWeight:'800', color:compareTicker===a.s?'#3b82f6':'#1a1a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.s}</div>
+                                                {a.n !== a.s && <div style={{ fontSize:'10px', color:'#999', marginTop:'1px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{a.n}</div>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <div style={{ padding:'12px 24px', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', gap:'10px', flexShrink:0 }}>
+                            <span style={{ fontSize:'12px', color:'#999', fontWeight:'600' }}>Layout:</span>
+                            {[['side','[][] Side by side'],['stack','[]<> Stacked']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'5px 12px', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* == COMPARE DUAL CHART ============================================== */}
+            {compareTicker && (
+                <div style={{ marginBottom:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', flexWrap:'wrap' }}>
+                        <div style={{ fontSize:'14px', fontWeight:'800', color:'#1a1a1a' }}>
+                            📊 {ticker} <span style={{ color:'#aaa', fontWeight:'400', margin:'0 4px' }}>vs</span> {compareTicker}
+                        </div>
+                        <div style={{ display:'flex', gap:'6px', marginLeft:'auto' }}>
+                            <span className="compare-layout-toggle" style={{ display:'contents' }}>
+                            {[['side','[][] Side'],['stack','[]<> Stack']].map(([m,lbl]) => (
+                                <button key={m} onClick={() => setCompareMode(m)}
+                                    style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer',
+                                        border:`1px solid ${compareMode===m?'#3b82f6':'#e0e0e0'}`,
+                                        backgroundColor: compareMode===m?'#eff6ff':'#fff',
+                                        color: compareMode===m?'#3b82f6':'#555' }}>
+                                    {lbl}
+                                </button>
+                            ))}
+                            </span>
+                            <button onClick={() => setShowComparePicker(true)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #e0e0e0', backgroundColor:'#fff', color:'#555' }}>
+                                + Swap
+                            </button>
+                            <button onClick={() => setCompareTicker(null)}
+                                style={{ padding:'4px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444' }}>
+                                x Close
+                            </button>
+                        </div>
+                    </div>
+                    <div className="compare-grid" style={{
+                        display: 'grid',
+                        gridTemplateColumns: compareMode==='side' ? '1fr 1fr' : '1fr',
+                        gap: '14px', alignItems: 'start',
+                    }}>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#888', marginBottom:'5px', paddingLeft:'2px' }}>📈 {ticker} -- primary</div>
+                            <ChartInsightsTab ticker={ticker} stockData={stockData} earnings={earnings} news={news}
+                                marketauxNews={marketauxNews} openaiKey={openaiKey} cachedNewsAnalysis={cachedNewsAnalysis} compactMode={true} />
+                        </div>
+                        <div style={{ minWidth:0 }}>
+                            <div style={{ fontSize:'11px', fontWeight:'700', color:'#3b82f6', marginBottom:'5px', paddingLeft:'2px' }}>📈 {compareTicker} -- compare</div>
+                            <ChartInsightsTab ticker={compareTicker} stockData={null} earnings={[]} news={[]}
+                                marketauxNews={[]} openaiKey={openaiKey} cachedNewsAnalysis={null} compactMode={true} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* -- Analyst Ratings Panel -- */}
+            {showAnalystPanel && analystData && (() => {
+                const s = analystData.summary;
+                const pt = analystData.priceTarget;
+                const ratings = analystData.recentRatings || [];
+                const history = analystData.history || [];
+                if (!s) return null;
+                const consensusColors = { 'STRONG BUY':'#10b981','BUY':'#34d399','HOLD':'#f59e0b','SELL':'#f87171','STRONG SELL':'#ef4444' };
+                const cc = consensusColors[s.consensus] || '#aaa';
+                const total = s.total || 1;
+                const bars = [
+                    { label:'Strong Buy', val:s.strongBuy, color:'#10b981' },
+                    { label:'Buy',        val:s.buy,       color:'#34d399' },
+                    { label:'Hold',       val:s.hold,      color:'#f59e0b' },
+                    { label:'Sell',       val:s.sell,      color:'#f87171' },
+                    { label:'Strong Sell',val:s.strongSell,color:'#ef4444' },
+                ];
+                const actionColors = { upgrade:'#10b981', downgrade:'#ef4444', initiated:'#3b82f6', reiterated:'#f59e0b', maintain:'#aaa' };
+                return (
+                    <div style={{ backgroundColor:'#fff', borderRadius:'14px', border:'1px solid #e8e8e8', boxShadow:'0 4px 16px rgba(0,0,0,0.06)', overflow:'hidden', marginBottom:'20px' }}>
+                        {/* Header */}
+                        <div style={{ padding:'16px 20px', borderBottom:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'10px' }}>
+                            <div>
+                                <div style={{ fontSize:'16px', fontWeight:'800', color:'#1a1a1a' }}>🏦 Analyst Ratings -- {analystData.ticker}</div>
+                                <div style={{ fontSize:'12px', color:'#999', marginTop:'2px' }}>{s.total} analysts covering this stock</div>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                                {/* Consensus badge */}
+                                <div style={{ padding:'8px 18px', borderRadius:'24px', backgroundColor:cc+'18', border:`2px solid ${cc}40`, fontSize:'14px', fontWeight:'800', color:cc }}>
+                                    {s.consensus}
+                                </div>
+                                {/* Bullish % */}
+                                <div style={{ textAlign:'center' }}>
+                                    <div style={{ fontSize:'22px', fontWeight:'800', color:'#10b981' }}>{s.bullishPct}%</div>
+                                    <div style={{ fontSize:'10px', color:'#aaa', fontWeight:'600' }}>BULLISH</div>
+                                </div>
+                                <button onClick={() => setShowAnalystPanel(false)} style={{ background:'none', border:'none', fontSize:'20px', cursor:'pointer', color:'#aaa', padding:'4px' }}>x</button>
+                            </div>
+                        </div>
+
+                        <div style={{ padding:'16px 20px', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'20px' }}>
+                            {/* Rating breakdown bars */}
+                            <div>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>RATING BREAKDOWN</div>
+                                {bars.map(b => (
+                                    <div key={b.label} style={{ marginBottom:'8px' }}>
+                                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:'12px', marginBottom:'3px' }}>
+                                            <span style={{ color:'#555', fontWeight:'600' }}>{b.label}</span>
+                                            <span style={{ color:b.color, fontWeight:'700' }}>{b.val}</span>
+                                        </div>
+                                        <div style={{ height:'6px', borderRadius:'3px', backgroundColor:'#f0f0f0', overflow:'hidden' }}>
+                                            <div style={{ height:'100%', width:`${(b.val/total)*100}%`, backgroundColor:b.color, borderRadius:'3px', transition:'width 0.6s ease' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Price target */}
+                            {pt && (
+                                <div>
+                                    <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'12px' }}>PRICE TARGET ({pt.numberOfAnalysts} analysts)</div>
+                                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+                                        {[
+                                            { label:'Mean Target', val:`$${pt.mean}`, big:true, color:'#2563eb' },
+                                            { label:'Current Price', val:`$${pt.current}`, big:true, color:'#1a1a1a' },
+                                            { label:'Low Target',  val:`$${pt.low}`,  big:false, color:'#ef4444' },
+                                            { label:'High Target', val:`$${pt.high}`, big:false, color:'#10b981' },
+                                        ].map(item => (
+                                            <div key={item.label} style={{ padding:'10px 12px', backgroundColor:'#f8f9fa', borderRadius:'8px', borderLeft:`3px solid ${item.color}` }}>
+                                                <div style={{ fontSize:'10px', color:'#999', fontWeight:'600', marginBottom:'4px' }}>{item.label}</div>
+                                                <div style={{ fontSize: item.big?'20px':'15px', fontWeight:'800', color:item.color }}>{item.val}</div>
+                                                {item.label==='Mean Target' && pt.current && (
+                                                    <div style={{ fontSize:'11px', color: pt.mean >= pt.current ? '#10b981' : '#ef4444', fontWeight:'700', marginTop:'2px' }}>
+                                                        {pt.mean >= pt.current ? '^' : 'v'} {Math.abs(((pt.mean - pt.current)/pt.current)*100).toFixed(1)}% upside
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Recent individual ratings */}
+                        {ratings.length > 0 && (
+                            <div style={{ padding:'0 20px 18px' }}>
+                                <div style={{ fontSize:'12px', fontWeight:'700', color:'#999', letterSpacing:'0.07em', marginBottom:'10px' }}>RECENT ANALYST ACTIONS</div>
+                                <div style={{ display:'flex', flexDirection:'column', gap:'6px', maxHeight:'240px', overflowY:'auto' }}>
+                                    {ratings.map((r, i) => {
+                                        const ac = actionColors[r.action?.toLowerCase()] || '#aaa';
+                                        return (
+                                            <div key={i} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', backgroundColor:'#f8f9fa', borderRadius:'8px', flexWrap:'wrap' }}>
+                                                <span style={{ fontSize:'11px', color:'#aaa', flexShrink:0, minWidth:'80px' }}>{r.date}</span>
+                                                <span style={{ fontSize:'12px', fontWeight:'700', color:'#333', flex:1, minWidth:'100px' }}>{r.firm}</span>
+                                                <span style={{ padding:'2px 8px', borderRadius:'12px', fontSize:'11px', fontWeight:'700', backgroundColor:ac+'18', color:ac, border:`1px solid ${ac}30`, flexShrink:0 }}>
+                                                    {r.action || 'Update'}
+                                                </span>
+                                                <span style={{ fontSize:'11px', color:'#555', flexShrink:0 }}>
+                                                    {r.fromGrade && r.toGrade ? `${r.fromGrade} -> ${r.toGrade}` : r.toGrade || r.fromGrade || ''}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {analystError && <div style={{ padding:'12px 20px', color:'#ef4444', fontSize:'13px' }}>!️ {analystError}</div>}
+                    </div>
+                );
+            })()}
+
+            {recError && (
+                <div style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', color: '#b91c1c', fontSize: '14px', marginBottom: '16px' }}>
+                    !️ {recError}
+                </div>
+            )}
+
+            {/* -- Sabrina's Recommendation Card -- */}
+            {!compactMode && sabrinaRec && (
+                <div style={{ backgroundColor: vc.bg, border: `2px solid ${vc.border}`, borderRadius: '14px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                    {/* Verdict header */}
+                    <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${vc.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '36px', lineHeight: 1, flexShrink: 0 }}>{vc.icon}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '22px', fontWeight: '800', color: vc.color }}>{vc.label}</span>
+                                    <span style={{ backgroundColor: vc.color, color: '#fff', fontSize: '12px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px' }}>
+                                        {sabrinaRec.confidence}% confidence
+                                    </span>
+                                    {sabrinaRec.priceTarget && sabrinaRec.priceTarget !== 'N/A' && (
+                                        <span style={{ backgroundColor: '#fff', border: `1px solid ${vc.border}`, color: '#555', fontSize: '12px', fontWeight: '600', padding: '3px 10px', borderRadius: '20px' }}>
+                                            🎯 {sabrinaRec.priceTarget}
+                                        </span>
+                                    )}
+                                    {sabrinaRec.timeframe && (
+                                        <span style={{ fontSize: '12px', color: '#888' }}>. {sabrinaRec.timeframe}</span>
+                                    )}
+                                </div>
+                                <div style={{ fontSize: '15px', color: '#333', lineHeight: '1.6' }}>{sabrinaRec.summary}</div>
+                            </div>
+                        </div>
+
+                        {/* Sabrina quote */}
+                        {sabrinaRec.sabrinaQuote && (
+                            <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderLeft: '3px solid #7c3aed', borderRadius: '8px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                <span style={{ fontSize: '18px', flexShrink: 0 }}>😼</span>
+                                <div style={{ fontSize: '14px', color: '#4c1d95', fontStyle: 'italic', lineHeight: '1.5' }}>"{sabrinaRec.sabrinaQuote}"</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bull / Bear / Levels grid */}
+                    <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                        {sabrinaRec.bullCase && (
+                            <div style={{ backgroundColor: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', letterSpacing: '0.08em', marginBottom: '6px' }}>📈 BULL CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bullCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.bearCase && (
+                            <div style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.18)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#ef4444', letterSpacing: '0.08em', marginBottom: '6px' }}>📉 BEAR CASE</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.bearCase}</div>
+                            </div>
+                        )}
+                        {sabrinaRec.keyLevels && sabrinaRec.keyLevels !== 'N/A' && (
+                            <div style={{ backgroundColor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: '10px', padding: '12px 14px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '700', color: '#2563eb', letterSpacing: '0.08em', marginBottom: '6px' }}>📐 KEY LEVELS</div>
+                                <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{sabrinaRec.keyLevels}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Catalysts + Risks */}
+                    {((sabrinaRec.catalysts?.length > 0) || (sabrinaRec.risks?.length > 0)) && (
+                        <div style={{ padding: '0 20px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                            {sabrinaRec.catalysts?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>🚀 CATALYSTS</div>
+                                    {sabrinaRec.catalysts.map((c, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#10b981', fontWeight: '700', flexShrink: 0 }}>{i + 1}.</span>{c}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {sabrinaRec.risks?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#999', letterSpacing: '0.08em', marginBottom: '8px' }}>!️ RISKS</div>
+                                    {sabrinaRec.risks.map((r, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '6px', fontSize: '13px', color: '#333', alignItems: 'flex-start' }}>
+                                            <span style={{ color: '#ef4444', fontWeight: '700', flexShrink: 0 }}>v</span>{r}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {!compactMode && (
+                <MomentumVelocityPanel
+                    ticker={ticker}
+                    openaiKey={openaiKey}
+                />
+            )}
+
+            {/* -- Bottom context panels -- */}
+            {!compactMode && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
+                {/* News Insights */}
+                {(news?.filter(n => n?.title).length > 0 || cachedNewsAnalysis) && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📰 News Context</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {/* AI news analysis badge */}
+                            {cachedNewsAnalysis && (() => {
+                                const bColors = { BULLISH: '#10b981', BEARISH: '#ef4444', NEUTRAL: '#f59e0b', MIXED: '#2563eb' };
+                                const bIcons  = { BULLISH: '📈', BEARISH: '📉', NEUTRAL: '➡️', MIXED: '🔀' };
+                                const bc = bColors[cachedNewsAnalysis.bias] || '#2563eb';
+                                return (
+                                    <div style={{ padding: '10px 12px', backgroundColor: bc + '10', border: `1px solid ${bc}30`, borderLeft: `3px solid ${bc}`, borderRadius: '8px' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: '700', color: bc, marginBottom: '4px', letterSpacing: '0.07em' }}>
+                                            {bIcons[cachedNewsAnalysis.bias]} AI NEWS ANALYSIS . {cachedNewsAnalysis.bias} . {cachedNewsAnalysis.confidence}%
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.5' }}>{cachedNewsAnalysis.tldr}</div>
+                                    </div>
+                                );
+                            })()}
+                            {/* Top headlines */}
+                            {news?.filter(n => n?.title).slice(0, 4).map((item, i) => {
+                                const lower = item.title.toLowerCase();
+                                const bull = ['surge','rally','gain','beat','soar','rise','record','profit'].some(w => lower.includes(w));
+                                const bear = ['fall','drop','decline','miss','loss','crash','warn','layoff'].some(w => lower.includes(w));
+                                const dot = bull ? '#10b981' : bear ? '#ef4444' : '#f59e0b';
+                                return (
+                                    <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: dot, flexShrink: 0, marginTop: '5px' }} />
+                                        <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4' }}>{item.title}</div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Earnings Snapshot */}
+                {recentEarnings.length > 0 && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>💰 Recent Earnings</div>
+                        </div>
+                        <div style={{ padding: '14px 16px' }}>
+                            {recentEarnings.map((e, i) => {
+                                const rev = e.revenue ? (e.revenue / 1e9).toFixed(1) : null;
+                                const eps = e.earnings ? (e.earnings / 1e9).toFixed(2) : null;
+                                const prev = recentEarnings[i + 1];
+                                const revTrend = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '^' : 'v') : '';
+                                const revColor = prev?.revenue && e.revenue ? (e.revenue > prev.revenue ? '#10b981' : '#ef4444') : '#999';
+                                return (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < recentEarnings.length - 1 ? '1px solid #f4f4f4' : 'none' }}>
+                                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#666', flexShrink: 0 }}>{e.quarter}</div>
+                                        <div style={{ display: 'flex', gap: '14px', fontSize: '13px' }}>
+                                            {rev && <span style={{ color: '#333' }}>Rev <strong>${rev}B</strong> <span style={{ color: revColor, fontSize: '11px' }}>{revTrend}</span></span>}
+                                            {eps && <span style={{ color: '#333' }}>EPS <strong style={{ color: parseFloat(eps) >= 0 ? '#10b981' : '#ef4444' }}>${eps}B</strong></span>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Stock Key Stats */}
+                {stockData && (
+                    <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1a1a' }}>📌 Key Stats</div>
+                        </div>
+                        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {[
+                                ['Price',       `$${stockData.currentPrice?.toFixed(2) || 'N/A'}`],
+                                ['Market Cap',  stockData.marketCap ? `$${(stockData.marketCap/1e9).toFixed(1)}B` : 'N/A'],
+                                ['P/E Ratio',   stockData.trailingPE?.toFixed(2) || 'N/A'],
+                                ['52W High',    `$${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}`],
+                                ['52W Low',     `$${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}`],
+                                ['Div Yield',   stockData.dividendYield ? `${(stockData.dividendYield*100).toFixed(2)}%` : 'N/A'],
+                            ].map(([label, value]) => (
+                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', color: '#888', fontWeight: '500' }}>{label}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#1a1a1a' }}>{value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+            }
+
+            <style>{`
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @media (max-width: 600px) {
+                    .chart-toolbar { flex-direction: column; align-items: flex-start !important; }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+// --- Main Component -----------------------------------------------------------
+export default function SnowAIStockScreener() {
+    const baseUrl = 'https://backend-production-c0ab.up.railway.app';
+
+    const popularStocks = [
+        { name: "Apple", symbol: "AAPL", category: "Tech Giants" },
+        { name: "Microsoft", symbol: "MSFT", category: "Tech Giants" },
+        { name: "Google (Alphabet)", symbol: "GOOGL", category: "Tech Giants" },
+        { name: "Amazon", symbol: "AMZN", category: "Tech Giants" },
+        { name: "Meta (Facebook)", symbol: "META", category: "Tech Giants" },
+        { name: "Tesla", symbol: "TSLA", category: "Tech Giants" },
+        { name: "NVIDIA", symbol: "NVDA", category: "Tech Giants" },
+        { name: "Netflix", symbol: "NFLX", category: "Tech Giants" },
+        { name: "JPMorgan Chase", symbol: "JPM", category: "Financial" },
+        { name: "Bank of America", symbol: "BAC", category: "Financial" },
+        { name: "Wells Fargo", symbol: "WFC", category: "Financial" },
+        { name: "Goldman Sachs", symbol: "GS", category: "Financial" },
+        { name: "Morgan Stanley", symbol: "MS", category: "Financial" },
+        { name: "Visa", symbol: "V", category: "Financial" },
+        { name: "Mastercard", symbol: "MA", category: "Financial" },
+        { name: "American Express", symbol: "AXP", category: "Financial" },
+        { name: "Walmart", symbol: "WMT", category: "Retail" },
+        { name: "Target", symbol: "TGT", category: "Retail" },
+        { name: "Home Depot", symbol: "HD", category: "Retail" },
+        { name: "Nike", symbol: "NKE", category: "Retail" },
+        { name: "Starbucks", symbol: "SBUX", category: "Retail" },
+        { name: "McDonald's", symbol: "MCD", category: "Retail" },
+        { name: "Coca-Cola", symbol: "KO", category: "Retail" },
+        { name: "PepsiCo", symbol: "PEP", category: "Retail" },
+        { name: "FedEx", symbol: "FDX", category: "Retail" },
+        { name: "Johnson & Johnson", symbol: "JNJ", category: "Healthcare" },
+        { name: "Pfizer", symbol: "PFE", category: "Healthcare" },
+        { name: "UnitedHealth", symbol: "UNH", category: "Healthcare" },
+        { name: "Moderna", symbol: "MRNA", category: "Healthcare" },
+        { name: "AbbVie", symbol: "ABBV", category: "Healthcare" },
+        { name: "Eli Lilly", symbol: "LLY", category: "Healthcare" },
+        { name: "Biogen", symbol: "BIIB", category: "Healthcare" },
+        { name: "Cencora", symbol: "COR", category: "Healthcare" },
+        { name: "Intel", symbol: "INTC", category: "Semiconductors" },
+        { name: "AMD", symbol: "AMD", category: "Semiconductors" },
+        { name: "Qualcomm", symbol: "QCOM", category: "Semiconductors" },
+        { name: "Broadcom", symbol: "AVGO", category: "Semiconductors" },
+        { name: "Texas Instruments", symbol: "TXN", category: "Semiconductors" },
+        { name: "ExxonMobil", symbol: "XOM", category: "Energy" },
+        { name: "Chevron", symbol: "CVX", category: "Energy" },
+        { name: "ConocoPhillips", symbol: "COP", category: "Energy" },
+        { name: "NextEra Energy", symbol: "NEE", category: "Energy" },
+        { name: "Devon Energy", symbol: "DVN", category: "Energy" },
+        { name: "Disney", symbol: "DIS", category: "Media" },
+        { name: "Comcast", symbol: "CMCSA", category: "Media" },
+        { name: "Warner Bros Discovery", symbol: "WBD", category: "Media" },
+        { name: "Salesforce", symbol: "CRM", category: "Software" },
+        { name: "Adobe", symbol: "ADBE", category: "Software" },
+        { name: "Oracle", symbol: "ORCL", category: "Software" },
+        { name: "ServiceNow", symbol: "NOW", category: "Software" },
+        { name: "Ford", symbol: "F", category: "Automotive" },
+        { name: "General Motors", symbol: "GM", category: "Automotive" },
+        { name: "Rivian", symbol: "RIVN", category: "Automotive" },
+        { name: "Lucid", symbol: "LCID", category: "Automotive" },
+        { name: "NIO", symbol: "NIO", category: "Automotive" },
+        { name: "Boeing", symbol: "BA", category: "Aerospace" },
+        { name: "Lockheed Martin", symbol: "LMT", category: "Aerospace" },
+        { name: "PayPal", symbol: "PYPL", category: "Fintech" },
+        { name: "Square (Block)", symbol: "SQ", category: "Fintech" },
+        { name: "Shopify", symbol: "SHOP", category: "Fintech" },
+        { name: "Coinbase", symbol: "COIN", category: "Fintech" },
+    ];
+
+    const [ticker, setTicker] = useState('');
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [stockData, setStockData] = useState(null);
+    const [financials, setFinancials] = useState(null);
+    const [earnings, setEarnings] = useState(null);
+    const [news, setNews] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [financialsView, setFinancialsView] = useState('table');
+    const [earningsView, setEarningsView] = useState('table');
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [showModal, setShowModal] = useState(false);
+    const [aiAnalysisRunning, setAiAnalysisRunning] = useState(false);
+    const [aiAnalysisResults, setAiAnalysisResults] = useState(null);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [analysisFilterCategory, setAnalysisFilterCategory] = useState('All');
+    const [mainCachedNewsAnalyses, setMainCachedNewsAnalyses] = useState({});
+    // -- Hoisted news state (persists across tab switches) --
+    const [hoistedMarketauxNews, setHoistedMarketauxNews] = useState([]);
+    const [hoistedFetchingNews, setHoistedFetchingNews] = useState(false);
+    const [hoistedNewsError, setHoistedNewsError] = useState(null);
+    const [hoistedHasFetched, setHoistedHasFetched] = useState(false);
+    const [hoistedActiveNewsTab, setHoistedActiveNewsTab] = useState('yahoo');
+    // -- Hoisted news analysis state (so "View Analysis" button never disappears) --
+    const [hoistedCachedAnalyses, setHoistedCachedAnalyses] = useState({});
+    const [hoistedShowAnalysisModal, setHoistedShowAnalysisModal] = useState(false);
+    const [OPENAI_API_KEY, setOPENAI_API_KEY] = useState("");
+    const [showScanner, setShowScanner] = React.useState(false);
+    const [showScannerHistory, setShowScannerHistory] = React.useState(false);
+    const [showGlobalPicksTrendScan, setShowGlobalPicksTrendScan] = React.useState(false);
+    const [showCompositeBacktest, setShowCompositeBacktest] = React.useState(false);
+    const [showPositionsPanel, setShowPositionsPanel] = React.useState(false);
+
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            setVoices(availableVoices);
+            if (availableVoices.length > 0 && !selectedVoice) setSelectedVoice(availableVoices[0]);
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }, []);
+
+    useEffect(() => {
+        const fetchOpenAIKey = async () => {
+            try {
+                const response = await fetch(`${baseUrl}/get_openai_key`);
+                if (response.ok) {
+                    const { OPENAI_API_KEY } = await response.json();
+                    setOPENAI_API_KEY(OPENAI_API_KEY);
+                }
+            } catch (err) {
+                console.error('Failed to fetch OpenAI key:', err);
+            }
+        };
+        fetchOpenAIKey();
+    }, []);
+
+    // Sync cached news analyses so ChartInsightsTab can read them
+    useEffect(() => {
+        const syncNewsAnalyses = async () => {
+            try {
+                const result = await window.storage.get('news-analyses');
+                if (result?.value) setMainCachedNewsAnalyses(JSON.parse(result.value));
+            } catch {}
+        };
+        syncNewsAnalyses();
+        // Re-sync whenever tab changes to 'chart' so it's always fresh
+    }, [activeTab]);
+
+    const fetchStockData = async (symbol) => {
+        if (!symbol) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${symbol}`);
+            const data = await response.json();
+            if (response.ok) {
+                setStockData(data.stock_info);
+                setFinancials(data.financials);
+                setEarnings(data.earnings);
+                setNews(data.news || []);
+                setTicker(symbol);
+                // Reset hoisted news state for fresh ticker
+                setHoistedMarketauxNews([]);
+                setHoistedHasFetched(false);
+                setHoistedNewsError(null);
+                setHoistedActiveNewsTab('yahoo');
+                setHoistedShowAnalysisModal(false);
+            } else {
+                setError(data.error || 'Failed to fetch stock data');
+            }
+        } catch (err) {
+            setError('Network error. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const analyzeStock = (stockData) => {
+        const { earnings } = stockData;
+        if (!earnings || earnings.length < 4) return { signal: 'INSUFFICIENT_DATA', confidence: 0, reason: 'Not enough data', revenueDeviation: 0, earningsDeviation: 0 };
+        const recentQuarters = earnings.slice(0, 4);
+        const olderQuarters = earnings.slice(4, 8);
+        const recentRevenue = recentQuarters.filter(q => q.revenue && q.revenue !== 0).map(q => q.revenue);
+        const recentEarnings = recentQuarters.filter(q => q.earnings && q.earnings !== 0).map(q => q.earnings);
+        const olderRevenue = olderQuarters.filter(q => q.revenue && q.revenue !== 0).map(q => q.revenue);
+        const olderEarnings = olderQuarters.filter(q => q.earnings && q.earnings !== 0).map(q => q.earnings);
+        if (recentRevenue.length === 0 || olderRevenue.length === 0) return { signal: 'INSUFFICIENT_DATA', confidence: 0, reason: 'Not enough data', revenueDeviation: 0, earningsDeviation: 0 };
+        const avgRecentRevenue = recentRevenue.reduce((a, b) => a + b, 0) / recentRevenue.length;
+        const avgOlderRevenue = olderRevenue.reduce((a, b) => a + b, 0) / olderRevenue.length;
+        const avgRecentEarnings = recentEarnings.length > 0 ? recentEarnings.reduce((a, b) => a + b, 0) / recentEarnings.length : 0;
+        const avgOlderEarnings = olderEarnings.length > 0 ? olderEarnings.reduce((a, b) => a + b, 0) / olderEarnings.length : 0;
+        const revenueDeviation = ((avgRecentRevenue - avgOlderRevenue) / Math.abs(avgOlderRevenue)) * 100;
+        const earningsDeviation = avgOlderEarnings !== 0 ? ((avgRecentEarnings - avgOlderEarnings) / Math.abs(avgOlderEarnings)) * 100 : 0;
+        const THRESHOLD = 10;
+        let signal = 'NEUTRAL', confidence = 0, reason = '';
+        if (Math.abs(revenueDeviation) > THRESHOLD || Math.abs(earningsDeviation) > THRESHOLD) {
+            if (revenueDeviation > THRESHOLD || earningsDeviation > THRESHOLD) {
+                signal = 'BULLISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant positive growth';
+            } else {
+                signal = 'BEARISH';
+                confidence = Math.min(95, 50 + Math.abs((revenueDeviation + earningsDeviation) / 2));
+                reason = 'Revenue and/or earnings showing significant decline';
+            }
+        } else {
+            signal = 'NEUTRAL'; confidence = 70;
+            reason = 'Performance is stable and within normal range';
+        }
+        return { signal, confidence: Math.round(confidence), reason, revenueDeviation: revenueDeviation.toFixed(2), earningsDeviation: earningsDeviation.toFixed(2), avgRecentRevenue: (avgRecentRevenue / 1e9).toFixed(2), avgOlderRevenue: (avgOlderRevenue / 1e9).toFixed(2), avgRecentEarnings: (avgRecentEarnings / 1e9).toFixed(2), avgOlderEarnings: (avgOlderEarnings / 1e9).toFixed(2) };
+    };
+
+    const runAIAnalysis = async () => {
+        setAiAnalysisRunning(true);
+        setError(null);
+        const results = { bullish: [], bearish: [], neutral: [], insufficient: [], timestamp: new Date().toLocaleString() };
+        try {
+            for (const stock of popularStocks) {
+                try {
+                    const response = await fetch(`${baseUrl}/api/snowai_stock_screener_fetch_data/?ticker=${stock.symbol}`);
+                    const data = await response.json();
+                    if (response.ok && data.earnings) {
+                        const analysis = analyzeStock(data);
+                        const stockResult = { ...stock, ...analysis, currentPrice: data.stock_info?.currentPrice, marketCap: data.stock_info?.marketCap };
+                        if (analysis.signal === 'BULLISH') results.bullish.push(stockResult);
+                        else if (analysis.signal === 'BEARISH') results.bearish.push(stockResult);
+                        else if (analysis.signal === 'NEUTRAL') results.neutral.push(stockResult);
+                        else results.insufficient.push(stockResult);
+                    }
+                } catch (err) { console.error(`Error analyzing ${stock.symbol}:`, err); }
+            }
+            results.bullish.sort((a, b) => b.confidence - a.confidence);
+            results.bearish.sort((a, b) => b.confidence - a.confidence);
+            results.neutral.sort((a, b) => b.confidence - a.confidence);
+            results.marketSentiment = calculateMarketSentiment(results);
+            setAiAnalysisResults(results);
+            setShowAnalysisModal(true);
+        } catch (err) { setError('Failed to complete AI analysis'); }
+        finally { setAiAnalysisRunning(false); }
+    };
+
+    const calculateMarketSentiment = (results) => {
+        const allAnalyzedStocks = [...results.bullish, ...results.bearish, ...results.neutral];
+        if (allAnalyzedStocks.length === 0) return null;
+        let totalMarketCap = 0, weightedBullishScore = 0, weightedBearishScore = 0, weightedNeutralScore = 0;
+        allAnalyzedStocks.forEach(stock => {
+            const marketCap = stock.marketCap || 0;
+            totalMarketCap += marketCap;
+            if (stock.signal === 'BULLISH') weightedBullishScore += marketCap * (stock.confidence / 100);
+            else if (stock.signal === 'BEARISH') weightedBearishScore += marketCap * (stock.confidence / 100);
+            else weightedNeutralScore += marketCap * (stock.confidence / 100);
+        });
+        const bullishPercentage = totalMarketCap > 0 ? (weightedBullishScore / totalMarketCap) * 100 : 0;
+        const bearishPercentage = totalMarketCap > 0 ? (weightedBearishScore / totalMarketCap) * 100 : 0;
+        const neutralPercentage = totalMarketCap > 0 ? (weightedNeutralScore / totalMarketCap) * 100 : 0;
+        const netSentiment = bullishPercentage - bearishPercentage;
+        let marketOutlook = 'NEUTRAL', marketConfidence = 65, marketDescription = '';
+        let indicesOutlook = { sp500: { direction: 'NEUTRAL', confidence: 65, reasoning: '' }, nasdaq: { direction: 'NEUTRAL', confidence: 65, reasoning: '' }, dowJones: { direction: 'NEUTRAL', confidence: 65, reasoning: '' } };
+        if (netSentiment > 15) {
+            marketOutlook = 'BULLISH'; marketConfidence = Math.min(85, 50 + netSentiment);
+            marketDescription = 'Strong positive momentum across major stocks. Large-cap growth stocks are showing significant earnings expansion.';
+            indicesOutlook = { sp500: { direction: 'BULLISH', confidence: Math.min(85, 50 + netSentiment * 0.9), reasoning: 'Broad-based strength across sectors driving index higher.' }, nasdaq: { direction: 'BULLISH', confidence: Math.min(90, 50 + netSentiment * 1.1), reasoning: 'Tech and growth stocks showing strong momentum.' }, dowJones: { direction: 'BULLISH', confidence: Math.min(80, 50 + netSentiment * 0.85), reasoning: 'Blue-chip stocks demonstrating solid performance.' } };
+        } else if (netSentiment < -15) {
+            marketOutlook = 'BEARISH'; marketConfidence = Math.min(85, 50 + Math.abs(netSentiment));
+            marketDescription = 'Widespread weakness across major stocks. Earnings pressures and declining fundamentals suggest headwinds.';
+            indicesOutlook = { sp500: { direction: 'BEARISH', confidence: Math.min(85, 50 + Math.abs(netSentiment) * 0.9), reasoning: 'Broad-based weakness across multiple sectors.' }, nasdaq: { direction: 'BEARISH', confidence: Math.min(90, 50 + Math.abs(netSentiment) * 1.1), reasoning: 'Tech sector showing significant weakness.' }, dowJones: { direction: 'BEARISH', confidence: Math.min(80, 50 + Math.abs(netSentiment) * 0.85), reasoning: 'Industrial and blue-chip stocks facing headwinds.' } };
+        } else {
+            marketDescription = 'Mixed signals across the market. Stocks showing stable performance with balanced signals, suggesting consolidation.';
+        }
+        const sectorBreakdown = {};
+        allAnalyzedStocks.forEach(stock => {
+            if (!sectorBreakdown[stock.category]) sectorBreakdown[stock.category] = { bullish: 0, bearish: 0, neutral: 0 };
+            if (stock.signal === 'BULLISH') sectorBreakdown[stock.category].bullish++;
+            else if (stock.signal === 'BEARISH') sectorBreakdown[stock.category].bearish++;
+            else sectorBreakdown[stock.category].neutral++;
+        });
+        return { marketOutlook, marketConfidence: Math.round(marketConfidence), marketDescription, bullishPercentage: bullishPercentage.toFixed(1), bearishPercentage: bearishPercentage.toFixed(1), neutralPercentage: neutralPercentage.toFixed(1), bullishCount: results.bullish.length, bearishCount: results.bearish.length, neutralCount: results.neutral.length, totalCount: results.bullish.length + results.bearish.length + results.neutral.length, totalMarketCap: (totalMarketCap / 1e12).toFixed(2), indicesOutlook, sectorBreakdown };
+    };
+
+    const handleSearch = (e) => { e.preventDefault(); if (ticker) fetchStockData(ticker); };
+    const handleStockClick = (symbol) => { fetchStockData(symbol); setShowModal(false); setShowAnalysisModal(false); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+    const formatNewsDate = (timestamp) => {
+        if (!timestamp || timestamp === 'N/A') return 'N/A';
+        try { return new Date(timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        catch { return timestamp; }
+    };
+
+    const prepareFinancialsChartData = () => {
+        if (!financials?.data || !financials?.columns) return [];
+        return financials.columns.map((year, idx) => {
+            const dataPoint = { year };
+            let hasData = false;
+            financials.data.forEach(row => {
+                if (row.values?.[idx] !== null && row.values?.[idx] !== 0) { dataPoint[row.metric] = (row.values[idx] / 1e9).toFixed(2); hasData = true; }
+            });
+            return hasData ? dataPoint : null;
+        }).filter(Boolean).reverse();
+    };
+
+    const prepareEarningsChartData = () => {
+        if (!earnings?.length) return [];
+        return earnings.map(e => {
+            if ((e.revenue && e.revenue !== 0) || (e.earnings && e.earnings !== 0)) {
+                return { quarter: e.quarter, revenue: e.revenue ? (e.revenue / 1e9).toFixed(2) : null, earnings: e.earnings ? (e.earnings / 1e9).toFixed(2) : null };
+            }
+            return null;
+        }).filter(Boolean).reverse();
+    };
+
+    const getChartDomain = () => {
+        const chartData = prepareEarningsChartData();
+        if (!chartData.length) return [0, 'auto'];
+        const allValues = chartData.flatMap(i => [parseFloat(i.revenue), parseFloat(i.earnings)].filter(v => !isNaN(v)));
+        if (!allValues.length) return [0, 'auto'];
+        const min = Math.min(...allValues), max = Math.max(...allValues), pad = (max - min) * 0.2;
+        return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
+    };
+
+    const getFinancialChartDomain = () => {
+        const chartData = prepareFinancialsChartData();
+        if (!chartData.length) return [0, 'auto'];
+        const allValues = chartData.flatMap(item => Object.entries(item).filter(([k]) => k !== 'year').map(([, v]) => parseFloat(v))).filter(v => !isNaN(v));
+        if (!allValues.length) return [0, 'auto'];
+        const min = Math.min(...allValues), max = Math.max(...allValues), pad = (max - min) * 0.2;
+        return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
+    };
+
+    const handleSpeak = () => {
+        if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); }
+        else {
+            const utterance = new SpeechSynthesisUtterance(stockData?.longBusinessSummary || 'No description available.');
+            if (selectedVoice) utterance.voice = selectedVoice;
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => setIsSpeaking(false);
+            window.speechSynthesis.speak(utterance);
+            setIsSpeaking(true);
+        }
+    };
+
+    const categories = ['All', ...new Set(popularStocks.map(s => s.category))];
+    const filteredStocks = popularStocks.filter(s => {
+        const matchesCategory = selectedCategory === 'All' || s.category === selectedCategory;
+        const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.symbol.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    const styles = {
+        container: { padding: '15px', maxWidth: '1400px', width: '100%', boxSizing: 'border-box' },
+        searchSection: { marginBottom: '20px', backgroundColor: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
+        searchForm: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+        input: { padding: '10px 15px', fontSize: '16px', border: '2px solid #e0e0e0', borderRadius: '6px', width: '200px', maxWidth: '100%', outline: 'none', boxSizing: 'border-box' },
+        searchButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+        browseButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+        aiAnalysisButton: { padding: '10px 25px', fontSize: '16px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' },
+        modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px', overflow: 'auto' },
+        modalContent: { backgroundColor: '#fff', borderRadius: '12px', padding: '30px', maxWidth: '1200px', width: '100%', maxHeight: '90vh', overflow: 'auto', position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', boxSizing: 'border-box' },
+        closeButton: { position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#666', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' },
+        modalHeader: { fontSize: '24px', fontWeight: '700', marginBottom: '20px', color: '#1a1a1a' },
+        categoryFilter: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
+        categoryButton: { padding: '8px 16px', fontSize: '14px', border: '2px solid #e0e0e0', borderRadius: '20px', cursor: 'pointer', backgroundColor: '#fff', color: '#666', fontWeight: '500' },
+        categoryButtonActive: { backgroundColor: '#2563eb', color: '#fff', borderColor: '#2563eb' },
+        stockGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', marginTop: '15px' },
+        stockCard: { padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', cursor: 'pointer', border: '2px solid transparent', textAlign: 'center' },
+        stockName: { fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '4px' },
+        stockSymbol: { fontSize: '13px', color: '#2563eb', fontWeight: '700' },
+        stockCategory: { fontSize: '11px', color: '#999', marginTop: '4px' },
+        analysisCard: { padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginBottom: '15px', border: '2px solid transparent', cursor: 'pointer' },
+        analysisCardBullish: { borderLeft: '4px solid #10b981', backgroundColor: '#f0fdf4' },
+        analysisCardBearish: { borderLeft: '4px solid #ef4444', backgroundColor: '#fef2f2' },
+        analysisCardNeutral: { borderLeft: '4px solid #f59e0b', backgroundColor: '#fffbeb' },
+        signalBadge: { display: 'inline-block', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', marginRight: '10px', whiteSpace: 'nowrap', flexShrink: 0 },
+        bullishBadge: { backgroundColor: '#10b981', color: '#fff' },
+        bearishBadge: { backgroundColor: '#ef4444', color: '#fff' },
+        neutralBadge: { backgroundColor: '#f59e0b', color: '#fff' },
+        confidenceBadge: { display: 'inline-block', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', backgroundColor: '#e0e0e0', color: '#333', whiteSpace: 'nowrap', flexShrink: 0 },
+        analysisSection: { marginBottom: '30px' },
+        analysisSectionTitle: { fontSize: '20px', fontWeight: '700', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' },
+        deviationText: { fontSize: '13px', color: '#666', marginTop: '8px' },
+        tabContainer: { display: 'flex', gap: '5px', marginBottom: '20px', borderBottom: '2px solid #e0e0e0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' },
+        tab: { padding: '12px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', border: 'none', backgroundColor: 'transparent', borderBottom: '3px solid transparent', color: '#666', whiteSpace: 'nowrap', flexShrink: 0 },
+        activeTabStyle: { borderBottom: '3px solid #2563eb', color: '#2563eb' },
+        contentCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px', width: '100%', boxSizing: 'border-box', overflowX: 'auto' },
+        viewToggle: { display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' },
+        toggleButton: { padding: '8px 16px', fontSize: '14px', border: '1px solid #e0e0e0', borderRadius: '6px', cursor: 'pointer', backgroundColor: '#fff', color: '#666', fontWeight: '500' },
+        toggleButtonActive: { backgroundColor: '#2563eb', color: '#fff', borderColor: '#2563eb' },
+        overviewGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' },
+        statBox: { padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '6px', borderLeft: '4px solid #2563eb' },
+        statLabel: { fontSize: '13px', color: '#666', marginBottom: '5px', fontWeight: '500' },
+        statValue: { fontSize: '20px', fontWeight: '700', color: '#1a1a1a', wordBreak: 'break-word' },
+        table: { width: '100%', borderCollapse: 'collapse', marginTop: '15px', minWidth: '600px' },
+        th: { textAlign: 'left', padding: '12px', backgroundColor: '#f8f9fa', fontWeight: '600', borderBottom: '2px solid #e0e0e0' },
+        td: { padding: '12px', borderBottom: '1px solid #e0e0e0' },
+        loading: { textAlign: 'center', padding: '40px', fontSize: '18px', color: '#666' },
+        error: { padding: '15px', backgroundColor: '#fee', color: '#c33', borderRadius: '6px', marginTop: '15px' },
+        companyHeader: { marginBottom: '20px' },
+        companyName: { fontSize: '24px', fontWeight: '700', marginBottom: '5px' },
+        companySymbol: { fontSize: '14px', color: '#666' },
+        voiceControls: { display: 'flex', gap: '10px', marginTop: '15px', marginBottom: '15px', flexWrap: 'wrap', alignItems: 'center' },
+        voiceButton: { padding: '8px 16px', fontSize: '14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
+        voiceButtonStop: { backgroundColor: '#ef4444' },
+        marketSentimentCard: { padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '12px', marginBottom: '30px', border: '3px solid #e0e0e0', boxSizing: 'border-box', width: '100%', overflow: 'hidden' },
+        marketSentimentBullish: { borderColor: '#10b981', backgroundColor: '#f0fdf4' },
+        marketSentimentBearish: { borderColor: '#ef4444', backgroundColor: '#fef2f2' },
+        marketSentimentNeutral: { borderColor: '#f59e0b', backgroundColor: '#fffbeb' },
+        sentimentHeader: { fontSize: '20px', fontWeight: '700', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', width: '100%' },
+        sentimentGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginTop: '20px', width: '100%' },
+        sentimentStatBox: { padding: '15px', backgroundColor: '#fff', borderRadius: '8px', textAlign: 'center', boxSizing: 'border-box', minWidth: '0' },
+        indicesGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginTop: '20px', width: '100%', maxWidth: '100%', margin: '20px 0 0 0' },
+        indexCard: { padding: '15px', backgroundColor: '#fff', borderRadius: '8px', border: '2px solid #e0e0e0', boxSizing: 'border-box', width: '100%', maxWidth: '100%', overflow: 'hidden', margin: '0' },
+        indexCardBullish: { borderColor: '#10b981' },
+        indexCardBearish: { borderColor: '#ef4444' },
+        indexCardNeutral: { borderColor: '#f59e0b' },
+        indexName: { fontSize: '18px', fontWeight: '700', marginBottom: '10px' },
+        indexDirection: { fontSize: '14px', marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' },
+        indexReasoning: { fontSize: '13px', color: '#666', lineHeight: '1.5', wordWrap: 'break-word', overflowWrap: 'break-word' },
+    };
+
+    return (
+        <div>
+            <div className="header"><Header /></div>
+            <div className="main-page-body">
+                <SideNavs />
+                <div className="main-body-info">
+                    <h5 className="major-upcoming-news-events-header" style={{ padding: '15px', margin: 0 }}>SnowAI Stock Screener</h5>
+
+                    <div style={styles.container}>
+
+                        {/* Search Section */}
+                        <div style={styles.searchSection}>
+                            <div style={styles.searchForm}>
+                                <input
+                                    type="text"
+                                    value={ticker}
+                                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                                    placeholder="Enter ticker (e.g., AAPL)"
+                                    style={styles.input}
+                                />
+                                <button onClick={handleSearch} style={styles.searchButton} disabled={loading}>
+                                    {loading ? 'Loading...' : 'Search'}
+                                </button>
+                                <button onClick={() => setShowModal(true)} style={styles.browseButton}>
+                                    📊 Browse Stocks
+                                </button>
+                                <button onClick={() => setShowCalendar(c => !c)}
+                                    style={{ ...styles.browseButton, backgroundColor: showCalendar ? '#1e3a5f' : '#6366f1' }}>
+                                    📅 {showCalendar ? 'Hide Calendar' : 'Earnings Calendar'}
+                                </button>
+                                <button onClick={runAIAnalysis} style={styles.aiAnalysisButton} disabled={aiAnalysisRunning}>
+                                    {aiAnalysisRunning ? <><span>⏳</span><span>Analyzing...</span></> : <><span>🤖</span><span>AI Stock Analysis</span></>}
+                                </button>
+                                {aiAnalysisResults && (
+                                    <button onClick={() => setShowAnalysisModal(true)} style={{ ...styles.browseButton, backgroundColor: '#f59e0b' }}>
+                                        📊 View Results
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setShowScanner(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#0f172a',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🔭 Trend Scanner
+                                </button>
+
+                                                                <button
+                                    onClick={() => setShowScannerHistory(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#10b981',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    📜 Scan History
+                                </button>
+                                                                <button
+                                    onClick={() => setShowGlobalPicksTrendScan(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#7c3aed',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🌍 Global Picks Trend Scan
+                                </button>
+                                <button
+                                    onClick={() => setShowCompositeBacktest(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#0891b2',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    🧬 Composite Backtest
+                                </button>
+                                <button
+                                    onClick={() => setShowPositionsPanel(true)}
+                                    style={{
+                                        ...styles.browseButton,
+                                        backgroundColor: '#1e3a5f',
+                                        display:'flex', alignItems:'center', gap:'7px',
+                                    }}
+                                >
+                                    📒 Positions
+                                </button>
+
+                                <VaultLauncher onSelectTicker={handleStockClick} />
+
+                            </div>
+                            {error && <div style={styles.error}>{error}</div>}
+                        </div>
+
+                        {/* Earnings Calendar */}
+                        {showCalendar && (
+                            <EarningsCalendar openaiKey={OPENAI_API_KEY} onSelectTicker={(sym) => {
+                                setTicker(sym);
+                            
+                                setShowCalendar(false);
+                                // Trigger a search for the selected ticker
+                                setTimeout(() => {
+                                    const evt = new KeyboardEvent('keypress', { key: 'Enter', bubbles: true });
+                                    document.querySelector('input[placeholder*="ticker"]')?.dispatchEvent(evt);
+                                }, 100);
+                            }} />
+                        )}
+
+                        {/* Browse Stocks Modal */}
+                        {showModal && (
+                            <div style={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                                <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                                    <button style={styles.closeButton} onClick={() => setShowModal(false)}>x</button>
+                                    <div style={styles.modalHeader}>Select a Stock</div>
+                                    <input type="text" placeholder="Search stocks..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} style={{ ...styles.input, width: '100%', marginBottom: '15px' }} />
+                                    <div style={styles.categoryFilter}>
+                                        {categories.map(category => (
+                                            <button key={category} onClick={() => setSelectedCategory(category)} style={{ ...styles.categoryButton, ...(selectedCategory === category ? styles.categoryButtonActive : {}) }}>
+                                                {category}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={styles.stockGrid}>
+                                        {filteredStocks.map((stock, idx) => (
+                                            <div key={idx} style={styles.stockCard} onClick={() => handleStockClick(stock.symbol)}
+                                                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)'; e.currentTarget.style.borderColor = '#2563eb'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'transparent'; }}>
+                                                <div style={styles.stockName}>{stock.name}</div>
+                                                <div style={styles.stockSymbol}>{stock.symbol}</div>
+                                                <div style={styles.stockCategory}>{stock.category}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* AI Analysis Modal */}
+                        {showAnalysisModal && aiAnalysisResults && (
+                            <div style={styles.modalOverlay} onClick={() => setShowAnalysisModal(false)}>
+                                <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+                                    <button style={styles.closeButton} onClick={() => setShowAnalysisModal(false)}>x</button>
+                                    <div style={styles.modalHeader}>🤖 AI Stock Analysis Results</div>
+                                    <p style={{ color: '#666', marginBottom: '20px' }}>Analysis completed at {aiAnalysisResults.timestamp}</p>
+
+                                    {aiAnalysisResults.marketSentiment && (
+                                        <div style={{ ...styles.marketSentimentCard, ...(aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? styles.marketSentimentBullish : aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? styles.marketSentimentBearish : styles.marketSentimentNeutral) }}>
+                                            <div style={styles.sentimentHeader}>
+                                                <span style={{ fontSize: '28px', flexShrink: 0 }}>{aiAnalysisResults.marketSentiment.marketOutlook === 'BULLISH' ? '📈' : aiAnalysisResults.marketSentiment.marketOutlook === 'BEARISH' ? '📉' : '➡️'}</span>
+                                                <span style={{ flex: '1 1 auto', minWidth: 0 }}>Overall Market Sentiment: {aiAnalysisResults.marketSentiment.marketOutlook}</span>
+                                                <span style={styles.confidenceBadge}>{aiAnalysisResults.marketSentiment.marketConfidence}% Confidence</span>
+                                            </div>
+                                            <p style={{ fontSize: '15px', color: '#333', lineHeight: '1.6', marginBottom: '20px' }}>{aiAnalysisResults.marketSentiment.marketDescription}</p>
+                                            <div style={styles.sentimentGrid}>
+                                                {[
+                                                    { label: 'Bullish Signals', pct: aiAnalysisResults.marketSentiment.bullishPercentage, count: aiAnalysisResults.marketSentiment.bullishCount, color: '#10b981' },
+                                                    { label: 'Bearish Signals', pct: aiAnalysisResults.marketSentiment.bearishPercentage, count: aiAnalysisResults.marketSentiment.bearishCount, color: '#ef4444' },
+                                                    { label: 'Neutral/Stable', pct: aiAnalysisResults.marketSentiment.neutralPercentage, count: aiAnalysisResults.marketSentiment.neutralCount, color: '#f59e0b' },
+                                                    { label: 'Total Market Cap', pct: `$${aiAnalysisResults.marketSentiment.totalMarketCap}T`, count: `${aiAnalysisResults.marketSentiment.totalCount} stocks analyzed`, color: '#2563eb' },
+                                                ].map((item, i) => (
+                                                    <div key={i} style={styles.sentimentStatBox}>
+                                                        <div style={{ fontSize: '13px', color: '#666', marginBottom: '5px' }}>{item.label}</div>
+                                                        <div style={{ fontSize: '24px', fontWeight: '700', color: item.color }}>{item.pct}{i < 3 ? '%' : ''}</div>
+                                                        <div style={{ fontSize: '12px', color: '#999' }}>{item.count}{i < 3 ? ' stocks' : ''}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div style={{ marginTop: '25px' }}>
+                                                <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '15px' }}>📊 US Stock Indices Outlook</h4>
+                                                <div style={styles.indicesGrid}>
+                                                    {[
+                                                        { name: 'S&P 500', key: 'sp500' },
+                                                        { name: 'NASDAQ Composite', key: 'nasdaq' },
+                                                        { name: 'Dow Jones Industrial', key: 'dowJones' },
+                                                    ].map(({ name, key }) => {
+                                                        const idx = aiAnalysisResults.marketSentiment.indicesOutlook[key];
+                                                        return (
+                                                            <div key={key} style={{ ...styles.indexCard, ...(idx.direction === 'BULLISH' ? styles.indexCardBullish : idx.direction === 'BEARISH' ? styles.indexCardBearish : styles.indexCardNeutral) }}>
+                                                                <div style={styles.indexName}>{name}</div>
+                                                                <div style={styles.indexDirection}>
+                                                                    <span style={{ ...styles.signalBadge, ...(idx.direction === 'BULLISH' ? styles.bullishBadge : idx.direction === 'BEARISH' ? styles.bearishBadge : styles.neutralBadge) }}>{idx.direction}</span>
+                                                                    <span style={styles.confidenceBadge}>{idx.confidence}%</span>
+                                                                </div>
+                                                                <div style={styles.indexReasoning}>{idx.reasoning}</div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div style={styles.categoryFilter}>
+                                        <button onClick={() => setAnalysisFilterCategory('All')} style={{ ...styles.categoryButton, ...(analysisFilterCategory === 'All' ? styles.categoryButtonActive : {}) }}>All Stocks</button>
+                                        {categories.filter(c => c !== 'All').map(category => (
+                                            <button key={category} onClick={() => setAnalysisFilterCategory(category)} style={{ ...styles.categoryButton, ...(analysisFilterCategory === category ? styles.categoryButtonActive : {}) }}>{category}</button>
+                                        ))}
+                                    </div>
+
+                                    {[
+                                        { key: 'bullish', icon: '📈', label: 'Bullish Opportunities', cardStyle: styles.analysisCardBullish, badgeStyle: styles.bullishBadge, hoverShadow: 'rgba(16,185,129,0.2)', devColor: '#10b981' },
+                                        { key: 'bearish', icon: '📉', label: 'Bearish Warnings', cardStyle: styles.analysisCardBearish, badgeStyle: styles.bearishBadge, hoverShadow: 'rgba(239,68,68,0.2)', devColor: '#ef4444' },
+                                        { key: 'neutral', icon: '➡️', label: 'Neutral / Stable', cardStyle: styles.analysisCardNeutral, badgeStyle: styles.neutralBadge, hoverShadow: 'rgba(245,158,11,0.2)', devColor: '#666' },
+                                    ].map(({ key, icon, label, cardStyle, badgeStyle, hoverShadow, devColor }) => {
+                                        const filtered = analysisFilterCategory === 'All' ? aiAnalysisResults[key] : aiAnalysisResults[key].filter(s => s.category === analysisFilterCategory);
+                                        if (!filtered.length) return null;
+                                        return (
+                                            <div key={key} style={styles.analysisSection}>
+                                                <div style={styles.analysisSectionTitle}><span>{icon}</span><span>{label} ({filtered.length})</span></div>
+                                                {filtered.map((stock, idx) => (
+                                                    <div key={idx} style={{ ...styles.analysisCard, ...cardStyle }} onClick={() => handleStockClick(stock.symbol)}
+                                                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(5px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${hoverShadow}`; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                                                            <div>
+                                                                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>{stock.name} ({stock.symbol})</div>
+                                                                <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{stock.category}</div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <span style={{ ...styles.signalBadge, ...badgeStyle }}>{key.toUpperCase()}</span>
+                                                                <span style={styles.confidenceBadge}>{stock.confidence}% Confidence</span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>{stock.reason}</div>
+                                                        <div style={styles.deviationText}>
+                                                            Revenue Growth: <strong style={{ color: devColor }}>{stock.revenueDeviation > 0 ? '+' : ''}{stock.revenueDeviation}%</strong> |
+                                                            Earnings Growth: <strong style={{ color: devColor }}>{stock.earningsDeviation > 0 ? '+' : ''}{stock.earningsDeviation}%</strong>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Stock Data */}
+                        {stockData && (
+                            <>
+                                <div style={styles.companyHeader}>
+                                    <div style={styles.companyName}>{stockData.longName || ticker}</div>
+                                    <div style={styles.companySymbol}>{stockData.symbol} * {stockData.sector} * {stockData.industry}</div>
+                                </div>
+
+                                <div style={styles.tabContainer}>
+                                    {[
+                                        { id: 'overview',   label: 'Overview' },
+                                        { id: 'financials', label: 'Financials' },
+                                        { id: 'earnings',   label: 'Earnings' },
+                                        { id: 'chart',      label: '📊 Chart' },
+                                        { id: 'news',       label: 'News' },
+                                    ].map(({ id, label }) => (
+                                        <button key={id} style={{ ...styles.tab, ...(activeTab === id ? styles.activeTabStyle : {}) }} onClick={() => setActiveTab(id)}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {activeTab === 'overview' && (
+                                    <div style={styles.contentCard}>
+                                        <h3>Company Overview</h3>
+                                        <div style={styles.overviewGrid}>
+                                            {[
+                                                { label: 'Current Price', value: `$${stockData.currentPrice?.toFixed(2) || 'N/A'}` },
+                                                { label: 'Market Cap', value: stockData.marketCap ? `$${(stockData.marketCap / 1e9).toFixed(2)}B` : 'N/A' },
+                                                { label: 'P/E Ratio', value: stockData.trailingPE?.toFixed(2) || 'N/A' },
+                                                { label: '52 Week High', value: `$${stockData.fiftyTwoWeekHigh?.toFixed(2) || 'N/A'}` },
+                                                { label: '52 Week Low', value: `$${stockData.fiftyTwoWeekLow?.toFixed(2) || 'N/A'}` },
+                                                { label: 'Dividend Yield', value: stockData.dividendYield ? `${(stockData.dividendYield * 100).toFixed(2)}%` : 'N/A' },
+                                            ].map(({ label, value }, i) => (
+                                                <div key={i} style={styles.statBox}>
+                                                    <div style={styles.statLabel}>{label}</div>
+                                                    <div style={styles.statValue}>{value}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ marginTop: '20px' }}>
+                                            <h4>About</h4>
+                                            <div style={styles.voiceControls}>
+                                                <button onClick={handleSpeak} style={{ ...styles.voiceButton, ...(isSpeaking ? styles.voiceButtonStop : {}) }}>
+                                                    {isSpeaking ? 'Stop Stop Reading' : '🔊 Read Aloud'}
+                                                </button>
+                                                <select value={selectedVoice?.name || ''} onChange={e => setSelectedVoice(voices.find(v => v.name === e.target.value))}>
+                                                    {voices.map((voice, idx) => <option key={idx} value={voice.name}>{voice.name} ({voice.lang})</option>)}
+                                                </select>
+                                            </div>
+                                            <p style={{ lineHeight: '1.6', color: '#444' }}>{stockData.longBusinessSummary || 'No description available.'}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeTab === 'financials' && financials && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3>Financial Statements (Annual)</h3>
+                                            <div style={styles.viewToggle}>
+                                                {['table', 'chart'].map(v => (
+                                                    <button key={v} onClick={() => setFinancialsView(v)} style={{ ...styles.toggleButton, ...(financialsView === v ? styles.toggleButtonActive : {}) }}>
+                                                        {v === 'table' ? 'Table View' : 'Chart View'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {financialsView === 'table' ? (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={styles.table}>
+                                                    <thead><tr><th style={styles.th}>Metric</th>{financials.columns?.map((col, idx) => <th key={idx} style={styles.th}>{col}</th>)}</tr></thead>
+                                                    <tbody>{financials.data?.map((row, idx) => (<tr key={idx}><td style={{ ...styles.td, fontWeight: '600' }}>{row.metric}</td>{row.values?.map((val, i) => <td key={i} style={styles.td}>{val && val !== 0 ? `${(val / 1e9).toFixed(2)}B` : 'N/A'}</td>)}</tr>))}</tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <LineChart data={prepareFinancialsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="year" /><YAxis domain={getFinancialChartDomain()} label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={v => `${v}B`} /><Legend />
+                                                    {financials.data?.map((row, idx) => <Line key={idx} type="monotone" dataKey={row.metric} stroke={['#2563eb', '#10b981', '#f59e0b', '#ef4444'][idx % 4]} strokeWidth={2} />)}
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'earnings' && earnings && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3>Quarterly Earnings</h3>
+                                            <div style={styles.viewToggle}>
+                                                {['table', 'chart'].map(v => (
+                                                    <button key={v} onClick={() => setEarningsView(v)} style={{ ...styles.toggleButton, ...(earningsView === v ? styles.toggleButtonActive : {}) }}>
+                                                        {v === 'table' ? 'Table View' : 'Chart View'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {earningsView === 'table' ? (
+                                            <div style={{ overflowX: 'auto' }}>
+                                                <table style={styles.table}>
+                                                    <thead><tr><th style={styles.th}>Quarter</th><th style={styles.th}>Revenue</th><th style={styles.th}>Earnings</th></tr></thead>
+                                                    <tbody>{earnings.map((e, idx) => (<tr key={idx}><td style={styles.td}>{e.quarter}</td><td style={styles.td}>{e.revenue && e.revenue !== 0 ? `${(e.revenue / 1e9).toFixed(2)}B` : 'N/A'}</td><td style={styles.td}>{e.earnings && e.earnings !== 0 ? `${(e.earnings / 1e9).toFixed(2)}B` : 'N/A'}</td></tr>))}</tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height={400}>
+                                                <BarChart data={prepareEarningsChartData()}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="quarter" /><YAxis domain={getChartDomain()} label={{ value: 'Billions ($)', angle: -90, position: 'insideLeft' }} />
+                                                    <Tooltip formatter={v => v ? `${v}B` : 'N/A'} /><Legend />
+                                                    <Bar dataKey="revenue" fill="#2563eb" name="Revenue" />
+                                                    <Bar dataKey="earnings" fill="#10b981" name="Earnings" />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* -- Chart & Insights Tab -- */}
+                                {activeTab === 'chart' && (
+                                    <div style={{ ...styles.contentCard, padding: 0, backgroundColor: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+                                        <ChartInsightsTab
+                                            ticker={ticker}
+                                            stockData={stockData}
+                                            earnings={earnings}
+                                            news={news}
+                                            marketauxNews={hoistedMarketauxNews}
+                                            openaiKey={OPENAI_API_KEY}
+                                            cachedNewsAnalysis={mainCachedNewsAnalyses[ticker] || null}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* -- Enhanced News Tab -- */}
+                                {activeTab === 'news' && (
+                                    <div style={styles.contentCard}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                                            <h3 style={{ margin: 0 }}>Recent News</h3>
+                                            <div style={{ fontSize: '13px', color: '#999', backgroundColor: '#f0f4ff', padding: '6px 12px', borderRadius: '20px', border: '1px solid #dbeafe' }}>
+                                                💡 Tip: Fetch Deep News for Marketaux analysis
+                                            </div>
+                                        </div>
+                                        <EnhancedNewsSection
+                                            ticker={ticker}
+                                            baseUrl={baseUrl}
+                                            existingNews={news}
+                                            openaiKey={OPENAI_API_KEY}
+                                            stockData={stockData}
+                                            hoistedMarketauxNews={hoistedMarketauxNews}
+                                            setHoistedMarketauxNews={setHoistedMarketauxNews}
+                                            hoistedFetchingNews={hoistedFetchingNews}
+                                            setHoistedFetchingNews={setHoistedFetchingNews}
+                                            hoistedNewsError={hoistedNewsError}
+                                            setHoistedNewsError={setHoistedNewsError}
+                                            hoistedHasFetched={hoistedHasFetched}
+                                            setHoistedHasFetched={setHoistedHasFetched}
+                                            hoistedActiveNewsTab={hoistedActiveNewsTab}
+                                            setHoistedActiveNewsTab={setHoistedActiveNewsTab}
+                                            hoistedCachedAnalyses={hoistedCachedAnalyses}
+                                            setHoistedCachedAnalyses={setHoistedCachedAnalyses}
+                                            hoistedShowAnalysisModal={hoistedShowAnalysisModal}
+                                            setHoistedShowAnalysisModal={setHoistedShowAnalysisModal}
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {!stockData && !loading && (
+                            <div style={styles.loading}>
+                                Enter a stock ticker, browse stocks, or run AI analysis to get started
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Sabrina AI Chatbot -- always available */}
+            <SabrinaChat
+                stockData={stockData}
+                financials={financials}
+                earnings={earnings}
+                news={news}
+                ticker={ticker}
+                openaiKey={OPENAI_API_KEY}
+            />
+            <TrendReversalScanner
+                isOpen={showScanner}
+                onClose={() => setShowScanner(false)}
+                onSelectTicker={handleStockClick}
+                openaiKey={OPENAI_API_KEY}
+            />
+                        <ScannerHistoryModal
+                isOpen={showScannerHistory}
+                onClose={() => setShowScannerHistory(false)}
+                onSelectTicker={handleStockClick}
+            />
+                        <GlobalPicksTrendScanModal
+                isOpen={showGlobalPicksTrendScan}
+                onClose={() => setShowGlobalPicksTrendScan(false)}
+                onSelectTicker={handleStockClick}
+            />
+            <CompositeBacktestModal
+                isOpen={showCompositeBacktest}
+                onClose={() => setShowCompositeBacktest(false)}
+                onSelectTicker={handleStockClick}
+            />
+            <PositionsPanelModal
+                isOpen={showPositionsPanel}
+                onClose={() => setShowPositionsPanel(false)}
+                onSelectTicker={handleStockClick}
+            />
+
+        </div>
+    );
+}
