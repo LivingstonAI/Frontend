@@ -1655,6 +1655,8 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const [chartTicker, setChartTicker] = React.useState(null);
     const [chartInterval, setChartInterval] = React.useState('1D');
     const [editing, setEditing]   = React.useState(null); // { ticker, note, tags }
+    const [allCharts, setAllCharts]     = React.useState(false);
+    const [chartsShown, setChartsShown] = React.useState(10);
 
     const sinceAdded = (a) => (a.addedPrice && a.analysis && a.analysis.currentPrice != null)
         ? ((a.analysis.currentPrice - a.addedPrice) / a.addedPrice) * 100 : null;
@@ -1768,6 +1770,12 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                         <option value="added">Newest added</option><option value="score">Highest score</option>
                         <option value="since">Best since added</option><option value="ticker">A → Z</option>
                     </select>
+                    <button onClick={() => { setAllCharts(v => !v); setChartsShown(10); }} title="Open a chart under every asset below" style={btn(allCharts ? '#2563eb' : '#64748b')}>
+                        {allCharts ? '▲ Hide all charts' : '📊 View all charts'}
+                    </button>
+                    {allCharts && shown.length > chartsShown && (
+                        <button onClick={() => setChartsShown(n => n + 10)} style={btn('#0891b2')}>＋ 10 more ({shown.length - chartsShown} left)</button>
+                    )}
                     <button onClick={() => analyseTickers(items.map(a => a.ticker))} disabled={analysingCount > 0 || items.length === 0} style={{ ...btn('#7c3aed'), marginLeft:'auto' }}>
                         {analysingCount > 0 ? `⏳ Analysing ${analysingCount}…` : `🔄 Analyse all (${items.length})`}
                     </button>
@@ -1784,7 +1792,7 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                     {items.length > 0 && shown.length === 0 && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No matches.</div>}
 
                     <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
-                        {shown.map(a => {
+                        {(allCharts ? shown.slice(0, chartsShown) : shown).map((a, idx) => {
                             const an = a.analysis;
                             const sg = an ? (SIG[an.signal] || SIG.WATCH) : null;
                             const dirColor = an ? (an.direction === 'BULLISH' ? '#10b981' : an.direction === 'BEARISH' ? '#ef4444' : '#94a3b8') : '#94a3b8';
@@ -1845,8 +1853,8 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                                         <button onClick={() => removeAsset(a)} style={{ ...btn('#ef4444'), marginLeft:'auto' }}>🗑 Remove</button>
                                     </div>
 
-                                    {chartTicker === a.ticker && (
-                                        <ScannerChart ticker={a.ticker} interval={chartInterval} onIntervalChange={setChartInterval} hideClose scannerMeta={an || null} />
+                                    {(allCharts || chartTicker === a.ticker) && (
+                                        <ScannerChart ticker={a.ticker} interval={chartInterval} onIntervalChange={setChartInterval} hideClose mountDelay={allCharts ? (idx % 10) * 400 : 0} scannerMeta={an || null} />
                                     )}
                                 </div>
                             );
@@ -6934,7 +6942,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [loading, setLoading]       = React.useState(false);
     const [refreshing, setRefreshing] = React.useState(false);
     const [error, setError]           = React.useState(null);
-    const [positions, setPositions]   = React.useState([]);
+    const [rawPositions, setPositions] = React.useState([]);
     const [filterStatus, setFilterStatus] = React.useState('OPEN'); // 'OPEN' | 'CLOSED' | 'ALL'
     const [search, setSearch]         = React.useState('');
     const [includeExtended, setIncludeExtended] = React.useState(false);
@@ -6943,7 +6951,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [marketSession, setMarketSession] = React.useState(null);
     const [lastRefreshed, setLastRefreshed] = React.useState(null);
     const [notice, setNotice]         = React.useState(null);
-    const [chartPosition, setChartPosition] = React.useState(null);
+    const [chartPosition, setChartPositionRaw] = React.useState(null);
+    const setChartPosition = (p) => setChartPositionRaw(p && p._raw ? p._raw : p);   // unwrap a normalised row back to the real trade
     const [showAutopsy, setShowAutopsy] = React.useState(false);
     const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
     const [showCharts, setShowCharts]       = React.useState(false);
@@ -6967,6 +6976,48 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         if (isOpen) fetchAll();
         else { setAutoRefresh(false); setChartPosition(null); }
     }, [isOpen]);
+
+        // ── Normalised view: every trade replayed with the same size + bracket. Nothing is saved, and it reverts instantly ──
+    const lsGet = (k, d) => { try { return localStorage.getItem(k) || d; } catch (_) { return d; } };
+    const [normOn, setNormOn]           = React.useState(false);
+    const [normAccount, setNormAccount] = React.useState(() => lsGet('snow_norm_account', '10000'));
+    const [normTp, setNormTp]           = React.useState(() => lsGet('snow_norm_tp', '2'));
+    const [normSl, setNormSl]           = React.useState(() => lsGet('snow_norm_sl', '1'));
+    const [normMap, setNormMap]         = React.useState(null);
+    const [normLoading, setNormLoading] = React.useState(false);
+    const [normError, setNormError]     = React.useState(null);
+    const [normAsOf, setNormAsOf]       = React.useState(null);
+
+    const runNormalise = async () => {
+        const account = parseFloat(normAccount), tp = parseFloat(normTp), sl = parseFloat(normSl);
+        if (!(account > 0) || !(tp > 0) || !(sl > 0)) { setNormError('Account size, TP % and SL % must all be above 0.'); return; }
+        setNormLoading(true); setNormError(null);
+        try {
+            const res  = await fetch(`${BACKEND}/api/snowvault_positions_normalise/`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account, tpPct: tp, slPct: sl }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
+            setNormMap(json.results || {});
+            setNormAsOf(new Date());
+            try { localStorage.setItem('snow_norm_account', String(account)); localStorage.setItem('snow_norm_tp', String(tp)); localStorage.setItem('snow_norm_sl', String(sl)); } catch (_) {}
+        } catch (e) { setNormError(e.message); }
+        finally { setNormLoading(false); }
+    };
+    React.useEffect(() => { if (normOn && !normMap && !normLoading) runNormalise(); }, [normOn]);
+    React.useEffect(() => { if (!isOpen) setNormOn(false); }, [isOpen]);   // closing the panel always puts you back on your real trades
+
+    // `positions` is what the whole panel reads. Normalised mode swaps in the replayed version of each trade.
+    const positions = React.useMemo(() => {
+        if (!normOn || !normMap) return rawPositions;
+        return rawPositions.flatMap(p => {
+            const n = normMap[String(p.id)];
+            if (!n || n.error) return [];   // no price data, or newer than this replay: left out rather than mixed in un-normalised
+            return [{ ...p, ...n.fields, normalised: true, normNote: n.note, _raw: p }];
+        });
+    }, [rawPositions, normOn, normMap]);
+    const hiddenByNorm = normOn && normMap ? rawPositions.length - positions.length : 0;
 
     const filtered = positions
         .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
@@ -7009,6 +7060,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     }, [isOpen, autoRefresh, autoSecs]);
 
     const closePosition = async (pos) => {
+        if (normOn) return;
         try {
             await fetch(`${BACKEND}/api/snowvault_positions/${pos.id}/close/`, {
                 method:'POST', headers:{'Content-Type':'application/json'},
@@ -7138,6 +7190,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                             📊 {showCharts ? 'Back to table' : 'View all charts'}
                         </button>
                         <button onClick={() => setShowAutopsy(true)} title="What did price do after your trades closed? Were your stops too tight?" style={pill(false)}>🔬 Autopsy</button>
+                        <button onClick={() => setNormOn(v => !v)} title="Replay every trade with the same size and the same TP/SL, so they can be compared. Your real trades are untouched." style={pill(normOn)}>
+                            ⚖ {normOn ? 'Normalised' : 'Normalise'}
+                        </button>
                         <button onClick={fetchAll} disabled={loading} title="Reload the list from the database" style={pill(false)}>{loading ? '⏳' : '↻'} Reload</button>
                         <button onClick={refreshVisible} disabled={refreshing} title="Re-price every visible open position" style={pill(false)}>
                             <span style={{ display:'inline-block', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>🔄</span> Refresh prices
@@ -7159,6 +7214,36 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
 
                 {/* Body */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
+                                        {normOn && (() => {
+                        const acc = parseFloat(normAccount), tp = parseFloat(normTp), sl = parseFloat(normSl);
+                        const ok  = acc > 0 && tp > 0 && sl > 0;
+                        const inp = { width:'72px', padding:'4px 6px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff' };
+                        const lab = { fontSize:'11px', color:'#92400e', fontWeight:'700', display:'inline-flex', alignItems:'center', gap:'4px' };
+                        return (
+                            <div style={{ position:'sticky', top:0, zIndex:3, padding:'10px 20px', backgroundColor:'#fffbeb', borderBottom:'1px solid #fde68a' }}>
+                                <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+                                    <span style={{ fontSize:'12px', fontWeight:'800', color:'#92400e' }}>⚖ NORMALISED VIEW</span>
+                                    <span style={{ flex:'1 1 120px' }} />
+                                    <label style={lab}>Account $<input type="number" value={normAccount} onChange={e => setNormAccount(e.target.value)} style={{ ...inp, width:'90px' }} /></label>
+                                    <label style={lab}>TP %<input type="number" step="0.1" value={normTp} onChange={e => setNormTp(e.target.value)} style={inp} /></label>
+                                    <label style={lab}>SL %<input type="number" step="0.1" value={normSl} onChange={e => setNormSl(e.target.value)} style={inp} /></label>
+                                    <button onClick={runNormalise} disabled={normLoading} style={{ padding:'5px 12px', borderRadius:'8px', border:'1px solid #f59e0b', backgroundColor:'#f59e0b', color:'#fff', fontSize:'11px', fontWeight:'800', cursor: normLoading ? 'wait' : 'pointer' }}>
+                                        {normLoading ? '⏳ Replaying…' : '↻ Apply'}
+                                    </button>
+                                    <button onClick={() => setNormOn(false)} style={{ padding:'5px 12px', borderRadius:'8px', border:'1px solid #d97706', backgroundColor:'#fff', color:'#b45309', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}>↩ Revert to my real trades</button>
+                                </div>
+                                <div style={{ fontSize:'10.5px', color:'#92400e', marginTop:'6px', lineHeight:1.55 }}>
+                                    {normLoading && !normMap && <b>Replaying every trade, which can take a few seconds. The table below still shows your real trades until it finishes. </b>}
+                                    Each trade is replayed from its entry at the full account size, so a {ok ? tp : '–'}% move is {ok ? tp : '–'}% of the account{ok ? ` ($${(acc * tp / 100).toFixed(2)})` : ''}.
+                                    {ok && <> The break-even win rate at this bracket is <b>{(sl / (tp + sl) * 100).toFixed(1)}%</b>.</>}
+                                    {normAsOf && <> Replayed {snowTimeAgo(normAsOf.toISOString())}; press Apply to re-price open trades.</>}
+                                    <br />Charts, the Autopsy and By tag always use your real trades. Closing is disabled here.
+                                    {hiddenByNorm > 0 && <> <b>{hiddenByNorm} trade{hiddenByNorm > 1 ? 's' : ''} hidden</b> (no price data, or opened after this replay: press Apply).</>}
+                                </div>
+                                {normError && <div style={{ fontSize:'11px', color:'#b91c1c', marginTop:'5px' }}>⚠️ {normError}</div>}
+                            </div>
+                        );
+                    })()}
                     {notice && (
                         <div style={{ padding:'10px 20px', backgroundColor:'#eff6ff', borderBottom:'1px solid #bfdbfe', fontSize:'12px', color:'#1d4ed8', display:'flex', gap:'8px' }}>
                             <span>🔔 {notice}</span>
@@ -7182,7 +7267,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                     {shown.map((p, i) => (
                                         <PositionChartCard
                                             key={p.id}
-                                            position={p}
+                                            position={p._raw || p}
                                             interval={chartsInterval}
                                             onIntervalChange={setChartsInterval}
                                             mountDelay={(i % 12) * 350}
@@ -7306,7 +7391,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                 </td>
                                                 <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
                                                 <td style={{ padding:'8px 10px' }}>
-                                                    {isOpenPos && (
+                                                    {isOpenPos && !normOn && (
                                                         <button onClick={(e) => { e.stopPropagation(); closePosition(p); }} style={{ fontSize:'10px', padding:'3px 9px', borderRadius:'6px', border:'1px solid #fecaca', backgroundColor:'#fef2f2', color:'#ef4444', cursor:'pointer' }}>Close</button>
                                                     )}
                                                 </td>
@@ -7330,7 +7415,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
             {chartPosition && (
                 <PositionChartModal
                     position={chartPosition}
-                    allPositions={positions}
+                    allPositions={rawPositions}
                     onClose={() => setChartPosition(null)}
                     onSelectTicker={onSelectTicker}
                     onClosePanel={onClose}
