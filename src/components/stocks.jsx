@@ -6987,6 +6987,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [normLoading, setNormLoading] = React.useState(false);
     const [normError, setNormError]     = React.useState(null);
     const [normAsOf, setNormAsOf]       = React.useState(null);
+    const [normOpenMode, setNormOpenModeState] = React.useState(() => lsGet('snow_norm_open_mode', 'stay'));   // 'stay' | 'replay'
+    const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode', m); } catch (_) {} };
 
     const runNormalise = async () => {
         const account = parseFloat(normAccount), tp = parseFloat(normTp), sl = parseFloat(normSl);
@@ -7014,9 +7016,13 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         return rawPositions.flatMap(p => {
             const n = normMap[String(p.id)];
             if (!n || n.error) return [];   // no price data, or newer than this replay: left out rather than mixed in un-normalised
-            return [{ ...p, ...n.fields, normalised: true, normNote: n.note, _raw: p }];
+            const replayIt = p.status === 'OPEN' && normOpenMode === 'replay' && n.replay;
+            const fields   = replayIt ? n.replay : n.fields;
+            // Real open trades that stay open follow the live price, so "Refresh prices" works in this view too
+            const live = (p.status === 'OPEN' && !replayIt && p.current_price != null) ? { current_price: p.current_price } : {};
+            return [{ ...p, ...fields, ...live, normalised: true, normNote: n.note, normBeyond: replayIt ? null : (n.beyond || null), _raw: p }];
         });
-    }, [rawPositions, normOn, normMap]);
+    }, [rawPositions, normOn, normMap, normOpenMode]);
     const hiddenByNorm = normOn && normMap ? rawPositions.length - positions.length : 0;
 
     const filtered = positions
@@ -7214,11 +7220,17 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
 
                 {/* Body */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
-                                        {normOn && (() => {
+                    {normOn && (() => {
                         const acc = parseFloat(normAccount), tp = parseFloat(normTp), sl = parseFloat(normSl);
                         const ok  = acc > 0 && tp > 0 && sl > 0;
                         const inp = { width:'72px', padding:'4px 6px', borderRadius:'6px', border:'1px solid #fcd34d', fontSize:'12px', backgroundColor:'#fff' };
                         const lab = { fontSize:'11px', color:'#92400e', fontWeight:'700', display:'inline-flex', alignItems:'center', gap:'4px' };
+                        const seg = (active, first) => ({
+                            padding:'4px 11px', fontSize:'11px', fontWeight:'800', cursor:'pointer', border:'1px solid #f59e0b',
+                            borderRadius: first ? '7px 0 0 7px' : '0 7px 7px 0', marginLeft: first ? 0 : '-1px',
+                            backgroundColor: active ? '#f59e0b' : '#fff', color: active ? '#fff' : '#b45309',
+                        });
+                        const beyondCount = positions.filter(p => p.normBeyond).length;
                         return (
                             <div style={{ position:'sticky', top:0, zIndex:3, padding:'10px 20px', backgroundColor:'#fffbeb', borderBottom:'1px solid #fde68a' }}>
                                 <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
@@ -7232,11 +7244,22 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                     </button>
                                     <button onClick={() => setNormOn(false)} style={{ padding:'5px 12px', borderRadius:'8px', border:'1px solid #d97706', backgroundColor:'#fff', color:'#b45309', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}>↩ Revert to my real trades</button>
                                 </div>
+                                <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', marginTop:'8px' }}>
+                                    <span style={lab}>Open trades:</span>
+                                    <span style={{ display:'inline-flex' }}>
+                                        <button onClick={() => setNormOpenMode('stay')} title="Keep open trades open: standard size and levels, unrealised P&L at the live price" style={seg(normOpenMode === 'stay', true)}>Stay open</button>
+                                        <button onClick={() => setNormOpenMode('replay')} title="Show what the standard bracket would have done with them since entry" style={seg(normOpenMode === 'replay', false)}>Close at bracket</button>
+                                    </span>
+                                    {normOpenMode === 'stay' && beyondCount > 0 && (
+                                        <span style={{ fontSize:'11px', color:'#b45309', fontWeight:'700' }}>⚠ {beyondCount} open trade{beyondCount > 1 ? 's are' : ' is'} already past a standard level</span>
+                                    )}
+                                </div>
                                 <div style={{ fontSize:'10.5px', color:'#92400e', marginTop:'6px', lineHeight:1.55 }}>
                                     {normLoading && !normMap && <b>Replaying every trade, which can take a few seconds. The table below still shows your real trades until it finishes. </b>}
-                                    Each trade is replayed from its entry at the full account size, so a {ok ? tp : '–'}% move is {ok ? tp : '–'}% of the account{ok ? ` ($${(acc * tp / 100).toFixed(2)})` : ''}.
+                                    Each trade is sized to the full account, so a {ok ? tp : '–'}% move is {ok ? tp : '–'}% of the account{ok ? ` ($${(acc * tp / 100).toFixed(2)})` : ''}.
                                     {ok && <> The break-even win rate at this bracket is <b>{(sl / (tp + sl) * 100).toFixed(1)}%</b>.</>}
-                                    {normAsOf && <> Replayed {snowTimeAgo(normAsOf.toISOString())}; press Apply to re-price open trades.</>}
+                                    {normAsOf && <> Replayed {snowTimeAgo(normAsOf.toISOString())}; press Apply to re-run.</>}
+                                    <br />Open trades keep their real status. Closed trades are replayed from entry, and if neither level was ever reached they keep your real exit price (shown as MANUAL).
                                     <br />Charts, the Autopsy and By tag always use your real trades. Closing is disabled here.
                                     {hiddenByNorm > 0 && <> <b>{hiddenByNorm} trade{hiddenByNorm > 1 ? 's' : ''} hidden</b> (no price data, or opened after this replay: press Apply).</>}
                                 </div>
@@ -7388,6 +7411,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                 </td>
                                                 <td style={{ padding:'8px 10px' }}>
                                                     <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
+                                                    {p.normBeyond && (
+                                                        <span title={p.normNote || ''} style={{ marginLeft:'6px', fontSize:'10px', fontWeight:'800', padding:'2px 7px', borderRadius:'10px', backgroundColor:'#fef3c7', color:'#b45309', whiteSpace:'nowrap' }}>⚠ past {p.normBeyond}</span>
+                                                    )}
                                                 </td>
                                                 <td style={{ padding:'8px 10px', color:'#94a3b8', whiteSpace:'nowrap' }}>{new Date(p.opened_at).toLocaleDateString()}</td>
                                                 <td style={{ padding:'8px 10px' }}>
