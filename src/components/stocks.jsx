@@ -264,6 +264,7 @@ const SnowPositionMath = {
     },
 };
 
+
 function PositionLegFields({ label, color, priceVal, percentVal, dollarsVal, onSync }) {
     return (
         <div style={{ padding:'10px 12px', backgroundColor:'#f8fafc', borderRadius:'9px', border:`1px solid ${color}30` }}>
@@ -636,7 +637,7 @@ Respond with ONLY a JSON object (no markdown, no backticks, no preamble) in exac
 Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
 }
 
-function buildEarningsMonthPrompt(monthLabel, items, totalCount) {
+function buildEarningsMonthPrompt(monthLabel, items, totalCount, followUp) {
     const signed = (v) => v == null ? 'n/a' : `${v >= 0 ? '+' : ''}${v}%`;
     const fmtCap = (v) => !v ? 'n/a' : v >= 1e12 ? `$${(v / 1e12).toFixed(1)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(0)}B` : `$${(v / 1e6).toFixed(0)}M`;
     const lines = items.map(e => {
@@ -647,23 +648,37 @@ function buildEarningsMonthPrompt(monthLabel, items, totalCount) {
             : `REPORTED ${e.earningsDate} · EPS ${e.epsActual ?? 'n/a'} vs est ${e.epsEstimate ?? 'n/a'} (${signed(e.surprisePct)}) ${e.beat === true ? 'BEAT' : e.beat === false ? 'MISS' : ''}`;
         return `- ${e.ticker} — ${e.name} (${SECTOR_MAP[e.ticker] || 'n/a'}, ${fmtCap(e.marketCap)}): ${status} · last quarters: ${hist}`;
     }).join('\n');
+    const n = items.length;
+    const followNote = followUp
+        ? `FOLLOW-UP PASS: an earlier pass already covered ${followUp.doneTickers.length} of ${followUp.allTickers.length} companies on this month's list. The companies below are ONLY the ones it did not research. Rank only these: your results will be merged with the earlier pass.\n\n`
+        : '';
 
     return `You are a senior equity research analyst scanning the ${monthLabel} earnings calendar for the most attractive opportunities, using general news and market sentiment. Today is ${new Date().toISOString().slice(0, 10)}.
 
-Below are the ${items.length} largest companies by market cap (out of ${totalCount} reporting this month). Search the web for recent articles, analyst commentary and market reaction for EACH of them before answering; do not rely on memory. Rank the most lucrative opportunities. UPCOMING names may be pre-earnings setups; REPORTED names may be post-earnings continuation or fade setups. It is fine to say "avoid" or "wait until it reports".
+Below are ${followUp ? 'the' : 'the largest'} ${n} compan${n === 1 ? 'y' : 'ies'} by market cap${followUp ? '' : ` (out of ${totalCount} reporting this month)`}. Search the web for recent articles, analyst commentary and market reaction for EACH of them before answering; do not rely on memory. Rank the most lucrative opportunities. UPCOMING names may be pre-earnings setups; REPORTED names may be post-earnings continuation or fade setups. It is fine to say "avoid" or "wait until it reports".
 
-DATA FROM MY OWN SYSTEM (ground truth for the numbers):
+COVERAGE RULES (important): the usual failure is to research the first few or the biggest names and then guess the rest from them. Do not do that. Be strictly honest:
+- Search for current information about EACH company individually. Never infer one company's sentiment from the big names, from its sector, or from the others in this list.
+- "researched" = the tickers you genuinely searched. "notSearched" = the tickers you did not. Together they must account for ALL ${n} tickers, with no overlap.
+- If you run low on capacity or time, STOP and put every remaining ticker in "notSearched". A shorter honest answer is far more useful than a complete-looking guess, because the missing ones will be re-run in a follow-up pass.
+- Only rank companies you actually researched. Each opportunity needs "coverage" ("SEARCHED" or "PARTIAL") and "evidence" (what you actually found, with publication and date).
+
+${followNote}DATA FROM MY OWN SYSTEM (ground truth for the numbers):
 ${lines}
 
 ${SNOW_SOURCE_RULES}
 
 Respond with ONLY a JSON object (no markdown, no backticks, no preamble) in exactly this shape:
 {
-  "overallTone": "<2-3 sentences: general sentiment across this earnings month>",
+  "researched": ["<ticker>", "..."],
+  "notSearched": ["<ticker>", "..."],
+  "overallTone": "<2-3 sentences: general sentiment across the companies you researched>",
   "opportunities": [
     {
       "ticker": "<ticker>",
       "rank": <integer, 1 = best>,
+      "coverage": "SEARCHED" | "PARTIAL",
+      "evidence": "<one short line: what you actually found (publication + date)>",
       "stance": "LONG" | "SHORT" | "WATCH" | "AVOID",
       "sentiment": "BULLISH" | "BEARISH" | "NEUTRAL" | "MIXED",
       "conviction": <integer 1-10>,
@@ -677,7 +692,159 @@ Respond with ONLY a JSON object (no markdown, no backticks, no preamble) in exac
   "caveats": "<1-2 sentences>"
 }
 
-Include between 5 and 12 opportunities, best first. Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+Include up to 12 opportunities, best first (fewer if you could only research a few honestly). Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+}
+
+// ═══════════════════════════ AI coverage honesty (shared by every bulk AI scan) ═══════════════════════════
+function snowParseLooseJson(text) {
+    const clean = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
+    try { return JSON.parse(clean); } catch (_) {}
+    const o = clean.indexOf('{'), a = clean.indexOf('[');
+    const arr = a !== -1 && (o === -1 || a < o);
+    const s = arr ? a : o;
+    const e = arr ? clean.lastIndexOf(']') : clean.lastIndexOf('}');
+    if (s === -1 || e <= s) throw new Error('No JSON found in that text.');
+    return JSON.parse(clean.slice(s, e + 1));
+}
+
+function snowCoverageRules(count) {
+    return `COVERAGE RULES (important, read before you start): this request lists ${count} asset${count === 1 ? '' : 's'}. Researching every one properly is demanding, and the usual failure is to research the first few or the biggest names and then guess the rest from them. Do not do that. Be strictly honest about what you actually did:
+- For EACH asset, either search for current information about THAT specific company, or mark it NOT_SEARCHED. Never infer one company's sentiment from the big names, from its sector, or from other companies in this list.
+- "coverage" must be exactly one of: "SEARCHED" (you found and read current company-specific sources), "PARTIAL" (thin: a single source, stale, or only a sector or index page), "NOT_SEARCHED" (you did not look).
+- "evidence": one short line naming what you actually found (publication and date), or why you did not search.
+- If you are running low on capacity or time, STOP researching and mark every remaining asset NOT_SEARCHED. A shorter honest answer is far more useful than a complete-looking guess, because the missing ones will be re-run in a follow-up pass.
+- Return exactly one object per asset, in the same order, including the NOT_SEARCHED ones (for those, set "opportunityScore", "verdict", "badge", "thesis" and "risks" to null).`;
+}
+
+function snowFollowUpNote(fu) {
+    if (!fu || !fu.allTickers) return '';
+    return `FOLLOW-UP PASS: an earlier pass already covered ${fu.doneTickers.length} of ${fu.allTickers.length} assets. The assets below are ONLY the ones it did not properly research, so you have the capacity to give each one real, individual attention.\n\n`;
+}
+
+function snowNormaliseCoverage(item) {
+    const c = String((item && item.coverage) || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+    return (c === 'SEARCHED' || c === 'PARTIAL' || c === 'NOT_SEARCHED') ? c : 'UNVERIFIED';
+}
+
+// Splits an AI response (array of per-asset objects) against what was asked
+function snowSplitCoverage(items, requested, isUsable) {
+    const byTicker = {};
+    (Array.isArray(items) ? items : []).forEach(it => {
+        const t = String((it && it.ticker) || '').toUpperCase().trim();
+        if (t && !byTicker[t]) byTicker[t] = it;
+    });
+    const asked = (requested && requested.length ? requested : Object.keys(byTicker)).map(t => String(t).toUpperCase());
+    const out = { covered: [], partial: [], unverified: [], remaining: [], usableItems: [], evidence: {} };
+    asked.forEach(t => {
+        const it = byTicker[t];
+        if (!it) { out.remaining.push(t); return; }
+        const cov = snowNormaliseCoverage(it);
+        if (cov === 'NOT_SEARCHED' || !isUsable(it)) { out.remaining.push(t); return; }
+        out.usableItems.push(it);
+        if (it.evidence) out.evidence[t] = String(it.evidence);
+        if (cov === 'SEARCHED') out.covered.push(t);
+        else if (cov === 'PARTIAL') out.partial.push(t);
+        else out.unverified.push(t);
+    });
+    return out;
+}
+
+// Returns null when everything was researched properly (no report needed)
+function snowBuildCoverageReport(title, source, split, requested, prev) {
+    const allTickers = prev ? prev.allTickers : requested;
+    if (!allTickers || !allTickers.length) return null;
+    const doneTickers = [...new Set([...(prev ? prev.doneTickers : []), ...split.covered, ...split.partial, ...split.unverified])];
+    const remaining = allTickers.filter(t => !doneTickers.includes(t));
+    if (remaining.length === 0 && split.partial.length === 0 && split.unverified.length === 0) return null;
+    return { title, source, allTickers, doneTickers, remaining, partial: split.partial, unverified: split.unverified, evidence: split.evidence };
+}
+
+function snowAiConsensus(runs) {
+    if (!runs || !runs.length) return null;
+    const scores = runs.map(r => r.opportunityScore).filter(v => typeof v === 'number');
+    const counts = {};
+    runs.forEach(r => { if (r.verdict) counts[r.verdict] = (counts[r.verdict] || 0) + 1; });
+    const modeVerdict = Object.keys(counts).length ? Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0] : null;
+    return {
+        runCount: runs.length,
+        meanScore: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+        modeVerdict,
+        agreement: modeVerdict ? Math.round(counts[modeVerdict] / runs.length * 100) : null,
+    };
+}
+
+const snowTradeHasEarnings = (p) => !!(p && p.entry_context && (p.entry_context.earningsBias || p.entry_context.earningsVerdict));
+const snowTradeHasAi       = (p) => !!(p && p.entry_context && p.entry_context.aiVerdict);
+
+function CoverageReportModal({ report, onClose, onRerun }) {
+    const [includeWeak, setIncludeWeak] = React.useState(false);
+    React.useEffect(() => { setIncludeWeak(false); }, [report]);
+    if (!report) return null;
+
+    const weak    = [...report.partial, ...report.unverified];
+    const toRerun = [...report.remaining, ...(includeWeak ? weak : [])];
+    const total   = report.allTickers.length;
+    const pct     = total ? Math.round(report.doneTickers.length / total * 100) : 0;
+    const chips = (arr, color) => (
+        <div style={{ display:'flex', gap:'5px', flexWrap:'wrap', marginTop:'5px' }}>
+            {arr.map(t => (
+                <span key={t} title={(report.evidence && report.evidence[t]) || ''} style={{
+                    fontSize:'11px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px',
+                    backgroundColor:`${color}18`, color, border:`1px solid ${color}45`, cursor: report.evidence && report.evidence[t] ? 'help' : 'default',
+                }}>{t}</span>
+            ))}
+        </div>
+    );
+    const block = (title, color, desc, arr) => arr.length > 0 && (
+        <div style={{ marginTop:'12px' }}>
+            <div style={{ fontSize:'12px', fontWeight:'800', color }}>{title} ({arr.length})</div>
+            <div style={{ fontSize:'11px', color:'#64748b', lineHeight:1.5 }}>{desc}</div>
+            {chips(arr, color)}
+        </div>
+    );
+
+    return ReactDOM.createPortal(
+        <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:1000004, backgroundColor:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(3px)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(560px,100%)', maxHeight:'calc(100vh - 24px)', overflowY:'auto', borderRadius:'16px', backgroundColor:'#fff', boxShadow:'0 20px 60px rgba(0,0,0,0.35)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+                <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#7c3aed)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', gap:'10px' }}>
+                        <div>
+                            <div style={{ fontSize:'15px', fontWeight:'800', color:'#fff' }}>🔎 AI coverage report</div>
+                            <div style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', marginTop:'2px' }}>{report.title}{report.source ? ` · ${report.source}` : ''}</div>
+                        </div>
+                        <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:'50%', width:'28px', height:'28px', color:'#fff', fontSize:'15px', cursor:'pointer', flexShrink:0 }}>×</button>
+                    </div>
+                    <div style={{ marginTop:'10px', height:'7px', borderRadius:'4px', backgroundColor:'rgba(255,255,255,0.18)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${pct}%`, backgroundColor: pct === 100 ? '#34d399' : '#fbbf24' }} />
+                    </div>
+                    <div style={{ fontSize:'11px', color:'rgba(255,255,255,0.75)', marginTop:'5px' }}>{report.doneTickers.length} of {total} have a saved read ({pct}%)</div>
+                </div>
+                <div style={{ padding:'14px 20px 18px' }}>
+                    <div style={{ fontSize:'12.5px', color:'#334155', lineHeight:1.6 }}>
+                        Whatever the AI says it did not research has <b>not</b> been saved, so those stocks have no sentiment yet, which is different from neutral. "Searched" is the AI's own claim: hover a ticker to see the evidence line it gave and spot-check it.
+                    </div>
+                    {block('✗ Not researched', '#ef4444', 'The AI said it did not look, or left them out of the reply.', report.remaining)}
+                    {block('⚠ Thin research', '#f59e0b', 'Saved, but the AI says the sources were thin or stale. Treat these verdicts as soft.', report.partial)}
+                    {block('? Coverage not stated', '#64748b', 'The AI ignored the coverage rule, so there is no way to tell how much it actually searched. Saved, but unverified.', report.unverified)}
+                    {weak.length > 0 && (
+                        <label style={{ display:'flex', alignItems:'center', gap:'7px', marginTop:'14px', fontSize:'12px', color:'#475569', cursor:'pointer' }}>
+                            <input type="checkbox" checked={includeWeak} onChange={e => setIncludeWeak(e.target.checked)} />
+                            Also redo the {weak.length} thin / unstated one{weak.length > 1 ? 's' : ''} (adds a second take, nothing is overwritten)
+                        </label>
+                    )}
+                    <div style={{ display:'flex', gap:'8px', marginTop:'16px' }}>
+                        <button onClick={() => onRerun(toRerun)} disabled={toRerun.length === 0} style={{
+                            flex:1, padding:'11px', borderRadius:'10px', border:'none', color:'#fff', fontWeight:'800', fontSize:'13px',
+                            cursor: toRerun.length ? 'pointer' : 'not-allowed',
+                            background: toRerun.length ? 'linear-gradient(135deg,#7c3aed,#db2777)' : 'rgba(124,58,237,0.3)',
+                        }}>🔁 Re-run the {toRerun.length} {toRerun.length === 1 ? 'stock' : 'stocks'}</button>
+                        <button onClick={onClose} style={{ padding:'11px 16px', borderRadius:'10px', border:'1px solid #e2e8f0', backgroundColor:'#fff', color:'#64748b', fontWeight:'700', fontSize:'13px', cursor:'pointer' }}>Done for now</button>
+                    </div>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
 }
 
 function ExternalAIModal({ isOpen, onClose, title, subtitle, promptText, onParsed }) {
@@ -718,14 +885,7 @@ function ExternalAIModal({ isOpen, onClose, title, subtitle, promptText, onParse
         setError(null);
         if (!pasteText.trim()) { setError('Paste the AI response first.'); return; }
         try {
-            const clean = pasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
-            let parsed;
-            try { parsed = JSON.parse(clean); }
-            catch (_) {
-                const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-                if (s === -1 || e <= s) throw new Error('No JSON found in that text.');
-                parsed = JSON.parse(clean.slice(s, e + 1));
-            }
+            const parsed = snowParseLooseJson(pasteText);
             onParsed(parsed, source.trim() || lastOpened || 'AI');
             onClose();
         } catch (e) { setError(e.message); }
@@ -928,13 +1088,80 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
     const storeVersion = useEarningsAIStoreVersion();
     const [limit, setLimit]       = React.useState(25);
     const [flowOpen, setFlowOpen] = React.useState(false);
+    const [rerun, setRerun]       = React.useState(null);   // follow-up pass: { allTickers, doneTickers, tickers }
+    const [report, setReport]     = React.useState(null);
     const saved  = React.useMemo(() => SnowEarningsAIStore.getMonth(monthKey), [monthKey, storeVersion]);
     const ranked = React.useMemo(() => [...items].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0)).slice(0, limit), [items, limit]);
-    const prompt = React.useMemo(() => buildEarningsMonthPrompt(monthLabel, ranked, items.length), [monthLabel, ranked, items.length]);
     if (!isOpen) return null;
+
+    const rankedTickers   = ranked.map(r => r.ticker);
+    const scanItems       = rerun ? ranked.filter(r => rerun.tickers.includes(r.ticker)) : ranked;
+    const prompt          = buildEarningsMonthPrompt(monthLabel, scanItems, items.length, rerun ? { allTickers: rerun.allTickers, doneTickers: rerun.doneTickers } : null);
+    const researchedSaved = saved && Array.isArray(saved.researched) ? saved.researched : null;
+    const missing         = researchedSaved ? rankedTickers.filter(t => !researchedSaved.includes(t)) : [];
 
     const STANCE = { LONG:'#10b981', SHORT:'#ef4444', WATCH:'#f59e0b', AVOID:'#94a3b8' };
     const opps = saved && Array.isArray(saved.opportunities) ? [...saved.opportunities].sort((a, b) => (a.rank || 99) - (b.rank || 99)) : [];
+
+    const startFollowUp = (tickers, doneOverride) => {
+        setRerun({
+            allTickers: rankedTickers,
+            doneTickers: doneOverride || rankedTickers.filter(t => (researchedSaved || []).includes(t)),
+            tickers,
+        });
+        setFlowOpen(true);
+    };
+
+    const handleParsed = (parsed, source) => {
+        if (!parsed || Array.isArray(parsed) || !Array.isArray(parsed.opportunities)) {
+            throw new Error('Expected a JSON object with an "opportunities" array.');
+        }
+        const asked = scanItems.map(r => r.ticker);
+        const up = (a) => (Array.isArray(a) ? a : []).map(x => String(x).toUpperCase().trim()).filter(Boolean);
+        const gaveLists = Array.isArray(parsed.researched) || Array.isArray(parsed.notSearched);
+        const notS      = up(parsed.notSearched).filter(t => asked.includes(t));
+        const newOpps   = parsed.opportunities
+            .filter(o => o && o.ticker && o.thesis && snowNormaliseCoverage(o) !== 'NOT_SEARCHED')
+            .map(o => ({ ...o, ticker: String(o.ticker).toUpperCase().trim() }))
+            .filter(o => asked.includes(o.ticker) && !notS.includes(o.ticker));
+        const researched = [...new Set([...up(parsed.researched).filter(t => asked.includes(t)), ...newOpps.map(o => o.ticker)])]
+            .filter(t => !notS.includes(t));
+        if (newOpps.length === 0 && researched.length === 0) {
+            throw new Error('No usable results: the AI did not report researching any of these companies. Try again with a smaller list.');
+        }
+
+        let allOpps = newOpps, allResearched = researched;
+        let tone = parsed.overallTone, tilts = parsed.sectorTilts || [], caveats = parsed.caveats || '';
+        if (rerun && saved) {
+            const byT = {};
+            (saved.opportunities || []).forEach(o => { byT[o.ticker] = o; });
+            newOpps.forEach(o => { byT[o.ticker] = o; });
+            allOpps = Object.values(byT)
+                .sort((a, b) => (Number(b.conviction) || 0) - (Number(a.conviction) || 0) || (a.rank || 99) - (b.rank || 99))
+                .map((o, i) => ({ ...o, rank: i + 1 }));   // ranks from different passes aren't comparable, so re-rank by conviction
+            allResearched = [...new Set([...(saved.researched || []), ...researched])];
+            tone    = saved.overallTone || parsed.overallTone;
+            tilts   = [...(saved.sectorTilts || []), ...tilts];
+            caveats = [saved.caveats, parsed.caveats].filter(Boolean).join(' ');
+        } else {
+            allOpps = [...allOpps].sort((a, b) => (a.rank || 99) - (b.rank || 99));
+        }
+        SnowEarningsAIStore.setMonth(monthKey, {
+            overallTone: tone, opportunities: allOpps, sectorTilts: tilts, caveats,
+            researched: allResearched, source, monthLabel, scannedTickers: rankedTickers,
+        });
+
+        const split = {
+            covered:    gaveLists ? researched : [],
+            partial:    [],
+            unverified: gaveLists ? [] : researched,   // the AI ignored the lists: only the ones it ranked are known to be touched, and unverified
+            remaining:  asked.filter(t => !researched.includes(t)),
+            evidence:   Object.fromEntries(newOpps.filter(o => o.evidence).map(o => [o.ticker, String(o.evidence)])),
+        };
+        const rep = snowBuildCoverageReport(`${monthLabel} earnings scan`, source, split, asked, rerun ? { allTickers: rerun.allTickers, doneTickers: rerun.doneTickers } : null);
+        setRerun(null);
+        setReport(rep);
+    };
 
     return ReactDOM.createPortal(
         <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10050, backgroundColor:'rgba(0,0,0,0.6)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'12px', overflowY:'auto', backdropFilter:'blur(4px)' }}>
@@ -954,18 +1181,32 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
                         <select value={limit} onChange={e => setLimit(Number(e.target.value))} style={{ padding:'5px 8px', borderRadius:'7px', border:'none', fontSize:'12px' }}>
                             {[15, 25, 40].map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
-                        <button onClick={() => setFlowOpen(true)} disabled={ranked.length === 0} style={{ padding:'7px 16px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'800', fontSize:'12px', cursor:'pointer', background:'linear-gradient(135deg,#db2777,#7c3aed)' }}>
+                        <button onClick={() => { setRerun(null); setFlowOpen(true); }} disabled={ranked.length === 0} style={{ padding:'7px 16px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'800', fontSize:'12px', cursor:'pointer', background:'linear-gradient(135deg,#db2777,#7c3aed)' }}>
                             {saved ? '🔄 Re-run AI scan' : '🤖 Ask AI to scan'}
                         </button>
                         {saved && <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)' }}>last scan {snowTimeAgo(saved.savedAt)} via {saved.source}</span>}
-                        {saved && <ReadAloudButton tone="dark" targetId="snow-month-scan-results" label={`${monthLabel} scan`} />}
                     </div>
+                    {saved && researchedSaved && (
+                        <div style={{ marginTop:'10px', padding:'8px 12px', borderRadius:'9px', backgroundColor:'rgba(255,255,255,0.1)', display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
+                            <span style={{ fontSize:'12px', color:'#fff', fontWeight:'700' }}>
+                                Researched {rankedTickers.length - missing.length} of {rankedTickers.length}
+                            </span>
+                            {missing.length > 0 ? (
+                                <button onClick={() => startFollowUp(missing)} style={{ padding:'5px 12px', borderRadius:'8px', border:'none', backgroundColor:'#fbbf24', color:'#1a1a1a', fontWeight:'800', fontSize:'11px', cursor:'pointer' }}>
+                                    🔁 Run the {missing.length} not researched
+                                </button>
+                            ) : <span style={{ fontSize:'12px', color:'#6ee7b7', fontWeight:'700' }}>✓ every company covered</span>}
+                        </div>
+                    )}
+                    {saved && !researchedSaved && (
+                        <div style={{ marginTop:'10px', fontSize:'11px', color:'#fde68a' }}>⚠ This scan didn't say which companies it researched, so coverage can't be verified. Re-run it to get a coverage count.</div>
+                    )}
                 </div>
 
                 <div id="snow-month-scan-results" style={{ padding:'16px 20px', maxHeight:'70vh', overflowY:'auto' }}>
                     {!saved && (
                         <div style={{ padding:'30px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px', lineHeight:1.6 }}>
-                            Hit <strong>Ask AI to scan</strong>. The prompt lists this month's biggest reporters with their beat history, and asks the AI to search recent coverage and rank the best setups, discounting coverage that looks promotional.
+                            Hit <strong>Ask AI to scan</strong>. The prompt lists this month's biggest reporters with their beat history, demands a company-by-company coverage count, and asks the AI to rank the best setups from the ones it actually researched.
                         </div>
                     )}
                     {saved && (
@@ -987,6 +1228,7 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
                                                 <span onClick={() => onPickTicker && onPickTicker(o.ticker)} title="Open this stock's earnings history" style={{ fontSize:'15px', fontWeight:'800', color:'#2563eb', cursor:'pointer', textDecoration:'underline dotted' }}>{o.ticker}</span>
                                                 <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:`${sc}22`, color:sc }}>{String(o.stance).toUpperCase()}</span>
                                                 <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor:`${bs.color}22`, color:bs.color }}>{bs.icon} {String(o.sentiment).toUpperCase()}</span>
+                                                {snowNormaliseCoverage(o) === 'PARTIAL' && <span title="The AI says the research on this one was thin" style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor:'#fef3c7', color:'#b45309' }}>⚠ thin research</span>}
                                                 <span style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:'6px' }}>
                                                     <span style={{ width:'60px', height:'5px', borderRadius:'3px', backgroundColor:'#e2e8f0', overflow:'hidden', display:'inline-block' }}>
                                                         <span style={{ display:'block', height:'100%', width:`${conv * 10}%`, backgroundColor:sc }} />
@@ -996,6 +1238,7 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
                                             </div>
                                             {o.timing && <div style={{ fontSize:'11px', color:'#64748b', marginBottom:'4px' }}>⏱ {o.timing}</div>}
                                             <div style={{ fontSize:'12.5px', lineHeight:1.55, color:'#1a1a1a' }}>{o.thesis}</div>
+                                            {o.evidence && <div style={{ fontSize:'11px', color:'#64748b', marginTop:'4px', lineHeight:1.5 }}>🔎 {o.evidence}</div>}
                                             {o.narrativeRisk && <div style={{ fontSize:'11.5px', color:'#b45309', marginTop:'5px', lineHeight:1.5 }}>⚠️ <strong>Narrative risk:</strong> {o.narrativeRisk}</div>}
                                             {o.mainRisk && <div style={{ fontSize:'11.5px', color:'#b91c1c', marginTop:'3px', lineHeight:1.5 }}>🛑 <strong>Risk:</strong> {o.mainRisk}</div>}
                                         </div>
@@ -1019,12 +1262,17 @@ function EarningsMonthAIModal({ isOpen, onClose, monthKey, monthLabel, items, on
 
             <ExternalAIModal
                 isOpen={flowOpen} onClose={() => setFlowOpen(false)}
-                title={`Month scan — ${monthLabel}`} promptText={prompt}
-                onParsed={(parsed, source) => {
-                    if (!parsed || Array.isArray(parsed) || !Array.isArray(parsed.opportunities) || parsed.opportunities.length === 0) {
-                        throw new Error('Expected a JSON object with a non-empty "opportunities" array.');
-                    }
-                    SnowEarningsAIStore.setMonth(monthKey, { ...parsed, source, monthLabel, scannedTickers: ranked.map(r => r.ticker) });
+                title={rerun ? `Follow-up scan — ${monthLabel} (${scanItems.length} left)` : `Month scan — ${monthLabel}`}
+                promptText={prompt}
+                onParsed={handleParsed}
+            />
+            <CoverageReportModal
+                report={report}
+                onClose={() => setReport(null)}
+                onRerun={(tickers) => {
+                    setRerun({ allTickers: report.allTickers, doneTickers: report.doneTickers, tickers });
+                    setReport(null);
+                    setFlowOpen(true);
                 }}
             />
         </div>,
@@ -1591,6 +1839,7 @@ const SnowVaultInterest = (() => {
         async update(ticker, patch) { const j = await post('update', { ticker, ...patch });      upsert(j.asset); emit(); return j.asset; },
         async remove(ticker)        { await post('remove', { ticker }); state.items = state.items.filter(a => a.ticker !== ticker); emit(); },
         async analyse(tickers)      { const j = await post('analyse', { tickers }); (j.assets || []).forEach(upsert); emit(); return j; },
+        async saveAI(items)         { const j = await post('ai_save', { items }); (j.assets || []).forEach(upsert); emit(); return j.assets || []; },
     };
 })();
 
@@ -1640,6 +1889,148 @@ function VaultStarButton({ ticker, snapshot = null, source = 'chart', tone = 'da
     );
 }
 
+function buildVaultAIPrompt(assets, followUp) {
+    const lines = assets.map(a => {
+        const an    = a.analysis || {};
+        const since = (a.addedPrice && an.currentPrice != null) ? (((an.currentPrice - a.addedPrice) / a.addedPrice) * 100).toFixed(1) : null;
+        const earn  = SnowEarningsAIStore.get(a.ticker);
+        const rt    = an.retrace;
+        return `### ${a.ticker} — ${a.name || ''} (${a.sector || 'Unknown sector'})
+Why I flagged it: ${a.note || 'no note'}${(a.tags || []).length ? ' · tags: ' + a.tags.join(', ') : ''}
+Added at: ${a.addedPrice != null ? '$' + a.addedPrice : 'n/a'}${a.addedSignal ? ` when the scanner showed ${a.addedSignal.replace(/_/g, ' ')} / ${a.addedDirection || 'n/a'} / score ${a.addedScore ?? 'n/a'}` : ''}${since != null ? ` · since added: ${since >= 0 ? '+' : ''}${since}%` : ''}
+Latest technical scan: ${an.signal ? `${an.signal.replace(/_/g, ' ')} · ${an.direction} · score ${an.score}/100 · price $${an.currentPrice} · ADX ${an.adxNow ?? 'n/a'} · ROC20 ${an.roc20 ?? 'n/a'}% · volume ${an.volRatio ?? 'n/a'}× · from 52W high ${an.pctFromHigh ?? 'n/a'}%` : 'not analysed yet'}${rt ? `\nSetup: ${rt.mode} ${rt.depthPct}% off the swing, gave back ${rt.retracePct}% of a ${rt.legPct}% leg` : ''}${earn ? `\nSaved earnings AI: ${earn.bias} bias, ${String(earn.verdict).replace(/_/g, ' ')}: ${earn.tldr}` : ''}`;
+    }).join('\n\n');
+
+    return `You are a hedge-fund-grade equity research analyst. I keep a personal vault of assets I find interesting, whether or not a scanner currently flags them. For each asset below, assess how genuinely LUCRATIVE an opportunity it is right now: weigh the technical picture I give you against current news, the sector backdrop and any upcoming earnings, and tell me honestly whether my original reason for flagging it still holds.
+
+Search the web for current company-specific news and sector performance for each ticker below before answering. Don't rely on memorized data, markets move fast.
+
+${snowCoverageRules(assets.length)}
+
+${snowFollowUpNote(followUp)}ASSETS TO ANALYSE:
+${lines}
+
+For EACH asset above, respond with ONLY a JSON array (no markdown, no backticks, no preamble), one object per asset, in this exact shape:
+[
+  {
+    "ticker": "<ticker>",
+    "coverage": "SEARCHED" | "PARTIAL" | "NOT_SEARCHED",
+    "evidence": "<one short line: what you actually found (publication + date), or why you did not search>",
+    "opportunityScore": <integer 0-100, or null if NOT_SEARCHED>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID" (or null if NOT_SEARCHED),
+    "badge": "<max 4 words, punchy, for a small inline UI badge>",
+    "sectorRelation": "<1-2 sentences: leading, lagging or in line with its sector right now? Stock-specific or sector-wide?>",
+    "thesis": "<2-3 sentences: is this lucrative right now? Address my reason for flagging it directly>",
+    "risks": "<1-2 sentences: the main thing that would invalidate this>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+}
+
+function buildVaultSynthesisPrompt(asset) {
+    const runs = asset.aiRuns || [];
+    const runLines = runs.map((run, i) => `### Analysis ${i + 1} — source: ${run.source || 'Unknown AI'} (coverage: ${run.coverage || 'not stated'})
+Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+Thesis: ${run.thesis}
+Sector Relation: ${run.sectorRelation || 'N/A'}
+Risks: ${run.risks || 'N/A'}`).join('\n\n');
+
+    return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. ${runs.length} different AI models have each independently analysed the same asset, ${asset.ticker}${asset.name ? ' — ' + asset.name : ''}, for opportunity. Critically synthesise these ${runs.length} analyses into one final, most defensible verdict — explicitly flag where they agree, where they disagree, and what might explain any disagreement (different weighting of sector vs stock-specific factors, different data recency, thin research). Give less weight to analyses marked PARTIAL or with no stated coverage.
+
+${runLines}
+
+Respond with ONLY a JSON object (no markdown, no backticks, no preamble):
+{
+  "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+  "finalOpportunityScore": <integer 0-100>,
+  "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+  "consensusSummary": "<2-3 sentences: what do the analyses actually agree on?>",
+  "disagreements": "<1-2 sentences: where do they diverge and why? Empty string if none>",
+  "synthesizedThesis": "<3-4 sentences: your final take>"
+}
+
+Do not include anything outside the JSON object. The response must be parseable by JSON.parse().`;
+}
+
+// The verdict the chart/trade ticket records, only if the stored AI read is under a week old
+function vaultChartMeta(a) {
+    const an = a.analysis;
+    if (!an) return null;
+    const cons    = snowAiConsensus(a.aiRuns || []);
+    const verdict = (a.aiSynthesis && a.aiSynthesis.finalVerdict) || (cons && cons.modeVerdict) || null;
+    const latest  = [a.aiSynthesis && a.aiSynthesis.savedAt, ...(a.aiRuns || []).map(r => r.savedAt)].filter(Boolean).sort().pop();
+    const fresh   = latest && (Date.now() - Date.parse(latest)) / 86400000 <= 7;
+    return fresh && verdict ? { ...an, aiVerdict: verdict } : an;
+}
+
+function VaultAssetAI({ asset, open, onToggle, onAsk, onSynth, onClear }) {
+    const runs  = asset.aiRuns || [];
+    const synth = asset.aiSynthesis || null;
+    const cons  = snowAiConsensus(runs);
+    const verdictKey = (synth && synth.finalVerdict) || (cons && cons.modeVerdict) || null;
+    const vs  = SNOW_VERDICT_STYLE[verdictKey] || null;
+    const btn = (color) => ({ padding:'3px 10px', borderRadius:'7px', fontSize:'10px', fontWeight:'800', cursor:'pointer', border:`1px solid ${color}55`, backgroundColor:`${color}12`, color });
+
+    if (runs.length === 0 && !synth) {
+        return <div style={{ marginTop:'8px' }}><button onClick={onAsk} style={btn('#7c3aed')}>🤖 Ask AI for an opportunity read</button></div>;
+    }
+    const latest = [synth && synth.savedAt, ...runs.map(r => r.savedAt)].filter(Boolean).sort().pop();
+    const score  = synth && synth.finalOpportunityScore != null ? synth.finalOpportunityScore : (cons ? cons.meanScore : null);
+
+    return (
+        <div style={{ marginTop:'8px', padding:'8px 10px', borderRadius:'8px', backgroundColor: vs ? `${vs.color}0d` : '#f8fafc', border:`1px solid ${vs ? vs.color + '40' : '#e2e8f0'}` }}>
+            <div style={{ display:'flex', gap:'7px', alignItems:'center', flexWrap:'wrap' }}>
+                {vs && (
+                    <span style={{ fontSize:'11px', fontWeight:'800', padding:'2px 10px', borderRadius:'10px', backgroundColor:vs.color, color:'#fff' }}>
+                        {vs.icon} {String(verdictKey).replace(/_/g, ' ')}{score != null ? ` · ${score}/100` : ''}
+                    </span>
+                )}
+                {synth && <span style={{ fontSize:'10px', fontWeight:'800', color:'#7c3aed' }}>✨ synthesis of {synth.runCountAtSynthesis}</span>}
+                <span style={{ fontSize:'10px', color:'#64748b' }}>🧠 {runs.length} run{runs.length === 1 ? '' : 's'}{cons && cons.agreement != null && runs.length > 1 ? ` · ${cons.agreement}% agree` : ''}</span>
+                {latest && <span style={{ fontSize:'10px', color:'#94a3b8' }}>{snowTimeAgo(latest)}</span>}
+                <span style={{ marginLeft:'auto', display:'flex', gap:'5px', flexWrap:'wrap' }}>
+                    <button onClick={onToggle} style={btn('#64748b')}>{open ? '▲ Hide' : '▼ Details'}</button>
+                    <button onClick={onAsk} style={btn('#7c3aed')}>＋ Another take</button>
+                    {runs.length >= 2 && <button onClick={onSynth} style={btn('#db2777')}>✨ {synth ? 'Re-synthesize' : 'Synthesize'}</button>}
+                    <button onClick={onClear} title="Clear all stored AI analysis for this asset" style={btn('#ef4444')}>🗑</button>
+                </span>
+            </div>
+            {open && (
+                <div style={{ marginTop:'8px', display:'flex', flexDirection:'column', gap:'7px' }}>
+                    {synth && (
+                        <div style={{ padding:'8px 10px', borderRadius:'8px', backgroundColor:'#fff', border:'1px solid #ddd6fe', fontSize:'12px', lineHeight:1.55, color:'#1a1a1a' }}>
+                            <div style={{ fontSize:'10px', fontWeight:'800', color:'#7c3aed', marginBottom:'3px' }}>✨ SYNTHESIS · {synth.agreementLevel || ''} agreement</div>
+                            {synth.synthesizedThesis}
+                            {synth.consensusSummary && <div style={{ marginTop:'4px', color:'#475569' }}><b>Agree on:</b> {synth.consensusSummary}</div>}
+                            {synth.disagreements && <div style={{ marginTop:'3px', color:'#b45309' }}><b>Diverge on:</b> {synth.disagreements}</div>}
+                        </div>
+                    )}
+                    {runs.map((run, i) => {
+                        const rv = SNOW_VERDICT_STYLE[run.verdict] || SNOW_VERDICT_STYLE.NEUTRAL;
+                        const cov = snowNormaliseCoverage(run);
+                        return (
+                            <div key={i} style={{ padding:'8px 10px', borderRadius:'8px', backgroundColor:'#fff', border:'1px solid #e2e8f0', fontSize:'12px', lineHeight:1.5 }}>
+                                <div style={{ display:'flex', gap:'7px', alignItems:'center', flexWrap:'wrap', marginBottom:'3px' }}>
+                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'1px 8px', borderRadius:'10px', border:'1px solid #e2e8f0', color:'#64748b' }}>{run.source || 'AI'}</span>
+                                    <span style={{ fontSize:'11px', fontWeight:'800', color:rv.color }}>{rv.icon} {String(run.verdict).replace(/_/g, ' ')} · {run.opportunityScore}/100</span>
+                                    {cov === 'PARTIAL' && <span style={{ fontSize:'10px', fontWeight:'800', color:'#b45309' }}>⚠ thin research</span>}
+                                    {cov === 'UNVERIFIED' && <span style={{ fontSize:'10px', fontWeight:'800', color:'#64748b' }}>? coverage not stated</span>}
+                                    {run.savedAt && <span style={{ fontSize:'10px', color:'#94a3b8' }}>{snowTimeAgo(run.savedAt)}</span>}
+                                </div>
+                                <div style={{ color:'#1a1a1a' }}>{run.thesis}</div>
+                                {run.sectorRelation && <div style={{ color:'#475569', marginTop:'2px' }}><b>Sector:</b> {run.sectorRelation}</div>}
+                                {run.risks && <div style={{ color:'#b91c1c', marginTop:'2px' }}><b>Risk:</b> {run.risks}</div>}
+                                {run.evidence && <div style={{ color:'#64748b', marginTop:'2px', fontSize:'11px' }}>🔎 {run.evidence}</div>}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const { items, loading, error } = useVaultInterest();
     const [search, setSearch]     = React.useState('');
@@ -1655,6 +2046,9 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const [chartTicker, setChartTicker] = React.useState(null);
     const [chartInterval, setChartInterval] = React.useState('1D');
     const [editing, setEditing]   = React.useState(null); // { ticker, note, tags }
+    const [aiFlow, setAiFlow]               = React.useState(null);   // { mode: 'bulk' | 'synthesis', tickers: [...], followUp }
+    const [coverageReport, setCoverageReport] = React.useState(null);
+    const [aiOpen, setAiOpen]               = React.useState({});     // which cards have their AI details open
     const [allCharts, setAllCharts]     = React.useState(false);
     const [chartsShown, setChartsShown] = React.useState(10);
 
@@ -1700,6 +2094,47 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
             }
         } catch (e) { setLocalError(e.message); }
         finally { setAnalysing(prev => { const n = { ...prev }; list.forEach(t => delete n[t]); return n; }); }
+    };
+
+        // ── AI analysis (external AI, copy/paste: same pattern as the Trend Scanner) ──
+    const byT = Object.fromEntries(items.map(a => [a.ticker, a]));
+    const askAIBulk = (tickers, followUp) => { if (tickers.length) setAiFlow({ mode: 'bulk', tickers, followUp: followUp || null }); };
+    const askAIOne  = (t) => setAiFlow({ mode: 'bulk', tickers: [t], followUp: null });
+    const askSynth  = (t) => setAiFlow({ mode: 'synthesis', tickers: [t], followUp: null });
+    const clearAI   = (t) => SnowVaultInterest.saveAI({ [t]: { aiRuns: [], aiSynthesis: null } }).catch(e => setLocalError(e.message));
+
+    const flowPrompt = !aiFlow ? '' : aiFlow.mode === 'synthesis'
+        ? (byT[aiFlow.tickers[0]] ? buildVaultSynthesisPrompt(byT[aiFlow.tickers[0]]) : '')
+        : buildVaultAIPrompt(aiFlow.tickers.map(t => byT[t]).filter(Boolean), aiFlow.followUp);
+
+    const handleAiParsed = (parsed, source) => {
+        if (!aiFlow) return;
+        const nowISO = new Date().toISOString();
+        if (aiFlow.mode === 'synthesis') {
+            const t = aiFlow.tickers[0];
+            if (!parsed || Array.isArray(parsed) || parsed.finalVerdict == null || parsed.synthesizedThesis == null) {
+                throw new Error('Expected a single JSON object with finalVerdict + synthesizedThesis.');
+            }
+            const runCount = (byT[t] && byT[t].aiRuns ? byT[t].aiRuns : []).length;
+            SnowVaultInterest.saveAI({ [t]: { aiSynthesis: { ...parsed, runCountAtSynthesis: runCount, source, savedAt: nowISO } } })
+                .catch(e => setLocalError(e.message));
+            return;
+        }
+        if (!Array.isArray(parsed)) throw new Error('Expected a JSON array (one object per asset).');
+        const requested = aiFlow.tickers;
+        const split = snowSplitCoverage(parsed, requested, it => it.verdict != null && it.thesis != null);
+        if (split.usableItems.length === 0) {
+            throw new Error('None of those assets were actually researched. Re-run the prompt, ideally with a shorter list.');
+        }
+        const payload = {};
+        split.usableItems.forEach(it => {
+            const t = String(it.ticker).toUpperCase().trim();
+            const prior = payload[t] ? payload[t].aiRuns : ((byT[t] && byT[t].aiRuns) || []);
+            payload[t] = { aiRuns: [...prior, { ...it, ticker: t, coverage: snowNormaliseCoverage(it), source, savedAt: nowISO }].slice(-12) };
+        });
+        SnowVaultInterest.saveAI(payload).catch(e => setLocalError(e.message));
+        const rep = snowBuildCoverageReport('Vault AI scan', source, split, requested, aiFlow.followUp);
+        if (rep) setCoverageReport(rep);
     };
 
     const doAdd = async () => {
@@ -1776,6 +2211,9 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                     {allCharts && shown.length > chartsShown && (
                         <button onClick={() => setChartsShown(n => n + 10)} style={btn('#0891b2')}>＋ 10 more ({shown.length - chartsShown} left)</button>
                     )}
+                    <button onClick={() => askAIBulk(shown.map(a => a.ticker))} disabled={shown.length === 0}
+                        title="Ask an AI for an opportunity read on every asset currently shown. It must say which ones it really researched, and you can re-run the rest."
+                        style={btn('#db2777')}>🤖 AI scan ({shown.length})</button>
                     <button onClick={() => analyseTickers(items.map(a => a.ticker))} disabled={analysingCount > 0 || items.length === 0} style={{ ...btn('#7c3aed'), marginLeft:'auto' }}>
                         {analysingCount > 0 ? `⏳ Analysing ${analysingCount}…` : `🔄 Analyse all (${items.length})`}
                     </button>
@@ -1789,6 +2227,24 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                             Nothing here yet. Add a ticker above, or hit <b>☆ Vault</b> on any chart or scanner result.
                         </div>
                     )}
+                    <ExternalAIModal
+                        isOpen={!!aiFlow}
+                        onClose={() => setAiFlow(null)}
+                        title={aiFlow ? (aiFlow.mode === 'synthesis' ? `Synthesis — ${aiFlow.tickers[0]}`
+                            : aiFlow.tickers.length === 1 ? `AI read — ${aiFlow.tickers[0]}`
+                            : aiFlow.followUp ? `Follow-up scan (${aiFlow.tickers.length} left)` : `Vault AI scan (${aiFlow.tickers.length})`) : ''}
+                        promptText={flowPrompt}
+                        onParsed={handleAiParsed}
+                    />
+                    <CoverageReportModal
+                        report={coverageReport}
+                        onClose={() => setCoverageReport(null)}
+                        onRerun={(tickers) => {
+                            const rep = coverageReport;
+                            setCoverageReport(null);
+                            askAIBulk(tickers, { allTickers: rep.allTickers, doneTickers: rep.doneTickers });
+                        }}
+                    />
                     {items.length > 0 && shown.length === 0 && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>No matches.</div>}
 
                     <div style={{ display:'flex', flexDirection:'column', gap:'10px' }}>
@@ -1845,6 +2301,15 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                                         )
                                     )}
 
+                                    <VaultAssetAI
+                                        asset={a}
+                                        open={!!aiOpen[a.ticker]}
+                                        onToggle={() => setAiOpen(p => ({ ...p, [a.ticker]: !p[a.ticker] }))}
+                                        onAsk={() => askAIOne(a.ticker)}
+                                        onSynth={() => askSynth(a.ticker)}
+                                        onClear={() => { if (window.confirm(`Clear all AI analysis stored for ${a.ticker}?`)) clearAI(a.ticker); }}
+                                    />
+
                                     <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginTop:'9px' }}>
                                         <button onClick={() => analyseTickers([a.ticker])} disabled={busy} style={btn('#7c3aed')}>{busy ? '⏳ Analysing…' : '🔄 Analyse'}</button>
                                         <button onClick={() => toggleChart(a)} style={btn('#2563eb')}>{chartTicker === a.ticker ? '▲ Hide chart' : '📊 Chart / Trade'}</button>
@@ -1854,7 +2319,7 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                                     </div>
 
                                     {(allCharts || chartTicker === a.ticker) && (
-                                        <ScannerChart ticker={a.ticker} interval={chartInterval} onIntervalChange={setChartInterval} hideClose mountDelay={allCharts ? (idx % 10) * 400 : 0} scannerMeta={an || null} />
+                                        <ScannerChart ticker={a.ticker} interval={chartInterval} onIntervalChange={setChartInterval} hideClose mountDelay={allCharts ? (idx % 10) * 400 : 0} scannerMeta={vaultChartMeta(a)} />
                                     )}
                                 </div>
                             );
@@ -2883,6 +3348,7 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
     };
 
     // -- Daily snapshot save (for backtesting) --
+    const [coverageReport, setCoverageReport] = React.useState(null);
     const [snapshotSaving, setSnapshotSaving] = React.useState(false);
     const [snapshotResult, setSnapshotResult] = React.useState(null);
     const [snapshotError,  setSnapshotError]  = React.useState(null);
@@ -3095,21 +3561,30 @@ function TrendReversalScanner({ isOpen, onClose, onSelectTicker }) {
         }).join('\n');
     };
 
-    const buildScannerAIPrompt = (scopeStocks) => {
+       const buildScannerAIPrompt = (scopeStocks) => {
         const cohortCtx = buildScannerCohortContext();
         const stockLines = scopeStocks.map(r => {
             const etf = SNOWVAULT_SECTOR_ETF_HINTS[r.sector] || null;
+            const rt  = r.retrace;
+            const setup = rt
+                ? `\nSetup: ${rt.mode === 'PULLBACK' ? 'PULLBACK in an uptrend' : 'BOUNCE in a downtrend'}: ${rt.depthPct}% off the swing ${rt.mode === 'PULLBACK' ? 'high' : 'low'}, gave back ${rt.retracePct}% of a ${rt.legPct}% leg · ${rt.barsSinceExtreme} bars since the swing · ${rt.stabilising ? 'holding (no fresh extreme in the last 3 bars)' : 'still making fresh extremes'} · volume on the way ${rt.volRatio != null ? rt.volRatio + '× the prior move' : 'n/a'} · RSI ${rt.rsi14 ?? 'n/a'}`
+                : '';
             return `### ${r.ticker} — ${r.name || ''} (${r.sector || 'Unknown sector'}${etf ? `, sector ETF ~${etf}` : ''})
 Signal: ${r.signal} · Direction: ${r.direction} · Scanner Score: ${r.score}/100
 Price: $${r.currentPrice ?? 'N/A'} · Market Cap: ${r.marketCap ? '$' + (r.marketCap/1e9).toFixed(1) + 'B' : 'N/A'}
-ADX: ${r.adxNow ?? 'N/A'} · ROC20: ${r.roc20 ?? 'N/A'}% · Volume Ratio: ${r.volRatio ?? 'N/A'}× · From 52W High: ${r.pctFromHigh ?? 'N/A'}%`;
+ADX: ${r.adxNow ?? 'N/A'} · ROC20: ${r.roc20 ?? 'N/A'}% · Volume Ratio: ${r.volRatio ?? 'N/A'}× · From 52W High: ${r.pctFromHigh ?? 'N/A'}%${setup}`;
         }).join('\n\n');
+        const pullbackNote = scopeStocks.some(r => r.retrace)
+            ? '\n\nSome rows are marked PULLBACK or BOUNCE. For those, the real question is whether the dip is a buyable retracement inside an intact uptrend (or the rally a shortable bounce inside a downtrend) versus the start of a breakdown (or a genuine reversal). Judge that, not the breakout score.'
+            : '';
 
-        return `You are a hedge-fund-grade equity research analyst. A technical trend-reversal scanner just flagged the stock(s) below. Assess how genuinely LUCRATIVE each opportunity is — not just the technical signal in isolation, but cross-checked against what's actually happening in that stock's sector right now, so a signal that's really just broad sector rotation (or a stock quietly lagging while its whole sector rips) gets called out rather than missed.
+        return `You are a hedge-fund-grade equity research analyst. A technical trend scanner just flagged the stock(s) below. Assess how genuinely LUCRATIVE each opportunity is — not just the technical signal in isolation, but cross-checked against what's actually happening in that stock's sector right now, so a signal that's really just broad sector rotation (or a stock quietly lagging while its whole sector rips) gets called out rather than missed.${pullbackNote}
 
 Search the web for current sector performance (via each stock's tracking ETF and general sector news) and recent company-specific news for each ticker below before answering — don't rely on memorized data, markets move fast.
 
-PEER COHORT WITHIN THIS SAME SCAN (how many of the scanner's OTHER hits in each sector are bullish/bearish right now — tells you if a move is sector-wide or stock-specific):
+${snowCoverageRules(scopeStocks.length)}
+
+${snowFollowUpNote(aiPromptScope?.followUp)}PEER COHORT WITHIN THIS SAME SCAN (how many of the scanner's OTHER hits in each sector are bullish/bearish right now — tells you if a move is sector-wide or stock-specific):
 ${cohortCtx || 'No peer cohort data available.'}
 
 STOCK(S) TO ANALYSE:
@@ -3119,8 +3594,10 @@ For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks,
 [
   {
     "ticker": "<ticker>",
-    "opportunityScore": <integer 0-100>,
-    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "coverage": "SEARCHED" | "PARTIAL" | "NOT_SEARCHED",
+    "evidence": "<one short line: what you actually found (publication + date), or why you did not search>",
+    "opportunityScore": <integer 0-100, or null if NOT_SEARCHED>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID" (or null if NOT_SEARCHED),
     "badge": "<max 4 words, punchy, for a small inline UI badge>",
     "sectorRelation": "<1-2 sentences: is this stock leading, lagging, or in line with its sector ETF and sector peers right now? Stock-specific or sector-wide move?>",
     "thesis": "<2-3 sentences: your synthesis of whether this is a lucrative opportunity right now, weighing the technical signal against sector/macro backdrop>",
@@ -3258,32 +3735,36 @@ Do not include anything outside the JSON array. The response must be parseable b
             return;
         }
 
-        // ── Bulk / individual mode: expects a JSON array, appends new runs ──
+                // ── Bulk / individual mode: a JSON array, one object per stock. Coverage honesty decides what gets saved ──
         let parsed;
-        try { parsed = JSON.parse(clean); }
+        try { parsed = snowParseLooseJson(aiPasteText); }
         catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
         if (!Array.isArray(parsed)) {
             setAiPasteError('Expected a JSON array (one object per stock).');
             return;
         }
-        const source  = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
-        const updated = { ...aiRuns };
-        let addedCount = 0;
-        parsed.forEach(item => {
-            const t = String(item?.ticker || '').toUpperCase().trim();
-            if (!t || item.verdict == null || item.thesis == null) return;
-            if (!updated[t]) updated[t] = [];
-            updated[t] = [...updated[t], { ...item, ticker: t, source, savedAt: new Date().toLocaleString() }];
-            addedCount += 1;
-        });
-        if (addedCount === 0) {
-            setAiPasteError('No valid stock entries found — check the response matches the expected format.');
+        const source    = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const requested = (aiPromptScope?.stocks || []).map(s => s.ticker);
+        const split = snowSplitCoverage(parsed, requested, it => it.verdict != null && it.thesis != null);
+        if (split.usableItems.length === 0) {
+            setAiPasteError(requested.length
+                ? 'None of those stocks were actually researched. Re-run the prompt, ideally with a shorter list.'
+                : 'No valid stock entries found — check the response matches the expected format.');
             return;
         }
+        const updated = { ...aiRuns };
+        split.usableItems.forEach(item => {
+            const t = String(item.ticker).toUpperCase().trim();
+            updated[t] = [...(updated[t] || []), { ...item, ticker: t, coverage: snowNormaliseCoverage(item), source, savedAt: new Date().toLocaleString() }];
+        });
         saveAiRuns(updated);
         setShowAiPasteModal(false);
         setAiPasteText('');
         setAiPasteSource('');
+        if (requested.length) {
+            const rep = snowBuildCoverageReport('Trend Scanner AI scan', source, split, requested, aiPromptScope?.followUp || null);
+            if (rep) setCoverageReport(rep);
+        }
     };
 
     const saveTodaySnapshot = async () => {
@@ -4498,6 +4979,19 @@ Do not include anything outside the JSON array. The response must be parseable b
                 );
             })()}
 
+        <CoverageReportModal
+            report={coverageReport}
+            onClose={() => setCoverageReport(null)}
+            onRerun={(tickers) => {
+                const pool = [...(results?.pullbackResults || []), ...(results?.breakoutResults || []), ...(results?.results || [])];
+                const stocks = tickers.map(t => filtered.find(x => x.ticker === t) || pool.find(x => x.ticker === t)).filter(Boolean);
+                const rep = coverageReport;
+                setCoverageReport(null);
+                setAiPromptScope({ mode: 'bulk', stocks, followUp: { allTickers: rep.allTickers, doneTickers: rep.doneTickers } });
+                setShowAiPromptModal(true);
+            }}
+        />
+
             {/* AI Paste Response Modal */}
             {showAiPasteModal && (
                 <div onClick={() => { setShowAiPasteModal(false); setAiPasteError(null); }} style={{
@@ -5514,9 +6008,9 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
     const [gpShowAllChartsByCountry, setGpShowAllChartsByCountry] = React.useState({});
     const toggleCountryCharts = (country) => setGpShowAllChartsByCountry(prev => ({ ...prev, [country]: !prev[country] }));
 
-    
+    const [coverageReport, setCoverageReport] = React.useState(null);
 
-        // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
+    // -- AI Opportunity Analysis (external AI, copy/paste, same pattern as Trend Scanner) --
     const [aiRuns, setAiRuns] = React.useState({});
     const [aiSynthesis, setAiSynthesis] = React.useState({});
     const [aiPromptScope, setAiPromptScope] = React.useState(null);
@@ -5670,7 +6164,7 @@ function GlobalPicksTrendScanModal({ isOpen, onClose, onSelectTicker }) {
         }).join('\n');
     };
 
-    const buildGpAIPrompt = (tickerObjs) => {
+        const buildGpAIPrompt = (tickerObjs) => {
         const cohortCtx = buildGpCohortContext();
         const lines = tickerObjs.map(t => {
             const catalystsStr = Array.isArray(t.catalysts) && t.catalysts.length ? t.catalysts.join('; ') : 'none listed';
@@ -5690,7 +6184,9 @@ ADX: ${t.adxNow ?? 'N/A'} · ROC20: ${t.roc20 ?? 'N/A'}% · Volume Ratio: ${t.vo
 
 Search the web for current country/sector-wide context and recent company-specific news for each ticker below before answering — don't rely on memorized data.
 
-PEER COHORT ACROSS ALL COUNTRIES CURRENTLY TRACKED:
+${snowCoverageRules(tickerObjs.length)}
+
+${snowFollowUpNote(aiPromptScope?.followUp)}PEER COHORT ACROSS ALL COUNTRIES CURRENTLY TRACKED:
 ${cohortCtx || 'No cohort data available.'}
 
 STOCK(S) TO ANALYSE:
@@ -5700,8 +6196,10 @@ For EACH stock above, respond with ONLY a JSON array (no markdown, no backticks,
 [
   {
     "ticker": "<ticker>",
-    "opportunityScore": <integer 0-100>,
-    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "coverage": "SEARCHED" | "PARTIAL" | "NOT_SEARCHED",
+    "evidence": "<one short line: what you actually found (publication + date), or why you did not search>",
+    "opportunityScore": <integer 0-100, or null if NOT_SEARCHED>,
+    "verdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID" (or null if NOT_SEARCHED),
     "badge": "<max 4 words, punchy, for a small inline UI badge>",
     "cohortRelation": "<1-2 sentences: does the fresh technical signal support or contradict the original AI thesis? Country/sector-wide or stock-specific?>",
     "thesis": "<2-3 sentences: your updated synthesis>",
@@ -5795,14 +6293,13 @@ Do not include anything outside the JSON array. The response must be parseable b
         setShowAiPromptModal(true);
     };
 
-    const handleGpPasteAIResponse = () => {
+        const handleGpPasteAIResponse = () => {
         setAiPasteError(null);
         if (!aiPasteText.trim()) { setAiPasteError('Paste the JSON response first.'); return; }
-        const clean = aiPasteText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
         if (aiPromptScope?.mode === 'synthesis') {
             let parsed;
-            try { parsed = JSON.parse(clean); }
+            try { parsed = snowParseLooseJson(aiPasteText); }
             catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
             if (Array.isArray(parsed) || parsed.finalVerdict == null || parsed.synthesizedThesis == null) {
                 setAiPasteError('Expected a single JSON object with finalVerdict + synthesizedThesis.');
@@ -5819,7 +6316,7 @@ Do not include anything outside the JSON array. The response must be parseable b
 
         if (aiPromptScope?.mode === 'bulkSynthesis') {
             let parsed;
-            try { parsed = JSON.parse(clean); }
+            try { parsed = snowParseLooseJson(aiPasteText); }
             catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
             if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one synthesis object per stock).'); return; }
             const updated = { ...aiSynthesis };
@@ -5837,25 +6334,33 @@ Do not include anything outside the JSON array. The response must be parseable b
             return;
         }
 
+        // Bulk / country / individual: a JSON array, one object per stock. Coverage honesty decides what gets saved.
         let parsed;
-        try { parsed = JSON.parse(clean); }
+        try { parsed = snowParseLooseJson(aiPasteText); }
         catch (e) { setAiPasteError(`Invalid JSON — couldn't parse. Error: ${e.message}`); return; }
         if (!Array.isArray(parsed)) { setAiPasteError('Expected a JSON array (one object per stock).'); return; }
-        const source  = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const source    = aiPasteSource.trim() || aiLastOpenedSource || 'AI';
+        const requested = (aiPromptScope?.tickerObjs || []).map(t => t.ticker);
+        const split = snowSplitCoverage(parsed, requested, it => it.verdict != null && it.thesis != null);
+        if (split.usableItems.length === 0) {
+            setAiPasteError(requested.length
+                ? 'None of those stocks were actually researched. Re-run the prompt, ideally with a shorter list.'
+                : 'No valid stock entries found.');
+            return;
+        }
         const updated = { ...aiRuns };
-        let added = 0;
-        parsed.forEach(item => {
-            const t = String(item?.ticker || '').toUpperCase().trim();
-            if (!t || item.verdict == null || item.thesis == null) return;
-            if (!updated[t]) updated[t] = [];
-            updated[t] = [...updated[t], { ...item, ticker: t, source, savedAt: new Date().toLocaleString() }];
-            added += 1;
+        split.usableItems.forEach(item => {
+            const t = String(item.ticker).toUpperCase().trim();
+            updated[t] = [...(updated[t] || []), { ...item, ticker: t, coverage: snowNormaliseCoverage(item), source, savedAt: new Date().toLocaleString() }];
         });
-        if (added === 0) { setAiPasteError('No valid stock entries found.'); return; }
         setAiRuns(updated);
         setShowAiPasteModal(false);
         setAiPasteText('');
         setAiPasteSource('');
+        if (requested.length) {
+            const rep = snowBuildCoverageReport(aiPromptScope?.country ? `${aiPromptScope.country} AI scan` : 'Global Picks AI scan', source, split, requested, aiPromptScope?.followUp || null);
+            if (rep) setCoverageReport(rep);
+        }
     };
 
     const getGpConsensus = (ticker) => {
@@ -6466,6 +6971,19 @@ Do not include anything outside the JSON array. The response must be parseable b
             </div>
         )}
 
+                <CoverageReportModal
+            report={coverageReport}
+            onClose={() => setCoverageReport(null)}
+            onRerun={(tickers) => {
+                const pool = Object.entries(data?.countries || {}).flatMap(([country, cData]) => cData.tickers.map(t => ({ ...t, country, flag: cData.flag })));
+                const objs = tickers.map(t => pool.find(x => x.ticker === t)).filter(Boolean);
+                const rep = coverageReport;
+                setCoverageReport(null);
+                setAiPromptScope({ ...aiPromptScope, tickerObjs: objs, followUp: { allTickers: rep.allTickers, doneTickers: rep.doneTickers } });
+                setShowAiPromptModal(true);
+            }}
+        />
+
         {perfModalTicker && (
             <TickerPerformanceModal
                 symbol={perfModalTicker}
@@ -6954,6 +7472,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [chartPosition, setChartPositionRaw] = React.useState(null);
     const setChartPosition = (p) => setChartPositionRaw(p && p._raw ? p._raw : p);   // unwrap a normalised row back to the real trade
     const [showAutopsy, setShowAutopsy] = React.useState(false);
+    const [ctxEarn, setCtxEarn] = React.useState('any');   // 'any' | 'with' | 'without': earnings AI stored at entry
+    const [ctxAi, setCtxAi]     = React.useState('any');   // 'any' | 'with' | 'without': AI verdict stored at entry
     const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
     const [showCharts, setShowCharts]       = React.useState(false);
     const [chartsInterval, setChartsInterval] = React.useState('1D');
@@ -7027,7 +7547,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
 
     const filtered = positions
         .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
-        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()));
+        .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()))
+        .filter(p => ctxEarn === 'any' || (ctxEarn === 'with') === snowTradeHasEarnings(p))
+        .filter(p => ctxAi === 'any' || (ctxAi === 'with') === snowTradeHasAi(p));
 
     // Re-prices every OPEN position currently visible in the table (respects the status filter + search)
     const refreshVisible = async () => {
@@ -7218,6 +7740,35 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     </div>
                 </div>
 
+                {viewMode === 'trades' && (() => {
+                    const nE    = positions.filter(snowTradeHasEarnings).length;
+                    const nA    = positions.filter(snowTradeHasAi).length;
+                    const nBoth = positions.filter(p => snowTradeHasEarnings(p) && snowTradeHasAi(p)).length;
+                    const seg = (active) => ({ padding:'3px 10px', fontSize:'11px', fontWeight:'800', cursor:'pointer', border:'1px solid #cbd5e1', backgroundColor: active ? '#7c3aed' : '#fff', color: active ? '#fff' : '#64748b' });
+                    const group = (label, value, setValue, nWith) => (
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:'6px' }}>
+                            <span style={{ fontSize:'11px', fontWeight:'700', color:'#475569' }}>{label}</span>
+                            <span style={{ display:'inline-flex' }}>
+                                {[['any', 'Any', positions.length], ['with', 'With', nWith], ['without', 'Without', positions.length - nWith]].map(([k, l, n], i) => (
+                                    <button key={k} onClick={() => setValue(k)} style={{ ...seg(value === k), borderRadius: i === 0 ? '7px 0 0 7px' : i === 2 ? '0 7px 7px 0' : 0, marginLeft: i ? '-1px' : 0 }}>{l} ({n})</button>
+                                ))}
+                            </span>
+                        </span>
+                    );
+                    return (
+                        <div style={{ padding:'8px 20px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e2e8f0', display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#64748b' }}>🔎 STORED WHEN I TOOK THE TRADE</span>
+                            {group('📈 Earnings AI', ctxEarn, setCtxEarn, nE)}
+                            {group('🤖 AI analysis', ctxAi, setCtxAi, nA)}
+                            <button onClick={() => { setCtxEarn('with'); setCtxAi('with'); }} style={{ ...seg(ctxEarn === 'with' && ctxAi === 'with'), borderRadius:'7px' }}>✓ Both ({nBoth})</button>
+                            {(ctxEarn !== 'any' || ctxAi !== 'any') && (
+                                <button onClick={() => { setCtxEarn('any'); setCtxAi('any'); }} style={{ padding:'3px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', backgroundColor:'#fff', color:'#64748b', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>✕ Clear</button>
+                            )}
+                            <span style={{ fontSize:'10px', color:'#94a3b8' }}>Trades opened before tagging existed have nothing stored, so they count as "Without".</span>
+                        </div>
+                    );
+                })()}
+
                 {/* Body */}
                 <div style={{ maxHeight:'65vh', overflowY:'auto' }}>
                     {normOn && (() => {
@@ -7393,6 +7944,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                     {onSelectTicker ? (
                                                         <span onClick={(e) => { e.stopPropagation(); onSelectTicker(p.asset); onClose(); }} style={{ cursor:'pointer', color:'#2563eb', textDecoration:'underline dotted' }}>{p.asset}</span>
                                                     ) : p.asset}
+                                                    {snowTradeHasEarnings(p) && <span title={`Earnings AI stored at entry: ${p.entry_context.earningsBias || ''} ${p.entry_context.earningsVerdict ? '/ ' + String(p.entry_context.earningsVerdict).replace(/_/g, ' ') : ''}`} style={{ marginLeft:'6px', fontSize:'10px' }}>📈</span>}
+                                                    {snowTradeHasAi(p) && <span title={`AI verdict stored at entry: ${String(p.entry_context.aiVerdict).replace(/_/g, ' ')}${p.entry_context.aiVerdictDate ? ' (' + p.entry_context.aiVerdictDate + ')' : ''}`} style={{ marginLeft:'3px', fontSize:'10px' }}>🤖</span>}
                                                 </td>
                                                                                                 <td style={{ padding:'8px 10px' }}>
                                                     <span
