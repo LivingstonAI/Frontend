@@ -2031,6 +2031,37 @@ function VaultAssetAI({ asset, open, onToggle, onAsk, onSynth, onClear }) {
     );
 }
 
+function buildVaultBulkSynthesisPrompt(assets) {
+    const sections = assets.map(asset => {
+        const runs = asset.aiRuns || [];
+        const runLines = runs.map((run, i) => `  Analysis ${i + 1} — source: ${run.source || 'Unknown AI'} (coverage: ${run.coverage || 'not stated'})
+  Verdict: ${run.verdict} · Opportunity Score: ${run.opportunityScore}/100
+  Thesis: ${run.thesis}
+  Sector Relation: ${run.sectorRelation || 'N/A'}
+  Risks: ${run.risks || 'N/A'}`).join('\n\n');
+        return `## ${asset.ticker}${asset.name ? ' — ' + asset.name : ''}\n${runLines}`;
+    }).join('\n\n---\n\n');
+
+    return `You are a hedge-fund-grade equity research analyst acting purely as a SYNTHESIS layer — do not do new independent research. For EACH asset below, several AI models have each independently analysed it. Synthesise the analyses for EACH asset into one final, most defensible verdict, flagging where they agree, where they disagree and why. Give less weight to analyses marked PARTIAL or with no stated coverage. Treat every asset on its own evidence: do not let one asset's analyses influence another's.
+
+${sections}
+
+Respond with ONLY a JSON array (no markdown, no backticks, no preamble), exactly ONE object per asset above, in the same order:
+[
+  {
+    "ticker": "<ticker>",
+    "finalVerdict": "STRONG_OPPORTUNITY" | "OPPORTUNITY" | "NEUTRAL" | "CAUTION" | "AVOID",
+    "finalOpportunityScore": <integer 0-100>,
+    "agreementLevel": "HIGH" | "MODERATE" | "LOW",
+    "consensusSummary": "<2-3 sentences: what do the analyses actually agree on?>",
+    "disagreements": "<1-2 sentences: where do they diverge and why? Empty string if none>",
+    "synthesizedThesis": "<3-4 sentences: your final take>"
+  }
+]
+
+Do not include anything outside the JSON array. The response must be parseable by JSON.parse().`;
+}
+
 function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const { items, loading, error } = useVaultInterest();
     const [search, setSearch]     = React.useState('');
@@ -2049,6 +2080,7 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const [aiFlow, setAiFlow]               = React.useState(null);   // { mode: 'bulk' | 'synthesis', tickers: [...], followUp }
     const [coverageReport, setCoverageReport] = React.useState(null);
     const [aiOpen, setAiOpen]               = React.useState({});     // which cards have their AI details open
+    const [synthNotice, setSynthNotice] = React.useState(null);   // { saved, total, missing: [...] }
     const [allCharts, setAllCharts]     = React.useState(false);
     const [chartsShown, setChartsShown] = React.useState(10);
 
@@ -2103,9 +2135,14 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
     const askSynth  = (t) => setAiFlow({ mode: 'synthesis', tickers: [t], followUp: null });
     const clearAI   = (t) => SnowVaultInterest.saveAI({ [t]: { aiRuns: [], aiSynthesis: null } }).catch(e => setLocalError(e.message));
 
-    const flowPrompt = !aiFlow ? '' : aiFlow.mode === 'synthesis'
-        ? (byT[aiFlow.tickers[0]] ? buildVaultSynthesisPrompt(byT[aiFlow.tickers[0]]) : '')
-        : buildVaultAIPrompt(aiFlow.tickers.map(t => byT[t]).filter(Boolean), aiFlow.followUp);
+    const synthEligible = shown.filter(a => (a.aiRuns || []).length >= 2).map(a => a.ticker);
+    const askSynthAll   = () => { if (synthEligible.length) setAiFlow({ mode: 'bulkSynthesis', tickers: synthEligible, followUp: null }); };
+
+    const flowPrompt = !aiFlow ? '' : aiFlow.mode === 'bulkSynthesis'
+        ? buildVaultBulkSynthesisPrompt(aiFlow.tickers.map(t => byT[t]).filter(Boolean))
+        : aiFlow.mode === 'synthesis'
+            ? (byT[aiFlow.tickers[0]] ? buildVaultSynthesisPrompt(byT[aiFlow.tickers[0]]) : '')
+            : buildVaultAIPrompt(aiFlow.tickers.map(t => byT[t]).filter(Boolean), aiFlow.followUp);
 
     const handleAiParsed = (parsed, source) => {
         if (!aiFlow) return;
@@ -2118,6 +2155,21 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
             const runCount = (byT[t] && byT[t].aiRuns ? byT[t].aiRuns : []).length;
             SnowVaultInterest.saveAI({ [t]: { aiSynthesis: { ...parsed, runCountAtSynthesis: runCount, source, savedAt: nowISO } } })
                 .catch(e => setLocalError(e.message));
+            return;
+        }
+                if (aiFlow.mode === 'bulkSynthesis') {
+            if (!Array.isArray(parsed)) throw new Error('Expected a JSON array (one synthesis object per asset).');
+            const asked = aiFlow.tickers;
+            const payload = {};
+            parsed.forEach(item => {
+                const t = String((item && item.ticker) || '').toUpperCase().trim();
+                if (!asked.includes(t) || item.finalVerdict == null || item.synthesizedThesis == null) return;
+                payload[t] = { aiSynthesis: { ...item, ticker: t, runCountAtSynthesis: ((byT[t] && byT[t].aiRuns) || []).length, source, savedAt: nowISO } };
+            });
+            const savedTickers = Object.keys(payload);
+            if (savedTickers.length === 0) throw new Error('No valid synthesis entries found for these assets.');
+            SnowVaultInterest.saveAI(payload).catch(e => setLocalError(e.message));
+            setSynthNotice({ saved: savedTickers.length, total: asked.length, missing: asked.filter(t => !savedTickers.includes(t)) });
             return;
         }
         if (!Array.isArray(parsed)) throw new Error('Expected a JSON array (one object per asset).');
@@ -2214,6 +2266,9 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                     <button onClick={() => askAIBulk(shown.map(a => a.ticker))} disabled={shown.length === 0}
                         title="Ask an AI for an opportunity read on every asset currently shown. It must say which ones it really researched, and you can re-run the rest."
                         style={btn('#db2777')}>🤖 AI scan ({shown.length})</button>
+                        <button onClick={askSynthAll} disabled={synthEligible.length === 0}
+                        title={synthEligible.length === 0 ? 'Needs 2+ AI runs on at least one shown asset' : `Synthesize the AI runs of ${synthEligible.length} assets`}
+                        style={{ ...btn('#7c3aed'), opacity: synthEligible.length === 0 ? 0.5 : 1 }}>✨ Synthesize all ({synthEligible.length})</button>
                     <button onClick={() => analyseTickers(items.map(a => a.ticker))} disabled={analysingCount > 0 || items.length === 0} style={{ ...btn('#7c3aed'), marginLeft:'auto' }}>
                         {analysingCount > 0 ? `⏳ Analysing ${analysingCount}…` : `🔄 Analyse all (${items.length})`}
                     </button>
@@ -2221,6 +2276,19 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
 
                 <div style={{ padding:'14px 20px', maxHeight:'72vh', overflowY:'auto' }}>
                     {(error || localError) && <div style={{ padding:'10px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px', marginBottom:'10px' }}>⚠️ {localError || error}</div>}
+                    {synthNotice && (
+                        <div style={{ padding:'10px 12px', borderRadius:'8px', marginBottom:'10px', fontSize:'12px', display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap',
+                                      backgroundColor: synthNotice.missing.length ? '#fffbeb' : '#f0fdf4', border:`1px solid ${synthNotice.missing.length ? '#fde68a' : '#bbf7d0'}`, color:'#334155' }}>
+                            <span>✨ Synthesised {synthNotice.saved} of {synthNotice.total}.{synthNotice.missing.length > 0 ? ` The AI skipped: ${synthNotice.missing.join(', ')}.` : ''}</span>
+                            {synthNotice.missing.length > 0 && (
+                                <button onClick={() => { const m = synthNotice.missing; setSynthNotice(null); setAiFlow({ mode: 'bulkSynthesis', tickers: m, followUp: null }); }}
+                                    style={{ padding:'3px 10px', borderRadius:'7px', border:'1px solid #f59e0b', backgroundColor:'#fef3c7', color:'#92400e', fontSize:'11px', fontWeight:'800', cursor:'pointer' }}>
+                                    🔁 Run the {synthNotice.missing.length} skipped
+                                </button>
+                            )}
+                            <button onClick={() => setSynthNotice(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:'15px' }}>×</button>
+                        </div>
+                    )}
                     {loading && items.length === 0 && <div style={{ padding:'30px', textAlign:'center', color:'#94a3b8' }}>⏳ Loading…</div>}
                     {!loading && items.length === 0 && (
                         <div style={{ padding:'36px 10px', textAlign:'center', color:'#94a3b8', fontSize:'13px', lineHeight:1.6 }}>
@@ -2230,7 +2298,7 @@ function VaultInterestModal({ isOpen, onClose, onSelectTicker }) {
                     <ExternalAIModal
                         isOpen={!!aiFlow}
                         onClose={() => setAiFlow(null)}
-                        title={aiFlow ? (aiFlow.mode === 'synthesis' ? `Synthesis — ${aiFlow.tickers[0]}`
+                        title={aiFlow ? (aiFlow.mode === 'bulkSynthesis' ? `Synthesize all (${aiFlow.tickers.length})` : aiFlow.mode === 'synthesis' ? `Synthesis — ${aiFlow.tickers[0]}`
                             : aiFlow.tickers.length === 1 ? `AI read — ${aiFlow.tickers[0]}`
                             : aiFlow.followUp ? `Follow-up scan (${aiFlow.tickers.length} left)` : `Vault AI scan (${aiFlow.tickers.length})`) : ''}
                         promptText={flowPrompt}
@@ -2387,8 +2455,39 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
     const candlesRef    = React.useRef([]);
     const extraLinesRef = React.useRef([]);
 
-    const [latestSavedAnalysis,   setLatestSavedAnalysis]   = React.useState(null);
+    const [snapshotAnalysis, setLatestSavedAnalysis] = React.useState(null);   // the Trend Scanner snapshot (fetched below)
     const [savedAnalysisExpanded, setSavedAnalysisExpanded] = React.useState(false);
+        // The overlay shows whichever is NEWEST: the latest Trend Scanner snapshot, or the latest Vault AI result,
+    // both capped at the trade day when this chart was opened from a trade.
+    const { byTicker: vaultByTicker } = useVaultInterest();
+    const latestSavedAnalysis = (() => {
+    const cutoff = analysisAsOf ? Date.parse(`${String(analysisAsOf).slice(0, 10)}T23:59:59Z`) : Date.now() + 60000;
+        let vault = null;
+        const va = vaultByTicker ? vaultByTicker[ticker] : null;
+        if (va) {
+            const cands = [];
+            (va.aiRuns || []).forEach(r => { const t = Date.parse(r.savedAt); if (!isNaN(t) && t <= cutoff) cands.push({ t, run: r }); });
+            if (va.aiSynthesis) { const t = Date.parse(va.aiSynthesis.savedAt); if (!isNaN(t) && t <= cutoff) cands.push({ t, synth: va.aiSynthesis }); }
+            cands.sort((x, y) => y.t - x.t);
+            const top = cands[0];
+            if (top) {
+                const iso = new Date(top.t).toISOString();
+                vault = {
+                    _t: top.t, _source: 'Vault AI', date: iso.slice(0, 10),
+                    aiVerdict:   top.synth ? top.synth.finalVerdict : top.run.verdict,
+                    aiSynthesis: top.synth ? { synthesizedThesis: top.synth.synthesizedThesis } : null,
+                    aiRuns:      top.run ? [{ thesis: top.run.thesis }] : null,
+                    score:       top.synth ? top.synth.finalOpportunityScore : top.run.opportunityScore,
+                    signal:      `${top.synth ? (top.synth.source || 'AI') + ' synthesis' : (top.run.source || 'AI')} · ${snowTimeAgo(iso)}`,
+                };
+            }
+        }
+        const snap = snapshotAnalysis
+            ? { ...snapshotAnalysis, _t: Date.parse(snapshotAnalysis.updatedAt || `${snapshotAnalysis.date}T12:00:00Z`) || 0, _source: 'Trend Scanner snapshot' }
+            : null;
+        if (vault && snap) return vault._t >= snap._t ? vault : snap;
+        return vault || snap || null;
+    })();
     const [analysisLoaded, setAnalysisLoaded] = React.useState(false);
     const [sizeInfo, setSizeInfo] = React.useState('');
 
@@ -2933,7 +3032,7 @@ function ScannerChart({ ticker, interval, onIntervalChange, onClose, mountDelay 
                             maxHeight: isMobile ? '34%' : '40%', overflowY:'auto', border:`1px solid ${av.color}50`, padding: isMobile ? '6px 8px' : '8px 12px', cursor:'pointer',
                             maxWidth: isMobile ? '160px' : '240px', backdropFilter:'blur(4px)',
                         }}>
-                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>{analysisAsOf ? (latestSavedAnalysis.date === analysisAsOf ? '📅 SAVED ANALYSIS · TRADE DAY' : '📅 SAVED ANALYSIS · LATEST BEFORE TRADE') : '📅 LAST SAVED ANALYSIS'}</div>
+                            <div style={{ fontSize:'9px', fontWeight:'700', color:'#64748b', letterSpacing:'0.06em', marginBottom:'3px' }}>{(analysisAsOf ? (latestSavedAnalysis.date === analysisAsOf ? '📅 SAVED ANALYSIS · TRADE DAY' : '📅 SAVED ANALYSIS · LATEST BEFORE TRADE') : '📅 LAST SAVED ANALYSIS') + (latestSavedAnalysis._source ? ' · ' + latestSavedAnalysis._source.toUpperCase() : '')}</div>
                             <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
                                 <span style={{ fontSize: isMobile ? '10px':'11px', fontWeight:'800', color: av.color }}>{av.icon} {latestSavedAnalysis.aiVerdict?.replace('_',' ') || 'No AI data'}</span>
                                 <span style={{ fontSize:'9px', color:'#64748b' }}>{savedAnalysisExpanded ? '▾' : '▸'}</span>
@@ -7507,7 +7606,7 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [normLoading, setNormLoading] = React.useState(false);
     const [normError, setNormError]     = React.useState(null);
     const [normAsOf, setNormAsOf]       = React.useState(null);
-    const [normOpenMode, setNormOpenModeState] = React.useState(() => lsGet('snow_norm_open_mode', 'stay'));   // 'stay' | 'replay'
+    const [normOpenMode, setNormOpenModeState] = React.useState(() => { const v = lsGet('snow_norm_open_mode', 'capped'); return v === 'stay' ? 'live' : v; });   // 'capped' | 'live' | 'replay'
     const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode', m); } catch (_) {} };
 
     const runNormalise = async () => {
@@ -7531,15 +7630,21 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     React.useEffect(() => { if (!isOpen) setNormOn(false); }, [isOpen]);   // closing the panel always puts you back on your real trades
 
     // `positions` is what the whole panel reads. Normalised mode swaps in the replayed version of each trade.
-    const positions = React.useMemo(() => {
+        const positions = React.useMemo(() => {
         if (!normOn || !normMap) return rawPositions;
         return rawPositions.flatMap(p => {
             const n = normMap[String(p.id)];
             if (!n || n.error) return [];   // no price data, or newer than this replay: left out rather than mixed in un-normalised
             const replayIt = p.status === 'OPEN' && normOpenMode === 'replay' && n.replay;
             const fields   = replayIt ? n.replay : n.fields;
-            // Real open trades that stay open follow the live price, so "Refresh prices" works in this view too
-            const live = (p.status === 'OPEN' && !replayIt && p.current_price != null) ? { current_price: p.current_price } : {};
+            let live = {};
+            if (p.status === 'OPEN' && !replayIt) {
+                if (normOpenMode === 'capped' && n.beyond && n.replay) {
+                    live = { current_price: n.replay.closed_price };   // price already passed a standard level: show it at that level, as the bracket would have. The trade stays OPEN
+                } else if (p.current_price != null) {
+                    live = { current_price: p.current_price };
+                }
+            }
             return [{ ...p, ...fields, ...live, normalised: true, normNote: n.note, normBeyond: replayIt ? null : (n.beyond || null), _raw: p }];
         });
     }, [rawPositions, normOn, normMap, normOpenMode]);
@@ -7798,11 +7903,14 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', marginTop:'8px' }}>
                                     <span style={lab}>Open trades:</span>
                                     <span style={{ display:'inline-flex' }}>
-                                        <button onClick={() => setNormOpenMode('stay')} title="Keep open trades open: standard size and levels, unrealised P&L at the live price" style={seg(normOpenMode === 'stay', true)}>Stay open</button>
-                                        <button onClick={() => setNormOpenMode('replay')} title="Show what the standard bracket would have done with them since entry" style={seg(normOpenMode === 'replay', false)}>Close at bracket</button>
+                                        <button onClick={() => setNormOpenMode('capped')} title="Open trades stay open, but a trade already past the standard TP/SL shows exactly that level's result" style={seg(normOpenMode === 'capped', true)}>Capped at bracket</button>
+                                        <button onClick={() => setNormOpenMode('live')} title="Standard size and levels, raw unrealised P&L at the live price" style={{ ...seg(normOpenMode === 'live', false), borderRadius: 0 }}>Live price</button>
+                                        <button onClick={() => setNormOpenMode('replay')} title="Close them at the standard bracket, as if it had been in force since entry" style={seg(normOpenMode === 'replay', false)}>Close at bracket</button>
                                     </span>
-                                    {normOpenMode === 'stay' && beyondCount > 0 && (
-                                        <span style={{ fontSize:'11px', color:'#b45309', fontWeight:'700' }}>⚠ {beyondCount} open trade{beyondCount > 1 ? 's are' : ' is'} already past a standard level</span>
+                                    {normOpenMode !== 'replay' && beyondCount > 0 && (
+                                        <span style={{ fontSize:'11px', color:'#b45309', fontWeight:'700' }}>
+                                            ⚠ {beyondCount} open trade{beyondCount > 1 ? 's are' : ' is'} past a standard level{normOpenMode === 'capped' ? ': shown at that level, as the bracket would have' : ''}
+                                        </span>
                                     )}
                                 </div>
                                 <div style={{ fontSize:'10.5px', color:'#92400e', marginTop:'6px', lineHeight:1.55 }}>
