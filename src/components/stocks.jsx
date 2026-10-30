@@ -7897,7 +7897,6 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [normAsOf, setNormAsOf]       = React.useState(null);
     const [normOpenMode, setNormOpenModeState] = React.useState(() => lsGet('snow_norm_open_mode_v2', 'live'));   // 'live' | 'capped' | 'replay'
     const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode_v2', m); } catch (_) {} };
-    const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode', m); } catch (_) {} };
 
     const runNormalise = async () => {
         const account = parseFloat(normAccount), tp = parseFloat(normTp), sl = parseFloat(normSl);
