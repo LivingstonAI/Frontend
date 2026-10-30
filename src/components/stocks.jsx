@@ -7554,6 +7554,292 @@ function PositionChartCard({ position, interval, onIntervalChange, mountDelay = 
     );
 }
 
+// ═══════════════════════════ Trade statistics + Monte Carlo (for whatever the Positions modal is filtered to) ═══════════════════════════
+function snowWilsonJs(wins, n, z = 1.96) {
+    if (!n) return [null, null];
+    const p = wins / n, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d;
+    const h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d;
+    return [Math.max(0, c - h) * 100, Math.min(1, c + h) * 100];
+}
+
+function snowTradePct(p) {
+    if (p.realized_pnl_percent != null) return p.realized_pnl_percent;
+    if (p.entry_price && p.quantity && p.realized_pnl_dollars != null) return p.realized_pnl_dollars / (p.entry_price * p.quantity) * 100;
+    return null;
+}
+
+function snowComputeTradeStats(trades) {
+    const sum = (a) => a.reduce((s, v) => s + v, 0);
+    const closed = trades.filter(p => p.status !== 'OPEN' && p.realized_pnl_dollars != null);
+    const open   = trades.filter(p => p.status === 'OPEN');
+    const pnl    = (p) => p.realized_pnl_dollars;
+    const wins   = closed.filter(p => pnl(p) > 0);
+    const losses = closed.filter(p => pnl(p) < 0);
+    const grossWin  = sum(wins.map(pnl));
+    const grossLoss = Math.abs(sum(losses.map(pnl)));
+    const realized  = sum(closed.map(pnl));
+    const unrealized = sum(open.filter(p => p.current_price != null).map(p =>
+        (p.direction === 'long' ? p.current_price - p.entry_price : p.entry_price - p.current_price) * p.quantity));
+    const avgWin  = wins.length ? grossWin / wins.length : null;
+    const avgLoss = losses.length ? -grossLoss / losses.length : null;
+    const payoff  = avgWin != null && avgLoss != null && avgLoss !== 0 ? avgWin / Math.abs(avgLoss) : null;
+    const [wLo, wHi] = snowWilsonJs(wins.length, closed.length);
+
+    const ordered = [...closed].sort((a, b) => Date.parse(a.closed_at || a.opened_at) - Date.parse(b.closed_at || b.opened_at));
+    let cum = 0, peak = 0, maxDD = 0, curL = 0, maxL = 0;
+    const curve = [{ cum: 0 }];
+    ordered.forEach(p => {
+        cum += pnl(p); peak = Math.max(peak, cum); maxDD = Math.max(maxDD, peak - cum);
+        curve.push({ cum });
+        if (pnl(p) < 0) { curL += 1; maxL = Math.max(maxL, curL); } else curL = 0;
+    });
+    const holds = closed.filter(p => p.opened_at && p.closed_at).map(p => (Date.parse(p.closed_at) - Date.parse(p.opened_at)) / 86400000).filter(v => v >= 0);
+    const pcts  = closed.map(snowTradePct).filter(v => v != null);
+    const byDir = (d) => {
+        const c = closed.filter(p => p.direction === d);
+        return { n: c.length, pnl: sum(c.map(pnl)), winRate: c.length ? c.filter(p => pnl(p) > 0).length / c.length * 100 : null };
+    };
+    return {
+        n: trades.length, closedN: closed.length, openN: open.length,
+        wins: wins.length, losses: losses.length, even: closed.length - wins.length - losses.length,
+        winRate: closed.length ? wins.length / closed.length * 100 : null, wLo, wHi,
+        realized, unrealized, total: realized + unrealized,
+        avgWin, avgLoss, payoff,
+        breakEvenWinRate: payoff != null ? 100 / (1 + payoff) : null,
+        profitFactor: grossLoss > 0 ? grossWin / grossLoss : null,
+        expectancy: closed.length ? realized / closed.length : null,
+        expectancyPct: pcts.length ? sum(pcts) / pcts.length : null,
+        maxDD, maxLossStreak: maxL, avgHoldDays: holds.length ? sum(holds) / holds.length : null,
+        best:  closed.length ? closed.reduce((a, b) => (pnl(b) > pnl(a) ? b : a)) : null,
+        worst: closed.length ? closed.reduce((a, b) => (pnl(b) < pnl(a) ? b : a)) : null,
+        long: byDir('long'), short: byDir('short'), curve, pcts,
+        closedIds: closed.map(p => p.id).join(','),
+    };
+}
+
+function snowMulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+        a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+// Bootstrap Monte Carlo: resamples YOUR closed-trade returns (as % of position value) with replacement.
+// It can only replay what the sample contains, so it says nothing about regimes the sample never saw.
+function snowRunMonteCarlo(returnsPct, { startEquity, futureTrades, sizePct, seed, sims = 4000, boot = 4000 }) {
+    const n = returnsPct.length, rnd = snowMulberry32(seed);
+    const r = returnsPct.map(v => v / 100), frac = sizePct / 100, steps = futureTrades;
+    const cols = Array.from({ length: steps + 1 }, () => new Float64Array(sims));
+    const finals = new Float64Array(sims), dds = new Float64Array(sims);
+    for (let s = 0; s < sims; s++) {
+        let eq = startEquity, peak = eq, dd = 0;
+        cols[0][s] = eq;
+        for (let t = 1; t <= steps; t++) {
+            eq = eq * (1 + frac * r[Math.floor(rnd() * n)]);
+            if (eq < 0) eq = 0;
+            if (eq > peak) peak = eq;
+            const d = peak > 0 ? (peak - eq) / peak : 0;
+            if (d > dd) dd = d;
+            cols[t][s] = eq;
+        }
+        finals[s] = eq; dds[s] = dd;
+    }
+    const pct = (arr, p) => { const i = (arr.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return arr[lo] + (arr[hi] - arr[lo]) * (i - lo); };
+    const sortedFinals = Float64Array.from(finals).sort();
+    const sortedDD     = Float64Array.from(dds).sort();
+    let up = 0, dd20 = 0;
+    for (let s = 0; s < sims; s++) { if (finals[s] > startEquity) up += 1; if (dds[s] >= 0.2) dd20 += 1; }
+
+    const stride = Math.max(1, Math.ceil(steps / 120));
+    const bands = [];
+    const band = (t) => { const c = Float64Array.from(cols[t]).sort(); return { t, p5: pct(c, 0.05), p25: pct(c, 0.25), p50: pct(c, 0.5), p75: pct(c, 0.75), p95: pct(c, 0.95) }; };
+    for (let t = 0; t <= steps; t += stride) bands.push(band(t));
+    if (bands[bands.length - 1].t !== steps) bands.push(band(steps));
+
+    // Edge check: how sure can we be that the average trade is above zero, given only THIS sample?
+    const means = new Float64Array(boot);
+    let pos = 0;
+    for (let b = 0; b < boot; b++) {
+        let sm = 0;
+        for (let i = 0; i < n; i++) sm += returnsPct[Math.floor(rnd() * n)];
+        means[b] = sm / n;
+        if (means[b] > 0) pos += 1;
+    }
+    const sortedMeans = Float64Array.from(means).sort();
+
+    return {
+        n, startEquity, futureTrades: steps, sizePct, sims,
+        pProfit: up / sims, pDD20: dd20 / sims,
+        finalP5: pct(sortedFinals, 0.05), finalP50: pct(sortedFinals, 0.5), finalP95: pct(sortedFinals, 0.95),
+        ddMedian: pct(sortedDD, 0.5), ddP95: pct(sortedDD, 0.95),
+        bands, pEdge: pos / boot, meanLo: pct(sortedMeans, 0.025), meanHi: pct(sortedMeans, 0.975),
+        sampleMean: returnsPct.reduce((s, v) => s + v, 0) / n,
+    };
+}
+
+function SnowEquityCurve({ curve }) {
+    if (!curve || curve.length < 2) return null;
+    const w = 600, h = 90, pad = 6;
+    const ys = curve.map(c => c.cum), min = Math.min(0, ...ys), max = Math.max(0, ...ys);
+    const x = (i) => pad + (i / (curve.length - 1)) * (w - 2 * pad);
+    const y = (v) => h - pad - ((v - min) / ((max - min) || 1)) * (h - 2 * pad);
+    const color = ys[ys.length - 1] >= 0 ? '#10b981' : '#ef4444';
+    return (
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width:'100%', height:`${h}px`, display:'block' }}>
+            <line x1={0} x2={w} y1={y(0)} y2={y(0)} stroke="#cbd5e1" strokeDasharray="4 4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <polyline points={curve.map((c, i) => `${x(i).toFixed(1)},${y(c.cum).toFixed(1)}`).join(' ')} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        </svg>
+    );
+}
+
+function SnowFanChart({ bands, start }) {
+    if (!bands || bands.length < 2) return null;
+    const w = 600, h = 150, pad = 6, tMax = bands[bands.length - 1].t || 1;
+    const ys = bands.flatMap(b => [b.p5, b.p95]).concat([start]);
+    const min = Math.min(...ys), max = Math.max(...ys);
+    const x = (t) => pad + (t / tMax) * (w - 2 * pad);
+    const y = (v) => h - pad - ((v - min) / ((max - min) || 1)) * (h - 2 * pad);
+    const poly = (hi, lo) => bands.map(b => `${x(b.t).toFixed(1)},${y(b[hi]).toFixed(1)}`)
+        .concat([...bands].reverse().map(b => `${x(b.t).toFixed(1)},${y(b[lo]).toFixed(1)}`)).join(' ');
+    return (
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width:'100%', height:`${h}px`, display:'block' }}>
+            <polygon points={poly('p95', 'p5')}  fill="#7c3aed" opacity="0.13" />
+            <polygon points={poly('p75', 'p25')} fill="#7c3aed" opacity="0.25" />
+            <line x1={0} x2={w} y1={y(start)} y2={y(start)} stroke="#94a3b8" strokeDasharray="4 4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <polyline points={bands.map(b => `${x(b.t).toFixed(1)},${y(b.p50).toFixed(1)}`).join(' ')} fill="none" stroke="#7c3aed" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        </svg>
+    );
+}
+
+function PositionStatsPanel({ trades, normalised, startEquityDefault, contextFiltered }) {
+    const [open, setOpen]       = React.useState(false);
+    const [startEq, setStartEq] = React.useState(String(startEquityDefault || 10000));
+    const [futureN, setFutureN] = React.useState('50');
+    const [sizePct, setSizePct] = React.useState('100');
+    const [mc, setMc]           = React.useState(null);   // { res, sig } or { error }
+    const [runId, setRunId]     = React.useState(0);
+    React.useEffect(() => { setStartEq(String(startEquityDefault || 10000)); }, [startEquityDefault]);
+
+    const s = snowComputeTradeStats(trades);
+    const money = (v) => v == null ? '—' : `${v >= 0 ? '+' : '-'}$${Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    const eqFmt = (v) => `$${Math.round(v).toLocaleString()}`;
+    const col   = (v) => v == null ? '#94a3b8' : v >= 0 ? '#10b981' : '#ef4444';
+    const sgn   = (v, d = 2) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(d)}`;
+
+    const runMc = () => {
+        const eq = parseFloat(startEq), nf = Math.round(parseFloat(futureN)), sz = parseFloat(sizePct);
+        if (!(eq > 0) || !(nf >= 5) || !(sz > 0)) { setMc({ error: 'Starting equity, future trades (5 or more) and position size must all be above 0.' }); return; }
+        if (s.pcts.length < 5) { setMc({ error: 'Needs at least 5 closed trades in this view. Switch the status pill to Closed or All.' }); return; }
+        const id = runId + 1;
+        setRunId(id);
+        const seed = (Math.floor(Math.abs(s.pcts.reduce((a, b) => a + b, 0)) * 1000) + s.pcts.length * 7919 + id * 104729) >>> 0;
+        setMc({ res: snowRunMonteCarlo(s.pcts, { startEquity: eq, futureTrades: Math.min(nf, 250), sizePct: sz, seed }), sig: s.closedIds });
+    };
+
+    const card = (label, value, sub, color) => (
+        <div style={{ padding:'8px 10px', backgroundColor:'#fff', borderRadius:'8px', border:'1px solid #e2e8f0' }}>
+            <div style={{ fontSize:'9px', fontWeight:'700', color:'#94a3b8', marginBottom:'2px', letterSpacing:'0.04em' }}>{label.toUpperCase()}</div>
+            <div style={{ fontSize:'14px', fontWeight:'800', color: color || '#1a1a1a' }}>{value}</div>
+            {sub && <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'1px', lineHeight:1.35 }}>{sub}</div>}
+        </div>
+    );
+    const inp = { width:'86px', padding:'4px 7px', borderRadius:'6px', border:'1px solid #cbd5e1', fontSize:'12px' };
+
+    const res = mc && mc.res;
+    const stale = res && mc.sig !== s.closedIds;
+    let verdict = [];
+    if (res) {
+        if (res.n < 20) verdict.push(`With only ${res.n} closed trades, luck dominates. Treat everything here as a rough guide, not a forecast.`);
+        if (res.meanLo > 0) verdict.push(`Even the pessimistic end of the range is positive (${sgn(res.meanLo)}% per trade). That's encouraging, but it's one market regime and one sample.`);
+        else if (res.meanHi < 0) verdict.push(`The whole range is negative (${sgn(res.meanLo)}% to ${sgn(res.meanHi)}% per trade): on this evidence the approach loses money per trade.`);
+        else verdict.push(`The average trade can't be told apart from zero yet (95% range ${sgn(res.meanLo)}% to ${sgn(res.meanHi)}% per trade). The simulation below only replays your sample, so it can't create evidence the sample doesn't contain.`);
+    }
+
+    return (
+        <div style={{ backgroundColor:'#f1f5f9', borderBottom:'1px solid #e2e8f0' }}>
+            <div onClick={() => setOpen(o => !o)} style={{ padding:'9px 20px', display:'flex', gap:'14px', alignItems:'center', flexWrap:'wrap', cursor:'pointer' }}>
+                <span style={{ fontSize:'11px', fontWeight:'800', color:'#475569' }}>{open ? '▼' : '▶'} 📊 STATS FOR THIS VIEW</span>
+                <span style={{ fontSize:'12px', color:'#475569' }}>{s.n} trades ({s.closedN} closed · {s.openN} open)</span>
+                <span style={{ fontSize:'12px', fontWeight:'800', color: col(s.total) }}>{money(s.total)}</span>
+                {s.winRate != null && <span style={{ fontSize:'12px', color:'#475569' }}>win rate <b>{s.winRate.toFixed(1)}%</b> ({s.wins}W / {s.losses}L)</span>}
+                {s.profitFactor != null && <span style={{ fontSize:'12px', color:'#475569' }}>profit factor <b>{s.profitFactor.toFixed(2)}</b></span>}
+                {s.expectancy != null && <span style={{ fontSize:'12px', color:'#475569' }}>expectancy <b style={{ color: col(s.expectancy) }}>{money(s.expectancy)}</b>/trade</span>}
+                {s.closedN === 0 && <span style={{ fontSize:'11px', color:'#b45309' }}>No closed trades in this view. Switch the status pill to Closed or All for win rate and the Monte Carlo.</span>}
+            </div>
+
+            {open && (
+                <div style={{ padding:'4px 20px 16px', maxHeight:'62vh', overflowY:'auto' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(135px, 1fr))', gap:'8px', marginBottom:'12px' }}>
+                        {card('Total P&L', money(s.total), `${money(s.realized)} realized · ${money(s.unrealized)} unrealized`, col(s.total))}
+                        {card('Win rate', s.winRate != null ? `${s.winRate.toFixed(1)}%` : '—', s.closedN ? `${s.wins}W / ${s.losses}L${s.even ? ` / ${s.even} even` : ''} · 95% range ${s.wLo.toFixed(0)}–${s.wHi.toFixed(0)}%` : '', s.winRate != null ? (s.winRate >= (s.breakEvenWinRate ?? 50) ? '#10b981' : '#ef4444') : null)}
+                        {card('Avg win / avg loss', `${money(s.avgWin)} / ${money(s.avgLoss)}`, s.payoff != null ? `payoff ${s.payoff.toFixed(2)}:1` : '')}
+                        {card('Break-even win rate', s.breakEvenWinRate != null ? `${s.breakEvenWinRate.toFixed(1)}%` : '—', s.breakEvenWinRate != null && s.winRate != null ? `you're at ${s.winRate.toFixed(1)}%: ${s.winRate >= s.breakEvenWinRate ? 'above' : 'below'} it` : 'at your average payoff')}
+                        {card('Profit factor', s.profitFactor != null ? s.profitFactor.toFixed(2) : '—', 'gross wins ÷ gross losses', s.profitFactor != null ? (s.profitFactor >= 1 ? '#10b981' : '#ef4444') : null)}
+                        {card('Expectancy', s.expectancy != null ? money(s.expectancy) : '—', s.expectancyPct != null ? `${sgn(s.expectancyPct)}% of position per trade` : '', col(s.expectancy))}
+                        {card('Max drawdown', s.maxDD ? `-$${s.maxDD.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : '—', `longest losing streak ${s.maxLossStreak}`, s.maxDD ? '#ef4444' : null)}
+                        {card('Avg hold', s.avgHoldDays != null ? `${s.avgHoldDays.toFixed(1)} days` : '—', '')}
+                        {card('Best / worst', `${s.best ? money(s.best.realized_pnl_dollars) : '—'} / ${s.worst ? money(s.worst.realized_pnl_dollars) : '—'}`, s.best && s.worst ? `${s.best.asset} / ${s.worst.asset}` : '')}
+                        {card('Long vs short', `${s.long.n} / ${s.short.n}`, `${money(s.long.pnl)} / ${money(s.short.pnl)}`)}
+                    </div>
+
+                    {s.curve.length > 1 && (
+                        <div style={{ marginBottom:'14px' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'800', color:'#475569', marginBottom:'3px' }}>Equity curve: cumulative realized P&L, in the order trades closed</div>
+                            <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'6px' }}><SnowEquityCurve curve={s.curve} /></div>
+                        </div>
+                    )}
+
+                    <div style={{ padding:'12px 14px', backgroundColor:'#faf5ff', border:'1px solid #ddd6fe', borderRadius:'10px' }}>
+                        <div style={{ fontSize:'12px', fontWeight:'800', color:'#5b21b6' }}>🎲 Monte Carlo: if the next trades look like these ones</div>
+                        <div style={{ fontSize:'11px', color:'#6d28d9', margin:'2px 0 8px', lineHeight:1.5 }}>
+                            Resamples your {s.pcts.length} closed trades (as % of position value) with replacement, thousands of times. {normalised ? 'Normalised view: every trade is the same size, which is the cleanest sample to use.' : 'Raw view: trades had different sizes, so this uses each trade\'s % return, not its dollars.'}
+                        </div>
+                        <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'center' }}>
+                            <label style={{ fontSize:'11px', fontWeight:'700', color:'#475569' }}>Starting equity $ <input type="number" value={startEq} onChange={e => setStartEq(e.target.value)} style={{ ...inp, width:'96px' }} /></label>
+                            <label style={{ fontSize:'11px', fontWeight:'700', color:'#475569' }}>Future trades <input type="number" min="5" max="250" value={futureN} onChange={e => setFutureN(e.target.value)} style={{ ...inp, width:'64px' }} /></label>
+                            <label style={{ fontSize:'11px', fontWeight:'700', color:'#475569' }}>Position size % of equity <input type="number" min="1" value={sizePct} onChange={e => setSizePct(e.target.value)} style={{ ...inp, width:'64px' }} /></label>
+                            <button onClick={runMc} style={{ padding:'6px 16px', borderRadius:'8px', border:'none', background:'linear-gradient(135deg,#7c3aed,#db2777)', color:'#fff', fontWeight:'800', fontSize:'12px', cursor:'pointer' }}>
+                                {res ? '↻ Re-run' : '▶ Run Monte Carlo'}
+                            </button>
+                        </div>
+                        {mc && mc.error && <div style={{ marginTop:'8px', fontSize:'12px', color:'#b91c1c' }}>⚠️ {mc.error}</div>}
+
+                        {res && (
+                            <div style={{ marginTop:'12px' }}>
+                                {stale && <div style={{ fontSize:'11px', color:'#b45309', marginBottom:'6px' }}>⚠ The filters changed since this run. Re-run to match what's shown.</div>}
+                                <div style={{ padding:'10px 12px', backgroundColor:'#fff', border:'1px solid #e9d5ff', borderRadius:'8px', marginBottom:'10px' }}>
+                                    <div style={{ fontSize:'11px', fontWeight:'800', color:'#5b21b6', marginBottom:'3px' }}>EDGE CHECK (read this first)</div>
+                                    <div style={{ fontSize:'12px', color:'#1a1a1a', lineHeight:1.55 }}>
+                                        Average closed trade in this view: <b style={{ color: col(res.sampleMean) }}>{sgn(res.sampleMean)}%</b>. Resampling your own trades, its 95% range is <b>{sgn(res.meanLo)}% to {sgn(res.meanHi)}%</b>, and the average came out positive in <b>{(res.pEdge * 100).toFixed(0)}%</b> of resamples.
+                                    </div>
+                                    {verdict.map((v, i) => <div key={i} style={{ fontSize:'12px', color:'#475569', marginTop:'4px', lineHeight:1.55 }}>{v}</div>)}
+                                </div>
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(135px, 1fr))', gap:'8px', marginBottom:'10px' }}>
+                                    {card('Chance of ending up', `${(res.pProfit * 100).toFixed(0)}%`, `after ${res.futureTrades} more trades`, res.pProfit >= 0.5 ? '#10b981' : '#ef4444')}
+                                    {card('Median ending equity', eqFmt(res.finalP50), `${sgn((res.finalP50 / res.startEquity - 1) * 100, 1)}% from ${eqFmt(res.startEquity)}`, col(res.finalP50 - res.startEquity))}
+                                    {card('Bad case (5th pct)', eqFmt(res.finalP5), `${sgn((res.finalP5 / res.startEquity - 1) * 100, 1)}%`, col(res.finalP5 - res.startEquity))}
+                                    {card('Good case (95th pct)', eqFmt(res.finalP95), `${sgn((res.finalP95 / res.startEquity - 1) * 100, 1)}%`, col(res.finalP95 - res.startEquity))}
+                                    {card('Typical worst dip', `-${(res.ddMedian * 100).toFixed(0)}%`, `1 in 20 runs dips ${(res.ddP95 * 100).toFixed(0)}%+`, '#ef4444')}
+                                    {card('Chance of a 20%+ dip', `${(res.pDD20 * 100).toFixed(0)}%`, 'at some point along the way', res.pDD20 > 0.3 ? '#ef4444' : '#475569')}
+                                </div>
+                                <div style={{ fontSize:'11px', fontWeight:'800', color:'#475569', marginBottom:'3px' }}>Equity over the next {res.futureTrades} trades: median line, 25–75% band (dark), 5–95% band (light)</div>
+                                <div style={{ backgroundColor:'#fff', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'6px' }}><SnowFanChart bands={res.bands} start={res.startEquity} /></div>
+                            </div>
+                        )}
+                        <div style={{ fontSize:'10.5px', color:'#6b7280', marginTop:'10px', lineHeight:1.55 }}>
+                            Assumes future trades are drawn from the same pool as these and don't depend on each other. A different market regime can do worse than this shows.
+                            {contextFiltered && <b style={{ color:'#b45309' }}> You're looking at a filtered slice: if you chose this filter because it looked good, the numbers are optimistic (slicing then testing inflates apparent edge). The fair test is trades opened after you picked the filter.</b>}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [loading, setLoading]       = React.useState(false);
@@ -7573,6 +7859,9 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [showAutopsy, setShowAutopsy] = React.useState(false);
     const [ctxEarn, setCtxEarn] = React.useState('any');   // 'any' | 'with' | 'without': earnings AI stored at entry
     const [ctxAi, setCtxAi]     = React.useState('any');   // 'any' | 'with' | 'without': AI verdict stored at entry
+    const [ctxEarnBias, setCtxEarnBias]       = React.useState([]);   // e.g. ['BULLISH']: the earnings-AI bias stored at entry
+    const [ctxEarnVerdict, setCtxEarnVerdict] = React.useState([]);   // the earnings-AI verdict stored at entry
+    const [ctxAiVerdict, setCtxAiVerdict]     = React.useState([]);   // the AI verdict stored at entry
     const [viewMode, setViewMode] = React.useState('trades'); // 'trades' | 'assets'
     const [showCharts, setShowCharts]       = React.useState(false);
     const [chartsInterval, setChartsInterval] = React.useState('1D');
@@ -7606,7 +7895,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
     const [normLoading, setNormLoading] = React.useState(false);
     const [normError, setNormError]     = React.useState(null);
     const [normAsOf, setNormAsOf]       = React.useState(null);
-    const [normOpenMode, setNormOpenModeState] = React.useState(() => { const v = lsGet('snow_norm_open_mode', 'capped'); return v === 'stay' ? 'live' : v; });   // 'capped' | 'live' | 'replay'
+    const [normOpenMode, setNormOpenModeState] = React.useState(() => lsGet('snow_norm_open_mode_v2', 'live'));   // 'live' | 'capped' | 'replay'
+    const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode_v2', m); } catch (_) {} };
     const setNormOpenMode = (m) => { setNormOpenModeState(m); try { localStorage.setItem('snow_norm_open_mode', m); } catch (_) {} };
 
     const runNormalise = async () => {
@@ -7654,7 +7944,10 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
         .filter(p => filterStatus === 'ALL' || (filterStatus === 'OPEN' ? p.status === 'OPEN' : p.status !== 'OPEN'))
         .filter(p => !search.trim() || p.asset.toUpperCase().includes(search.trim().toUpperCase()))
         .filter(p => ctxEarn === 'any' || (ctxEarn === 'with') === snowTradeHasEarnings(p))
-        .filter(p => ctxAi === 'any' || (ctxAi === 'with') === snowTradeHasAi(p));
+        .filter(p => ctxAi === 'any' || (ctxAi === 'with') === snowTradeHasAi(p))
+        .filter(p => ctxEarnBias.length === 0    || ctxEarnBias.includes(String((p.entry_context && p.entry_context.earningsBias) || '').trim().toUpperCase().replace(/[\s-]+/g, '_')))
+        .filter(p => ctxEarnVerdict.length === 0 || ctxEarnVerdict.includes(String((p.entry_context && p.entry_context.earningsVerdict) || '').trim().toUpperCase().replace(/[\s-]+/g, '_')))
+        .filter(p => ctxAiVerdict.length === 0   || ctxAiVerdict.includes(String((p.entry_context && p.entry_context.aiVerdict) || '').trim().toUpperCase().replace(/[\s-]+/g, '_')));
 
     // Re-prices every OPEN position currently visible in the table (respects the status filter + search)
     const refreshVisible = async () => {
@@ -7845,10 +8138,21 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                     </div>
                 </div>
 
-                {viewMode === 'trades' && (() => {
+                                {viewMode === 'trades' && (() => {
                     const nE    = positions.filter(snowTradeHasEarnings).length;
                     const nA    = positions.filter(snowTradeHasAi).length;
                     const nBoth = positions.filter(p => snowTradeHasEarnings(p) && snowTradeHasAi(p)).length;
+                    const key   = (v) => String(v || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+                    const countBy = (getter) => { const c = {}; positions.forEach(p => { const k = key(getter(p)); if (k) c[k] = (c[k] || 0) + 1; }); return c; };
+                    const cBias = countBy(p => p.entry_context && p.entry_context.earningsBias);
+                    const cEV   = countBy(p => p.entry_context && p.entry_context.earningsVerdict);
+                    const cAV   = countBy(p => p.entry_context && p.entry_context.aiVerdict);
+                    const BIAS_ORDER    = ['BULLISH', 'BEARISH', 'NEUTRAL', 'MIXED'];
+                    const VERDICT_ORDER = ['STRONG_OPPORTUNITY', 'OPPORTUNITY', 'NEUTRAL', 'CAUTION', 'AVOID'];
+                    const toggle = (list, setList, k) => setList(list.includes(k) ? list.filter(x => x !== k) : [...list, k]);
+                    const anyValue  = ctxEarnBias.length > 0 || ctxEarnVerdict.length > 0 || ctxAiVerdict.length > 0;
+                    const anyActive = ctxEarn !== 'any' || ctxAi !== 'any' || anyValue;
+
                     const seg = (active) => ({ padding:'3px 10px', fontSize:'11px', fontWeight:'800', cursor:'pointer', border:'1px solid #cbd5e1', backgroundColor: active ? '#7c3aed' : '#fff', color: active ? '#fff' : '#64748b' });
                     const group = (label, value, setValue, nWith) => (
                         <span style={{ display:'inline-flex', alignItems:'center', gap:'6px' }}>
@@ -7860,17 +8164,50 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                             </span>
                         </span>
                     );
+                    const chipGroup = (label, counts, base, styleMap, list, setList) => {
+                        const order = [...base, ...Object.keys(counts).filter(k => !base.includes(k))];
+                        return (
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap' }}>
+                                <span style={{ fontSize:'11px', fontWeight:'700', color:'#475569', minWidth:'118px' }}>{label}</span>
+                                {order.map(k => {
+                                    const n = counts[k] || 0, on = list.includes(k), st = styleMap[k] || { color:'#64748b', icon:'' };
+                                    const dead = n === 0 && !on;
+                                    return (
+                                        <button key={k} onClick={() => toggle(list, setList, k)} disabled={dead} style={{
+                                            padding:'3px 10px', borderRadius:'20px', fontSize:'11px', fontWeight:'800', cursor: dead ? 'not-allowed' : 'pointer', opacity: dead ? 0.4 : 1,
+                                            border:`1px solid ${on ? st.color : '#cbd5e1'}`, backgroundColor: on ? st.color : '#fff', color: on ? '#fff' : st.color,
+                                        }}>{st.icon} {k.replace(/_/g, ' ')} ({n})</button>
+                                    );
+                                })}
+                            </div>
+                        );
+                    };
+
                     return (
-                        <div style={{ padding:'8px 20px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e2e8f0', display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center' }}>
-                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#64748b' }}>🔎 STORED WHEN I TOOK THE TRADE</span>
-                            {group('📈 Earnings AI', ctxEarn, setCtxEarn, nE)}
-                            {group('🤖 AI analysis', ctxAi, setCtxAi, nA)}
-                            <button onClick={() => { setCtxEarn('with'); setCtxAi('with'); }} style={{ ...seg(ctxEarn === 'with' && ctxAi === 'with'), borderRadius:'7px' }}>✓ Both ({nBoth})</button>
-                            {(ctxEarn !== 'any' || ctxAi !== 'any') && (
-                                <button onClick={() => { setCtxEarn('any'); setCtxAi('any'); }} style={{ padding:'3px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', backgroundColor:'#fff', color:'#64748b', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>✕ Clear</button>
-                            )}
-                            <span style={{ fontSize:'10px', color:'#94a3b8' }}>Trades opened before tagging existed have nothing stored, so they count as "Without".</span>
-                        </div>
+                        <>
+                            <div style={{ padding:'8px 20px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e2e8f0', display:'flex', flexDirection:'column', gap:'8px' }}>
+                                <div style={{ display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                                    <span style={{ fontSize:'11px', fontWeight:'800', color:'#64748b' }}>🔎 STORED WHEN I TOOK THE TRADE</span>
+                                    {group('📈 Earnings AI', ctxEarn, setCtxEarn, nE)}
+                                    {group('🤖 AI analysis', ctxAi, setCtxAi, nA)}
+                                    <button onClick={() => { setCtxEarn('with'); setCtxAi('with'); }} style={{ ...seg(ctxEarn === 'with' && ctxAi === 'with'), borderRadius:'7px' }}>✓ Both ({nBoth})</button>
+                                    {anyActive && (
+                                        <button onClick={() => { setCtxEarn('any'); setCtxAi('any'); setCtxEarnBias([]); setCtxEarnVerdict([]); setCtxAiVerdict([]); }}
+                                            style={{ padding:'3px 10px', borderRadius:'7px', border:'1px solid #cbd5e1', backgroundColor:'#fff', color:'#64748b', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>✕ Clear all</button>
+                                    )}
+                                </div>
+                                {chipGroup('📈 Earnings bias', cBias, BIAS_ORDER, SNOW_BIAS_STYLE, ctxEarnBias, setCtxEarnBias)}
+                                {chipGroup('📈 Earnings verdict', cEV, VERDICT_ORDER, SNOW_VERDICT_STYLE, ctxEarnVerdict, setCtxEarnVerdict)}
+                                {chipGroup('🤖 AI verdict', cAV, VERDICT_ORDER, SNOW_VERDICT_STYLE, ctxAiVerdict, setCtxAiVerdict)}
+                                <span style={{ fontSize:'10px', color:'#94a3b8' }}>Trades opened before tagging existed have nothing stored, so they count as "Without" and never match a value chip.</span>
+                            </div>
+                            <PositionStatsPanel
+                                trades={filtered}
+                                normalised={normOn && !!normMap}
+                                startEquityDefault={normOn ? (parseFloat(normAccount) || 10000) : 10000}
+                                contextFiltered={anyActive}
+                            />
+                        </>
                     );
                 })()}
 
@@ -7903,8 +8240,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                 <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap', marginTop:'8px' }}>
                                     <span style={lab}>Open trades:</span>
                                     <span style={{ display:'inline-flex' }}>
-                                        <button onClick={() => setNormOpenMode('capped')} title="Open trades stay open, but a trade already past the standard TP/SL shows exactly that level's result" style={seg(normOpenMode === 'capped', true)}>Capped at bracket</button>
-                                        <button onClick={() => setNormOpenMode('live')} title="Standard size and levels, raw unrealised P&L at the live price" style={{ ...seg(normOpenMode === 'live', false), borderRadius: 0 }}>Live price</button>
+                                        <button onClick={() => setNormOpenMode('live')} title="Standard size and TP/SL levels, with P&L measured from entry to where price is now (e.g. +1.3% or −0.8% of the account)" style={seg(normOpenMode === 'live', true)}>Live (where it is now)</button>
+                                        <button onClick={() => setNormOpenMode('capped')} title="A trade already past a standard level shows exactly that level's result" style={{ ...seg(normOpenMode === 'capped', false), borderRadius: 0 }}>Capped at bracket</button>
                                         <button onClick={() => setNormOpenMode('replay')} title="Close them at the standard bracket, as if it had been in force since entry" style={seg(normOpenMode === 'replay', false)}>Close at bracket</button>
                                     </span>
                                     {normOpenMode !== 'replay' && beyondCount > 0 && (
@@ -8069,6 +8406,18 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                                                 <td style={{ padding:'8px 10px', color:'#ef4444' }}>{p.sl_price ?? '—'}</td>
                                                 <td style={{ padding:'8px 10px', fontWeight:'800', color: (pnlDollars ?? 0) >= 0 ? '#10b981' : '#ef4444', whiteSpace:'nowrap' }}>
                                                     {pnlDollars != null ? <>{pnlDollars >= 0 ? '+' : ''}${pnlDollars.toFixed(2)} ({pnlPercent >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%)</> : '—'}
+                                                    {p.normalised && isOpenPos && pnlPercent != null && p.tp_percent && p.sl_percent && (() => {
+                                                        const lo = -p.sl_percent, hi = p.tp_percent;
+                                                        const f = Math.max(0, Math.min(1, (pnlPercent - lo) / (hi - lo)));
+                                                        const past = pnlPercent >= hi ? 'TP' : pnlPercent <= lo ? 'SL' : null;
+                                                        const zeroAt = (p.sl_percent / (p.sl_percent + p.tp_percent)) * 100;
+                                                        return (
+                                                            <div title={`${pnlPercent.toFixed(2)}% now · SL ${lo}% ↔ TP +${hi}%${past ? ` · past ${past}` : ''}`}
+                                                                style={{ position:'relative', height:'5px', borderRadius:'3px', marginTop:'4px', minWidth:'70px', background:`linear-gradient(90deg,#fecaca 0%,#e2e8f0 ${zeroAt}%,#bbf7d0 100%)` }}>
+                                                                <span style={{ position:'absolute', left:`calc(${(f * 100).toFixed(1)}% - 3px)`, top:'-2px', width:'6px', height:'9px', borderRadius:'2px', backgroundColor: past ? (past === 'TP' ? '#059669' : '#dc2626') : '#1e293b' }} />
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td style={{ padding:'8px 10px' }}>
                                                     <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 8px', borderRadius:'10px', backgroundColor: statusColor+'15', color: statusColor }}>{p.status.replace('CLOSED_','')}</span>
