@@ -7840,20 +7840,28 @@ function PositionStatsPanel({ trades, normalised, startEquityDefault, contextFil
     );
 }
 
-function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
+function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000, defaultTp = 2, defaultSl = 1 }) {
     const BACKEND = 'https://backend-production-c0ab.up.railway.app';
     const [capital, setCapital]           = React.useState(String(defaultCapital));
+    const [tp, setTp]                     = React.useState(String(defaultTp));
+    const [sl, setSl]                     = React.useState(String(defaultSl));
+    const [valuesMode, setValuesMode]     = React.useState('real');   // 'real' | 'normalised'
+    const [setCap, setSetCap]             = React.useState(true);
     const [strategyMode, setStrategyMode] = React.useState('source_lens');
     const [preview, setPreview] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
     const [saving, setSaving]   = React.useState(false);
     const [error, setError]     = React.useState(null);
     const [result, setResult]   = React.useState(null);   // filled in after a successful save
+    const normalise = valuesMode === 'normalised';
 
     const call = async (dryRun) => {
         const res  = await fetch(`${BACKEND}/api/snowvault_accounts_sync/`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dryRun, initialCapital: parseFloat(capital), strategyMode }),
+            body: JSON.stringify({
+                dryRun, initialCapital: parseFloat(capital), strategyMode,
+                normalise, tpPct: parseFloat(tp), slPct: parseFloat(sl), setCapital: normalise && setCap,
+            }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || `Server ${res.status}`);
@@ -7861,21 +7869,22 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
     };
 
     React.useEffect(() => {
-        if (isOpen) { setCapital(String(defaultCapital)); setResult(null); setError(null); setPreview(null); }
+        if (isOpen) { setCapital(String(defaultCapital)); setTp(String(defaultTp)); setSl(String(defaultSl)); setResult(null); setError(null); setPreview(null); }
     }, [isOpen]);
 
-    // A gentle live preview: re-checks a moment after you change an option
+    // A gentle live preview: re-checks a moment after you change an option (a little longer when normalising)
     React.useEffect(() => {
-        if (!isOpen || result || !(parseFloat(capital) > 0)) return;
+        const numbersOk = parseFloat(capital) > 0 && (!normalise || (parseFloat(tp) > 0 && parseFloat(sl) > 0));
+        if (!isOpen || result || !numbersOk) return;
         let alive = true;
         const id = setTimeout(async () => {
             setLoading(true); setError(null);
             try { const json = await call(true); if (alive) setPreview(json); }
             catch (e) { if (alive) setError(e.message); }
             finally { if (alive) setLoading(false); }
-        }, 350);
+        }, normalise ? 900 : 350);
         return () => { alive = false; clearTimeout(id); };
-    }, [isOpen, capital, strategyMode, result]);
+    }, [isOpen, capital, strategyMode, valuesMode, tp, sl, setCap, result]);
 
     const save = async () => {
         setSaving(true); setError(null);
@@ -7893,6 +7902,20 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
     const th    = { padding:'7px 10px', textAlign:'left', fontWeight:'700', color:'#64748b', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap', fontSize:'11px' };
     const td    = { padding:'7px 10px', whiteSpace:'nowrap', fontSize:'12px' };
     const LINKS = ['/personal_info', '/account_analytics', '/multiple_account_analytics'];
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const inp   = { padding:'5px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'13px' };
+    const seg   = (active, first) => ({
+        padding:'5px 13px', fontSize:'12px', fontWeight:'800', cursor:'pointer', border:'1px solid #0f766e',
+        borderRadius: first ? '8px 0 0 8px' : '0 8px 8px 0', marginLeft: first ? 0 : '-1px',
+        backgroundColor: active ? '#0f766e' : '#fff', color: active ? '#fff' : '#0f766e',
+    });
+
+    const workToDo = (t.newTrades || 0) + (t.willUpdate || 0) + (t.orphanRelabel || 0) + (t.capitalChanges || 0);
+    const saveParts = [
+        t.newTrades ? `${t.newTrades} new` : null,
+        t.willUpdate ? `${t.willUpdate} updated` : null,
+        (t.capitalChanges ? `${t.capitalChanges} capital` : null),
+    ].filter(Boolean);
 
     const linksBox = (
         <div style={{ padding:'10px 14px', borderRadius:'10px', backgroundColor:'#eff6ff', border:'1px solid #bfdbfe', fontSize:'12.5px', color:'#1e3a8a', lineHeight:1.65, marginBottom:'14px' }}>
@@ -7909,7 +7932,7 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
 
     return ReactDOM.createPortal(
         <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10097, backgroundColor:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:'12px', backdropFilter:'blur(4px)' }}>
-            <div onClick={e => e.stopPropagation()} style={{ width:'min(760px,100%)', maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.4)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
+            <div onClick={e => e.stopPropagation()} style={{ width:'min(800px,100%)', maxHeight:'calc(100vh - 24px)', display:'flex', flexDirection:'column', borderRadius:'16px', overflow:'hidden', backgroundColor:'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.4)', fontFamily:"'Segoe UI', system-ui, sans-serif" }}>
                 <div style={{ padding:'16px 20px', background:'linear-gradient(135deg,#0f172a,#0f766e)', flexShrink:0 }}>
                     <div style={{ display:'flex', justifyContent:'space-between', gap:'12px' }}>
                         <div>
@@ -7929,67 +7952,102 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
                         <div style={{ padding:'16px', borderRadius:'12px', backgroundColor:'#f0fdf4', border:'1px solid #bbf7d0', textAlign:'center' }}>
                             <div style={{ fontSize:'30px' }}>✅</div>
                             <div style={{ fontSize:'15px', fontWeight:'800', color:'#065f46', marginTop:'4px' }}>All saved!</div>
-                            <div style={{ fontSize:'13px', color:'#047857', marginTop:'6px', lineHeight:1.6 }}>
-                                {t.newTrades} trade{t.newTrades === 1 ? '' : 's'} added across {rows.filter(r => r.newTrades > 0).length} account{rows.filter(r => r.newTrades > 0).length === 1 ? '' : 's'}
-                                {t.newAccounts > 0 ? ` (${t.newAccounts} brand new)` : ''}.
-                                {t.alreadySaved > 0 ? ` ${t.alreadySaved} were already there and were left as they were.` : ''}
+                            <div style={{ fontSize:'13px', color:'#047857', marginTop:'6px', lineHeight:1.7 }}>
+                                {t.newTrades > 0 && <div>{plural(t.newTrades, 'trade', 'trades')} added{t.newAccounts > 0 ? ` (${t.newAccounts} brand new ${t.newAccounts === 1 ? 'account' : 'accounts'})` : ''}.</div>}
+                                {t.willUpdate > 0 && <div>{plural(t.willUpdate, 'saved entry', 'saved entries')} updated to match {normalise ? 'the normalised values' : 'your real P&L'}.</div>}
+                                {t.profitLabelled > 0 && <div>Earlier “Profit” labels are now “Win”.</div>}
+                                {t.capitalChanges > 0 && <div>Starting capital set to ${parseFloat(capital).toLocaleString()} on {plural(t.capitalChanges, 'account', 'accounts')}.</div>}
+                                {workToDo === 0 && <div>Everything was already up to date.</div>}
                             </div>
                         </div>
                     ) : (
                         <>
-                            <div style={{ display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center', marginBottom:'12px' }}>
+                            <div style={{ display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center', marginBottom:'10px' }}>
+                                <span style={{ display:'inline-flex', alignItems:'center', gap:'8px' }}>
+                                    <span style={{ fontSize:'12px', fontWeight:'700', color:'#475569' }}>Saved amounts</span>
+                                    <span style={{ display:'inline-flex' }}>
+                                        <button onClick={() => setValuesMode('real')} title="Each trade's actual realized dollars" style={seg(valuesMode === 'real', true)}>Real P&L</button>
+                                        <button onClick={() => setValuesMode('normalised')} title="Every trade replayed with the same size and the same TP/SL" style={seg(valuesMode === 'normalised', false)}>Normalised</button>
+                                    </span>
+                                </span>
                                 <label style={{ fontSize:'12px', fontWeight:'700', color:'#475569' }}>
-                                    Starting capital for new accounts $
-                                    <input type="number" min="1" value={capital} onChange={e => setCapital(e.target.value)}
-                                        style={{ width:'110px', marginLeft:'6px', padding:'5px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'13px' }} />
+                                    {normalise ? 'Account size' : 'Starting capital for new accounts'} $
+                                    <input type="number" min="1" value={capital} onChange={e => setCapital(e.target.value)} style={{ ...inp, width:'110px', marginLeft:'6px' }} />
                                 </label>
                                 <label style={{ fontSize:'12px', fontWeight:'700', color:'#475569' }}>
                                     Strategy label
-                                    <select value={strategyMode} onChange={e => setStrategyMode(e.target.value)}
-                                        style={{ marginLeft:'6px', padding:'5px 8px', borderRadius:'7px', border:'1px solid #cbd5e1', fontSize:'12px' }}>
+                                    <select value={strategyMode} onChange={e => setStrategyMode(e.target.value)} style={{ ...inp, marginLeft:'6px', fontSize:'12px' }}>
                                         <option value="source_lens">Source + lens (e.g. Trend Scanner (1h))</option>
                                         <option value="source">Source only (e.g. Trend Scanner)</option>
                                     </select>
                                 </label>
                             </div>
 
+                            {normalise && (
+                                <div style={{ padding:'10px 14px', borderRadius:'10px', backgroundColor:'#fffbeb', border:'1px solid #fde68a', marginBottom:'12px' }}>
+                                    <div style={{ display:'flex', gap:'14px', flexWrap:'wrap', alignItems:'center' }}>
+                                        <label style={{ fontSize:'12px', fontWeight:'700', color:'#92400e' }}>TP % <input type="number" step="0.1" min="0.1" value={tp} onChange={e => setTp(e.target.value)} style={{ ...inp, width:'72px', marginLeft:'4px' }} /></label>
+                                        <label style={{ fontSize:'12px', fontWeight:'700', color:'#92400e' }}>SL % <input type="number" step="0.1" min="0.1" value={sl} onChange={e => setSl(e.target.value)} style={{ ...inp, width:'72px', marginLeft:'4px' }} /></label>
+                                        <label style={{ fontSize:'12px', color:'#92400e', display:'inline-flex', alignItems:'center', gap:'6px', cursor:'pointer' }}>
+                                            <input type="checkbox" checked={setCap} onChange={e => setSetCap(e.target.checked)} />
+                                            Also set these accounts' starting capital to ${(parseFloat(capital) || 0).toLocaleString()}
+                                        </label>
+                                    </div>
+                                    <div style={{ fontSize:'11.5px', color:'#92400e', marginTop:'7px', lineHeight:1.6 }}>
+                                        Every closed trade is replayed from its entry at the full account size, so a {parseFloat(tp) || '–'}% move is {parseFloat(tp) || '–'}% of the account
+                                        {parseFloat(capital) > 0 && parseFloat(tp) > 0 ? ` ($${(parseFloat(capital) * parseFloat(tp) / 100).toFixed(2)})` : ''}. Trades you saved earlier are updated to match, and switching back to <b>Real P&L</b> restores the real values.
+                                    </div>
+                                </div>
+                            )}
+
                             {error && <div style={{ padding:'10px 12px', backgroundColor:'#fef2f2', color:'#b91c1c', fontSize:'12px', borderRadius:'8px', marginBottom:'10px' }}>⚠️ {error}</div>}
-                            {loading && !preview && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>⏳ Checking what can be saved…</div>}
+                            {loading && !preview && <div style={{ padding:'24px', textAlign:'center', color:'#94a3b8', fontSize:'13px' }}>⏳ {normalise ? 'Replaying your trades (this can take a few seconds)…' : 'Checking what can be saved…'}</div>}
 
                             {preview && (
-                                rows.length === 0 ? (
+                                rows.length === 0 && !(t.orphanRelabel > 0) ? (
                                     <div style={{ padding:'26px 12px', textAlign:'center', color:'#64748b', fontSize:'13px', lineHeight:1.6 }}>
                                         No closed trades yet. Once a trade reaches its target or stop (or you close it), it will appear here, ready to save.
                                     </div>
                                 ) : (
                                     <>
-                                        <div style={{ fontSize:'13px', color:'#334155', lineHeight:1.6, marginBottom:'10px', opacity: loading ? 0.5 : 1 }}>
-                                            {t.newTrades > 0
-                                                ? <>Ready to save <b>{t.newTrades}</b> new trade{t.newTrades === 1 ? '' : 's'} (<b style={{ color: col(t.newPnl) }}>{money(t.newPnl)}</b>) into <b>{rows.filter(r => r.newTrades > 0).length}</b> account{rows.filter(r => r.newTrades > 0).length === 1 ? '' : 's'}{t.newAccounts > 0 ? `, ${t.newAccounts} of them new` : ''}.</>
-                                                : <>Everything is already saved. Nothing new to add right now. 🎉</>}
-                                            {t.alreadySaved > 0 && <> {t.alreadySaved} trade{t.alreadySaved === 1 ? ' is' : 's are'} already in your accounts and will be skipped, so nothing gets duplicated.</>}
+                                        <div style={{ fontSize:'13px', color:'#334155', lineHeight:1.65, marginBottom:'10px', opacity: loading ? 0.5 : 1 }}>
+                                            {workToDo > 0 ? (
+                                                <>
+                                                    {t.newTrades > 0 && <div>Ready to add <b>{plural(t.newTrades, 'new trade', 'new trades')}</b> ({money(t.newPnl)}){t.newAccounts > 0 ? `, creating ${plural(t.newAccounts, 'new account', 'new accounts')}` : ''}.</div>}
+                                                    {t.willUpdate > 0 && <div><b>{plural(t.willUpdate, 'saved entry', 'saved entries')}</b> will be updated to match {normalise ? 'the normalised values' : 'your real P&L'}.</div>}
+                                                    {t.capitalChanges > 0 && <div>The starting capital of <b>{plural(t.capitalChanges, 'account', 'accounts')}</b> will be set to ${parseFloat(capital).toLocaleString()}.</div>}
+                                                </>
+                                            ) : <div>Everything is already saved and up to date. 🎉</div>}
+                                            {t.profitLabelled > 0 && <div style={{ color:'#0369a1' }}>ℹ️ {plural(t.profitLabelled, 'earlier saved entry is', 'earlier saved entries are')} labelled “Profit”. They'll be relabelled “Win” (or “Loss” if the saved value ends up negative), to match your other accounts.</div>}
+                                            {t.skipped > 0 && <div style={{ color:'#b45309' }}>⚠ {plural(t.skipped, 'trade', 'trades')} couldn't be normalised because price data wasn't available just now. They've been left exactly as they are.</div>}
+                                            <div style={{ color:'#64748b' }}>Saved P&L across these accounts: <b>{money(t.pnlNow)}</b> → <b style={{ color: col(t.pnlAfter) }}>{money(t.pnlAfter)}</b></div>
                                         </div>
-                                        <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px', maxHeight:'34vh', overflowY:'auto' }}>
+                                        <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px', maxHeight:'32vh', overflowY:'auto' }}>
                                             <table style={{ width:'100%', borderCollapse:'collapse' }}>
                                                 <thead><tr style={{ backgroundColor:'#f8fafc', position:'sticky', top:0 }}>
-                                                    {['Account', 'Type', 'Status', 'New trades', 'Already saved', 'P&L (new)'].map(h => <th key={h} style={th}>{h}</th>)}
+                                                    {['Account', 'Status', 'New', 'Updated', 'Saved before', 'Saved P&L now → after'].map(h => <th key={h} style={th}>{h}</th>)}
                                                 </tr></thead>
                                                 <tbody>
-                                                    {rows.map(r => (
-                                                        <tr key={r.name} style={{ borderBottom:'1px solid #f1f5f9', opacity: r.newTrades === 0 ? 0.55 : 1 }}>
-                                                            <td style={{ ...td, fontWeight:'800' }}>{r.name}</td>
-                                                            <td style={{ ...td, color:'#64748b' }}>{r.mainAssets}</td>
-                                                            <td style={td}>
-                                                                <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px',
-                                                                               backgroundColor: r.isNew ? '#dcfce7' : '#e0f2fe', color: r.isNew ? '#166534' : '#075985' }}>
-                                                                    {r.isNew ? '✨ New account' : 'Existing'}
-                                                                </span>
-                                                            </td>
-                                                            <td style={{ ...td, fontWeight:'800' }}>{r.newTrades}</td>
-                                                            <td style={{ ...td, color:'#64748b' }}>{r.alreadySaved || '—'}</td>
-                                                            <td style={{ ...td, fontWeight:'800', color: col(r.newPnl) }}>{r.newTrades ? money(r.newPnl) : '—'}</td>
-                                                        </tr>
-                                                    ))}
+                                                    {rows.map(r => {
+                                                        const idle = r.newTrades === 0 && r.willUpdate === 0 && !r.capitalChange;
+                                                        return (
+                                                            <tr key={r.name} style={{ borderBottom:'1px solid #f1f5f9', opacity: idle ? 0.55 : 1 }}>
+                                                                <td style={{ ...td, fontWeight:'800' }}>{r.name}</td>
+                                                                <td style={td}>
+                                                                    <span style={{ fontSize:'10px', fontWeight:'800', padding:'2px 9px', borderRadius:'10px', backgroundColor: r.isNew ? '#dcfce7' : '#e0f2fe', color: r.isNew ? '#166534' : '#075985' }}>
+                                                                        {r.isNew ? '✨ New account' : 'Existing'}
+                                                                    </span>
+                                                                    {r.capitalChange && <span title={`Starting capital $${(r.capitalNow || 0).toLocaleString()} → $${parseFloat(capital).toLocaleString()}`} style={{ marginLeft:'5px', fontSize:'10px', fontWeight:'800', color:'#b45309' }}>💰 capital</span>}
+                                                                </td>
+                                                                <td style={{ ...td, fontWeight:'800' }}>{r.newTrades || '—'}</td>
+                                                                <td style={{ ...td, fontWeight:'800', color: r.willUpdate ? '#0f766e' : '#94a3b8' }}>{r.willUpdate || '—'}</td>
+                                                                <td style={{ ...td, color:'#64748b' }}>{r.alreadySaved || '—'}</td>
+                                                                <td style={{ ...td, fontWeight:'800' }}>
+                                                                    <span style={{ color:'#64748b' }}>{r.alreadySaved ? money(r.pnlNow) : '—'}</span> → <span style={{ color: col(r.pnlAfter) }}>{money(r.pnlAfter)}</span>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -7997,7 +8055,7 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
                                 )
                             )}
                             <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'10px', lineHeight:1.6 }}>
-                                Nothing is saved until you press the green button. Only closed trades are included, so open ones join in once they close. It's safe to press this again whenever you like.
+                                Nothing is saved until you press the green button, and the table above shows exactly what would change. Only closed trades are included, so open ones join in once they close. It's safe to press this again whenever you like. If you edit a saved amount by hand in your accounts sections, the next update will bring it back in line with the setting above.
                             </div>
                         </>
                     )}
@@ -8008,12 +8066,12 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000 }) {
                         {result ? 'Done' : 'Close'}
                     </button>
                     {!result && (
-                        <button onClick={save} disabled={saving || loading || !(t.newTrades > 0)} style={{
+                        <button onClick={save} disabled={saving || loading || workToDo === 0} style={{
                             padding:'9px 20px', borderRadius:'9px', border:'none', color:'#fff', fontWeight:'800', fontSize:'13px',
-                            cursor: (saving || loading || !(t.newTrades > 0)) ? 'not-allowed' : 'pointer',
-                            background: (saving || loading || !(t.newTrades > 0)) ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
+                            cursor: (saving || loading || workToDo === 0) ? 'not-allowed' : 'pointer',
+                            background: (saving || loading || workToDo === 0) ? 'rgba(16,185,129,0.4)' : 'linear-gradient(135deg,#10b981,#059669)',
                         }}>
-                            {saving ? '⏳ Saving…' : `💾 Save ${t.newTrades || 0} trade${t.newTrades === 1 ? '' : 's'}`}
+                            {saving ? '⏳ Saving…' : workToDo === 0 ? '💾 Nothing to save' : `💾 Save changes${saveParts.length ? ` (${saveParts.join(' · ')})` : ''}`}
                         </button>
                     )}
                 </div>
@@ -8636,6 +8694,8 @@ function PositionsPanelModal({ isOpen, onClose, onSelectTicker }) {
                 isOpen={showAccountSync}
                 onClose={() => setShowAccountSync(false)}
                 defaultCapital={parseFloat(normAccount) || 10000}
+                defaultTp={parseFloat(normTp) || 2}
+                defaultSl={parseFloat(normSl) || 1}
             />
 
             {chartPosition && (
