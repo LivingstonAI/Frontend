@@ -7910,11 +7910,14 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000, defaultTp =
         backgroundColor: active ? '#0f766e' : '#fff', color: active ? '#fff' : '#0f766e',
     });
 
-    const workToDo = (t.newTrades || 0) + (t.willUpdate || 0) + (t.orphanRelabel || 0) + (t.capitalChanges || 0);
+    const workToDo = (t.newTrades || 0) + (t.willUpdate || 0) + (t.orphanRelabel || 0) + (t.capitalChanges || 0) + (t.sectorFixes || 0) + (t.signFixes || 0);
+
     const saveParts = [
         t.newTrades ? `${t.newTrades} new` : null,
         t.willUpdate ? `${t.willUpdate} updated` : null,
         (t.capitalChanges ? `${t.capitalChanges} capital` : null),
+        (t.sectorFixes ? `${t.sectorFixes} sectors` : null),
+        (t.signFixes ? `${t.signFixes} signs` : null),
     ].filter(Boolean);
 
     const linksBox = (
@@ -7957,6 +7960,8 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000, defaultTp =
                                 {t.willUpdate > 0 && <div>{plural(t.willUpdate, 'saved entry', 'saved entries')} updated to match {normalise ? 'the normalised values' : 'your real P&L'}.</div>}
                                 {t.profitLabelled > 0 && <div>Earlier “Profit” labels are now “Win”.</div>}
                                 {t.capitalChanges > 0 && <div>Starting capital set to ${parseFloat(capital).toLocaleString()} on {plural(t.capitalChanges, 'account', 'accounts')}.</div>}
+                                {t.sectorFixes > 0 && <div>Sectors filled in for {plural(t.sectorFixes, 'entry', 'entries')}.</div>}
+                                {t.signFixes > 0 && <div>{plural(t.signFixes, 'saved loss now has', 'saved losses now have')} its minus sign.</div>}
                                 {workToDo === 0 && <div>Everything was already up to date.</div>}
                             </div>
                         </div>
@@ -8019,13 +8024,15 @@ function AccountSyncModal({ isOpen, onClose, defaultCapital = 10000, defaultTp =
                                                 </>
                                             ) : <div>Everything is already saved and up to date. 🎉</div>}
                                             {t.profitLabelled > 0 && <div style={{ color:'#0369a1' }}>ℹ️ {plural(t.profitLabelled, 'earlier saved entry is', 'earlier saved entries are')} labelled “Profit”. They'll be relabelled “Win” (or “Loss” if the saved value ends up negative), to match your other accounts.</div>}
+                                            {t.sectorFixes > 0 && <div>🏷 <b>{plural(t.sectorFixes, 'entry', 'entries')}</b> will get a sector from your sector mapping.</div>}
+                                            {t.signFixes > 0 && <div>➖ <b>{plural(t.signFixes, 'saved loss is', 'saved losses are')}</b> stored without a minus sign. They'll be corrected so every loss is negative.</div>}
+                                            {t.unknownSectors > 0 && <div style={{ color:'#b45309' }}>ℹ️ {plural(t.unknownSectors, 'asset is', 'assets are')} not in your sector mapping yet, so {t.unknownSectors === 1 ? 'it shows' : 'they show'} as “Unknown”. You can see which in the table below.</div>}
                                             {t.skipped > 0 && <div style={{ color:'#b45309' }}>⚠ {plural(t.skipped, 'trade', 'trades')} couldn't be normalised because price data wasn't available just now. They've been left exactly as they are.</div>}
                                             <div style={{ color:'#64748b' }}>Saved P&L across these accounts: <b>{money(t.pnlNow)}</b> → <b style={{ color: col(t.pnlAfter) }}>{money(t.pnlAfter)}</b></div>
                                         </div>
                                         <div style={{ overflowX:'auto', border:'1px solid #e2e8f0', borderRadius:'10px', maxHeight:'32vh', overflowY:'auto' }}>
                                             <table style={{ width:'100%', borderCollapse:'collapse' }}>
                                                 <thead><tr style={{ backgroundColor:'#f8fafc', position:'sticky', top:0 }}>
-                                                    {['Account', 'Status', 'New', 'Updated', 'Saved before', 'Saved P&L now → after'].map(h => <th key={h} style={th}>{h}</th>)}
                                                 </tr></thead>
                                                 <tbody>
                                                     {rows.map(r => {
